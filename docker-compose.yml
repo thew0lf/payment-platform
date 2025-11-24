@@ -1,0 +1,104 @@
+version: '3.8'
+services:
+  # Core Application Services
+  api:
+    build: 
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/payment_platform
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - payment-platform
+
+  admin-dashboard:
+    build:
+      context: ./apps/admin-dashboard
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3002:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3000
+    volumes:
+      - ./apps/admin-dashboard:/app
+      - /app/node_modules
+    networks:
+      - payment-platform
+
+  company-portal:
+    build:
+      context: ./apps/company-portal
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3003:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3000
+    volumes:
+      - ./apps/company-portal:/app
+      - /app/node_modules
+    networks:
+      - payment-platform
+
+  # Data Services
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=payment_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - payment-platform
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - payment-platform
+
+  # Development Tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@paymentplatform.dev
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - payment-platform
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - payment-platform
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  payment-platform:
+    driver: bridge

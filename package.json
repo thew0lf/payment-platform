@@ -1,0 +1,30 @@
+{
+  "name": "payment-platform",
+  "version": "1.0.0",
+  "description": "Hierarchical multi-tenant payment orchestration platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo run clean",
+    "docs:dev": "cd docs && docsify serve .",
+    "setup": "make setup"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^1.10.12",
+    "prettier": "^3.0.0",
+    "turbo": "^1.10.12",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
