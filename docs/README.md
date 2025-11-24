@@ -45,8 +45,32 @@ This platform serves a hierarchical structure:
 
 See [Development Guide](guides/development.md) for detailed development instructions.
 
+## Continuity Framework
+
+The platform integrates Chase Hughes' NCI (Non-Verbal Communication Influence) and Engineered Reality principles for payment optimization:
+
+- **Behavioral Momentum**: Maintain psychological commitment through the payment flow
+- **Trust Architecture**: Build trust through environmental cues and social proof
+- **Friction Calibration**: Strategic friction - reduced for legitimate actions, added to prevent errors
+- **Cognitive Continuity**: Consistent mental models and reduced cognitive load
+
+See [Continuity Framework Documentation](CONTINUITY_FRAMEWORK.md) for detailed implementation.
+
+### Continuity API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/continuity/config` | Get current configuration |
+| `PUT /api/continuity/config` | Update configuration |
+| `POST /api/continuity/flow` | Start payment flow |
+| `GET /api/continuity/flow/:id` | Get flow state |
+| `POST /api/continuity/friction/calculate` | Calculate friction level |
+| `GET /api/continuity/trust-signals` | Get trust signals |
+| `GET /api/continuity/metrics` | Get continuity metrics |
+
 ## Documentation
 
 - [Architecture Overview](architecture/README.md)
 - [API Documentation](api/README.md)
+- [Continuity Framework](CONTINUITY_FRAMEWORK.md)
 - [Deployment Guide](guides/deployment.md)
