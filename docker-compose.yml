@@ -48,6 +48,23 @@ services:
     networks:
       - payment-platform
 
+  billing-portal:
+    build:
+      context: ./apps/billing-portal
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3004:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3000
+      - NEXT_PUBLIC_PLATFORM_NAME=Billing Portal - NCI Engineered Reality
+    volumes:
+      - ./apps/billing-portal:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    networks:
+      - payment-platform
+
   # Data Services
   postgres:
     image: postgres:15-alpine
