@@ -1,0 +1,545 @@
+// Payment Platform - Prisma Schema
+// Multi-tenant hierarchical payment orchestration platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// HIERARCHY MODELS
+// Organization → Client → Company → Department → Team → User
+// =============================================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  domain    String?  @unique
+  logo      String?
+  settings  Json     @default("{}")
+
+  // Billing
+  billingEmail    String?
+  billingPlan     BillingPlan @default(STARTER)
+  billingStatus   BillingStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  clients   Client[]
+  users     User[]   @relation("OrganizationUsers")
+  apiKeys   ApiKey[]
+
+  @@map("organizations")
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  settings       Json     @default("{}")
+
+  // Client plan/status
+  plan          ClientPlan   @default(BASIC)
+  status        EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  companies    Company[]
+  users        User[]       @relation("ClientUsers")
+
+  @@unique([organizationId, slug])
+  @@map("clients")
+}
+
+model Company {
+  id            String   @id @default(cuid())
+  clientId      String
+  name          String
+  slug          String
+  domain        String?
+  logo          String?
+  timezone      String   @default("UTC")
+  currency      String   @default("USD")
+  settings      Json     @default("{}")
+
+  // Payment configuration
+  paymentConfig Json     @default("{}")
+
+  // Status
+  status        EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client             Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  departments        Department[]
+  users              User[]              @relation("CompanyUsers")
+  paymentProviders   PaymentProvider[]
+  subscriptions      Subscription[]
+  transactions       Transaction[]
+  customers          Customer[]
+
+  @@unique([clientId, slug])
+  @@map("companies")
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  slug      String
+  description String?
+  settings  Json     @default("{}")
+
+  // Status
+  status    EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  teams     Team[]
+  users     User[]   @relation("DepartmentUsers")
+
+  @@unique([companyId, slug])
+  @@map("departments")
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  departmentId String
+  name         String
+  slug         String
+  description  String?
+  settings     Json     @default("{}")
+
+  // Team lead
+  teamLeadId   String?
+
+  // Status
+  status       EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  department  Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teamLead    User?        @relation("TeamLead", fields: [teamLeadId], references: [id])
+  members     TeamMember[]
+
+  @@unique([departmentId, slug])
+  @@map("teams")
+}
+
+// =============================================================================
+// USER & ACCESS CONTROL
+// =============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  phone         String?
+
+  // Auth
+  auth0Id       String?  @unique
+  emailVerified Boolean  @default(false)
+  lastLoginAt   DateTime?
+
+  // Primary scope (where user was created)
+  scopeType     ScopeType
+  scopeId       String
+
+  // Global role
+  role          UserRole @default(USER)
+
+  // Status
+  status        UserStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Direct relations to hierarchy levels
+  organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
+  organizationId String?
+
+  client         Client?       @relation("ClientUsers", fields: [clientId], references: [id])
+  clientId       String?
+
+  company        Company?      @relation("CompanyUsers", fields: [companyId], references: [id])
+  companyId      String?
+
+  department     Department?   @relation("DepartmentUsers", fields: [departmentId], references: [id])
+  departmentId   String?
+
+  // Team memberships (many-to-many)
+  teamMemberships TeamMember[]
+  teamsLed        Team[]       @relation("TeamLead")
+
+  // Activity
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     TeamRole @default(MEMBER)
+
+  // Timestamps
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// =============================================================================
+// PAYMENT MODELS
+// =============================================================================
+
+model PaymentProvider {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  type      PaymentProviderType
+
+  // Credentials (encrypted)
+  credentials Json
+
+  // Configuration
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+  priority    Int     @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("payment_providers")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  companyId String
+
+  // Customer info
+  email       String
+  firstName   String?
+  lastName    String?
+  phone       String?
+
+  // Billing address
+  billingAddress Json?
+
+  // Payment methods (stored tokens)
+  paymentMethods Json @default("[]")
+
+  // Metadata
+  metadata    Json   @default("{}")
+
+  // Status
+  status      CustomerStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  transactions  Transaction[]
+
+  @@unique([companyId, email])
+  @@map("customers")
+}
+
+model Subscription {
+  id         String   @id @default(cuid())
+  companyId  String
+  customerId String
+
+  // Plan details
+  planName    String
+  planAmount  Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  interval    BillingInterval
+
+  // Billing cycle
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  nextBillingDate    DateTime?
+
+  // Trial
+  trialStart DateTime?
+  trialEnd   DateTime?
+
+  // Status
+  status     SubscriptionStatus @default(ACTIVE)
+  canceledAt DateTime?
+  cancelReason String?
+
+  // Metadata
+  metadata   Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("subscriptions")
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  companyId        String
+  customerId       String?
+  subscriptionId   String?
+  paymentProviderId String?
+
+  // Transaction details
+  type             TransactionType
+  amount           Decimal  @db.Decimal(10, 2)
+  currency         String   @default("USD")
+  description      String?
+
+  // Provider response
+  providerTransactionId String?
+  providerResponse      Json?
+
+  // Status
+  status           TransactionStatus @default(PENDING)
+  failureReason    String?
+
+  // Continuity tracking
+  continuitySessionId String?
+  frictionLevel       String?
+  momentumScore       Int?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  processedAt DateTime?
+
+  // Relations
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  subscription    Subscription?    @relation(fields: [subscriptionId], references: [id])
+  paymentProvider PaymentProvider? @relation(fields: [paymentProviderId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([customerId])
+  @@index([status])
+  @@map("transactions")
+}
+
+// =============================================================================
+// SYSTEM MODELS
+// =============================================================================
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  keyHash        String   @unique
+  keyPrefix      String   // First 8 chars for identification
+
+  // Permissions
+  scopes         String[] @default([])
+
+  // Usage
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+
+  // Status
+  isActive       Boolean  @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+
+  // What happened
+  action    String
+  entity    String
+  entityId  String?
+
+  // Context
+  scopeType ScopeType?
+  scopeId   String?
+
+  // Details
+  changes   Json?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+
+  // Timestamp
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum BillingPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+  CUSTOM
+}
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  SUSPENDED
+}
+
+enum ClientPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum ScopeType {
+  ORGANIZATION
+  CLIENT
+  COMPANY
+  DEPARTMENT
+  TEAM
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum TeamRole {
+  LEAD
+  MEMBER
+  VIEWER
+}
+
+enum PaymentProviderType {
+  PAYFLOW
+  NMI
+  AUTHORIZE_NET
+  STRIPE
+  BRAINTREE
+  CUSTOM
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum BillingInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  PAST_DUE
+  TRIALING
+  EXPIRED
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+  VOID
+  CHARGEBACK
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  VOIDED
+  DISPUTED
+}
