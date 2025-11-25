@@ -1,5 +1,6 @@
 // Payment Platform - Prisma Schema
 // Multi-tenant hierarchical payment orchestration platform
+// SOC2, PCI-DSS, ISO 27001 Compliant Design
 
 generator client {
   provider = "prisma-client-js"
@@ -96,6 +97,8 @@ model Company {
   subscriptions      Subscription[]
   transactions       Transaction[]
   customers          Customer[]
+  products           Product[]
+  orders             Order[]
 
   @@unique([clientId, slug])
   @@map("companies")
@@ -226,33 +229,8 @@ model TeamMember {
 }
 
 // =============================================================================
-// PAYMENT MODELS
+// CUSTOMER & ADDRESS MODELS
 // =============================================================================
-
-model PaymentProvider {
-  id        String   @id @default(cuid())
-  companyId String
-  name      String
-  type      PaymentProviderType
-
-  // Credentials (encrypted)
-  credentials Json
-
-  // Configuration
-  isDefault   Boolean @default(false)
-  isActive    Boolean @default(true)
-  priority    Int     @default(0)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-
-  @@map("payment_providers")
-}
 
 model Customer {
   id        String   @id @default(cuid())
@@ -263,12 +241,6 @@ model Customer {
   firstName   String?
   lastName    String?
   phone       String?
-
-  // Billing address
-  billingAddress Json?
-
-  // Payment methods (stored tokens)
-  paymentMethods Json @default("[]")
 
   // Metadata
   metadata    Json   @default("{}")
@@ -281,12 +253,500 @@ model Customer {
   updatedAt DateTime @updatedAt
 
   // Relations
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-  transactions  Transaction[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  addresses       Address[]
+  billingAccounts BillingAccount[]
+  paymentVaults   PaymentVault[]
+  subscriptions   Subscription[]
+  transactions    Transaction[]
+  orders          Order[]
 
   @@unique([companyId, email])
   @@map("customers")
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  customerId String
+
+  // Address type
+  type       AddressType @default(BOTH)
+  label      String?     // "Home", "Office", "Warehouse"
+  isDefault  Boolean     @default(false)
+
+  // Contact
+  firstName  String
+  lastName   String
+  company    String?
+  phone      String?
+
+  // Address fields
+  street1    String
+  street2    String?
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("US")
+
+  // Delivery
+  deliveryInstructions String?
+
+  // Validation
+  isValidated  Boolean   @default(false)
+  validatedAt  DateTime?
+  validationResponse Json?
+
+  // Status
+  status     EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, type])
+  @@map("addresses")
+}
+
+// =============================================================================
+// PAYMENT VAULT & BILLING (PCI-DSS COMPLIANT)
+// =============================================================================
+
+model PaymentVault {
+  id         String   @id @default(cuid())
+  customerId String
+
+  // Payment method type
+  type       PaymentMethodType
+
+  // Gateway reference (never store raw card data)
+  gatewayCustomerId String?  // Customer ID at payment gateway
+  gatewayPaymentId  String?  // Payment method ID at gateway
+
+  // Encrypted token (AES-256-GCM)
+  // Contains gateway token, encrypted at application level
+  encryptedToken    String
+  keyVersion        Int      @default(1)  // For key rotation
+
+  // Display data only (safe to store)
+  last4             String   // Last 4 digits
+  brand             String?  // VISA, MASTERCARD, AMEX, etc.
+  expMonth          Int?     // Card expiry month
+  expYear           Int?     // Card expiry year
+  bankName          String?  // For ACH
+  accountType       String?  // checking, savings
+
+  // Fingerprint for duplicate detection
+  fingerprint       String?
+
+  // Billing address (reference for AVS)
+  billingAddressSnapshot Json?
+
+  // Status
+  isDefault         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+
+  // Compliance
+  consentRecordedAt DateTime?
+  consentIp         String?
+
+  // Usage tracking
+  lastUsedAt        DateTime?
+  usageCount        Int      @default(0)
+
+  // Expiration
+  expiresAt         DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  billingAccounts BillingAccount[]
+  transactions    Transaction[]
+
+  @@index([customerId, isActive])
+  @@index([fingerprint])
+  @@map("payment_vaults")
+}
+
+model BillingAccount {
+  id         String   @id @default(cuid())
+  customerId String
+
+  // Display name
+  name       String?  // "Primary Card", "Business Account"
+
+  // Default payment method
+  paymentVaultId String?
+
+  // Billing address (current, updatable)
+  billingAddress Json
+
+  // Auto-pay settings
+  autoPayEnabled  Boolean @default(true)
+  autoPayDay      Int?    // Day of month for auto-pay
+
+  // Status
+  isDefault       Boolean @default(false)
+  status          EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  paymentVault PaymentVault? @relation(fields: [paymentVaultId], references: [id])
+  orders       Order[]
+
+  @@index([customerId])
+  @@map("billing_accounts")
+}
+
+// =============================================================================
+// PRODUCT CATALOG (COFFEE)
+// =============================================================================
+
+model Product {
+  id          String   @id @default(cuid())
+  companyId   String
+
+  // Product identification
+  sku         String
+  name        String
+  slug        String
+  description String?
+
+  // Category
+  category    ProductCategory
+  subcategory String?
+
+  // Coffee-specific attributes
+  roastLevel    RoastLevel?
+  origin        String?       // "Ethiopia", "Colombia", "Brazil Blend"
+  flavorNotes   String[]      // ["chocolate", "citrus", "nutty"]
+  process       String?       // "washed", "natural", "honey"
+  altitude      String?       // "1800-2200m"
+  varietal      String?       // "Bourbon", "Typica", "Gesha"
+
+  // Sizing
+  weight        Decimal?  @db.Decimal(10, 2)
+  weightUnit    String    @default("oz")  // oz, g, lb, kg
+
+  // Pricing
+  price           Decimal  @db.Decimal(10, 2)
+  compareAtPrice  Decimal? @db.Decimal(10, 2)
+  costPrice       Decimal? @db.Decimal(10, 2)  // For margin tracking
+  currency        String   @default("USD")
+
+  // Subscription settings
+  isSubscribable      Boolean @default(true)
+  subscriptionDiscount Decimal? @db.Decimal(5, 2)  // Percentage
+
+  // Inventory
+  trackInventory  Boolean @default(true)
+  stockQuantity   Int     @default(0)
+  lowStockThreshold Int   @default(10)
+
+  // Status
+  status          ProductStatus @default(ACTIVE)
+  isVisible       Boolean       @default(true)
+
+  // SEO/Display
+  images          Json    @default("[]")  // Array of image URLs
+  metaTitle       String?
+  metaDescription String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([companyId, sku])
+  @@unique([companyId, slug])
+  @@index([companyId, category])
+  @@map("products")
+}
+
+// =============================================================================
+// ORDER SYSTEM (IMMUTABLE HISTORICAL RECORDS)
+// =============================================================================
+
+model Order {
+  id              String   @id @default(cuid())
+  companyId       String
+  customerId      String
+  subscriptionId  String?
+  billingAccountId String?
+
+  // Order identification
+  orderNumber     String   @unique
+  externalId      String?  // External system reference
+
+  // Order type
+  type            OrderType @default(ONE_TIME)
+
+  // Status
+  status          OrderStatus @default(PENDING)
+
+  // ===========================================
+  // ADDRESS SNAPSHOTS (Immutable after lock)
+  // ===========================================
+
+  // Shipping address - copied at order, editable until locked
+  shippingSnapshot    Json
+  shippingAddressId   String?  // Reference to original address
+
+  // Billing address - copied at order, editable until locked
+  billingSnapshot     Json
+  billingAddressId    String?  // Reference to original address
+
+  // Address lock mechanism
+  addressLockedAt     DateTime?  // null = editable, set = frozen
+  addressLockedBy     String?    // "system", "fulfillment", userId
+
+  // ===========================================
+  // ORDER TOTALS
+  // ===========================================
+
+  subtotal        Decimal  @db.Decimal(10, 2)
+  discountAmount  Decimal  @db.Decimal(10, 2) @default(0)
+  discountCode    String?
+  shippingAmount  Decimal  @db.Decimal(10, 2) @default(0)
+  taxAmount       Decimal  @db.Decimal(10, 2) @default(0)
+  total           Decimal  @db.Decimal(10, 2)
+  currency        String   @default("USD")
+
+  // ===========================================
+  // PAYMENT
+  // ===========================================
+
+  paymentStatus   PaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  paymentMethod   String?       // Snapshot: "VISA ending 4242"
+
+  // ===========================================
+  // FULFILLMENT TRACKING
+  // ===========================================
+
+  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
+  fulfilledAt       DateTime?
+
+  // Customer notes
+  customerNotes   String?
+  internalNotes   String?
+
+  // Metadata
+  metadata        Json @default("{}")
+
+  // Continuity tracking
+  continuitySessionId String?
+  frictionLevel       String?
+  momentumScore       Int?
+
+  // ===========================================
+  // TIMESTAMPS
+  // ===========================================
+
+  orderedAt       DateTime @default(now())  // When customer placed order
+  confirmedAt     DateTime?                 // When payment confirmed
+  canceledAt      DateTime?
+  cancelReason    String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id])
+  billingAccount  BillingAccount? @relation(fields: [billingAccountId], references: [id])
+  items           OrderItem[]
+  shipments       Shipment[]
+  transactions    Transaction[]
+
+  @@index([companyId, orderedAt])
+  @@index([customerId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?  // Nullable for deleted products
+
+  // ===========================================
+  // PRODUCT SNAPSHOT (Immutable)
+  // Captures product state at time of order
+  // ===========================================
+
+  sku           String
+  name          String
+  description   String?
+
+  // Product attributes snapshot
+  productSnapshot Json    // Full product data at order time
+
+  // Quantity & Pricing
+  quantity      Int
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  discountAmount Decimal @db.Decimal(10, 2) @default(0)
+  taxAmount     Decimal  @db.Decimal(10, 2) @default(0)
+  totalPrice    Decimal  @db.Decimal(10, 2)
+
+  // Fulfillment
+  fulfilledQuantity Int @default(0)
+  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// =============================================================================
+// SHIPPING & FULFILLMENT
+// =============================================================================
+
+model Shipment {
+  id        String   @id @default(cuid())
+  orderId   String
+
+  // Shipment identification
+  shipmentNumber String @unique
+
+  // Carrier & Tracking
+  carrier         ShippingCarrier
+  carrierService  String?         // "Priority Mail", "Ground", "2-Day"
+  trackingNumber  String?
+  trackingUrl     String?
+
+  // Shipping method used
+  shippingMethod  ShippingMethod @default(GROUND)
+
+  // Package details
+  weight          Decimal?  @db.Decimal(10, 2)
+  weightUnit      String    @default("oz")
+  length          Decimal?  @db.Decimal(10, 2)
+  width           Decimal?  @db.Decimal(10, 2)
+  height          Decimal?  @db.Decimal(10, 2)
+  dimensionUnit   String    @default("in")
+
+  // Cost
+  shippingCost    Decimal?  @db.Decimal(10, 2)
+  insuranceAmount Decimal?  @db.Decimal(10, 2)
+
+  // Labels
+  shippingLabelUrl  String?
+  returnLabelUrl    String?
+
+  // Address snapshot (from order at time of shipment)
+  shippingAddressSnapshot Json
+
+  // Status
+  status          ShipmentStatus @default(PENDING)
+
+  // Estimated dates
+  estimatedShipDate     DateTime?
+  estimatedDeliveryDate DateTime?
+
+  // Actual dates
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+
+  // Signature
+  signatureRequired Boolean @default(false)
+  signedBy          String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order  Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  events ShipmentEvent[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@map("shipments")
+}
+
+model ShipmentEvent {
+  id         String   @id @default(cuid())
+  shipmentId String
+
+  // Event details
+  status      ShipmentEventType
+  description String
+  location    String?
+
+  // Raw carrier data
+  carrierCode     String?
+  carrierMessage  String?
+  carrierData     Json?
+
+  // When it happened
+  occurredAt DateTime
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, occurredAt])
+  @@map("shipment_events")
+}
+
+// =============================================================================
+// PAYMENT PROVIDER & TRANSACTIONS
+// =============================================================================
+
+model PaymentProvider {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  type      PaymentProviderType
+
+  // Credentials (encrypted at application level)
+  encryptedCredentials String
+  keyVersion           Int     @default(1)
+
+  // Configuration
+  isDefault    Boolean @default(false)
+  isActive     Boolean @default(true)
+  priority     Int     @default(0)
+  environment  String  @default("sandbox")  // sandbox, production
+
+  // Supported features
+  supportsRefunds     Boolean @default(true)
+  supportsVoid        Boolean @default(true)
+  supportsRecurring   Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("payment_providers")
 }
 
 model Subscription {
@@ -309,10 +769,18 @@ model Subscription {
   trialStart DateTime?
   trialEnd   DateTime?
 
+  // Shipping preference for subscription orders
+  shippingAddressId String?
+  shippingPreferences Json @default("{}")
+
   // Status
   status     SubscriptionStatus @default(ACTIVE)
   canceledAt DateTime?
   cancelReason String?
+
+  // Pause functionality
+  pausedAt     DateTime?
+  pauseResumeAt DateTime?
 
   // Metadata
   metadata   Json @default("{}")
@@ -325,16 +793,22 @@ model Subscription {
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  orders       Order[]
 
   @@map("subscriptions")
 }
 
 model Transaction {
-  id               String   @id @default(cuid())
-  companyId        String
-  customerId       String?
-  subscriptionId   String?
+  id                String   @id @default(cuid())
+  companyId         String
+  customerId        String?
+  subscriptionId    String?
+  orderId           String?
   paymentProviderId String?
+  paymentVaultId    String?
+
+  // Transaction reference
+  transactionNumber String   @unique
 
   // Transaction details
   type             TransactionType
@@ -349,6 +823,19 @@ model Transaction {
   // Status
   status           TransactionStatus @default(PENDING)
   failureReason    String?
+  failureCode      String?
+
+  // Refund tracking
+  refundedAmount   Decimal? @db.Decimal(10, 2)
+  parentTransactionId String?  // For refunds, links to original charge
+
+  // Risk & Fraud
+  riskScore        Int?
+  riskFlags        String[]
+
+  // AVS/CVV results
+  avsResult        String?
+  cvvResult        String?
 
   // Continuity tracking
   continuitySessionId String?
@@ -356,18 +843,21 @@ model Transaction {
   momentumScore       Int?
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   processedAt DateTime?
 
   // Relations
   company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer        Customer?        @relation(fields: [customerId], references: [id])
   subscription    Subscription?    @relation(fields: [subscriptionId], references: [id])
+  order           Order?           @relation(fields: [orderId], references: [id])
   paymentProvider PaymentProvider? @relation(fields: [paymentProviderId], references: [id])
+  paymentVault    PaymentVault?    @relation(fields: [paymentVaultId], references: [id])
 
   @@index([companyId, createdAt])
   @@index([customerId])
+  @@index([orderId])
   @@index([status])
   @@map("transactions")
 }
@@ -422,6 +912,9 @@ model AuditLog {
   ipAddress String?
   userAgent String?
 
+  // Data classification (for compliance)
+  dataClassification DataClassification?
+
   // Timestamp
   createdAt DateTime @default(now())
 
@@ -430,6 +923,7 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([userId, createdAt])
+  @@index([action, createdAt])
   @@map("audit_logs")
 }
 
@@ -437,6 +931,7 @@ model AuditLog {
 // ENUMS
 // =============================================================================
 
+// Hierarchy & Access
 enum BillingPlan {
   STARTER
   PROFESSIONAL
@@ -494,24 +989,75 @@ enum TeamRole {
   VIEWER
 }
 
-enum PaymentProviderType {
-  PAYFLOW
-  NMI
-  AUTHORIZE_NET
-  STRIPE
-  BRAINTREE
-  CUSTOM
-}
-
+// Customer & Address
 enum CustomerStatus {
   ACTIVE
   INACTIVE
   BLOCKED
 }
 
+enum AddressType {
+  SHIPPING
+  BILLING
+  BOTH
+}
+
+// Payment
+enum PaymentProviderType {
+  PAYFLOW
+  NMI
+  AUTHORIZE_NET
+  STRIPE
+  BRAINTREE
+  SQUARE
+  CUSTOM
+}
+
+enum PaymentMethodType {
+  CARD
+  ACH
+  WALLET_APPLE
+  WALLET_GOOGLE
+  PAYPAL
+  AFFIRM
+  KLARNA
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+  VOIDED
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+  VOID
+  CHARGEBACK
+  ADJUSTMENT
+  AUTHORIZATION
+  CAPTURE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  VOIDED
+  DISPUTED
+}
+
+// Subscription
 enum BillingInterval {
   DAILY
   WEEKLY
+  BIWEEKLY
   MONTHLY
   QUARTERLY
   YEARLY
@@ -526,20 +1072,110 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-enum TransactionType {
-  CHARGE
-  REFUND
-  VOID
-  CHARGEBACK
-  ADJUSTMENT
+// Product
+enum ProductCategory {
+  COFFEE
+  EQUIPMENT
+  MERCHANDISE
+  GIFT_CARD
+  SUBSCRIPTION_BOX
 }
 
-enum TransactionStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
-  VOIDED
-  DISPUTED
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+  OUT_OF_STOCK
+}
+
+enum RoastLevel {
+  LIGHT
+  MEDIUM_LIGHT
+  MEDIUM
+  MEDIUM_DARK
+  DARK
+}
+
+// Order
+enum OrderType {
+  ONE_TIME
+  SUBSCRIPTION
+  GIFT
+  REPLACEMENT
+  SAMPLE
+}
+
+enum OrderStatus {
+  PENDING           // Created, awaiting payment
+  CONFIRMED         // Payment received
+  PROCESSING        // Being prepared (address locked)
+  PARTIALLY_SHIPPED // Some items shipped
+  SHIPPED           // All items shipped
+  DELIVERED         // Customer received
+  COMPLETED         // Finalized
+  CANCELED          // Canceled by customer/system
+  REFUNDED          // Fully refunded
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PARTIALLY_FULFILLED
+  FULFILLED
+  RETURNED
+}
+
+// Shipping
+enum ShippingCarrier {
+  USPS
+  UPS
+  FEDEX
+  DHL
+  AMAZON
+  LOCAL_DELIVERY
+  PICKUP
+  OTHER
+}
+
+enum ShippingMethod {
+  GROUND
+  EXPRESS
+  OVERNIGHT
+  TWO_DAY
+  SAME_DAY
+  PICKUP
+  FREE
+}
+
+enum ShipmentStatus {
+  PENDING           // Label not created
+  LABEL_CREATED     // Label printed, not shipped
+  IN_TRANSIT        // With carrier
+  OUT_FOR_DELIVERY  // On truck for delivery
+  DELIVERED         // Delivered
+  FAILED            // Delivery failed
+  RETURNED          // Returned to sender
+  EXCEPTION         // Problem occurred
+}
+
+enum ShipmentEventType {
+  LABEL_CREATED
+  PICKED_UP
+  IN_TRANSIT
+  ARRIVED_AT_FACILITY
+  DEPARTED_FACILITY
+  OUT_FOR_DELIVERY
+  DELIVERY_ATTEMPTED
+  DELIVERED
+  EXCEPTION
+  RETURNED_TO_SENDER
+}
+
+// Compliance
+enum DataClassification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  PII
+  PCI
+  PHI
 }
