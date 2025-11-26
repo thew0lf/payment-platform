@@ -11,7 +11,7 @@ class CreateTransactionDto { amount: number; currency?: string; card?: CardDto; 
 class CaptureDto { amount?: number; }
 class RefundDto { amount?: number; reason?: string; }
 class TokenizeCardDto { card: CardDto; providerId?: string; }
-class TransactionQueryDto implements TransactionLogQuery { status?: TransactionStatus[]; transactionType?: string[]; providerId?: string; dateFrom?: string; dateTo?: string; minAmount?: number; maxAmount?: number; limit?: number; offset?: number; }
+class TransactionQueryDto { status?: TransactionStatus[]; transactionType?: string[]; providerId?: string; dateFrom?: string; dateTo?: string; minAmount?: number; maxAmount?: number; limit?: number; offset?: number; }
 
 @ApiTags('Payments')
 @ApiBearerAuth()

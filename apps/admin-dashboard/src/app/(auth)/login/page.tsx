@@ -4,12 +4,20 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Zap, AlertCircle } from 'lucide-react';
+import { Zap, AlertCircle, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+
+const demoAccounts = [
+  { label: 'Organization', email: 'admin@avnz.io', color: 'from-cyan-400 to-blue-500' },
+  { label: 'Client', email: 'owner@velocityagency.com', color: 'from-violet-400 to-purple-500' },
+  { label: 'Company', email: 'manager@coffeeco.com', color: 'from-emerald-400 to-green-500' },
+];
 
 export default function LoginPage() {
   const { login, isLoading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,9 +28,18 @@ export default function LoginPage() {
     }
   };
 
+  const fillDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('demo123');
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background gradient orbs */}
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
@@ -33,8 +50,8 @@ export default function LoginPage() {
           </span>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8">
+        {/* Login Card - Glassmorphism */}
+        <div className="backdrop-blur-xl bg-zinc-900/80 border border-zinc-800 rounded-xl p-8">
           <h1 className="text-xl font-semibold text-white text-center mb-2">
             Welcome back
           </h1>
@@ -43,8 +60,8 @@ export default function LoginPage() {
           </p>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
+            <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
             </div>
           )}
@@ -62,35 +79,77 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="text-sm text-zinc-400 mb-1 block">Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Remember me checkbox */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setRememberMe(!rememberMe)}
+                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+              >
+                <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-cyan-500 border-cyan-500' : 'border-zinc-600'} flex items-center justify-center transition-colors`}>
+                  {rememberMe && <Check className="w-3 h-3 text-white" />}
+                </div>
+                Remember me
+              </button>
+              <button type="button" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+                Forgot password?
+              </button>
+            </div>
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
+              )}
             </Button>
           </form>
 
-          {/* Demo accounts */}
+          {/* Demo accounts - Clickable */}
           <div className="mt-6 pt-6 border-t border-zinc-800">
-            <p className="text-xs text-zinc-500 text-center mb-3">Demo accounts (password: demo123)</p>
-            <div className="space-y-2 text-xs text-zinc-400">
-              <div className="flex justify-between">
-                <span>Organization:</span>
-                <code className="text-cyan-400">admin@avnz.io</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Client:</span>
-                <code className="text-cyan-400">owner@velocityagency.com</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Company:</span>
-                <code className="text-cyan-400">manager@coffeeco.com</code>
-              </div>
+            <p className="text-xs text-zinc-500 text-center mb-3">Click to use demo account</p>
+            <div className="space-y-2">
+              {demoAccounts.map((account) => (
+                <button
+                  key={account.email}
+                  onClick={() => fillDemoAccount(account.email)}
+                  className="w-full flex items-center justify-between p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-600 transition-all text-sm group"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-white`}>
+                      {account.label.charAt(0)}
+                    </div>
+                    <span className="text-zinc-400 group-hover:text-zinc-300">{account.label}</span>
+                  </div>
+                  <code className="text-cyan-400 text-xs">{account.email}</code>
+                </button>
+              ))}
             </div>
           </div>
         </div>
