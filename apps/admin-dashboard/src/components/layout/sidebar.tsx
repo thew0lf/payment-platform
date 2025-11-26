@@ -41,7 +41,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Server,
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const {
@@ -206,7 +211,7 @@ export function Sidebar() {
 
           const Icon = iconMap[item.icon] || LayoutDashboard;
           const isActive = pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(item.href));
+            (item.href !== '/' && pathname?.startsWith(item.href));
 
           return (
             <Link

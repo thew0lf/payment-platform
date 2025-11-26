@@ -104,5 +104,5 @@ export type Permission =
   | 'read:payments' | 'write:payments'
   | 'read:routing' | 'write:routing'
   | 'read:analytics' | 'write:analytics'
-  | 'manage:users' | 'manage:billing' | 'manage:settings'
+  | 'manage:users' | 'manage:billing' | 'manage:settings' | 'manage:api_keys'
   | 'view:all_clients' | 'manage:clients' | 'view:admin';

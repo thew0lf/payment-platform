@@ -35,6 +35,13 @@ export interface ContinuityConfig {
   cognitive: CognitiveConfig;
 }
 
+export interface ContinuityConfigUpdate {
+  momentum?: Partial<MomentumConfig>;
+  trust?: Partial<TrustConfig>;
+  friction?: Partial<FrictionConfig>;
+  cognitive?: Partial<CognitiveConfig>;
+}
+
 export interface FlowState {
   sessionId: string;
   currentStep: number;

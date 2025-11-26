@@ -34,3 +34,17 @@ export function formatRelativeTime(date: Date | string): string {
   if (diffDays < 7) return `${diffDays} days ago`;
   return formatDate(d);
 }
+
+export function maskApiKey(key: string): string {
+  if (key.length <= 8) return '********';
+  return key.slice(0, 4) + '...' + key.slice(-4);
+}
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}

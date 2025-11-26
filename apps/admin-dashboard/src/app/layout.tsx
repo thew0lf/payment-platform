@@ -4,6 +4,8 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'avnz.io - Payment Platform',
   description: 'Multi-tenant payment orchestration platform',

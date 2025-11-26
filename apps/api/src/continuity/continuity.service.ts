@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ContinuityConfig,
+  ContinuityConfigUpdate,
   FlowState,
   FrictionLevel,
   ContinuityEvent,
@@ -66,7 +67,7 @@ export class ContinuityService {
   /**
    * Update continuity configuration
    */
-  updateConfig(updates: Partial<ContinuityConfig>): ContinuityConfig {
+  updateConfig(updates: ContinuityConfigUpdate): ContinuityConfig {
     this.config = {
       momentum: { ...this.config.momentum, ...updates.momentum },
       trust: { ...this.config.trust, ...updates.trust },

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeType } from '@prisma/client';
 
-interface UserContext {
+export interface UserContext {
   sub: string;
   scopeType: ScopeType;
   scopeId: string;

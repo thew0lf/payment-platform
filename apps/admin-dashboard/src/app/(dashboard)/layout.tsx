@@ -1,3 +1,5 @@
+'use client';
+
 import { Sidebar } from '@/components/layout/sidebar';
 import { AuthProvider } from '@/contexts/auth-context';
 import { HierarchyProvider } from '@/contexts/hierarchy-context';

@@ -10,9 +10,10 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  onMenuClick?: () => void;
 }
 
-export function Header({ title, subtitle, actions }: HeaderProps) {
+export function Header({ title, subtitle, actions, onMenuClick }: HeaderProps) {
   const { user } = useAuth();
   const { selectedClient, selectedCompany } = useHierarchy();
   const [showCommandPalette, setShowCommandPalette] = useState(false);

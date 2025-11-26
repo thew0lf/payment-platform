@@ -58,7 +58,7 @@ export class ContinuityController {
   })
   @ApiResponse({ status: 200, type: ContinuityConfigDto })
   updateConfig(@Body() dto: UpdateConfigDto): ContinuityConfigDto {
-    return this.continuityService.updateConfig(dto) as ContinuityConfigDto;
+    return this.continuityService.updateConfig(dto as any) as ContinuityConfigDto;
   }
 
   // ============================================

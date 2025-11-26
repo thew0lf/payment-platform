@@ -65,6 +65,7 @@ export function usePermissions() {
     canManageUsers: checkPermission('manage:users'),
     canManageSettings: checkPermission('manage:settings'),
     canManageClients: checkPermission('manage:clients'),
+    canManageApiKeys: checkPermission('manage:api_keys'),
     canViewAdmin: checkPermission('view:admin'),
     canWriteTransactions: checkPermission('write:transactions'),
     canWriteCustomers: checkPermission('write:customers'),
