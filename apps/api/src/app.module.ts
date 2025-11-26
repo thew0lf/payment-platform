@@ -12,6 +12,7 @@ import { MerchantAccountsModule } from './merchant-accounts/merchant-accounts.mo
 import { AccountPoolsModule } from './account-pools/account-pools.module';
 import { RoutingModule } from './routing/routing.module';
 import { BillingModule } from './billing';
+import { MomentumIntelligenceModule } from './momentum-intelligence/momentum-intelligence.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { BillingModule } from './billing';
     AccountPoolsModule,
     RoutingModule,
     BillingModule,
+    MomentumIntelligenceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
