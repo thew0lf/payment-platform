@@ -863,6 +863,516 @@ model Transaction {
 }
 
 // =============================================================================
+// MERCHANT ACCOUNTS
+// =============================================================================
+
+model MerchantAccount {
+  id                    String    @id @default(cuid())
+  companyId             String
+
+  // Friendly naming
+  name                  String
+  description           String?
+  color                 String?
+  icon                  String?
+  tags                  String[]  @default([])
+
+  // Provider configuration
+  providerType          String
+  merchantId            String
+  descriptor            String?
+  descriptorPhone       String?
+  credentials           Json
+  environment           String    @default("sandbox")
+
+  // Status
+  status                String    @default("pending")
+  statusReason          String?
+  statusChangedAt       DateTime?
+
+  // Transaction limits
+  minTransactionAmount  Int       @default(50)
+  maxTransactionAmount  Int       @default(10000000)
+  dailyTransactionLimit Int?
+  dailyVolumeLimit      Int?
+  weeklyTransactionLimit Int?
+  weeklyVolumeLimit     Int?
+  monthlyTransactionLimit Int?
+  monthlyVolumeLimit    Int?
+  yearlyTransactionLimit Int?
+  yearlyVolumeLimit     Int?
+  velocityWindow        Int?
+  velocityMaxTransactions Int?
+  velocityMaxAmount     Int?
+
+  // Current usage
+  todayTransactionCount Int       @default(0)
+  todayVolume           Int       @default(0)
+  todaySuccessCount     Int       @default(0)
+  todayFailureCount     Int       @default(0)
+  weekTransactionCount  Int       @default(0)
+  weekVolume            Int       @default(0)
+  monthTransactionCount Int       @default(0)
+  monthVolume           Int       @default(0)
+  yearTransactionCount  Int       @default(0)
+  yearVolume            Int       @default(0)
+  lastTransactionAt     DateTime?
+  usageResetAt          DateTime  @default(now())
+
+  // Fees & restrictions (JSON)
+  fees                  Json?
+  restrictions          Json?
+
+  // Routing
+  priority              Int       @default(100)
+  weight                Int       @default(100)
+  isDefault             Boolean   @default(false)
+  isBackupOnly          Boolean   @default(false)
+
+  // Health
+  healthStatus          String    @default("healthy")
+  successRate           Float     @default(100)
+  avgLatencyMs          Float     @default(0)
+  lastHealthCheck       DateTime?
+  lastErrorCode         String?
+  lastErrorMessage      String?
+  lastErrorAt           DateTime?
+  uptimePercent         Float     @default(100)
+
+  // Financial
+  reserveBalance        Int?
+  availableBalance      Int?
+
+  // Metadata
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String?
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([providerType])
+  @@index([status])
+  @@map("merchant_accounts")
+}
+
+// =============================================================================
+// ACCOUNT POOLS (Load Balancing & Failover)
+// =============================================================================
+
+model AccountPool {
+  id                    String    @id @default(cuid())
+  companyId             String
+
+  // Friendly naming
+  name                  String
+  description           String?
+  color                 String?
+  icon                  String?
+  tags                  String[]  @default([])
+
+  // Members (stored as JSON array of PoolMembership)
+  accounts              Json      @default("[]")
+
+  // Load balancing strategy
+  balancingStrategy     String    @default("WEIGHTED")
+
+  // Configuration (stored as JSON)
+  failover              Json      // FailoverConfig
+  healthRouting         Json      // HealthRoutingConfig
+  limitRouting          Json      // LimitRoutingConfig
+  stickySession         Json?     // StickySessionConfig (optional)
+
+  // Status
+  status                String    @default("active")
+
+  // Round-robin state
+  lastAccountIndex      Int       @default(0)
+
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String?
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([status])
+  @@map("account_pools")
+}
+
+// =============================================================================
+// ROUTING RULES (Gateway Rule Engine)
+// =============================================================================
+
+model RoutingRule {
+  id                    String    @id @default(cuid())
+  companyId             String
+
+  // Friendly naming
+  name                  String
+  description           String?
+  color                 String?
+  tags                  String[]  @default([])
+
+  // Status
+  status                String    @default("INACTIVE")
+  priority              Int       @default(100)
+
+  // Conditions & Actions (JSON)
+  conditions            Json
+  actions               Json
+
+  // Fallback
+  fallbackAction        String?
+  fallbackPoolId        String?
+  fallbackMessage       String?
+
+  // A/B Testing
+  testingEnabled        Boolean   @default(false)
+  testingTrafficPct     Float?
+  testingControlPoolId  String?
+  testingTestPoolId     String?
+  testingStartDate      DateTime?
+  testingEndDate        DateTime?
+  testingMetrics        String[]  @default([])
+
+  // Scheduling
+  activateAt            DateTime?
+  deactivateAt          DateTime?
+  timezone              String?
+  recurringSchedule     String?
+
+  // Analytics
+  matchCount            Int       @default(0)
+  lastMatchedAt         DateTime?
+  avgProcessingTimeMs   Float     @default(0)
+
+  // Metadata
+  version               Int       @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String?
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([status])
+  @@index([priority])
+  @@map("routing_rules")
+}
+
+model RoutingDecision {
+  id                    String    @id @default(cuid())
+  companyId             String
+  transactionId         String
+
+  // Decision
+  primaryAccountId      String?
+  primaryAccountName    String?
+  fallbackAccountIds    String[]  @default([])
+  blocked               Boolean   @default(false)
+  blockReason           String?
+  flaggedForReview      Boolean   @default(false)
+  reviewReason          String?
+  require3ds            Boolean   @default(false)
+
+  // Amounts
+  surchargeAmount       Int       @default(0)
+  discountAmount        Int       @default(0)
+  originalAmount        Int
+  finalAmount           Int
+
+  // Applied rules
+  appliedRuleIds        String[]  @default([])
+  appliedRuleNames      String[]  @default([])
+
+  // Performance
+  evaluationTimeMs      Int
+  conditionsChecked     Int
+  rulesEvaluated        Int
+
+  // Context
+  contextSnapshot       Json?
+
+  createdAt             DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([transactionId])
+  @@index([createdAt])
+  @@map("routing_decisions")
+}
+
+// =============================================================================
+// BILLING & USAGE TRACKING
+// =============================================================================
+
+model PricingPlan {
+  id                    String    @id @default(cuid())
+
+  // Plan identification
+  name                  String    @unique
+  displayName           String
+  description           String?
+
+  // Billing
+  billingInterval       String    @default("MONTHLY")
+  baseCost              Int       @default(0)
+  currency              String    @default("USD")
+
+  // Included allowances (JSON)
+  included              Json      // { transactions: number, volume: number, apiCalls: number, ... }
+
+  // Overage pricing (JSON)
+  overage               Json      // { transactionPrice: number, volumePercent: number, ... }
+
+  // Features (JSON)
+  features              Json      @default("[]")
+
+  // Limits (JSON)
+  limits                Json?     // { maxCompanies: number, maxUsers: number, ... }
+
+  // Status
+  status                String    @default("active")
+  isDefault             Boolean   @default(false)
+
+  // Metadata
+  sortOrder             Int       @default(0)
+  metadata              Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  subscriptions         ClientSubscription[]
+
+  @@index([status])
+  @@map("pricing_plans")
+}
+
+model ClientSubscription {
+  id                    String    @id @default(cuid())
+  clientId              String    @unique
+  planId                String
+
+  // Status
+  status                String    @default("active")
+  statusReason          String?
+  statusChangedAt       DateTime?
+
+  // Billing cycle
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  nextBillingDate       DateTime?
+  billingAnchorDay      Int       @default(1)
+
+  // Trial
+  trialStart            DateTime?
+  trialEnd              DateTime?
+
+  // Cancellation
+  canceledAt            DateTime?
+  cancelReason          String?
+  cancelAtPeriodEnd     Boolean   @default(false)
+
+  // Pause
+  pausedAt              DateTime?
+  pauseResumeAt         DateTime?
+  pauseReason           String?
+
+  // Discount
+  discountPercent       Float?
+  discountReason        String?
+  discountExpiresAt     DateTime?
+
+  // Stripe integration
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+
+  // Metadata
+  metadata              Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  plan                  PricingPlan     @relation(fields: [planId], references: [id])
+  usagePeriods          UsagePeriod[]
+  invoices              Invoice[]
+
+  @@index([planId])
+  @@index([status])
+  @@map("client_subscriptions")
+}
+
+model UsagePeriod {
+  id                    String    @id @default(cuid())
+  subscriptionId        String
+  clientId              String
+
+  // Period dates
+  periodStart           DateTime
+  periodEnd             DateTime
+
+  // Transaction metrics
+  transactionCount      Int       @default(0)
+  transactionVolume     BigInt    @default(0)
+  transactionCost       Int       @default(0)
+
+  // Volume cost
+  volumeCost            Int       @default(0)
+
+  // API usage
+  apiCallCount          Int       @default(0)
+  apiCallCost           Int       @default(0)
+
+  // Resource usage
+  companiesUsed         Int       @default(0)
+  usersUsed             Int       @default(0)
+  storageUsedMb         Int       @default(0)
+
+  // Costs
+  baseCost              Int       @default(0)
+  overageCost           Int       @default(0)
+  totalCost             Int       @default(0)
+
+  // Status
+  status                String    @default("active")
+
+  // Metadata
+  closedAt              DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  subscription          ClientSubscription @relation(fields: [subscriptionId], references: [id])
+  companyRecords        CompanyUsageRecord[]
+  usageEvents           UsageEvent[]
+  invoices              Invoice[]
+
+  @@index([subscriptionId])
+  @@index([clientId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("usage_periods")
+}
+
+model CompanyUsageRecord {
+  id                    String    @id @default(cuid())
+  usagePeriodId         String
+  companyId             String
+
+  // Metrics
+  transactionCount      Int       @default(0)
+  transactionVolume     BigInt    @default(0)
+  apiCallCount          Int       @default(0)
+
+  // Calculated costs (allocated share)
+  allocatedCost         Int       @default(0)
+
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  usagePeriod           UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([usagePeriodId, companyId])
+  @@index([companyId])
+  @@map("company_usage_records")
+}
+
+model UsageEvent {
+  id                    String    @id @default(cuid())
+  usagePeriodId         String
+  companyId             String?
+
+  // Event details
+  eventType             String
+  quantity              Int       @default(1)
+  unitCost              Int       @default(0)
+  totalCost             Int       @default(0)
+
+  // Reference
+  referenceType         String?
+  referenceId           String?
+
+  // Metadata
+  metadata              Json?
+  occurredAt            DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+
+  // Relations
+  usagePeriod           UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
+
+  @@index([usagePeriodId])
+  @@index([companyId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@map("usage_events")
+}
+
+model Invoice {
+  id                    String    @id @default(cuid())
+  clientId              String
+  subscriptionId        String
+  usagePeriodId         String?
+
+  // Invoice number
+  invoiceNumber         String    @unique
+
+  // Period
+  periodStart           DateTime
+  periodEnd             DateTime
+
+  // Amounts (in cents)
+  subtotal              Int
+  discount              Int       @default(0)
+  tax                   Int       @default(0)
+  total                 Int
+  amountPaid            Int       @default(0)
+  amountDue             Int
+
+  // Currency
+  currency              String    @default("USD")
+
+  // Line items (JSON array)
+  lineItems             Json      @default("[]")
+
+  // Status
+  status                String    @default("draft")
+
+  // Dates
+  dueDate               DateTime
+  paidAt                DateTime?
+  voidedAt              DateTime?
+  sentAt                DateTime?
+
+  // Stripe
+  stripeInvoiceId       String?
+  stripePaymentIntentId String?
+
+  // Payment
+  paymentMethod         String?
+
+  // PDF
+  pdfUrl                String?
+
+  // Notes
+  notes                 String?
+
+  // Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  subscription          ClientSubscription @relation(fields: [subscriptionId], references: [id])
+  usagePeriod           UsagePeriod?       @relation(fields: [usagePeriodId], references: [id])
+
+  @@index([clientId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+// =============================================================================
 // SYSTEM MODELS
 // =============================================================================
 

@@ -28,11 +28,6 @@ class CreateApiKeyRequestDto implements CreateApiKeyDto {
   expiresAt?: Date;
 }
 
-class CreateApiKeyForClientDto extends CreateApiKeyRequestDto {
-  @IsString()
-  clientId: string;
-}
-
 class UpdateApiKeyRequestDto implements UpdateApiKeyDto {
   @IsOptional()
   @IsString()
@@ -62,12 +57,6 @@ export class ApiKeysController {
   @Post()
   async createApiKey(@Request() req, @Body() dto: CreateApiKeyRequestDto) {
     return this.apiKeysService.createApiKey(req.user, dto);
-  }
-
-  @Post('for-client')
-  async createApiKeyForClient(@Request() req, @Body() dto: CreateApiKeyForClientDto) {
-    const { clientId, ...createDto } = dto;
-    return this.apiKeysService.createApiKeyForClient(req.user, clientId, createDto);
   }
 
   @Patch(':id')

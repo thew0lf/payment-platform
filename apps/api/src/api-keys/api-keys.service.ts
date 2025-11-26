@@ -39,23 +39,18 @@ export class ApiKeysService {
   }
 
   /**
-   * Get all API keys for user's scope (clients and above can manage API keys)
+   * Get all API keys for user's organization
    */
   async getApiKeys(user: UserContext) {
-    // Only client-level and above can manage API keys
-    if (!['ORGANIZATION', 'CLIENT'].includes(user.scopeType)) {
-      throw new ForbiddenException('API key management requires client-level access or higher');
+    // Only organization-level users can manage API keys
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('API key management requires organization-level access');
     }
-
-    const where: any = {};
-
-    if (user.scopeType === 'CLIENT') {
-      where.clientId = user.clientId;
-    }
-    // ORGANIZATION level can see all API keys
 
     const apiKeys = await this.prisma.apiKey.findMany({
-      where,
+      where: {
+        organizationId: user.organizationId,
+      },
       select: {
         id: true,
         name: true,
@@ -65,7 +60,7 @@ export class ApiKeysService {
         expiresAt: true,
         isActive: true,
         createdAt: true,
-        client: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -82,17 +77,13 @@ export class ApiKeysService {
    * Create a new API key
    */
   async createApiKey(user: UserContext, dto: CreateApiKeyDto) {
-    // Only client-level and above can create API keys
-    if (!['ORGANIZATION', 'CLIENT'].includes(user.scopeType)) {
-      throw new ForbiddenException('API key creation requires client-level access or higher');
+    // Only organization-level users can create API keys
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('API key creation requires organization-level access');
     }
 
-    // For client users, they can only create keys for their own client
-    // For org users, they need to specify a clientId (handled in controller)
-    const clientId = user.scopeType === 'CLIENT' ? user.clientId : null;
-
-    if (!clientId && user.scopeType === 'CLIENT') {
-      throw new ForbiddenException('Client ID is required');
+    if (!user.organizationId) {
+      throw new ForbiddenException('Organization ID is required');
     }
 
     // Generate the API key
@@ -102,14 +93,13 @@ export class ApiKeysService {
     // Create the API key record
     const apiKey = await this.prisma.apiKey.create({
       data: {
-        clientId: clientId!,
+        organizationId: user.organizationId,
         name: dto.name,
         keyHash: hash,
         keyPrefix: prefix,
         scopes: dto.scopes,
         expiresAt: dto.expiresAt,
         isActive: true,
-        createdById: user.sub,
       },
       select: {
         id: true,
@@ -131,71 +121,18 @@ export class ApiKeysService {
   }
 
   /**
-   * Create API key for a specific client (org-level only)
-   */
-  async createApiKeyForClient(user: UserContext, clientId: string, dto: CreateApiKeyDto) {
-    if (user.scopeType !== 'ORGANIZATION') {
-      throw new ForbiddenException('Only organization administrators can create keys for other clients');
-    }
-
-    // Verify the client exists
-    const client = await this.prisma.client.findUnique({
-      where: { id: clientId },
-    });
-
-    if (!client) {
-      throw new NotFoundException('Client not found');
-    }
-
-    // Generate the API key
-    const prefix = 'pk_live_';
-    const { key, hash } = this.generateApiKey(prefix);
-
-    // Create the API key record
-    const apiKey = await this.prisma.apiKey.create({
-      data: {
-        clientId,
-        name: dto.name,
-        keyHash: hash,
-        keyPrefix: prefix,
-        scopes: dto.scopes,
-        expiresAt: dto.expiresAt,
-        isActive: true,
-        createdById: user.sub,
-      },
-      select: {
-        id: true,
-        name: true,
-        keyPrefix: true,
-        scopes: true,
-        expiresAt: true,
-        isActive: true,
-        createdAt: true,
-        client: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    return {
-      ...apiKey,
-      secretKey: key,
-      message: 'Save this key securely. It cannot be retrieved again.',
-    };
-  }
-
-  /**
    * Update an API key (enable/disable, rename)
    */
   async updateApiKey(user: UserContext, keyId: string, dto: UpdateApiKeyDto) {
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('API key management requires organization-level access');
+    }
+
     const apiKey = await this.prisma.apiKey.findUnique({
       where: { id: keyId },
       select: {
         id: true,
-        clientId: true,
+        organizationId: true,
       },
     });
 
@@ -204,7 +141,7 @@ export class ApiKeysService {
     }
 
     // Check access
-    if (user.scopeType === 'CLIENT' && apiKey.clientId !== user.clientId) {
+    if (apiKey.organizationId !== user.organizationId) {
       throw new ForbiddenException('You do not have access to this API key');
     }
 
@@ -231,11 +168,15 @@ export class ApiKeysService {
    * Regenerate an API key (creates new secret, invalidates old one)
    */
   async regenerateApiKey(user: UserContext, keyId: string) {
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('API key management requires organization-level access');
+    }
+
     const apiKey = await this.prisma.apiKey.findUnique({
       where: { id: keyId },
       select: {
         id: true,
-        clientId: true,
+        organizationId: true,
         name: true,
         scopes: true,
         expiresAt: true,
@@ -247,7 +188,7 @@ export class ApiKeysService {
     }
 
     // Check access
-    if (user.scopeType === 'CLIENT' && apiKey.clientId !== user.clientId) {
+    if (apiKey.organizationId !== user.organizationId) {
       throw new ForbiddenException('You do not have access to this API key');
     }
 
@@ -284,11 +225,15 @@ export class ApiKeysService {
    * Delete an API key
    */
   async deleteApiKey(user: UserContext, keyId: string) {
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('API key management requires organization-level access');
+    }
+
     const apiKey = await this.prisma.apiKey.findUnique({
       where: { id: keyId },
       select: {
         id: true,
-        clientId: true,
+        organizationId: true,
       },
     });
 
@@ -297,7 +242,7 @@ export class ApiKeysService {
     }
 
     // Check access
-    if (user.scopeType === 'CLIENT' && apiKey.clientId !== user.clientId) {
+    if (apiKey.organizationId !== user.organizationId) {
       throw new ForbiddenException('You do not have access to this API key');
     }
 
@@ -324,11 +269,11 @@ export class ApiKeysService {
         ],
       },
       include: {
-        client: {
+        organization: {
           select: {
             id: true,
             name: true,
-            status: true,
+            billingStatus: true,
           },
         },
       },
@@ -338,8 +283,8 @@ export class ApiKeysService {
       return null;
     }
 
-    // Check if client is active
-    if (apiKey.client.status !== 'ACTIVE') {
+    // Check if organization is active
+    if (apiKey.organization.billingStatus !== 'ACTIVE') {
       return null;
     }
 
@@ -351,9 +296,9 @@ export class ApiKeysService {
 
     return {
       keyId: apiKey.id,
-      clientId: apiKey.clientId,
+      organizationId: apiKey.organizationId,
       scopes: apiKey.scopes,
-      client: apiKey.client,
+      organization: apiKey.organization,
     };
   }
 
