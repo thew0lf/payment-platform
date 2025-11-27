@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { IntegrationCategory, IntegrationDefinition, IntegrationProvider } from '../types/integration.types';
+import { AuthType, IntegrationCategory, IntegrationDefinition, IntegrationProvider } from '../types/integration.types';
 import { CREDENTIAL_SCHEMAS } from '../types/credential-schemas';
 
 @Injectable()
@@ -14,17 +14,25 @@ export class IntegrationDefinitionService implements OnModuleInit {
   }
 
   async seedDefinitions(): Promise<void> {
-    const existingCount = await this.prisma.integrationDefinition.count();
-    if (existingCount > 0) {
-      this.logger.log(`${existingCount} definitions already seeded`);
-      return;
-    }
-    this.logger.log('Seeding integration definitions...');
+    this.logger.log('Syncing integration definitions...');
     const definitions = this.getDefaultDefinitions();
+    let created = 0;
+    let updated = 0;
+
     for (const def of definitions) {
-      await this.prisma.integrationDefinition.create({ data: def as any });
+      const existing = await this.prisma.integrationDefinition.findUnique({
+        where: { provider: def.provider as string },
+      });
+
+      if (existing) {
+        updated++;
+      } else {
+        await this.prisma.integrationDefinition.create({ data: def as any });
+        created++;
+      }
     }
-    this.logger.log(`Seeded ${definitions.length} definitions`);
+
+    this.logger.log(`Integration definitions synced: ${created} created, ${updated} already exist`);
   }
 
   async getAll(): Promise<IntegrationDefinition[]> {
@@ -54,6 +62,7 @@ export class IntegrationDefinitionService implements OnModuleInit {
 
   private getDefaultDefinitions(): Partial<IntegrationDefinition>[] {
     return [
+      // Payment Gateways
       {
         provider: IntegrationProvider.PAYPAL_PAYFLOW,
         category: IntegrationCategory.PAYMENT_GATEWAY,
@@ -64,6 +73,7 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: false,
         isClientAllowed: true,
         isPlatformOffered: true,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.PAYPAL_PAYFLOW]!,
         requiredCompliance: ['pci_dss'],
         status: 'active',
@@ -76,6 +86,7 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: false,
         isClientAllowed: true,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.NMI]!,
         requiredCompliance: ['pci_dss'],
         status: 'active',
@@ -88,6 +99,7 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: false,
         isClientAllowed: true,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.AUTHORIZE_NET]!,
         requiredCompliance: ['pci_dss'],
         status: 'active',
@@ -100,10 +112,12 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: false,
         isClientAllowed: true,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.STRIPE]!,
         requiredCompliance: ['pci_dss', 'soc2'],
         status: 'active',
       },
+      // Authentication
       {
         provider: IntegrationProvider.AUTH0,
         category: IntegrationCategory.AUTHENTICATION,
@@ -112,10 +126,12 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: true,
         isClientAllowed: false,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.AUTH0]!,
         requiredCompliance: ['soc2', 'iso27001'],
         status: 'active',
       },
+      // Email
       {
         provider: IntegrationProvider.AWS_SES,
         category: IntegrationCategory.EMAIL_TRANSACTIONAL,
@@ -124,10 +140,12 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: true,
         isClientAllowed: false,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.AWS_SES]!,
         requiredCompliance: ['soc2', 'iso27001', 'pci_dss'],
         status: 'active',
       },
+      // SMS
       {
         provider: IntegrationProvider.TWILIO,
         category: IntegrationCategory.SMS,
@@ -136,8 +154,100 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isOrgOnly: true,
         isClientAllowed: false,
         isPlatformOffered: false,
+        authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.TWILIO]!,
         requiredCompliance: ['soc2', 'iso27001', 'pci_dss'],
+        status: 'active',
+      },
+      // OAuth Providers
+      {
+        provider: IntegrationProvider.GOOGLE,
+        category: IntegrationCategory.OAUTH,
+        name: 'Google',
+        description: 'Connect to Google Workspace services (Calendar, Gmail, Drive)',
+        logoUrl: '/integrations/google.svg',
+        documentationUrl: 'https://developers.google.com/identity/protocols/oauth2',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.GOOGLE]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.MICROSOFT,
+        category: IntegrationCategory.OAUTH,
+        name: 'Microsoft',
+        description: 'Connect to Microsoft 365 services (Outlook, Teams, OneDrive)',
+        logoUrl: '/integrations/microsoft.svg',
+        documentationUrl: 'https://docs.microsoft.com/en-us/azure/active-directory/develop/',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.MICROSOFT]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.SLACK,
+        category: IntegrationCategory.OAUTH,
+        name: 'Slack',
+        description: 'Connect to Slack for notifications and messaging',
+        logoUrl: '/integrations/slack.svg',
+        documentationUrl: 'https://api.slack.com/authentication/oauth-v2',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.SLACK]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.HUBSPOT,
+        category: IntegrationCategory.OAUTH,
+        name: 'HubSpot',
+        description: 'Connect to HubSpot CRM for contacts and deals',
+        logoUrl: '/integrations/hubspot.svg',
+        documentationUrl: 'https://developers.hubspot.com/docs/api/oauth-quickstart-guide',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.HUBSPOT]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.SALESFORCE,
+        category: IntegrationCategory.OAUTH,
+        name: 'Salesforce',
+        description: 'Connect to Salesforce CRM for customer data',
+        logoUrl: '/integrations/salesforce.svg',
+        documentationUrl: 'https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_web_server_flow.htm',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.SALESFORCE]!,
+        requiredCompliance: ['soc2', 'iso27001'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.QUICKBOOKS,
+        category: IntegrationCategory.OAUTH,
+        name: 'QuickBooks',
+        description: 'Connect to QuickBooks for accounting and invoicing',
+        logoUrl: '/integrations/quickbooks.svg',
+        documentationUrl: 'https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization/oauth-2.0',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: false,
+        authType: AuthType.OAUTH2,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.QUICKBOOKS]!,
+        requiredCompliance: ['soc2'],
         status: 'active',
       },
     ];

@@ -1,28 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Zap, AlertCircle, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { Zap, AlertCircle, Eye, EyeOff, Loader2, Check, Shield } from 'lucide-react';
 
+// Demo accounts for testing - these are real accounts from the database seed
 const demoAccounts = [
   { label: 'Organization', email: 'admin@avnz.io', color: 'from-cyan-400 to-blue-500' },
   { label: 'Client', email: 'owner@velocityagency.com', color: 'from-violet-400 to-purple-500' },
-  { label: 'Company', email: 'manager@coffeeco.com', color: 'from-emerald-400 to-green-500' },
+  { label: 'Company', email: 'manager@coffee-co.com', color: 'from-emerald-400 to-green-500' },
 ];
 
 export default function LoginPage() {
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, authConfig } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showLocalLogin, setShowLocalLogin] = useState(false);
+
+  // Determine if we should show Auth0 login
+  const auth0Enabled = authConfig?.auth0Enabled ?? false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(email, password);
+    } catch (err) {
+      // Error handled by context
+    }
+  };
+
+  const handleAuth0Login = async () => {
+    try {
+      await login();
     } catch (err) {
       // Error handled by context
     }
@@ -66,92 +79,151 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Email</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Password</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+          {/* Auth0 Login Button (if enabled and not showing local login) */}
+          {auth0Enabled && !showLocalLogin ? (
+            <div className="space-y-4">
+              <Button
+                onClick={handleAuth0Login}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Sign in with SSO
+                  </>
+                )}
+              </Button>
 
-            {/* Remember me checkbox */}
-            <div className="flex items-center justify-between">
+              {/* Option to use local login as fallback */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-800"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-zinc-900 text-zinc-500">or</span>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setRememberMe(!rememberMe)}
-                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+                onClick={() => setShowLocalLogin(true)}
+                className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors py-2"
               >
-                <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-cyan-500 border-cyan-500' : 'border-zinc-600'} flex items-center justify-center transition-colors`}>
-                  {rememberMe && <Check className="w-3 h-3 text-white" />}
+                Sign in with email and password
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Local Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-sm text-zinc-400 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
-                Remember me
-              </button>
-              <button type="button" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
-                Forgot password?
-              </button>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
-            </Button>
-          </form>
-
-          {/* Demo accounts - Clickable */}
-          <div className="mt-6 pt-6 border-t border-zinc-800">
-            <p className="text-xs text-zinc-500 text-center mb-3">Click to use demo account</p>
-            <div className="space-y-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  onClick={() => fillDemoAccount(account.email)}
-                  className="w-full flex items-center justify-between p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-600 transition-all text-sm group"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-white`}>
-                      {account.label.charAt(0)}
-                    </div>
-                    <span className="text-zinc-400 group-hover:text-zinc-300">{account.label}</span>
+                <div>
+                  <label className="text-sm text-zinc-400 mb-1 block">Password</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
-                  <code className="text-cyan-400 text-xs">{account.email}</code>
-                </button>
-              ))}
-            </div>
-          </div>
+                </div>
+
+                {/* Remember me checkbox */}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setRememberMe(!rememberMe)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+                  >
+                    <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-cyan-500 border-cyan-500' : 'border-zinc-600'} flex items-center justify-center transition-colors`}>
+                      {rememberMe && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    Remember me
+                  </button>
+                  <button type="button" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+                    Forgot password?
+                  </button>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign in'
+                  )}
+                </Button>
+              </form>
+
+              {/* Back to SSO button if Auth0 is enabled */}
+              {auth0Enabled && showLocalLogin && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowLocalLogin(false)}
+                    className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors py-2"
+                  >
+                    Back to SSO login
+                  </button>
+                </div>
+              )}
+
+              {/* Demo accounts - Clickable (only show for local login) */}
+              {(!auth0Enabled || showLocalLogin) && (
+                <div className="mt-6 pt-6 border-t border-zinc-800">
+                  <p className="text-xs text-zinc-500 text-center mb-3">Click to use demo account (password: demo123)</p>
+                  <div className="space-y-2">
+                    {demoAccounts.map((account) => (
+                      <button
+                        key={account.email}
+                        onClick={() => fillDemoAccount(account.email)}
+                        className="w-full flex items-center justify-between p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-600 transition-all text-sm group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-white`}>
+                            {account.label.charAt(0)}
+                          </div>
+                          <span className="text-zinc-400 group-hover:text-zinc-300">{account.label}</span>
+                        </div>
+                        <code className="text-cyan-400 text-xs">{account.email}</code>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

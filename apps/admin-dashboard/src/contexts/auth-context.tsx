@@ -1,67 +1,155 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { User, ScopeType } from '@/types/hierarchy';
-import { api } from '@/lib/api';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.dev.avnz.io:3001';
+
+interface AuthConfig {
+  auth0Enabled: boolean;
+  localEnabled: boolean;
+  auth0Domain: string | null;
+  auth0ClientId: string | null;
+  auth0Audience: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  authConfig: AuthConfig | null;
+  login: (email?: string, password?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user for development - replace with actual auth
-const mockUsers: Record<string, User> = {
-  'admin@avnz.io': {
-    id: 'user_org_1',
-    email: 'admin@avnz.io',
-    firstName: 'Platform',
-    lastName: 'Admin',
-    scopeType: 'ORGANIZATION',
-    scopeId: 'org_1',
-    role: 'SUPER_ADMIN',
-    status: 'ACTIVE',
-    organizationId: 'org_1',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  'owner@velocityagency.com': {
-    id: 'user_client_1',
-    email: 'owner@velocityagency.com',
-    firstName: 'Sarah',
-    lastName: 'Chen',
-    scopeType: 'CLIENT',
-    scopeId: 'client_1',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-    clientId: 'client_1',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  'manager@coffeeco.com': {
-    id: 'user_company_1',
-    email: 'manager@coffeeco.com',
-    firstName: 'Mike',
-    lastName: 'Torres',
-    scopeType: 'COMPANY',
-    scopeId: 'company_1',
-    role: 'MANAGER',
-    status: 'ACTIVE',
-    companyId: 'company_1',
-    clientId: 'client_1',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-};
+// Inner component that uses Auth0 hooks (must be inside Auth0Provider)
+function Auth0AuthProvider({ children, authConfig }: { children: ReactNode; authConfig: AuthConfig }) {
+  const router = useRouter();
+  const {
+    isAuthenticated: auth0IsAuthenticated,
+    isLoading: auth0IsLoading,
+    user: auth0User,
+    loginWithRedirect,
+    logout: auth0Logout,
+    getAccessTokenSilently,
+    error: auth0Error,
+  } = useAuth0();
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch user profile from backend using Auth0 token
+  const fetchUserProfile = useCallback(async () => {
+    if (!auth0IsAuthenticated || auth0IsLoading) return;
+
+    setIsLoading(true);
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        // Store token for API calls
+        localStorage.setItem('avnz_token', token);
+        localStorage.setItem('avnz_user', JSON.stringify(data.user));
+      } else {
+        setError('Failed to fetch user profile');
+        setUser(null);
+      }
+    } catch (err: any) {
+      console.error('Error fetching user profile:', err);
+      setError(err.message || 'Authentication error');
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [auth0IsAuthenticated, auth0IsLoading, getAccessTokenSilently]);
+
+  // Effect to fetch user profile when Auth0 authenticates
+  useEffect(() => {
+    if (auth0IsLoading) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (auth0IsAuthenticated) {
+      fetchUserProfile();
+    } else {
+      setIsLoading(false);
+      setUser(null);
+    }
+  }, [auth0IsAuthenticated, auth0IsLoading, fetchUserProfile]);
+
+  // Handle Auth0 errors
+  useEffect(() => {
+    if (auth0Error) {
+      setError(auth0Error.message);
+    }
+  }, [auth0Error]);
+
+  const login = async () => {
+    // With Auth0, login is a redirect
+    await loginWithRedirect({
+      appState: { returnTo: window.location.pathname },
+    });
+  };
+
+  const logout = async () => {
+    localStorage.removeItem('avnz_token');
+    localStorage.removeItem('avnz_user');
+    setUser(null);
+
+    await auth0Logout({
+      logoutParams: {
+        returnTo: window.location.origin + '/login',
+      },
+    });
+  };
+
+  const refreshUser = async () => {
+    await fetchUserProfile();
+  };
+
+  const getAccessToken = async (): Promise<string | null> => {
+    try {
+      return await getAccessTokenSilently();
+    } catch {
+      return null;
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading: isLoading || auth0IsLoading,
+        isAuthenticated: !!user,
+        error,
+        authConfig,
+        login,
+        logout,
+        refreshUser,
+        getAccessToken,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Local auth provider (fallback when Auth0 is not configured)
+function LocalAuthProvider({ children, authConfig }: { children: ReactNode; authConfig: AuthConfig }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,15 +163,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      // Check localStorage for mock auth (development)
+      const token = localStorage.getItem('avnz_token');
       const storedUser = localStorage.getItem('avnz_user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
 
-      // In production, call API:
-      // const response = await api.getCurrentUser();
-      // setUser(response.data.user);
+      if (token && storedUser) {
+        // Verify token is still valid by calling /api/auth/me
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+            localStorage.setItem('avnz_user', JSON.stringify(data.user));
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('avnz_token');
+            localStorage.removeItem('avnz_user');
+            setUser(null);
+          }
+        } catch {
+          // API error, use stored user
+          setUser(JSON.parse(storedUser));
+        }
+      }
     } catch (err) {
       console.error('Auth check failed:', err);
       setUser(null);
@@ -92,27 +195,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email?: string, password?: string) => {
+    if (!email || !password) {
+      throw new Error('Email and password required for local login');
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // Mock login for development
-      const mockUser = mockUsers[email.toLowerCase()];
-      if (mockUser && password === 'demo123') {
-        setUser(mockUser);
-        localStorage.setItem('avnz_user', JSON.stringify(mockUser));
-        router.push('/');
-        return;
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid credentials');
       }
 
-      // In production, call API:
-      // const response = await api.login(email, password);
-      // setUser(response.data.user);
-      // api.setToken(response.data.token);
-      // router.push('/');
+      const data = await response.json();
 
-      throw new Error('Invalid credentials');
+      // Store token and user
+      localStorage.setItem('avnz_token', data.accessToken);
+      localStorage.setItem('avnz_user', JSON.stringify(data.user));
+      setUser(data.user);
+
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
       throw err;
@@ -123,10 +233,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      // In production, call API:
-      // await api.logout();
-      // api.clearToken();
+      const token = localStorage.getItem('avnz_token');
+      if (token) {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+        }).catch(() => {}); // Ignore errors
+      }
 
+      localStorage.removeItem('avnz_token');
       localStorage.removeItem('avnz_user');
       setUser(null);
       router.push('/login');
@@ -139,6 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await checkAuth();
   };
 
+  const getAccessToken = async (): Promise<string | null> => {
+    return localStorage.getItem('avnz_token');
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -146,14 +265,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         error,
+        authConfig,
         login,
         logout,
         refreshUser,
+        getAccessToken,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
+}
+
+// Main AuthProvider that determines which provider to use
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  // Fetch auth config on mount
+  useEffect(() => {
+    const fetchAuthConfig = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/config`);
+        if (response.ok) {
+          const config = await response.json();
+          setAuthConfig(config);
+        } else {
+          // Default to local auth if config fetch fails
+          setAuthConfig({
+            auth0Enabled: false,
+            localEnabled: true,
+            auth0Domain: null,
+            auth0ClientId: null,
+            auth0Audience: null,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch auth config:', err);
+        // Default to local auth on error
+        setAuthConfig({
+          auth0Enabled: false,
+          localEnabled: true,
+          auth0Domain: null,
+          auth0ClientId: null,
+          auth0Audience: null,
+        });
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    fetchAuthConfig();
+  }, []);
+
+  // Show loading state while fetching config
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
+
+  // Use Auth0 if enabled and configured
+  if (authConfig?.auth0Enabled && authConfig.auth0Domain && authConfig.auth0ClientId) {
+    return (
+      <Auth0Provider
+        domain={authConfig.auth0Domain}
+        clientId={authConfig.auth0ClientId}
+        authorizationParams={{
+          redirect_uri: typeof window !== 'undefined' ? window.location.origin : '',
+          audience: authConfig.auth0Audience || undefined,
+        }}
+        cacheLocation="localstorage"
+      >
+        <Auth0AuthProvider authConfig={authConfig}>{children}</Auth0AuthProvider>
+      </Auth0Provider>
+    );
+  }
+
+  // Fall back to local auth
+  return <LocalAuthProvider authConfig={authConfig!}>{children}</LocalAuthProvider>;
 }
 
 export function useAuth() {

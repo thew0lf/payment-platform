@@ -8,15 +8,22 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+*.env
 
 # Build outputs
 dist/
 build/
 .next/
+out/
+
+# TypeScript build info
+*.tsbuildinfo
 
 # Database
 *.db
 *.sqlite
+prisma/*.db
+prisma/*.db-journal
 
 # Logs
 logs
@@ -24,6 +31,8 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # Runtime data
 pids
@@ -38,12 +47,17 @@ coverage/
 # nyc test coverage
 .nyc_output
 
+# Testing
+.jest/
+
 # IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-workspace
+*.sublime-project
 
 # OS generated files
 .DS_Store
@@ -60,4 +74,23 @@ Thumbs.db
 # Temporary folders
 tmp/
 temp/
+
+# Claude Code
 .claude/
+
+# Turbo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Lock files (keep package-lock.json if using npm)
+yarn.lock
+pnpm-lock.yaml
+
+# eslint cache
+.eslintcache
+
+# Misc
+*.pem
+.npmrc

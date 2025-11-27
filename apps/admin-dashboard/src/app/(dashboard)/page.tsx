@@ -7,6 +7,7 @@ import { MetricCard } from '@/components/dashboard/metric-card';
 import { ProviderStatus } from '@/components/dashboard/provider-status';
 import { RoutingSavings } from '@/components/dashboard/routing-savings';
 import { TransactionTable } from '@/components/dashboard/transaction-table';
+import { TransactionChart } from '@/components/dashboard/transaction-chart';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useHierarchy } from '@/contexts/hierarchy-context';
@@ -208,6 +209,12 @@ export default function DashboardPage() {
             ]}
           />
         </div>
+
+        {/* Transaction Chart */}
+        <TransactionChart
+          companyId={selectedCompanyId || undefined}
+          clientId={selectedClientId || undefined}
+        />
 
         {/* Transactions */}
         <TransactionTable

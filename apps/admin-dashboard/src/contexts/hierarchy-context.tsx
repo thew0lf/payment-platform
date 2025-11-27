@@ -42,99 +42,6 @@ interface HierarchyContextType {
 
 const HierarchyContext = createContext<HierarchyContextType | undefined>(undefined);
 
-// Mock data for development
-const mockClients: Client[] = [
-  {
-    id: 'client_1',
-    organizationId: 'org_1',
-    name: 'Velocity Agency',
-    slug: 'velocity-agency',
-    contactName: 'Sarah Chen',
-    contactEmail: 'sarah@velocityagency.com',
-    plan: 'PREMIUM',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { companies: 3, users: 12 },
-  },
-  {
-    id: 'client_2',
-    organizationId: 'org_1',
-    name: 'Digital First',
-    slug: 'digital-first',
-    contactName: 'Mike Torres',
-    contactEmail: 'mike@digitalfirst.io',
-    plan: 'STANDARD',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { companies: 2, users: 8 },
-  },
-];
-
-const mockCompanies: Company[] = [
-  {
-    id: 'company_1',
-    clientId: 'client_1',
-    name: 'CoffeeCo',
-    slug: 'coffee-co',
-    timezone: 'America/New_York',
-    currency: 'USD',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { departments: 2, users: 5, transactions: 1234, customers: 487 },
-  },
-  {
-    id: 'company_2',
-    clientId: 'client_1',
-    name: 'FitBox',
-    slug: 'fitbox',
-    timezone: 'America/Los_Angeles',
-    currency: 'USD',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { departments: 3, users: 8, transactions: 2891, customers: 1203 },
-  },
-  {
-    id: 'company_3',
-    clientId: 'client_1',
-    name: 'PetPals',
-    slug: 'petpals',
-    timezone: 'America/Chicago',
-    currency: 'USD',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { departments: 1, users: 3, transactions: 567, customers: 234 },
-  },
-  {
-    id: 'company_4',
-    clientId: 'client_2',
-    name: 'SaaSly',
-    slug: 'saasly',
-    timezone: 'UTC',
-    currency: 'USD',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { departments: 2, users: 4, transactions: 3421, customers: 892 },
-  },
-  {
-    id: 'company_5',
-    clientId: 'client_2',
-    name: 'CloudNine',
-    slug: 'cloudnine',
-    timezone: 'Europe/London',
-    currency: 'GBP',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    _count: { departments: 2, users: 4, transactions: 1567, customers: 421 },
-  },
-];
-
 export function HierarchyProvider({ children }: { children: ReactNode }) {
   const { user, isLoading: authLoading } = useAuth();
 
@@ -165,37 +72,27 @@ export function HierarchyProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     try {
-      // In production, call API:
-      // const response = await api.getAccessibleHierarchy();
-      // setAvailableClients(response.data.clients);
-      // setAvailableCompanies(response.data.companies);
-      // setAvailableDepartments(response.data.departments);
+      // Initialize API token from localStorage
+      api.initToken();
 
-      // Mock data for development based on access level
-      if (user.scopeType === 'ORGANIZATION') {
-        // Org level sees all clients and companies
-        setAvailableClients(mockClients);
-        setAvailableCompanies(mockCompanies);
-      } else if (user.scopeType === 'CLIENT') {
-        // Client level sees only their companies
-        setAvailableClients([]);
-        const clientCompanies = mockCompanies.filter(c => c.clientId === user.clientId);
-        setAvailableCompanies(clientCompanies);
-        // Auto-select their client (not shown in UI but used for API calls)
-        setSelectedClientId(user.clientId || null);
-      } else if (user.scopeType === 'COMPANY') {
-        // Company level sees only their company
-        setAvailableClients([]);
-        const userCompany = mockCompanies.find(c => c.id === user.companyId);
-        setAvailableCompanies(userCompany ? [userCompany] : []);
-        setSelectedCompanyId(user.companyId || null);
-      } else {
-        // Department and below
-        setAvailableClients([]);
-        setAvailableCompanies([]);
+      // Call the real hierarchy API
+      const response = await api.getAccessibleHierarchy();
+      setAvailableClients(response.data.clients || []);
+      setAvailableCompanies(response.data.companies || []);
+      setAvailableDepartments(response.data.departments || []);
+
+      // Auto-select based on user scope
+      if (user.scopeType === 'CLIENT' && user.clientId) {
+        setSelectedClientId(user.clientId);
+      } else if (user.scopeType === 'COMPANY' && user.companyId) {
+        setSelectedCompanyId(user.companyId);
       }
     } catch (err) {
       console.error('Failed to load hierarchy:', err);
+      // Reset to empty arrays on error
+      setAvailableClients([]);
+      setAvailableCompanies([]);
+      setAvailableDepartments([]);
     } finally {
       setIsLoading(false);
     }

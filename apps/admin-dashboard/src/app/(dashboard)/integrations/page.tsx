@@ -21,6 +21,9 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.AUTHENTICATION]: 'Authentication',
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
+  [IntegrationCategory.OAUTH]: 'Connected Services',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.SMS]: 'SMS',
 };
 
 export default function PlatformIntegrationsPage() {
@@ -41,7 +44,8 @@ export default function PlatformIntegrationsPage() {
         integrationsApi.listDefinitions(),
       ]);
       setIntegrations(integrationsRes.data);
-      setDefinitions(definitionsRes.data.filter((d) => d.isPlatformAllowed));
+      // Platform admin can configure any integration, no filtering needed
+      setDefinitions(definitionsRes.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load integrations');
     } finally {

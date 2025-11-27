@@ -7,13 +7,15 @@ import { IntegrationDefinitionService } from './services/integration-definition.
 import { PlatformIntegrationService } from './services/platform-integration.service';
 import { ClientIntegrationService } from './services/client-integration.service';
 import { IntegrationSyncService } from './services/integration-sync.service';
-import { PlatformIntegrationsController, ClientIntegrationsController } from './integrations.controller';
+import { OAuthService } from './services/oauth.service';
+import { OAuthTokenRefreshService } from './services/oauth-token-refresh.service';
+import { PlatformIntegrationsController, ClientIntegrationsController, OAuthController } from './integrations.controller';
 
 @Global()
 @Module({
   imports: [ConfigModule, PrismaModule, EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', maxListeners: 20 })],
-  controllers: [PlatformIntegrationsController, ClientIntegrationsController],
-  providers: [CredentialEncryptionService, IntegrationDefinitionService, PlatformIntegrationService, ClientIntegrationService, IntegrationSyncService],
-  exports: [CredentialEncryptionService, IntegrationDefinitionService, PlatformIntegrationService, ClientIntegrationService],
+  controllers: [PlatformIntegrationsController, ClientIntegrationsController, OAuthController],
+  providers: [CredentialEncryptionService, IntegrationDefinitionService, PlatformIntegrationService, ClientIntegrationService, IntegrationSyncService, OAuthService, OAuthTokenRefreshService],
+  exports: [CredentialEncryptionService, IntegrationDefinitionService, PlatformIntegrationService, ClientIntegrationService, OAuthService, OAuthTokenRefreshService],
 })
 export class IntegrationsModule {}

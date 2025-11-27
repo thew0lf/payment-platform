@@ -35,4 +35,18 @@ export class DashboardController {
       limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
+
+  @Get('stats/chart')
+  async getChartData(
+    @Request() req,
+    @Query('days') days?: string,
+    @Query('companyId') companyId?: string,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.dashboardService.getChartData(
+      req.user,
+      days ? parseInt(days, 10) : 30,
+      { companyId, clientId },
+    );
+  }
 }

@@ -2978,6 +2978,31 @@ enum TermsStatus {
 }
 
 // =============================================================================
+// OAUTH & INTEGRATION AUTH ENUMS
+// =============================================================================
+
+enum AuthType {
+  API_KEY           // Traditional API key authentication
+  OAUTH2            // OAuth 2.0 authorization code flow
+  OAUTH2_CLIENT     // OAuth 2.0 client credentials flow
+  BASIC_AUTH        // Basic HTTP authentication
+  CUSTOM            // Custom authentication (webhook-based, etc.)
+}
+
+enum OAuthTokenStatus {
+  ACTIVE            // Token is valid and can be used
+  EXPIRED           // Token has expired, needs refresh
+  REFRESH_FAILED    // Refresh attempt failed
+  REVOKED           // Token was revoked by user or provider
+  INVALID           // Token is invalid (e.g., changed permissions)
+}
+
+enum OAuthFlowType {
+  PLATFORM          // Platform-level integration (org admin connecting)
+  CLIENT            // Client-level integration (client connecting their own)
+}
+
+// =============================================================================
 // CONTENT GENERATION
 // =============================================================================
 
@@ -3398,10 +3423,93 @@ model IntegrationDefinition {
   settingsSchema      Json      @default("{}")
   requiredCompliance  String[]  @default([])
   status              String    @default("active")
+
+  // OAuth Configuration
+  authType            AuthType  @default(API_KEY)
+  oauthConfig         Json?     // OAuth-specific config: authorizationUrl, tokenUrl, scopes, etc.
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   @@map("integration_definitions")
+}
+
+// OAuth Token Storage for OAuth-based integrations
+model OAuthToken {
+  id                    String    @id @default(cuid())
+
+  // Ownership - can be platform-level or client-level
+  platformIntegrationId String?
+  clientIntegrationId   String?
+
+  // Token data (encrypted)
+  accessToken           String    @db.Text
+  refreshToken          String?   @db.Text
+  tokenType             String    @default("Bearer")
+
+  // Expiration tracking
+  expiresAt             DateTime?
+  refreshExpiresAt      DateTime?
+
+  // Scopes granted
+  scopes                String[]  @default([])
+
+  // Provider-specific data
+  providerUserId        String?   // User ID at the OAuth provider
+  providerAccountId     String?   // Account ID if different from user
+  providerData          Json?     // Additional provider-specific metadata
+
+  // Encryption
+  keyVersion            Int       @default(1)
+
+  // Status
+  status                OAuthTokenStatus @default(ACTIVE)
+  lastRefreshedAt       DateTime?
+  lastUsedAt            DateTime?
+  errorMessage          String?
+
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([platformIntegrationId])
+  @@index([clientIntegrationId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("oauth_tokens")
+}
+
+// OAuth State for CSRF protection during authorization flow
+model OAuthState {
+  id                    String    @id @default(cuid())
+  state                 String    @unique
+
+  // Context for the OAuth flow
+  provider              String
+  organizationId        String?
+  clientId              String?
+  userId                String
+
+  // Flow type
+  flowType              OAuthFlowType @default(PLATFORM)
+
+  // Redirect after completion
+  redirectUrl           String?
+
+  // Additional context
+  metadata              Json?
+
+  // Expiration (short-lived)
+  expiresAt             DateTime
+
+  // Status
+  usedAt                DateTime?
+
+  createdAt             DateTime  @default(now())
+
+  @@index([state])
+  @@index([expiresAt])
+  @@map("oauth_states")
 }
 
 model PlatformIntegration {
