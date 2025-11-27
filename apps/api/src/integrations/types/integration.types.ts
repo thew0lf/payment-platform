@@ -20,6 +20,7 @@ export enum IntegrationCategory {
   MONITORING = 'MONITORING',
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
+  OAUTH = 'OAUTH',
 }
 
 export enum IntegrationProvider {
@@ -58,6 +59,14 @@ export enum IntegrationProvider {
   // Feature Flags
   LAUNCHDARKLY = 'LAUNCHDARKLY',
   AWS_APPCONFIG = 'AWS_APPCONFIG',
+
+  // OAuth Providers (Org-only, user token-based)
+  GOOGLE = 'GOOGLE',
+  MICROSOFT = 'MICROSOFT',
+  SLACK = 'SLACK',
+  HUBSPOT = 'HUBSPOT',
+  SALESFORCE = 'SALESFORCE',
+  QUICKBOOKS = 'QUICKBOOKS',
 }
 
 export enum IntegrationStatus {
@@ -146,6 +155,11 @@ export interface TwilioCredentials {
   fromNumber?: string;
 }
 
+// OAuth token credentials (used for encrypted token storage)
+export interface OAuthTokenCredentials {
+  token: string;
+}
+
 export type IntegrationCredentials =
   | PayflowCredentials
   | NMICredentials
@@ -154,11 +168,29 @@ export type IntegrationCredentials =
   | Auth0Credentials
   | AWSSESCredentials
   | TwilioCredentials
+  | OAuthTokenCredentials
   | Record<string, unknown>;
 
 // ═══════════════════════════════════════════════════════════════
 // INTEGRATION DEFINITION
 // ═══════════════════════════════════════════════════════════════
+
+export enum AuthType {
+  API_KEY = 'API_KEY',
+  OAUTH2 = 'OAUTH2',
+  OAUTH2_CLIENT = 'OAUTH2_CLIENT',
+  BASIC_AUTH = 'BASIC_AUTH',
+  CUSTOM = 'CUSTOM',
+}
+
+export interface OAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  authorizationUrl: string;
+  tokenUrl: string;
+  scopes: string[];
+  additionalParams?: Record<string, string>;
+}
 
 export interface IntegrationDefinition {
   id: string;
@@ -171,6 +203,8 @@ export interface IntegrationDefinition {
   isOrgOnly: boolean;
   isClientAllowed: boolean;
   isPlatformOffered: boolean;
+  authType?: AuthType;
+  oauthConfig?: OAuthConfig;
   credentialSchema: CredentialSchema;
   settingsSchema?: CredentialSchema;
   requiredCompliance: string[];

@@ -9,6 +9,7 @@ import {
   IntegrationProvider,
   IntegrationMode,
   IntegrationCategory,
+  AuthType,
 } from '@/lib/api/integrations';
 
 interface AddIntegrationModalProps {
@@ -36,6 +37,9 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.AUTHENTICATION]: 'Authentication',
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
+  [IntegrationCategory.OAUTH]: 'Connected Services',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.SMS]: 'SMS',
 };
 
 const providerLogos: Record<string, { icon: string; gradient: string }> = {
@@ -47,6 +51,13 @@ const providerLogos: Record<string, { icon: string; gradient: string }> = {
   [IntegrationProvider.OKTA]: { icon: 'OK', gradient: 'from-blue-600 to-indigo-600' },
   [IntegrationProvider.TWILIO]: { icon: 'TW', gradient: 'from-red-500 to-red-600' },
   [IntegrationProvider.SENDGRID]: { icon: 'SG', gradient: 'from-cyan-500 to-cyan-600' },
+  // OAuth Providers
+  [IntegrationProvider.GOOGLE]: { icon: 'G', gradient: 'from-red-500 to-yellow-500' },
+  [IntegrationProvider.MICROSOFT]: { icon: 'M', gradient: 'from-blue-500 to-green-500' },
+  [IntegrationProvider.SLACK]: { icon: 'S', gradient: 'from-purple-500 to-pink-500' },
+  [IntegrationProvider.HUBSPOT]: { icon: 'HS', gradient: 'from-orange-500 to-red-500' },
+  [IntegrationProvider.SALESFORCE]: { icon: 'SF', gradient: 'from-blue-400 to-blue-600' },
+  [IntegrationProvider.QUICKBOOKS]: { icon: 'QB', gradient: 'from-green-500 to-green-600' },
 };
 
 type Step = 'select' | 'configure' | 'credentials';
@@ -95,9 +106,13 @@ export function AddIntegrationModal({
     if (def) {
       setFormData((prev) => ({ ...prev, name: def.name }));
       const initialCreds: Record<string, string> = {};
-      def.requiredFields.forEach((field) => {
-        initialCreds[field.key] = '';
-      });
+      // Use credentialSchema.properties to get the credential fields
+      if (def.credentialSchema?.properties) {
+        Object.keys(def.credentialSchema.properties).forEach((key) => {
+          const prop = def.credentialSchema.properties[key];
+          initialCreds[key] = prop.default?.toString() || '';
+        });
+      }
       setCredentials(initialCreds);
     }
     setStep('configure');
@@ -428,25 +443,46 @@ export function AddIntegrationModal({
           {/* Step 3: Credentials */}
           {step === 'credentials' && selectedDefinition && (
             <div className="space-y-4">
-              <p className="text-sm text-zinc-400 mb-4">
-                Enter your {selectedDefinition.name} API credentials. These will be encrypted and stored securely.
-              </p>
-              {selectedDefinition.requiredFields.map((field) => (
-                <div key={field.key}>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">
-                    {field.label}
-                    {field.required && <span className="text-red-400 ml-1">*</span>}
-                  </label>
-                  <input
-                    type={field.type === 'password' ? 'password' : 'text'}
-                    value={credentials[field.key] || ''}
-                    onChange={(e) => setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
-                    placeholder={field.label}
-                    required={field.required}
-                  />
-                </div>
-              ))}
+              {selectedDefinition.authType === AuthType.OAUTH2 ? (
+                <>
+                  <p className="text-sm text-zinc-400 mb-4">
+                    Enter your {selectedDefinition.name} OAuth App credentials. These are the Client ID and Client Secret
+                    from your OAuth application configuration.
+                  </p>
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-4">
+                    <p className="text-sm text-blue-300">
+                      After saving credentials, users will be able to connect their {selectedDefinition.name} accounts
+                      through the OAuth authorization flow.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-zinc-400 mb-4">
+                  Enter your {selectedDefinition.name} API credentials. These will be encrypted and stored securely.
+                </p>
+              )}
+              {selectedDefinition.credentialSchema?.properties && Object.entries(selectedDefinition.credentialSchema.properties).map(([key, prop]) => {
+                const isRequired = selectedDefinition.credentialSchema.required?.includes(key);
+                return (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">
+                      {prop.title}
+                      {isRequired && <span className="text-red-400 ml-1">*</span>}
+                    </label>
+                    {prop.description && (
+                      <p className="text-xs text-zinc-500 mb-1">{prop.description}</p>
+                    )}
+                    <input
+                      type={prop.format === 'password' ? 'password' : 'text'}
+                      value={credentials[key] || ''}
+                      onChange={(e) => setCredentials((prev) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                      placeholder={prop.title}
+                      required={isRequired}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -478,18 +514,18 @@ export function AddIntegrationModal({
           {step === 'credentials' && (
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || selectedDefinition?.requiredFields.some((f) => f.required && !credentials[f.key])}
+              disabled={isSubmitting || (selectedDefinition?.credentialSchema?.required || []).some((key) => !credentials[key])}
               className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating...
+                  {selectedDefinition?.authType === AuthType.OAUTH2 ? 'Saving...' : 'Creating...'}
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  Create Integration
+                  {selectedDefinition?.authType === AuthType.OAUTH2 ? 'Save OAuth App' : 'Create Integration'}
                 </>
               )}
             </button>

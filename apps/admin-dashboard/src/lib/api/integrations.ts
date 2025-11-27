@@ -9,6 +9,13 @@ export enum IntegrationProvider {
   OKTA = 'OKTA',
   TWILIO = 'TWILIO',
   SENDGRID = 'SENDGRID',
+  // OAuth Providers
+  GOOGLE = 'GOOGLE',
+  MICROSOFT = 'MICROSOFT',
+  SLACK = 'SLACK',
+  HUBSPOT = 'HUBSPOT',
+  SALESFORCE = 'SALESFORCE',
+  QUICKBOOKS = 'QUICKBOOKS',
 }
 
 export enum IntegrationCategory {
@@ -16,6 +23,9 @@ export enum IntegrationCategory {
   AUTHENTICATION = 'AUTHENTICATION',
   COMMUNICATION = 'COMMUNICATION',
   ANALYTICS = 'ANALYTICS',
+  OAUTH = 'OAUTH',
+  EMAIL_TRANSACTIONAL = 'EMAIL_TRANSACTIONAL',
+  SMS = 'SMS',
 }
 
 export enum IntegrationStatus {
@@ -30,15 +40,44 @@ export enum IntegrationMode {
   PLATFORM = 'PLATFORM',
 }
 
+export enum AuthType {
+  API_KEY = 'API_KEY',
+  OAUTH2 = 'OAUTH2',
+  OAUTH2_CLIENT = 'OAUTH2_CLIENT',
+  BASIC_AUTH = 'BASIC_AUTH',
+  CUSTOM = 'CUSTOM',
+}
+
+export interface CredentialSchemaProperty {
+  type: 'string' | 'number' | 'boolean';
+  title: string;
+  description?: string;
+  format?: 'password' | 'email' | 'url';
+  pattern?: string;
+  default?: string | number | boolean;
+}
+
+export interface CredentialSchema {
+  type: 'object';
+  required: string[];
+  properties: Record<string, CredentialSchemaProperty>;
+}
+
 export interface IntegrationDefinition {
+  id: string;
   provider: IntegrationProvider;
   name: string;
   description: string;
   category: IntegrationCategory;
-  logoUrl: string;
-  requiredFields: { key: string; label: string; type: string; required: boolean }[];
-  isPlatformAllowed: boolean;
+  logoUrl?: string;
+  documentationUrl?: string;
+  isOrgOnly: boolean;
   isClientAllowed: boolean;
+  isPlatformOffered: boolean;
+  authType?: AuthType;
+  credentialSchema: CredentialSchema;
+  requiredCompliance: string[];
+  status: 'active' | 'beta' | 'deprecated';
 }
 
 export interface PlatformIntegration {
@@ -95,7 +134,7 @@ export interface IntegrationTestResult {
   testedAt: Date;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.dev.avnz.io:3001';
 
 let authToken: string | null = null;
 
@@ -131,12 +170,12 @@ async function request<T>(
 }
 
 export const integrationsApi = {
-  // Platform integrations (ORG_ADMIN) - routes at /api/admin/integrations
+  // Platform integrations (ORG_ADMIN) - routes at /api/integrations/platform
   listPlatformIntegrations: () =>
-    request<PlatformIntegration[]>('/api/admin/integrations/platform'),
+    request<PlatformIntegration[]>('/api/integrations/platform'),
 
   getPlatformIntegration: (id: string) =>
-    request<PlatformIntegration>(`/api/admin/integrations/platform/${id}`),
+    request<PlatformIntegration>(`/api/integrations/platform/${id}`),
 
   createPlatformIntegration: (data: {
     provider: IntegrationProvider;
@@ -148,7 +187,7 @@ export const integrationsApi = {
     isSharedWithClients?: boolean;
     clientPricing?: { type: string; amount: number; percentage?: number };
   }) =>
-    request<PlatformIntegration>('/api/admin/integrations/platform', {
+    request<PlatformIntegration>('/api/integrations/platform', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -166,16 +205,16 @@ export const integrationsApi = {
       clientPricing: { type: string; amount: number; percentage?: number };
     }>
   ) =>
-    request<PlatformIntegration>(`/api/admin/integrations/platform/${id}`, {
+    request<PlatformIntegration>(`/api/integrations/platform/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   deletePlatformIntegration: (id: string) =>
-    request<void>(`/api/admin/integrations/platform/${id}`, { method: 'DELETE' }),
+    request<void>(`/api/integrations/platform/${id}`, { method: 'DELETE' }),
 
   testPlatformIntegration: (id: string) =>
-    request<IntegrationTestResult>(`/api/admin/integrations/platform/${id}/test`, {
+    request<IntegrationTestResult>(`/api/integrations/platform/${id}/test`, {
       method: 'POST',
     }),
 
@@ -186,21 +225,21 @@ export const integrationsApi = {
       clientPricing?: { type: string; amount: number; percentage?: number };
     }
   ) =>
-    request<PlatformIntegration>(`/api/admin/integrations/platform/${id}/sharing`, {
+    request<PlatformIntegration>(`/api/integrations/platform/${id}/sharing`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
-  // Definitions (from admin controller)
+  // Definitions (from platform controller)
   listDefinitions: () =>
-    request<IntegrationDefinition[]>('/api/admin/integrations/definitions'),
+    request<IntegrationDefinition[]>('/api/integrations/platform/definitions'),
 
-  // Client integrations - routes at /api/integrations (uses current user's clientId)
+  // Client integrations - routes at /api/integrations/client
   listClientIntegrations: (_clientId: string) =>
-    request<ClientIntegration[]>('/api/integrations'),
+    request<ClientIntegration[]>('/api/integrations/client'),
 
   getClientIntegration: (_clientId: string, id: string) =>
-    request<ClientIntegration>(`/api/integrations/${id}`),
+    request<ClientIntegration>(`/api/integrations/client/${id}`),
 
   createClientIntegration: (
     _clientId: string,
@@ -216,7 +255,7 @@ export const integrationsApi = {
       isDefault?: boolean;
     }
   ) =>
-    request<ClientIntegration>('/api/integrations', {
+    request<ClientIntegration>('/api/integrations/client', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -234,21 +273,21 @@ export const integrationsApi = {
       isDefault: boolean;
     }>
   ) =>
-    request<ClientIntegration>(`/api/integrations/${id}`, {
+    request<ClientIntegration>(`/api/integrations/client/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   deleteClientIntegration: (_clientId: string, id: string) =>
-    request<void>(`/api/integrations/${id}`, { method: 'DELETE' }),
+    request<void>(`/api/integrations/client/${id}`, { method: 'DELETE' }),
 
   testClientIntegration: (_clientId: string, id: string) =>
-    request<IntegrationTestResult>(`/api/integrations/${id}/test`, {
+    request<IntegrationTestResult>(`/api/integrations/client/${id}/test`, {
       method: 'POST',
     }),
 
   setDefaultIntegration: (_clientId: string, id: string) =>
-    request<ClientIntegration>(`/api/integrations/${id}/default`, {
+    request<ClientIntegration>(`/api/integrations/client/${id}/default`, {
       method: 'PATCH',
     }),
 
@@ -256,5 +295,5 @@ export const integrationsApi = {
     request<{
       definitions: IntegrationDefinition[];
       platformOptions: PlatformIntegration[];
-    }>('/api/integrations/available'),
+    }>('/api/integrations/client/available'),
 };

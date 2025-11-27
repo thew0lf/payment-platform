@@ -83,17 +83,18 @@ export function getNavigationItems(user: User): NavItem[] {
     items.push({ id: 'team', label: 'Team', icon: 'Building2', href: '/settings/team' });
   }
   if (hasPermission(user, 'manage:settings')) {
-    items.push(
-      { id: 'integrations', label: 'Integrations', icon: 'Plug', href: '/settings/integrations' },
-      { id: 'settings', label: 'Settings', icon: 'Settings', href: '/settings' },
-    );
+    // Client users get integrations link to /settings/integrations
+    if (user.scopeType === 'CLIENT') {
+      items.push({ id: 'integrations', label: 'Integrations', icon: 'Plug', href: '/settings/integrations' });
+    }
+    items.push({ id: 'settings', label: 'Settings', icon: 'Settings', href: '/settings' });
   }
 
   if (user.scopeType === 'ORGANIZATION') {
     items.push(
       { id: 'divider', label: '', icon: '', href: '' },
       { id: 'clients', label: 'All Clients', icon: 'Building', href: '/admin/clients' },
-      { id: 'platform-integrations', label: 'Platform Integrations', icon: 'Plug', href: '/admin/integrations' },
+      { id: 'platform-integrations', label: 'Platform Integrations', icon: 'Plug', href: '/integrations' },
       { id: 'analytics', label: 'Platform Analytics', icon: 'BarChart3', href: '/admin/analytics' },
       { id: 'system', label: 'System', icon: 'Server', href: '/admin/system' },
     );

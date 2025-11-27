@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.dev.avnz.io:3001';
 
 let authToken: string | null = null;
 
@@ -65,7 +65,7 @@ export const api = {
 
   // Hierarchy
   getAccessibleHierarchy: () =>
-    request<{ clients: any[]; companies: any[]; departments: any[] }>('/hierarchy/accessible'),
+    request<{ clients: any[]; companies: any[]; departments: any[] }>('/api/hierarchy/accessible'),
 
   // Transactions
   getTransactions: (params: Record<string, string> = {}) => {

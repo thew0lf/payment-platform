@@ -88,30 +88,36 @@ export class AuthService {
   }
 
   async getUserById(id: string): Promise<AuthenticatedUser | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        avatar: true,
-        scopeType: true,
-        scopeId: true,
-        role: true,
-        status: true,
-        organizationId: true,
-        clientId: true,
-        companyId: true,
-        departmentId: true,
-      },
-    });
+    try {
+      console.log('[AuthService] getUserById called with id:', id);
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+      });
 
-    if (!user || user.status !== 'ACTIVE') {
-      return null;
+      console.log('[AuthService] user found:', user ? 'yes' : 'no');
+
+      if (!user || user.status !== 'ACTIVE') {
+        return null;
+      }
+
+      // Return only the fields needed for AuthenticatedUser
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatar: user.avatar,
+        scopeType: user.scopeType,
+        scopeId: user.scopeId,
+        role: user.role,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+        departmentId: user.departmentId,
+      };
+    } catch (error) {
+      console.error('[AuthService] getUserById error:', error);
+      throw error;
     }
-
-    const { status, ...result } = user;
-    return result;
   }
 }
