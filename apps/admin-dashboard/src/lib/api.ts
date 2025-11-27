@@ -97,4 +97,43 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return request<{ transactions: any[] }>(`/dashboard/recent${query ? `?${query}` : ''}`);
   },
+
+  // Dashboard Chart Data
+  getChartData: (params: { days?: number; companyId?: string; clientId?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.days) query.set('days', String(params.days));
+    if (params.companyId) query.set('companyId', params.companyId);
+    if (params.clientId) query.set('clientId', params.clientId);
+    const queryStr = query.toString();
+    return request<ChartResponse>(`/api/dashboard/stats/chart${queryStr ? `?${queryStr}` : ''}`);
+  },
 };
+
+// Chart data types
+export interface ChartDataPoint {
+  date: string;
+  successful: number;
+  failed: number;
+  total: number;
+  volume: number;
+}
+
+export interface ChartSummary {
+  totalTransactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  successRate: number;
+  totalVolume: number;
+  avgDailyTransactions: number;
+  avgDailyVolume: number;
+}
+
+export interface ChartResponse {
+  data: ChartDataPoint[];
+  summary: ChartSummary;
+  period: {
+    start: string;
+    end: string;
+    days: number;
+  };
+}

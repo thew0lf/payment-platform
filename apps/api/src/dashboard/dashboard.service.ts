@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { ScopeType } from '@prisma/client';
+import {
+  ChartDataPoint,
+  ChartResponse,
+  ChartSummary,
+  VALID_CHART_DAYS,
+  ValidChartDays,
+} from './types/dashboard.types';
 
 interface UserContext {
   sub: string;
@@ -210,5 +217,163 @@ export class DashboardService {
       orderBy: { createdAt: 'desc' },
       take: filters?.limit || 10,
     });
+  }
+
+  async getChartData(
+    user: UserContext,
+    days: number = 30,
+    filters?: { companyId?: string; clientId?: string },
+  ): Promise<ChartResponse> {
+    // Validate and normalize days parameter
+    const validDays = VALID_CHART_DAYS.includes(days as ValidChartDays)
+      ? (days as ValidChartDays)
+      : 30;
+
+    // Get accessible company IDs
+    let companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    // Apply additional filters
+    if (filters?.companyId && companyIds.includes(filters.companyId)) {
+      companyIds = [filters.companyId];
+    } else if (filters?.clientId && user.scopeType === 'ORGANIZATION') {
+      const clientCompanies = await this.prisma.company.findMany({
+        where: { clientId: filters.clientId, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      companyIds = clientCompanies
+        .map((c) => c.id)
+        .filter((id) => companyIds.includes(id));
+    }
+
+    // Calculate date range
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - validDays);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Handle edge case of empty companyIds
+    if (companyIds.length === 0) {
+      const dateMap = new Map<string, ChartDataPoint>();
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        dateMap.set(dateStr, {
+          date: dateStr,
+          successful: 0,
+          failed: 0,
+          total: 0,
+          volume: 0,
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      const data = Array.from(dateMap.values());
+      return {
+        data,
+        summary: {
+          totalTransactions: 0,
+          successfulTransactions: 0,
+          failedTransactions: 0,
+          successRate: 0,
+          totalVolume: 0,
+          avgDailyTransactions: 0,
+          avgDailyVolume: 0,
+        },
+        period: {
+          start: startDate.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0],
+          days: validDays,
+        },
+      };
+    }
+
+    // Use Prisma's standard query instead of raw SQL to avoid array parameter issues
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        companyId: { in: companyIds },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        status: true,
+        amount: true,
+        createdAt: true,
+      },
+    });
+
+    // Aggregate in memory since Prisma doesn't support FILTER clause directly
+    const dailyAggregation: Record<
+      string,
+      { successful: number; failed: number; total: number; volume: number }
+    > = {};
+
+    for (const txn of transactions) {
+      const dateStr = txn.createdAt.toISOString().split('T')[0];
+      if (!dailyAggregation[dateStr]) {
+        dailyAggregation[dateStr] = {
+          successful: 0,
+          failed: 0,
+          total: 0,
+          volume: 0,
+        };
+      }
+      dailyAggregation[dateStr].total++;
+      if (txn.status === 'COMPLETED') {
+        dailyAggregation[dateStr].successful++;
+        dailyAggregation[dateStr].volume += txn.amount?.toNumber() || 0;
+      } else if (txn.status === 'FAILED') {
+        dailyAggregation[dateStr].failed++;
+      }
+    }
+
+    // Generate all dates in range to fill gaps
+    const dateMap = new Map<string, ChartDataPoint>();
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const agg = dailyAggregation[dateStr];
+      dateMap.set(dateStr, {
+        date: dateStr,
+        successful: agg?.successful || 0,
+        failed: agg?.failed || 0,
+        total: agg?.total || 0,
+        volume: agg?.volume || 0,
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const data = Array.from(dateMap.values());
+
+    // Calculate summary statistics
+    const totalTransactions = data.reduce((sum, d) => sum + d.total, 0);
+    const successfulTransactions = data.reduce((sum, d) => sum + d.successful, 0);
+    const failedTransactions = data.reduce((sum, d) => sum + d.failed, 0);
+    const totalVolume = data.reduce((sum, d) => sum + d.volume, 0);
+
+    const summary: ChartSummary = {
+      totalTransactions,
+      successfulTransactions,
+      failedTransactions,
+      successRate:
+        totalTransactions > 0
+          ? Math.round((successfulTransactions / totalTransactions) * 10000) / 100
+          : 0,
+      totalVolume,
+      avgDailyTransactions: Math.round(totalTransactions / validDays),
+      avgDailyVolume: Math.round(totalVolume / validDays),
+    };
+
+    return {
+      data,
+      summary,
+      period: {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0],
+        days: validDays,
+      },
+    };
   }
 }
