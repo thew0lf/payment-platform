@@ -30,16 +30,16 @@ import {
 
 function StatusBadge({ status }: { status: AccountStatus }) {
   const colors: Record<AccountStatus, string> = {
-    [AccountStatus.ACTIVE]: 'bg-green-100 text-green-800',
-    [AccountStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-    [AccountStatus.SUSPENDED]: 'bg-orange-100 text-orange-800',
-    [AccountStatus.UNDER_REVIEW]: 'bg-orange-100 text-orange-800',
-    [AccountStatus.INACTIVE]: 'bg-gray-100 text-gray-800',
-    [AccountStatus.CLOSED]: 'bg-red-100 text-red-800',
+    [AccountStatus.ACTIVE]: 'bg-green-500/20 text-green-400',
+    [AccountStatus.PENDING]: 'bg-yellow-500/20 text-yellow-400',
+    [AccountStatus.SUSPENDED]: 'bg-orange-500/20 text-orange-400',
+    [AccountStatus.UNDER_REVIEW]: 'bg-orange-500/20 text-orange-400',
+    [AccountStatus.INACTIVE]: 'bg-zinc-500/20 text-zinc-400',
+    [AccountStatus.CLOSED]: 'bg-red-500/20 text-red-400',
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-gray-100'}`}>
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-zinc-500/20 text-zinc-400'}`}>
       {status.replace('_', ' ')}
     </span>
   );
@@ -48,9 +48,9 @@ function StatusBadge({ status }: { status: AccountStatus }) {
 function HealthIndicator({ status }: { status: 'healthy' | 'degraded' | 'down' }) {
   const Icon = status === 'healthy' ? CheckCircle : status === 'degraded' ? AlertTriangle : XCircle;
   const colors = {
-    healthy: 'text-green-500',
-    degraded: 'text-yellow-500',
-    down: 'text-red-500',
+    healthy: 'text-green-400',
+    degraded: 'text-yellow-400',
+    down: 'text-red-400',
   };
 
   return (
@@ -63,18 +63,18 @@ function HealthIndicator({ status }: { status: 'healthy' | 'degraded' | 'down' }
 
 function UsageBar({ current, limit, label }: { current: number; limit?: number; label: string }) {
   const percentage = calculateUsagePercentage(current, limit);
-  const barColor = percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-blue-500';
+  const barColor = percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-cyan-500';
 
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-gray-600">
+      <div className="flex justify-between text-xs text-zinc-400">
         <span>{label}</span>
         <span>
           {formatNumber(current)} {limit ? `/ ${formatNumber(limit)}` : ''}
         </span>
       </div>
       {limit && (
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
           <div className={`h-full ${barColor} transition-all`} style={{ width: `${percentage}%` }} />
         </div>
       )}
@@ -86,7 +86,7 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors">
       <div
         className="p-4 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -100,8 +100,8 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
               <CreditCard className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">{account.name}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-medium text-white">{account.name}</h3>
+              <p className="text-sm text-zinc-400">
                 {account.providerType} - {account.merchantId}
               </p>
             </div>
@@ -114,29 +114,29 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
 
         <div className="mt-4 grid grid-cols-4 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500">Today</p>
-            <p className="font-semibold">{formatNumber(account.currentUsage.todayTransactionCount)}</p>
+            <p className="text-xs text-zinc-500">Today</p>
+            <p className="font-semibold text-white">{formatNumber(account.currentUsage.todayTransactionCount)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Success Rate</p>
-            <p className="font-semibold">{account.health.successRate.toFixed(1)}%</p>
+            <p className="text-xs text-zinc-500">Success Rate</p>
+            <p className="font-semibold text-white">{account.health.successRate.toFixed(1)}%</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Volume</p>
-            <p className="font-semibold">{formatCurrency(account.currentUsage.todayVolume)}</p>
+            <p className="text-xs text-zinc-500">Volume</p>
+            <p className="font-semibold text-white">{formatCurrency(account.currentUsage.todayVolume)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Latency</p>
-            <p className="font-semibold">{account.health.avgLatencyMs.toFixed(0)}ms</p>
+            <p className="text-xs text-zinc-500">Latency</p>
+            <p className="font-semibold text-white">{account.health.avgLatencyMs.toFixed(0)}ms</p>
           </div>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t p-4 bg-gray-50 space-y-4">
+        <div className="border-t border-zinc-800 p-4 bg-zinc-800/30 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Daily Usage</h4>
+              <h4 className="text-sm font-medium text-zinc-300">Daily Usage</h4>
               <UsageBar
                 current={account.currentUsage.todayTransactionCount}
                 limit={account.limits.dailyTransactionLimit}
@@ -149,7 +149,7 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
               />
             </div>
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Monthly Usage</h4>
+              <h4 className="text-sm font-medium text-zinc-300">Monthly Usage</h4>
               <UsageBar
                 current={account.currentUsage.monthTransactionCount}
                 limit={account.limits.monthlyTransactionLimit}
@@ -165,33 +165,33 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
 
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Environment</p>
-              <p className="font-medium capitalize">{account.environment}</p>
+              <p className="text-zinc-500">Environment</p>
+              <p className="font-medium text-white capitalize">{account.environment}</p>
             </div>
             <div>
-              <p className="text-gray-500">Priority</p>
-              <p className="font-medium">{account.routing.priority}</p>
+              <p className="text-zinc-500">Priority</p>
+              <p className="font-medium text-white">{account.routing.priority}</p>
             </div>
             <div>
-              <p className="text-gray-500">Default</p>
-              <p className="font-medium">{account.routing.isDefault ? 'Yes' : 'No'}</p>
+              <p className="text-zinc-500">Default</p>
+              <p className="font-medium text-white">{account.routing.isDefault ? 'Yes' : 'No'}</p>
             </div>
           </div>
 
           {account.limits.minTransactionAmount && (
             <div className="text-sm">
-              <p className="text-gray-500">Transaction Range</p>
-              <p className="font-medium">
+              <p className="text-zinc-500">Transaction Range</p>
+              <p className="font-medium text-white">
                 {formatCurrency(account.limits.minTransactionAmount)} - {formatCurrency(account.limits.maxTransactionAmount)}
               </p>
             </div>
           )}
 
           {account.health.lastError && (
-            <div className="bg-red-50 border border-red-200 rounded p-3">
-              <p className="text-sm font-medium text-red-800">Last Error</p>
-              <p className="text-sm text-red-600">{account.health.lastError.message}</p>
-              <p className="text-xs text-red-500">
+            <div className="bg-red-500/10 border border-red-500/20 rounded p-3">
+              <p className="text-sm font-medium text-red-400">Last Error</p>
+              <p className="text-sm text-red-300">{account.health.lastError.message}</p>
+              <p className="text-xs text-red-400/70">
                 {new Date(account.health.lastError.timestamp).toLocaleString()}
               </p>
             </div>
@@ -266,40 +266,40 @@ export default function MerchantAccountsPage() {
       <div className="p-6 space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
+          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+            <div className="flex items-center gap-2 text-zinc-400 mb-1">
               <CreditCard className="w-4 h-4" />
               <span className="text-sm">Total Accounts</span>
             </div>
-            <p className="text-2xl font-semibold">{summary.total}</p>
+            <p className="text-2xl font-semibold text-white">{summary.total}</p>
           </div>
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center gap-2 text-green-600 mb-1">
+          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+            <div className="flex items-center gap-2 text-green-400 mb-1">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm">Active</span>
             </div>
-            <p className="text-2xl font-semibold">{summary.active}</p>
+            <p className="text-2xl font-semibold text-white">{summary.active}</p>
           </div>
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center gap-2 text-blue-600 mb-1">
+          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+            <div className="flex items-center gap-2 text-cyan-400 mb-1">
               <Activity className="w-4 h-4" />
               <span className="text-sm">Healthy</span>
             </div>
-            <p className="text-2xl font-semibold">{summary.healthy}</p>
+            <p className="text-2xl font-semibold text-white">{summary.healthy}</p>
           </div>
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center gap-2 text-purple-600 mb-1">
+          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+            <div className="flex items-center gap-2 text-purple-400 mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Today&apos;s Volume</span>
             </div>
-            <p className="text-2xl font-semibold">{formatCurrency(summary.totalVolume)}</p>
+            <p className="text-2xl font-semibold text-white">{formatCurrency(summary.totalVolume)}</p>
           </div>
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
+          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+            <div className="flex items-center gap-2 text-indigo-400 mb-1">
               <BarChart3 className="w-4 h-4" />
               <span className="text-sm">Today&apos;s Txns</span>
             </div>
-            <p className="text-2xl font-semibold">{formatNumber(summary.totalTransactions)}</p>
+            <p className="text-2xl font-semibold text-white">{formatNumber(summary.totalTransactions)}</p>
           </div>
         </div>
 
@@ -337,17 +337,17 @@ export default function MerchantAccountsPage() {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
             <p className="font-medium">Error loading accounts</p>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm text-red-300">{error}</p>
           </div>
         )}
 
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-500">Loading accounts...</span>
+            <RefreshCw className="w-6 h-6 animate-spin text-zinc-400" />
+            <span className="ml-2 text-zinc-500">Loading accounts...</span>
           </div>
         )}
 
@@ -355,10 +355,10 @@ export default function MerchantAccountsPage() {
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {accounts.length === 0 ? (
-              <div className="col-span-2 text-center py-12 bg-white rounded-lg border">
-                <CreditCard className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Merchant Accounts</h3>
-                <p className="text-gray-500 mb-4">
+              <div className="col-span-2 text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <CreditCard className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Merchant Accounts</h3>
+                <p className="text-zinc-400 mb-4">
                   Get started by adding your first payment provider account.
                 </p>
                 <Button>

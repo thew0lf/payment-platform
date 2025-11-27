@@ -56,6 +56,7 @@ export interface NavItem {
   icon: string;
   href: string;
   badge?: string | number;
+  children?: NavItem[];
 }
 
 export function getNavigationItems(user: User): NavItem[] {
@@ -79,15 +80,43 @@ export function getNavigationItems(user: User): NavItem[] {
     );
   }
 
-  if (hasPermission(user, 'manage:users')) {
-    items.push({ id: 'team', label: 'Team', icon: 'Building2', href: '/settings/team' });
-  }
-  if (hasPermission(user, 'manage:settings')) {
-    // Client users get integrations link to /settings/integrations
-    if (user.scopeType === 'CLIENT') {
-      items.push({ id: 'integrations', label: 'Integrations', icon: 'Plug', href: '/settings/integrations' });
+  // Settings section with children
+  if (hasPermission(user, 'manage:settings') || hasPermission(user, 'manage:users')) {
+    const settingsChildren: NavItem[] = [
+      { id: 'settings-general', label: 'General', icon: 'Settings', href: '/settings' },
+    ];
+
+    if (hasPermission(user, 'manage:settings')) {
+      settingsChildren.push({
+        id: 'settings-integrations',
+        label: 'Integrations',
+        icon: 'Plug',
+        href: '/settings/integrations',
+      });
+      settingsChildren.push({
+        id: 'settings-merchant-accounts',
+        label: 'Merchant Accounts',
+        icon: 'Landmark',
+        href: '/settings/merchant-accounts',
+      });
     }
-    items.push({ id: 'settings', label: 'Settings', icon: 'Settings', href: '/settings' });
+
+    if (hasPermission(user, 'manage:users')) {
+      settingsChildren.push({
+        id: 'settings-team',
+        label: 'Team',
+        icon: 'Users',
+        href: '/settings/team',
+      });
+    }
+
+    items.push({
+      id: 'settings',
+      label: 'Settings',
+      icon: 'Settings',
+      href: '/settings',
+      children: settingsChildren,
+    });
   }
 
   if (user.scopeType === 'ORGANIZATION') {
