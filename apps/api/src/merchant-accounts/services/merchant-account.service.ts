@@ -412,7 +412,55 @@ export class MerchantAccountService {
     });
   }
 
-  // Monthly reset would be handled by a separate job on the 1st of each month
+  @Cron('0 0 1 * *') // First day of every month at midnight
+  async resetMonthlyUsage(): Promise<void> {
+    this.logger.log('Resetting monthly usage counters...');
+    await this.prisma.merchantAccount.updateMany({
+      data: {
+        monthTransactionCount: 0,
+        monthVolume: 0,
+      },
+    });
+  }
+
+  @Cron('0 0 1 1 *') // January 1st at midnight
+  async resetYearlyUsage(): Promise<void> {
+    this.logger.log('Resetting yearly usage counters...');
+    await this.prisma.merchantAccount.updateMany({
+      data: {
+        yearTransactionCount: 0,
+        yearVolume: 0,
+      },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async healthCheckAllAccounts(): Promise<void> {
+    const accounts = await this.prisma.merchantAccount.findMany({
+      where: { status: { in: ['active', 'pending'] } },
+      select: { id: true, todaySuccessCount: true, todayFailureCount: true },
+    });
+
+    for (const account of accounts) {
+      const total = account.todaySuccessCount + account.todayFailureCount;
+      if (total === 0) continue;
+
+      const successRate = (account.todaySuccessCount / total) * 100;
+      let healthStatus: 'healthy' | 'degraded' | 'down' = 'healthy';
+
+      if (successRate < 50) healthStatus = 'down';
+      else if (successRate < 80) healthStatus = 'degraded';
+
+      await this.prisma.merchantAccount.update({
+        where: { id: account.id },
+        data: {
+          healthStatus,
+          successRate,
+          lastHealthCheck: new Date(),
+        },
+      });
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // HELPERS
