@@ -37,6 +37,7 @@ model Organization {
   clients   Client[]
   users     User[]   @relation("OrganizationUsers")
   apiKeys   ApiKey[]
+  platformIntegrations PlatformIntegration[]
 
   @@map("organizations")
 }
@@ -63,6 +64,7 @@ model Client {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   companies    Company[]
   users        User[]       @relation("ClientUsers")
+  integrations ClientIntegration[]
 
   @@unique([organizationId, slug])
   @@map("clients")
@@ -967,6 +969,9 @@ model MerchantAccount {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   createdBy             String?
+
+  // Integration relation
+  clientIntegration     ClientIntegration?
 
   @@unique([companyId, name])
   @@index([companyId])
@@ -3372,4 +3377,95 @@ model DashboardAlert {
   @@index([category])
   @@index([createdAt])
   @@map("dashboard_alerts")
+}
+
+// =============================================================================
+// INTEGRATIONS FRAMEWORK
+// =============================================================================
+
+model IntegrationDefinition {
+  id                  String    @id @default(cuid())
+  provider            String    @unique
+  category            String
+  name                String
+  description         String
+  logoUrl             String?
+  documentationUrl    String?
+  isOrgOnly           Boolean   @default(false)
+  isClientAllowed     Boolean   @default(true)
+  isPlatformOffered   Boolean   @default(false)
+  credentialSchema    Json
+  settingsSchema      Json      @default("{}")
+  requiredCompliance  String[]  @default([])
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("integration_definitions")
+}
+
+model PlatformIntegration {
+  id                    String    @id @default(cuid())
+  organizationId        String
+  provider              String
+  category              String
+  name                  String
+  description           String?
+  credentials           Json
+  settings              Json      @default("{}")
+  environment           String    @default("SANDBOX")
+  isSharedWithClients   Boolean   @default(false)
+  clientPricing         Json?
+  status                String    @default("PENDING")
+  lastTestedAt          DateTime?
+  lastTestResult        String?
+  errorMessage          String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String
+  updatedBy             String?
+
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientIntegrations    ClientIntegration[]
+
+  @@unique([organizationId, provider])
+  @@index([organizationId])
+  @@map("platform_integrations")
+}
+
+model ClientIntegration {
+  id                      String    @id @default(cuid())
+  clientId                String
+  provider                String
+  category                String
+  name                    String
+  description             String?
+  mode                    String    @default("OWN")
+  credentials             Json?
+  platformIntegrationId   String?
+  settings                Json      @default("{}")
+  environment             String    @default("SANDBOX")
+  usageThisMonth          Json?
+  isDefault               Boolean   @default(false)
+  priority                Int       @default(0)
+  status                  String    @default("PENDING")
+  isVerified              Boolean   @default(false)
+  verifiedAt              DateTime?
+  verifiedBy              String?
+  lastTestedAt            DateTime?
+  lastTestResult          String?
+  errorMessage            String?
+  merchantAccountId       String?   @unique
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  createdBy               String
+  updatedBy               String?
+
+  client                  Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platformIntegration     PlatformIntegration? @relation(fields: [platformIntegrationId], references: [id])
+  merchantAccount         MerchantAccount? @relation(fields: [merchantAccountId], references: [id])
+
+  @@unique([clientId, provider, name])
+  @@index([clientId])
+  @@map("client_integrations")
 }
