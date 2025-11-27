@@ -52,8 +52,11 @@ export class MerchantAccountsController {
     @Query('isDefault') isDefault?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ accounts: MerchantAccount[]; total: number }> {
-    const companyId = this.getCompanyId(req);
+    // For ORGANIZATION level users, allow filtering by companyId from query
+    // For COMPANY level users, use their companyId
+    const companyId = this.getCompanyIdOptional(req, queryCompanyId);
     const query: MerchantAccountQuery = {
       companyId,
       providerType,
@@ -112,5 +115,18 @@ export class MerchantAccountsController {
   private getCompanyId(req: any): string {
     if (req.user?.companyId) return req.user.companyId;
     throw new Error('Company ID required');
+  }
+
+  private getCompanyIdOptional(req: any, queryCompanyId?: string): string | undefined {
+    // If user is ORGANIZATION level, they can view all accounts or filter by companyId
+    if (req.user?.scopeType === 'ORGANIZATION') {
+      return queryCompanyId || undefined; // undefined = all accounts
+    }
+    // If user is CLIENT level, they can view accounts for companies in their client
+    if (req.user?.scopeType === 'CLIENT') {
+      return queryCompanyId || undefined; // Service should filter by clientId
+    }
+    // For COMPANY level users, always use their companyId
+    return req.user?.companyId;
   }
 }

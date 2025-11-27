@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -22,6 +22,7 @@ import {
   LogOut,
   User,
   Plug,
+  Landmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
@@ -41,6 +42,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BarChart3,
   Server,
   Plug,
+  Landmark,
 };
 
 interface SidebarProps {
@@ -64,6 +66,34 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
   const [showClientSwitcher, setShowClientSwitcher] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  // Load expanded state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-expanded-menus');
+    if (saved) {
+      try {
+        setExpandedMenus(JSON.parse(saved));
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }, []);
+
+  const toggleMenu = (menuId: string) => {
+    setExpandedMenus(prev => {
+      const next = { ...prev, [menuId]: !prev[menuId] };
+      localStorage.setItem('sidebar-expanded-menus', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isChildActive = (children: typeof navItems | undefined) => {
+    if (!children) return false;
+    return children.some(child =>
+      pathname === child.href || pathname?.startsWith(child.href + '/')
+    );
+  };
 
   if (!user) return null;
 
@@ -212,9 +242,75 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
           }
 
           const Icon = iconMap[item.icon] || LayoutDashboard;
+          const hasChildren = item.children && item.children.length > 0;
+          const isExpanded = expandedMenus[item.id] || isChildActive(item.children);
           const isActive = pathname === item.href ||
             (item.href !== '/' && pathname?.startsWith(item.href));
+          const isParentActive = hasChildren && isChildActive(item.children);
 
+          // Item with children (expandable)
+          if (hasChildren) {
+            return (
+              <div key={item.id} className="space-y-1">
+                <button
+                  onClick={() => toggleMenu(item.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isParentActive
+                      ? "bg-zinc-800/50 text-white"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      isExpanded ? "rotate-180" : ""
+                    )}
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    "overflow-hidden transition-all duration-200",
+                    isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  )}
+                >
+                  <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 py-1">
+                    {item.children!.map((child) => {
+                      const ChildIcon = iconMap[child.icon] || Settings;
+                      const isChildItemActive = pathname === child.href ||
+                        pathname?.startsWith(child.href + '/');
+
+                      return (
+                        <Link
+                          key={child.id}
+                          href={child.href}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
+                            isChildItemActive
+                              ? "bg-zinc-800 text-white"
+                              : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                          )}
+                        >
+                          <ChildIcon className="w-4 h-4" />
+                          <span>{child.label}</span>
+                          {child.badge && (
+                            <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">
+                              {child.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Regular item (no children)
           return (
             <Link
               key={item.id}
