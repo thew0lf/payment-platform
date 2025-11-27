@@ -21,6 +21,7 @@ import {
   Server,
   LogOut,
   User,
+  Plug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
@@ -39,6 +40,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Building,
   BarChart3,
   Server,
+  Plug,
 };
 
 interface SidebarProps {
