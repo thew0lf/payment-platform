@@ -105,3 +105,54 @@ Integration provider icons are stored in `apps/admin-dashboard/public/integratio
 - `iconUrl`: Path to SVG icon
 - `bgColor`: Tailwind background class
 - `gradient`: Gradient classes for fallback
+
+## Entity Codes (Client & Company)
+
+Clients and Companies have 4-character alphanumeric codes used in order/shipment numbers.
+
+| Entity | Code Format | Uniqueness | Example |
+|--------|-------------|------------|---------|
+| Client | 4 uppercase alphanumeric | Globally unique | `VELO` |
+| Company | 4 uppercase alphanumeric | Globally unique | `COFF` |
+
+**Key files:**
+- `apps/api/src/common/services/code-generator.service.ts` - Auto-generates codes
+- `apps/api/prisma/seeds/seed-entity-codes.ts` - Backfill script
+
+**Code generation rules:**
+1. Extract first 4 chars from name (uppercase, alphanumeric only)
+2. If collision, try `XX01`, `XX02`, ... `XX99`
+3. Fallback to random 4-char code
+4. Reserved codes blocked: `TEST`, `DEMO`, `NULL`, etc.
+
+## Order & Shipment Numbers
+
+Order numbers are designed for phone/AI readability with global uniqueness.
+
+### Format
+
+| Context | Format | Example |
+|---------|--------|---------|
+| Database (internal) | `CLNT-COMP-X-NNNNNNNNN` | `VELO-COFF-A-000000003` |
+| API/URLs (compact) | `X-NNNNNNNNN` | `A-000000003` |
+| Customer display | `X-NNN-NNN-NNN` | `A-000-000-003` |
+
+### Design Decisions
+- **Global sequence**: Order numbers are unique across ALL companies
+- **Numbers only** (after prefix): Phone/AI friendly, no letter confusion
+- **Prefix letter rollover**: A→C→E→F... when hitting 1 billion orders
+- **Capacity**: 20 billion total (20 letters × 1B each)
+- **Internal prefix**: `VELO-COFF-` enables routing/filtering by company
+
+### Helper Methods (`OrderNumberService`)
+```typescript
+getCustomerNumber(orderNumber)  // VELO-COFF-A-000000003 → A-000000003
+formatForDisplay(orderNumber)   // VELO-COFF-A-000000003 → A-000-000-003
+parseForSearch(input)           // Accepts any format for lookup
+validateOrderNumber(number)     // Validates format
+```
+
+### Shipment Numbers
+Same pattern with `S` prefix: `VELO-COFF-SA-000000001` → `SA-000-000-001`
+
+**Key file:** `apps/api/src/orders/services/order-number.service.ts`
