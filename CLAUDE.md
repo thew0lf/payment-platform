@@ -1,5 +1,25 @@
 # Payment Platform - Claude Code Instructions
 
+## Development Workflow
+
+### Feature Documentation Rule
+**IMPORTANT:** Before creating a git commit for any feature, ensure the feature is documented in this file. Update CLAUDE.md as the final step before committing.
+
+### Git Workflow
+1. Create feature branch: `git checkout -b feature/XX-feature-name`
+2. Implement the feature
+3. **Document in CLAUDE.md** (if applicable)
+4. Commit with conventional format: `feat: description`
+5. Create PR and merge
+
+### Commit Message Format
+```
+feat: add new feature description
+fix: resolve bug description
+docs: update documentation
+refactor: code improvement without behavior change
+```
+
 ## Project Structure
 
 ```
@@ -156,3 +176,116 @@ validateOrderNumber(number)     // Validates format
 Same pattern with `S` prefix: `VELO-COFF-SA-000000001` → `SA-000-000-001`
 
 **Key file:** `apps/api/src/orders/services/order-number.service.ts`
+
+## Orders, Products & Fulfillment
+
+### Module Structure
+```
+apps/api/src/
+├── orders/           # Order management
+├── products/         # Product catalog
+└── fulfillment/      # Shipments & tracking
+```
+
+### Orders Module
+- **Controller**: `orders.controller.ts` - CRUD operations
+- **Service**: `orders.service.ts` - Business logic
+- **Order Number**: Auto-generated (see Order Numbers section above)
+
+### Products Module
+- **Controller**: `products.controller.ts` - Product CRUD
+- **Fields**: SKU, name, category, price, roastLevel, origin, flavorNotes, stockQuantity
+
+### Fulfillment Module
+- **Shipments**: Track shipments with carrier, tracking number, status
+- **Statuses**: `PENDING`, `PROCESSING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED`, `RETURNED`
+
+### Multi-Tenant Access Control
+All modules use `CompanyAuthGuard` to ensure:
+- Users only see data for their company/client scope
+- `companyId` is automatically injected from JWT token
+- Cross-company access is blocked
+
+## Integrations System
+
+### Platform Integrations
+Third-party service connections managed per-company.
+
+**Key files:**
+- `apps/api/src/integrations/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/integrations/` - Frontend pages
+
+### Integration Types
+| Category | Providers |
+|----------|-----------|
+| Payment | Stripe, PayPal, Square |
+| Shipping | ShipStation, EasyPost, ShipEngine |
+| Accounting | QuickBooks, Xero |
+| Identity | Auth0, Okta |
+
+### Adding New Integrations
+1. Add provider to `IntegrationProvider` enum in Prisma schema
+2. Add definition in `integration-definitions.ts`
+3. Create service in `services/providers/`
+4. Add icon to `public/integrations/`
+
+## Merchant Accounts
+
+### Overview
+Bank account configurations for payment processing, tied to companies.
+
+**Key files:**
+- `apps/api/src/merchant-accounts/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/settings/merchant-accounts/` - Frontend
+
+### Fields
+- `accountName`, `bankName`, `accountType`
+- `routingNumber`, `accountNumberLast4` (masked)
+- `status`: `PENDING`, `VERIFIED`, `ACTIVE`, `SUSPENDED`
+
+## Dashboard & Analytics
+
+### Transaction Chart
+- **Endpoint**: `GET /api/dashboard/stats/chart?days=30`
+- **Data**: Daily transaction counts and amounts
+- **Component**: `apps/admin-dashboard/src/components/dashboard/transaction-chart.tsx`
+
+### Stats Overview
+- **Endpoint**: `GET /api/dashboard/stats`
+- **Metrics**: Total transactions, revenue, active customers, pending orders
+
+## Auth0 SSO Integration
+
+### Configuration
+```bash
+# apps/api/.env
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_CLIENT_ID=xxx
+AUTH0_CLIENT_SECRET=xxx
+AUTH0_AUDIENCE=https://your-api
+```
+
+### Flow
+1. Frontend redirects to Auth0 login
+2. Auth0 returns JWT token
+3. Backend validates token via JWKS
+4. User is created/matched in local database
+
+**Key files:**
+- `apps/api/src/auth/strategies/auth0.strategy.ts`
+- `apps/admin-dashboard/src/lib/auth0.ts`
+
+## Settings Navigation
+
+### Submenu Structure
+Settings page uses a sidebar submenu pattern:
+```
+/settings
+├── /profile          # User profile
+├── /security         # Password, 2FA
+├── /merchant-accounts # Bank accounts
+├── /integrations     # Third-party connections
+└── /notifications    # Preferences
+```
+
+**Component**: `apps/admin-dashboard/src/app/(dashboard)/settings/layout.tsx`
