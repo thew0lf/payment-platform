@@ -1,17 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CodeGeneratorService } from '../../common/services/code-generator.service';
+import Sqids from 'sqids';
+
+// Uppercase alphanumeric alphabet for order numbers (excludes confusing chars: 0, O, I, L)
+const ORDER_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ123456789';
+
+// Minimum length for encoded sequence (7 chars = 78B+ combinations)
+const MIN_SEQUENCE_LENGTH = 7;
 
 @Injectable()
 export class OrderNumberService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly codeGenerator: CodeGeneratorService,
-  ) {}
+  private readonly sqids: Sqids;
+
+  constructor(private readonly prisma: PrismaService) {
+    // Initialize Sqids with custom alphabet for order numbers
+    // Each company could have its own shuffled alphabet for extra uniqueness,
+    // but for simplicity we use a global one
+    this.sqids = new Sqids({
+      alphabet: ORDER_ALPHABET,
+      minLength: MIN_SEQUENCE_LENGTH,
+    });
+  }
 
   /**
-   * Generate unique order number using client/company codes
-   * Format: CLNT-COMP-0001234 (e.g., VELO-COFF-0001234)
+   * Generate unique order number using client/company codes + encoded sequence
+   * Format: CLNT-COMP-XXXXXXX (e.g., VELO-COFF-K7M2X9A)
+   *
+   * Capacity: 32^7 = 34.3 billion per company (using 32-char alphabet)
+   * Security: Sequence is encoded, can't easily guess next order number
+   *
    * Falls back to: ORD-YYYYMMDD-XXXX if codes not available
    */
   async generate(companyId: string): Promise<string> {
@@ -31,12 +48,28 @@ export class OrderNumberService {
         where: { companyId },
       });
 
-      const sequence = String(count + 1).padStart(7, '0');
-      return `${clientCode}-${companyCode}-${sequence}`;
+      // Encode the sequence number (1-based)
+      const encodedSequence = this.sqids.encode([count + 1]);
+
+      return `${clientCode}-${companyCode}-${encodedSequence}`;
     }
 
     // Fallback to legacy format
     return this.generateLegacy(companyId);
+  }
+
+  /**
+   * Decode an order number's sequence back to the original number
+   * Useful for internal operations/debugging
+   */
+  decodeSequence(orderNumber: string): number | null {
+    const parts = orderNumber.split('-');
+    if (parts.length !== 3) return null;
+
+    const encodedSequence = parts[2];
+    const decoded = this.sqids.decode(encodedSequence);
+
+    return decoded.length > 0 ? decoded[0] : null;
   }
 
   /**
@@ -66,8 +99,10 @@ export class OrderNumberService {
   }
 
   /**
-   * Generate shipment number using client/company codes
-   * Format: CLNT-COMP-SHP-00123 (e.g., VELO-COFF-SHP-00123)
+   * Generate shipment number using client/company codes + encoded sequence
+   * Format: CLNT-COMP-S-XXXXXX (e.g., VELO-COFF-S-K7M2X9)
+   *
+   * The 'S' prefix distinguishes shipments from orders
    * Falls back to: SHP-YYYYMMDD-XXXX if codes not available
    */
   async generateShipmentNumber(companyId?: string): Promise<string> {
@@ -87,8 +122,11 @@ export class OrderNumberService {
           },
         });
 
-        const sequence = String(count + 1).padStart(5, '0');
-        return `${clientCode}-${companyCode}-SHP-${sequence}`;
+        // Encode the sequence number (1-based)
+        const encodedSequence = this.sqids.encode([count + 1]);
+
+        // Use 'S' prefix to distinguish from orders
+        return `${clientCode}-${companyCode}-S-${encodedSequence}`;
       }
     }
 
