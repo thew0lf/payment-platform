@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CreditCard,
   Plus,
@@ -13,9 +13,15 @@ import {
   TrendingUp,
   Clock,
   BarChart3,
+  ChevronDown,
+  DollarSign,
+  Shield,
+  GitBranch,
+  Gauge,
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   merchantAccountsApi,
   MerchantAccount,
@@ -27,6 +33,7 @@ import {
   formatNumber,
   calculateUsagePercentage,
 } from '@/lib/api/merchant-accounts';
+import { LimitsModal, FeesModal, RestrictionsModal, RoutingModal } from '@/components/merchant-accounts';
 
 function StatusBadge({ status }: { status: AccountStatus }) {
   const colors: Record<AccountStatus, string> = {
@@ -82,7 +89,76 @@ function UsageBar({ current, limit, label }: { current: number; limit?: number; 
   );
 }
 
-function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefresh: () => void }) {
+type ModalType = 'limits' | 'fees' | 'restrictions' | 'routing';
+
+function ConfigureDropdown({ onSelect }: { onSelect: (type: ModalType) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const options = [
+    { type: 'limits' as const, label: 'Limits', icon: Gauge, description: 'Transaction & volume limits' },
+    { type: 'fees' as const, label: 'Fees', icon: DollarSign, description: 'Fee structure configuration' },
+    { type: 'restrictions' as const, label: 'Restrictions', icon: Shield, description: 'Currency & geographic rules' },
+    { type: 'routing' as const, label: 'Routing', icon: GitBranch, description: 'Priority & weight settings' },
+  ];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+      >
+        <Settings className="w-4 h-4 mr-1" />
+        Configure
+        <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </Button>
+      {isOpen && (
+        <div className="absolute right-0 mt-1 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-20 overflow-hidden">
+          {options.map(({ type, label, icon: Icon, description }) => (
+            <button
+              key={type}
+              type="button"
+              className="w-full px-3 py-2.5 flex items-start gap-3 hover:bg-zinc-800 transition-colors text-left"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                onSelect(type);
+              }}
+            >
+              <Icon className="w-4 h-4 text-zinc-400 mt-0.5 shrink-0" />
+              <div>
+                <span className="block text-sm text-white font-medium">{label}</span>
+                <span className="block text-xs text-zinc-500">{description}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface AccountCardProps {
+  account: MerchantAccount;
+  onRefresh: () => void;
+  onConfigure: (type: ModalType) => void;
+}
+
+function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -198,11 +274,8 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
           )}
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-1" />
-              Configure
-            </Button>
-            <Button variant="outline" size="sm" onClick={onRefresh}>
+            <ConfigureDropdown onSelect={onConfigure} />
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onRefresh(); }}>
               <RefreshCw className="w-4 h-4 mr-1" />
               Refresh
             </Button>
@@ -214,10 +287,30 @@ function AccountCard({ account, onRefresh }: { account: MerchantAccount; onRefre
 }
 
 export default function MerchantAccountsPage() {
+  const { accessLevel } = useHierarchy();
   const [accounts, setAccounts] = useState<MerchantAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | AccountStatus>('all');
+  const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null);
+  const [activeModal, setActiveModal] = useState<ModalType | null>(null);
+
+  // Organization level goes to /integrations, clients/companies go to /settings/integrations
+  const integrationsPath = accessLevel === 'ORGANIZATION' ? '/integrations' : '/settings/integrations';
+
+  const handleConfigure = (account: MerchantAccount, type: ModalType) => {
+    setSelectedAccount(account);
+    setActiveModal(type);
+  };
+
+  const handleModalClose = () => {
+    setActiveModal(null);
+    setSelectedAccount(null);
+  };
+
+  const handleModalSaved = () => {
+    loadAccounts();
+  };
 
   const loadAccounts = async () => {
     setLoading(true);
@@ -255,9 +348,9 @@ export default function MerchantAccountsPage() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => window.location.href = integrationsPath}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Account
+              Add Integration
             </Button>
           </div>
         }
@@ -359,21 +452,56 @@ export default function MerchantAccountsPage() {
                 <CreditCard className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">No Merchant Accounts</h3>
                 <p className="text-zinc-400 mb-4">
-                  Get started by adding your first payment provider account.
+                  Merchant accounts are created when you add payment gateway integrations.
                 </p>
-                <Button>
+                <Button onClick={() => window.location.href = integrationsPath}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Account
+                  Add Integration
                 </Button>
               </div>
             ) : (
               accounts.map((account) => (
-                <AccountCard key={account.id} account={account} onRefresh={loadAccounts} />
+                <AccountCard
+                  key={account.id}
+                  account={account}
+                  onRefresh={loadAccounts}
+                  onConfigure={(type) => handleConfigure(account, type)}
+                />
               ))
             )}
           </div>
         )}
       </div>
+
+      {/* Configuration Modals */}
+      {selectedAccount && (
+        <>
+          <LimitsModal
+            isOpen={activeModal === 'limits'}
+            onClose={handleModalClose}
+            account={selectedAccount}
+            onSaved={handleModalSaved}
+          />
+          <FeesModal
+            isOpen={activeModal === 'fees'}
+            onClose={handleModalClose}
+            account={selectedAccount}
+            onSaved={handleModalSaved}
+          />
+          <RestrictionsModal
+            isOpen={activeModal === 'restrictions'}
+            onClose={handleModalClose}
+            account={selectedAccount}
+            onSaved={handleModalSaved}
+          />
+          <RoutingModal
+            isOpen={activeModal === 'routing'}
+            onClose={handleModalClose}
+            account={selectedAccount}
+            onSaved={handleModalSaved}
+          />
+        </>
+      )}
     </>
   );
 }

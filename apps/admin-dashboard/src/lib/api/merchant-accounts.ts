@@ -89,6 +89,61 @@ export interface AccountUsage {
   usageResetAt: string;
 }
 
+export interface AccountFees {
+  // Base fees
+  basePercentage: number;            // e.g., 2.9 for 2.9%
+  baseFlatFee: number;               // In cents
+
+  // Card-specific
+  amexPercentage?: number;
+  amexFlatFee?: number;
+  corporateCardPercentage?: number;
+
+  // International
+  internationalPercentage?: number;
+  internationalFlatFee?: number;
+  currencyConversionPercent?: number;
+
+  // ACH
+  achPercentage?: number;
+  achFlatFee?: number;
+  achMaxFee?: number;
+
+  // Other
+  chargebackFee: number;
+  refundFee?: number;
+  monthlyFee?: number;
+}
+
+export interface AccountRestrictions {
+  // Geographic
+  allowedCountries?: string[];
+  blockedCountries?: string[];
+  allowedStates?: string[];
+  blockedStates?: string[];
+
+  // Currency
+  allowedCurrencies: string[];
+  primaryCurrency: string;
+
+  // Products
+  allowedCategories?: string[];
+  blockedCategories?: string[];
+  highRiskAllowed: boolean;
+
+  // Card types
+  allowedCardBrands?: string[];
+  blockedCardBrands?: string[];
+  allowedCardTypes?: string[];
+  blockedCardTypes?: string[];
+
+  // Features
+  achAllowed: boolean;
+  recurringAllowed: boolean;
+  tokenizationAllowed: boolean;
+  threeDSecureRequired: boolean;
+}
+
 export interface AccountHealth {
   status: 'healthy' | 'degraded' | 'down';
   successRate: number;
@@ -128,6 +183,8 @@ export interface MerchantAccount {
   statusChangedAt?: string;
   limits: AccountLimits;
   currentUsage: AccountUsage;
+  fees?: AccountFees;
+  restrictions?: AccountRestrictions;
   routing: AccountRouting;
   health: AccountHealth;
   reserveBalance?: number;
@@ -150,6 +207,8 @@ export interface CreateMerchantAccountDto {
   credentials: Record<string, unknown>;
   environment?: 'sandbox' | 'production';
   limits?: Partial<AccountLimits>;
+  fees?: Partial<AccountFees>;
+  restrictions?: Partial<AccountRestrictions>;
   routing?: Partial<AccountRouting>;
 }
 
@@ -164,6 +223,8 @@ export interface UpdateMerchantAccountDto {
   status?: AccountStatus;
   statusReason?: string;
   limits?: Partial<AccountLimits>;
+  fees?: Partial<AccountFees>;
+  restrictions?: Partial<AccountRestrictions>;
   routing?: Partial<AccountRouting>;
   notes?: string;
 }
