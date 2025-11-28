@@ -4,6 +4,8 @@
  * This script generates unique 4-character codes for existing Clients and Companies
  * that don't have codes assigned yet.
  *
+ * IMPORTANT: All codes (client AND company) are globally unique across both tables.
+ *
  * Usage:
  *   npx ts-node prisma/seeds/seed-entity-codes.ts
  */
@@ -16,6 +18,9 @@ const prisma = new PrismaClient();
 const RESERVED_CODES = new Set([
   '0000', 'AAAA', 'TEST', 'DEMO', 'NULL', 'NONE', 'XXXX', 'ZZZZ',
 ]);
+
+// Single global set for ALL codes (clients + companies)
+const allUsedCodes = new Set<string>();
 
 /**
  * Extract a 4-character code from a name
@@ -36,13 +41,13 @@ function extractCodeFromName(name: string): string {
 }
 
 /**
- * Generate a unique code, checking for collisions
+ * Generate a globally unique code, checking for collisions across ALL entities
  */
-function generateUniqueCode(name: string, existingCodes: Set<string>): string {
+function generateUniqueCode(name: string): string {
   let code = extractCodeFromName(name);
   let attempt = 0;
 
-  while (existingCodes.has(code) || RESERVED_CODES.has(code)) {
+  while (allUsedCodes.has(code) || RESERVED_CODES.has(code)) {
     attempt++;
     if (attempt <= 99) {
       const suffix = String(attempt).padStart(2, '0');
@@ -57,8 +62,29 @@ function generateUniqueCode(name: string, existingCodes: Set<string>): string {
     }
   }
 
-  existingCodes.add(code);
+  allUsedCodes.add(code);
   return code;
+}
+
+/**
+ * Load all existing codes from both tables into the global set
+ */
+async function loadExistingCodes() {
+  const [clientsWithCodes, companiesWithCodes] = await Promise.all([
+    prisma.client.findMany({
+      where: { code: { not: null } },
+      select: { code: true },
+    }),
+    prisma.company.findMany({
+      where: { code: { not: null } },
+      select: { code: true },
+    }),
+  ]);
+
+  clientsWithCodes.forEach(c => c.code && allUsedCodes.add(c.code));
+  companiesWithCodes.forEach(c => c.code && allUsedCodes.add(c.code));
+
+  console.log(`Loaded ${allUsedCodes.size} existing codes`);
 }
 
 async function seedClientCodes() {
@@ -74,19 +100,9 @@ async function seedClientCodes() {
     return 0;
   }
 
-  // Load existing codes to avoid collisions
-  const existingCodes = new Set<string>();
-  const clientsWithCodes = await prisma.client.findMany({
-    where: { code: { not: null } },
-    select: { code: true },
-  });
-  clientsWithCodes.forEach(c => {
-    if (c.code) existingCodes.add(c.code);
-  });
-
   // Generate codes for each client
   for (const client of clients) {
-    const code = generateUniqueCode(client.name, existingCodes);
+    const code = generateUniqueCode(client.name);
 
     await prisma.client.update({
       where: { id: client.id },
@@ -114,32 +130,9 @@ async function seedCompanyCodes() {
     return 0;
   }
 
-  // Track codes per client (company codes are unique per client)
-  const codesByClient = new Map<string, Set<string>>();
-
-  // Load existing codes
-  const companiesWithCodes = await prisma.company.findMany({
-    where: { code: { not: null } },
-    select: { clientId: true, code: true },
-  });
-
-  for (const c of companiesWithCodes) {
-    if (!codesByClient.has(c.clientId)) {
-      codesByClient.set(c.clientId, new Set());
-    }
-    if (c.code) {
-      codesByClient.get(c.clientId)!.add(c.code);
-    }
-  }
-
-  // Generate codes for each company
+  // Generate globally unique codes for each company
   for (const company of companies) {
-    if (!codesByClient.has(company.clientId)) {
-      codesByClient.set(company.clientId, new Set());
-    }
-    const existingCodes = codesByClient.get(company.clientId)!;
-
-    const code = generateUniqueCode(company.name, existingCodes);
+    const code = generateUniqueCode(company.name);
 
     await prisma.company.update({
       where: { id: company.id },
@@ -155,8 +148,11 @@ async function seedCompanyCodes() {
 
 async function main() {
   console.log('═══════════════════════════════════════════');
-  console.log('  Entity Code Backfill');
+  console.log('  Entity Code Backfill (Globally Unique)');
   console.log('═══════════════════════════════════════════\n');
+
+  // First, load all existing codes to prevent collisions
+  await loadExistingCodes();
 
   const clientCount = await seedClientCodes();
   const companyCount = await seedCompanyCodes();

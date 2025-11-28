@@ -56,9 +56,8 @@ function generateUniqueCode(name: string, existingCodes: Set<string>): string {
   return code;
 }
 
-// Track used codes to avoid collisions
-const usedClientCodes = new Set<string>();
-const usedCompanyCodes = new Map<string, Set<string>>(); // clientId -> codes
+// Single global set for ALL codes (clients + companies) - globally unique
+const allUsedCodes = new Set<string>();
 
 async function main() {
   console.log('🌱 Payment Platform - Database Seeding');
@@ -98,7 +97,7 @@ async function main() {
   console.log('✅ Org admin created:', orgAdmin.email);
 
   // Create Client 1: Velocity Agency
-  const client1Code = generateUniqueCode('Velocity Agency', usedClientCodes);
+  const client1Code = generateUniqueCode('Velocity Agency', allUsedCodes);
   const client1 = await prisma.client.upsert({
     where: { organizationId_slug: { organizationId: org.id, slug: 'velocity-agency' } },
     update: { code: client1Code },
@@ -113,7 +112,6 @@ async function main() {
       status: 'ACTIVE',
     },
   });
-  usedCompanyCodes.set(client1.id, new Set<string>());
   console.log('✅ Client created:', client1.name, `(${client1Code})`);
 
   // Create Client Admin
@@ -143,9 +141,8 @@ async function main() {
   ];
 
   for (const companyData of companies) {
-    const companyCodes = usedCompanyCodes.get(client1.id) || new Set<string>();
-    const companyCode = generateUniqueCode(companyData.name, companyCodes);
-    usedCompanyCodes.set(client1.id, companyCodes);
+    // Company codes are globally unique (same pool as clients)
+    const companyCode = generateUniqueCode(companyData.name, allUsedCodes);
 
     const company = await prisma.company.upsert({
       where: { clientId_slug: { clientId: client1.id, slug: companyData.slug } },
@@ -237,7 +234,7 @@ async function main() {
   }
 
   // Create Client 2: Digital First
-  const client2Code = generateUniqueCode('Digital First', usedClientCodes);
+  const client2Code = generateUniqueCode('Digital First', allUsedCodes);
   const client2 = await prisma.client.upsert({
     where: { organizationId_slug: { organizationId: org.id, slug: 'digital-first' } },
     update: { code: client2Code },
@@ -252,7 +249,6 @@ async function main() {
       status: 'ACTIVE',
     },
   });
-  usedCompanyCodes.set(client2.id, new Set<string>());
   console.log('✅ Client created:', client2.name, `(${client2Code})`);
 
   // Create companies for Client 2
@@ -262,9 +258,8 @@ async function main() {
   ];
 
   for (const companyData of client2Companies) {
-    const companyCodes = usedCompanyCodes.get(client2.id) || new Set<string>();
-    const companyCode = generateUniqueCode(companyData.name, companyCodes);
-    usedCompanyCodes.set(client2.id, companyCodes);
+    // Company codes are globally unique (same pool as clients)
+    const companyCode = generateUniqueCode(companyData.name, allUsedCodes);
 
     const company = await prisma.company.upsert({
       where: { clientId_slug: { clientId: client2.id, slug: companyData.slug } },

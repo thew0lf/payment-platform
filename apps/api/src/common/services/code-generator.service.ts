@@ -30,12 +30,13 @@ export class CodeGeneratorService {
 
   /**
    * Generate a unique 4-character alphanumeric code for a company
-   * Company codes are unique within a client
+   * Company codes are globally unique (same as clients)
    * Uses transaction to prevent race conditions
    */
-  async generateCompanyCode(name: string, clientId: string): Promise<string> {
+  async generateCompanyCode(name: string, _clientId?: string): Promise<string> {
     return this.prisma.$transaction(async (tx) => {
-      return this.generateUniqueCode('company', name, clientId, tx);
+      // Company codes are now globally unique, clientId not used for uniqueness
+      return this.generateUniqueCode('company', name, undefined, tx);
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
@@ -125,31 +126,34 @@ export class CodeGeneratorService {
 
   /**
    * Batch fetch existing codes with a given prefix
+   * Both client and company codes are globally unique, so we check across all entities
    */
   private async getExistingCodesWithPrefix(
     type: EntityType,
     prefix: string,
-    clientId?: string,
+    _clientId?: string,
     prisma?: Prisma.TransactionClient | PrismaService,
   ): Promise<Set<string>> {
     const db = prisma || this.prisma;
 
-    if (type === 'client') {
-      const existing = await db.client.findMany({
+    // Both client and company codes must be globally unique
+    // Check both tables to ensure no collision across entity types
+    const [clientCodes, companyCodes] = await Promise.all([
+      db.client.findMany({
         where: { code: { startsWith: prefix } },
         select: { code: true },
-      });
-      return new Set(existing.map(e => e.code).filter((c): c is string => c !== null));
-    } else {
-      const existing = await db.company.findMany({
-        where: {
-          clientId,
-          code: { startsWith: prefix },
-        },
+      }),
+      db.company.findMany({
+        where: { code: { startsWith: prefix } },
         select: { code: true },
-      });
-      return new Set(existing.map(e => e.code).filter((c): c is string => c !== null));
-    }
+      }),
+    ]);
+
+    const allCodes = new Set<string>();
+    clientCodes.forEach(e => e.code && allCodes.add(e.code));
+    companyCodes.forEach(e => e.code && allCodes.add(e.code));
+
+    return allCodes;
   }
 
   /**
@@ -204,27 +208,23 @@ export class CodeGeneratorService {
   }
 
   /**
-   * Check if a code is unique for the given entity type
+   * Check if a code is unique across all clients and companies
    */
   private async isCodeUnique(
-    type: EntityType,
+    _type: EntityType,
     code: string,
-    clientId?: string,
+    _clientId?: string,
     prisma?: Prisma.TransactionClient | PrismaService,
   ): Promise<boolean> {
     const db = prisma || this.prisma;
 
-    if (type === 'client') {
-      // Client codes must be globally unique
-      const existing = await db.client.findFirst({ where: { code } });
-      return !existing;
-    } else {
-      // Company codes must be unique per client
-      const existing = await db.company.findFirst({
-        where: { code, clientId },
-      });
-      return !existing;
-    }
+    // All codes must be globally unique across both clients and companies
+    const [existingClient, existingCompany] = await Promise.all([
+      db.client.findFirst({ where: { code } }),
+      db.company.findFirst({ where: { code } }),
+    ]);
+
+    return !existingClient && !existingCompany;
   }
 
   /**
@@ -251,17 +251,17 @@ export class CodeGeneratorService {
   }
 
   /**
-   * Check if a code is available
+   * Check if a code is available (globally unique across clients and companies)
    */
   async isCodeAvailable(
-    type: EntityType,
+    _type: EntityType,
     code: string,
-    clientId?: string,
+    _clientId?: string,
   ): Promise<boolean> {
     const validation = this.validateCode(code);
     if (!validation.valid) return false;
 
-    return this.isCodeUnique(type, code, clientId);
+    return this.isCodeUnique('client', code);
   }
 
   /**
