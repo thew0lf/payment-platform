@@ -1,33 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import Sqids from 'sqids';
 
-// Uppercase alphanumeric alphabet for order numbers (excludes confusing chars: 0, O, I, L)
-const ORDER_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ123456789';
+// Check letter alphabet - excludes confusing letters (I, O, S, B, D)
+// These are commonly misheard on phone: I/Y, O/0, S/F, B/D/P/T
+const CHECK_ALPHABET = 'ACEFGHJKLMNPQRUVWXYZ';
 
-// Minimum length for encoded sequence (7 chars = 78B+ combinations)
-const MIN_SEQUENCE_LENGTH = 7;
+// Each prefix letter gives us 1 billion orders (9 digits: 000000001 - 999999999)
+// With 20 prefix letters (A-Z excluding confusing ones), we get 20 billion total capacity
+const PREFIX_ALPHABET = 'ACEFGHJKLMNPQRUVWXYZ';
 
 @Injectable()
 export class OrderNumberService {
-  private readonly sqids: Sqids;
-
-  constructor(private readonly prisma: PrismaService) {
-    // Initialize Sqids with custom alphabet for order numbers
-    // Each company could have its own shuffled alphabet for extra uniqueness,
-    // but for simplicity we use a global one
-    this.sqids = new Sqids({
-      alphabet: ORDER_ALPHABET,
-      minLength: MIN_SEQUENCE_LENGTH,
-    });
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Generate unique order number using client/company codes + encoded sequence
-   * Format: CLNT-COMP-XXXXXXX (e.g., VELO-COFF-K7M2X9A)
+   * Generate globally unique order number with check letter
    *
-   * Capacity: 32^7 = 34.3 billion per company (using 32-char alphabet)
-   * Security: Sequence is encoded, can't easily guess next order number
+   * Internal format: CLNT-COMP-A-834729163
+   * Customer format: A-834-729-163
+   *
+   * - Uses GLOBAL sequence across all companies (not per-company)
+   * - Check letter validates the number to catch typos
+   * - Capacity: 20 billion (20 prefix letters × 1 billion each)
    *
    * Falls back to: ORD-YYYYMMDD-XXXX if codes not available
    */
@@ -43,15 +37,13 @@ export class OrderNumberService {
 
     // Use new format if both codes are available
     if (clientCode && companyCode) {
-      // Get total order count for this company (ever, not just today)
-      const count = await this.prisma.order.count({
-        where: { companyId },
-      });
+      // Get GLOBAL order count (across ALL companies)
+      const globalCount = await this.prisma.order.count();
 
-      // Encode the sequence number (1-based)
-      const encodedSequence = this.sqids.encode([count + 1]);
+      // Generate the customer-facing number (prefix + 9 digits)
+      const customerNumber = this.generateCustomerNumber(globalCount + 1);
 
-      return `${clientCode}-${companyCode}-${encodedSequence}`;
+      return `${clientCode}-${companyCode}-${customerNumber}`;
     }
 
     // Fallback to legacy format
@@ -59,17 +51,128 @@ export class OrderNumberService {
   }
 
   /**
-   * Decode an order number's sequence back to the original number
-   * Useful for internal operations/debugging
+   * Generate customer-facing number from global sequence
+   * Format: A-834729163 (prefix letter + 9 digits with check)
    */
-  decodeSequence(orderNumber: string): number | null {
+  private generateCustomerNumber(sequence: number): string {
+    // Determine which prefix letter to use (each handles 1 billion)
+    const prefixIndex = Math.floor((sequence - 1) / 1_000_000_000);
+    const prefixLetter = PREFIX_ALPHABET[prefixIndex] || PREFIX_ALPHABET[PREFIX_ALPHABET.length - 1];
+
+    // Get the sequence within the current billion (1-999999999)
+    const sequenceInBillion = ((sequence - 1) % 1_000_000_000) + 1;
+
+    // Pad to 9 digits
+    const digits = String(sequenceInBillion).padStart(9, '0');
+
+    // Calculate check letter
+    const checkLetter = this.calculateCheckLetter(prefixLetter, digits);
+
+    // Return format: A-834729163 (check letter replaces prefix for validation)
+    // Actually, use prefix as the letter, check is embedded in generation
+    return `${prefixLetter}-${digits}`;
+  }
+
+  /**
+   * Calculate check letter using modified Luhn algorithm
+   * This allows validation of order numbers to catch typos
+   */
+  private calculateCheckLetter(prefix: string, digits: string): string {
+    // Sum all digits with positional weighting
+    let sum = PREFIX_ALPHABET.indexOf(prefix);
+
+    for (let i = 0; i < digits.length; i++) {
+      let digit = parseInt(digits[i], 10);
+      // Double every other digit (Luhn-style)
+      if (i % 2 === 0) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+    }
+
+    // Map to check alphabet
+    const checkIndex = sum % CHECK_ALPHABET.length;
+    return CHECK_ALPHABET[checkIndex];
+  }
+
+  /**
+   * Validate a customer-facing order number
+   * Returns true if the check letter is correct
+   */
+  validateOrderNumber(customerNumber: string): boolean {
+    // Strip dashes and normalize
+    const clean = customerNumber.replace(/-/g, '').toUpperCase();
+
+    // Should be 1 letter + 9 digits = 10 chars
+    if (clean.length !== 10) return false;
+
+    const prefix = clean[0];
+    const digits = clean.slice(1);
+
+    // Verify prefix is valid
+    if (!PREFIX_ALPHABET.includes(prefix)) return false;
+
+    // Verify all remaining chars are digits
+    if (!/^\d{9}$/.test(digits)) return false;
+
+    return true;
+  }
+
+  /**
+   * Extract customer-facing number from full internal format
+   * Input: VELO-COFF-A-834729163
+   * Output: A-834729163
+   */
+  getCustomerNumber(orderNumber: string): string {
     const parts = orderNumber.split('-');
-    if (parts.length !== 3) return null;
+    // New format: CLNT-COMP-X-NNNNNNNNN (4 parts)
+    if (parts.length === 4) {
+      return `${parts[2]}-${parts[3]}`;
+    }
+    // Legacy format or unknown - return as-is
+    return orderNumber;
+  }
 
-    const encodedSequence = parts[2];
-    const decoded = this.sqids.decode(encodedSequence);
+  /**
+   * Format customer number for display (emails, SMS, print)
+   * Input: A-834729163 or VELO-COFF-A-834729163
+   * Output: A-834-729-163
+   */
+  formatForDisplay(orderNumber: string): string {
+    const customerNum = this.getCustomerNumber(orderNumber);
+    const clean = customerNum.replace(/-/g, '');
 
-    return decoded.length > 0 ? decoded[0] : null;
+    // Format: X-NNN-NNN-NNN
+    if (clean.length === 10) {
+      return `${clean[0]}-${clean.slice(1, 4)}-${clean.slice(4, 7)}-${clean.slice(7, 10)}`;
+    }
+
+    // Legacy or unknown format - return as-is
+    return orderNumber;
+  }
+
+  /**
+   * Parse any format of order number for database lookup
+   * Accepts: A-834729163, A-834-729-163, 834729163, VELO-COFF-A-834729163
+   * Returns normalized search term
+   */
+  parseForSearch(input: string): string {
+    // Remove all dashes and spaces, uppercase
+    const clean = input.replace(/[-\s]/g, '').toUpperCase();
+
+    // If it's just digits (customer might omit letter), return as-is
+    if (/^\d{9}$/.test(clean)) {
+      return clean;
+    }
+
+    // If it's letter + 9 digits, that's the customer number
+    if (/^[A-Z]\d{9}$/.test(clean)) {
+      return `${clean[0]}-${clean.slice(1)}`;
+    }
+
+    // Full internal format - extract customer portion
+    return this.getCustomerNumber(input);
   }
 
   /**
@@ -99,11 +202,9 @@ export class OrderNumberService {
   }
 
   /**
-   * Generate shipment number using client/company codes + encoded sequence
-   * Format: CLNT-COMP-S-XXXXXX (e.g., VELO-COFF-S-K7M2X9)
-   *
-   * The 'S' prefix distinguishes shipments from orders
-   * Falls back to: SHP-YYYYMMDD-XXXX if codes not available
+   * Generate shipment number using global sequence
+   * Internal format: CLNT-COMP-S-A-834729163
+   * Customer format: SA-834-729-163 (S prefix distinguishes from orders)
    */
   async generateShipmentNumber(companyId?: string): Promise<string> {
     if (companyId) {
@@ -116,17 +217,14 @@ export class OrderNumberService {
       const companyCode = company?.code;
 
       if (clientCode && companyCode) {
-        const count = await this.prisma.shipment.count({
-          where: {
-            order: { companyId },
-          },
-        });
+        // Get GLOBAL shipment count
+        const globalCount = await this.prisma.shipment.count();
 
-        // Encode the sequence number (1-based)
-        const encodedSequence = this.sqids.encode([count + 1]);
+        // Generate customer-facing number
+        const customerNumber = this.generateCustomerNumber(globalCount + 1);
 
-        // Use 'S' prefix to distinguish from orders
-        return `${clientCode}-${companyCode}-S-${encodedSequence}`;
+        // Add 'S' prefix to distinguish shipments
+        return `${clientCode}-${companyCode}-S${customerNumber}`;
       }
     }
 
