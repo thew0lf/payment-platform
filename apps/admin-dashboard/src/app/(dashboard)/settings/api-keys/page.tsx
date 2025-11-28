@@ -15,7 +15,6 @@ import {
   X,
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +82,6 @@ const availableScopes = [
 
 export default function ApiKeysPage() {
   const { canManageApiKeys } = usePermissions();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>(mockApiKeys);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -138,7 +136,6 @@ export default function ApiKeysPage() {
       <Header
         title="API Keys"
         subtitle="Manage your API keys for programmatic access"
-        onMenuClick={() => setSidebarOpen(true)}
         actions={
           canManageApiKeys && (
             <Button size="sm" onClick={() => setShowCreateModal(true)}>
@@ -148,10 +145,6 @@ export default function ApiKeysPage() {
           )
         }
       />
-
-      {sidebarOpen && (
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      )}
 
       <div className="p-4 sm:p-6 space-y-6">
         {/* Security notice */}

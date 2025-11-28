@@ -16,7 +16,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Store the intended destination for redirect after login
-      const returnUrl = encodeURIComponent(pathname);
+      const returnUrl = pathname ? encodeURIComponent(pathname) : '';
       router.push(`/login?returnUrl=${returnUrl}`);
     }
   }, [isAuthenticated, isLoading, pathname, router]);

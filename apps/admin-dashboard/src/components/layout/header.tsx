@@ -1,21 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Bell, Settings, ChevronRight } from 'lucide-react';
+import { Search, Bell, Settings, ChevronRight, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useHierarchy } from '@/contexts/hierarchy-context';
+import { useMobileMenu } from '@/contexts/mobile-menu-context';
 import { CommandPalette } from './command-palette';
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
-  onMenuClick?: () => void;
 }
 
-export function Header({ title, subtitle, actions, onMenuClick }: HeaderProps) {
+export function Header({ title, subtitle, actions }: HeaderProps) {
   const { user } = useAuth();
   const { selectedClient, selectedCompany } = useHierarchy();
+  const { openMenu } = useMobileMenu();
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // Build breadcrumb based on hierarchy
@@ -30,16 +31,25 @@ export function Header({ title, subtitle, actions, onMenuClick }: HeaderProps) {
 
   return (
     <>
-      <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="flex items-center gap-4">
+      <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-4 md:px-6 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* Hamburger Menu - Mobile Only */}
+          <button
+            onClick={openMenu}
+            className="p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors md:hidden"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           {/* Search */}
           <button
             onClick={() => setShowCommandPalette(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400 hover:border-zinc-700 hover:text-zinc-300 transition-colors"
           >
             <Search className="w-4 h-4" />
-            <span>Search...</span>
-            <div className="flex items-center gap-1 ml-4">
+            <span className="hidden sm:inline">Search...</span>
+            <div className="hidden sm:flex items-center gap-1 ml-4">
               <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-xs">⌘</kbd>
               <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-xs">K</kbd>
             </div>
@@ -66,8 +76,8 @@ export function Header({ title, subtitle, actions, onMenuClick }: HeaderProps) {
       </header>
 
       {/* Page Header */}
-      <div className="px-6 py-6 border-b border-zinc-800">
-        <div className="flex items-center justify-between">
+      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             {/* Breadcrumbs */}
             {breadcrumbs.length > 0 && (
@@ -82,10 +92,10 @@ export function Header({ title, subtitle, actions, onMenuClick }: HeaderProps) {
                 ))}
               </div>
             )}
-            <h1 className="text-2xl font-semibold text-white">{title}</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-white">{title}</h1>
             {subtitle && <p className="text-sm text-zinc-400 mt-1">{subtitle}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
         </div>
       </div>
 
