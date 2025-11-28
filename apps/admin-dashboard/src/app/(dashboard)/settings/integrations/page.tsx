@@ -20,6 +20,9 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.AUTHENTICATION]: 'Authentication',
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
+  [IntegrationCategory.OAUTH]: 'Connected Services',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.SMS]: 'SMS',
 };
 
 export default function ClientIntegrationsPage() {

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { MoreVertical, Share2, TestTube, Trash2, Star, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,46 +24,182 @@ interface IntegrationCardProps {
   onSetDefault?: (id: string) => void;
 }
 
-const providerLogos: Record<IntegrationProvider, { icon: string; gradient: string }> = {
+// Provider configuration with icons and brand colors
+const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: string; gradient: string }> = {
+  // Payment Gateways
   [IntegrationProvider.PAYPAL_PAYFLOW]: {
     icon: 'PP',
-    gradient: 'from-blue-500 to-blue-600',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
   },
-  [IntegrationProvider.NMI]: {
-    icon: 'NMI',
-    gradient: 'from-emerald-500 to-emerald-600',
-  },
-  [IntegrationProvider.AUTHORIZE_NET]: {
-    icon: 'AN',
-    gradient: 'from-orange-500 to-orange-600',
+  [IntegrationProvider.PAYPAL_REST]: {
+    icon: 'PP',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
   },
   [IntegrationProvider.STRIPE]: {
     icon: 'S',
-    gradient: 'from-violet-500 to-violet-600',
+    iconUrl: '/integrations/stripe.svg',
+    bgColor: 'bg-[#635BFF]',
+    gradient: 'from-[#635BFF] to-[#8B85FF]',
   },
+  [IntegrationProvider.AUTHORIZE_NET]: {
+    icon: 'AN',
+    iconUrl: '/integrations/authorize-net.svg',
+    bgColor: 'bg-[#F26722]',
+    gradient: 'from-[#F26722] to-[#FF8B4D]',
+  },
+  [IntegrationProvider.NMI]: {
+    icon: 'NMI',
+    iconUrl: '/integrations/nmi.svg',
+    bgColor: 'bg-[#00A651]',
+    gradient: 'from-[#00A651] to-[#00D468]',
+  },
+  // Authentication
   [IntegrationProvider.AUTH0]: {
     icon: 'A0',
-    gradient: 'from-rose-500 to-rose-600',
+    iconUrl: '/integrations/auth0.svg',
+    bgColor: 'bg-[#EB5424]',
+    gradient: 'from-[#EB5424] to-[#FF7A4D]',
   },
   [IntegrationProvider.OKTA]: {
     icon: 'OK',
-    gradient: 'from-blue-600 to-indigo-600',
+    iconUrl: '/integrations/okta.svg',
+    bgColor: 'bg-[#007DC1]',
+    gradient: 'from-[#007DC1] to-[#00A3E0]',
   },
+  [IntegrationProvider.COGNITO]: {
+    icon: 'CG',
+    iconUrl: '/integrations/cognito.svg',
+    bgColor: 'bg-[#DD344C]',
+    gradient: 'from-[#DD344C] to-[#FF5A6E]',
+  },
+  // Communication
   [IntegrationProvider.TWILIO]: {
     icon: 'TW',
-    gradient: 'from-red-500 to-red-600',
+    iconUrl: '/integrations/twilio.svg',
+    bgColor: 'bg-[#F22F46]',
+    gradient: 'from-[#F22F46] to-[#FF5A6E]',
   },
   [IntegrationProvider.SENDGRID]: {
     icon: 'SG',
-    gradient: 'from-cyan-500 to-cyan-600',
+    iconUrl: '/integrations/sendgrid.svg',
+    bgColor: 'bg-[#1A82E2]',
+    gradient: 'from-[#1A82E2] to-[#4DA3FF]',
+  },
+  [IntegrationProvider.AWS_SES]: {
+    icon: 'SES',
+    iconUrl: '/integrations/aws-ses.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  [IntegrationProvider.AWS_SNS]: {
+    icon: 'SNS',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  [IntegrationProvider.KLAVIYO]: {
+    icon: 'KL',
+    iconUrl: '/integrations/klaviyo.svg',
+    bgColor: 'bg-[#111111]',
+    gradient: 'from-[#111111] to-[#5DCB7E]',
+  },
+  // OAuth Providers
+  [IntegrationProvider.GOOGLE]: {
+    icon: 'G',
+    iconUrl: '/integrations/google.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#4285F4] to-[#34A853]',
+  },
+  [IntegrationProvider.MICROSOFT]: {
+    icon: 'MS',
+    iconUrl: '/integrations/microsoft.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#00A4EF] to-[#7FBA00]',
+  },
+  [IntegrationProvider.SLACK]: {
+    icon: 'SL',
+    iconUrl: '/integrations/slack.svg',
+    bgColor: 'bg-[#4A154B]',
+    gradient: 'from-[#4A154B] to-[#E01E5A]',
+  },
+  [IntegrationProvider.HUBSPOT]: {
+    icon: 'HS',
+    iconUrl: '/integrations/hubspot.svg',
+    bgColor: 'bg-[#FF7A59]',
+    gradient: 'from-[#FF7A59] to-[#FF9A7A]',
+  },
+  [IntegrationProvider.SALESFORCE]: {
+    icon: 'SF',
+    iconUrl: '/integrations/salesforce.svg',
+    bgColor: 'bg-[#00A1E0]',
+    gradient: 'from-[#00A1E0] to-[#1ECBE1]',
+  },
+  [IntegrationProvider.QUICKBOOKS]: {
+    icon: 'QB',
+    iconUrl: '/integrations/quickbooks.svg',
+    bgColor: 'bg-[#2CA01C]',
+    gradient: 'from-[#2CA01C] to-[#4CD93A]',
+  },
+  // AI
+  [IntegrationProvider.AWS_BEDROCK]: {
+    icon: 'BR',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  [IntegrationProvider.OPENAI]: {
+    icon: 'AI',
+    bgColor: 'bg-[#10A37F]',
+    gradient: 'from-[#10A37F] to-[#1ED9A4]',
+  },
+  // Storage
+  [IntegrationProvider.AWS_S3]: {
+    icon: 'S3',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#569A31]',
+  },
+  // Monitoring
+  [IntegrationProvider.DATADOG]: {
+    icon: 'DD',
+    bgColor: 'bg-[#632CA6]',
+    gradient: 'from-[#632CA6] to-[#9B59D0]',
+  },
+  [IntegrationProvider.SENTRY]: {
+    icon: 'ST',
+    bgColor: 'bg-[#362D59]',
+    gradient: 'from-[#362D59] to-[#6C5FC7]',
+  },
+  [IntegrationProvider.CLOUDWATCH]: {
+    icon: 'CW',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // Feature Flags
+  [IntegrationProvider.LAUNCHDARKLY]: {
+    icon: 'LD',
+    bgColor: 'bg-[#405BFF]',
+    gradient: 'from-[#405BFF] to-[#7B8CFF]',
+  },
+  [IntegrationProvider.AWS_APPCONFIG]: {
+    icon: 'AC',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
   },
 };
+
+// Legacy support - map old providerLogos to new structure
+const providerLogos = providerConfig;
 
 const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.PAYMENT_GATEWAY]: 'Payment Gateway',
   [IntegrationCategory.AUTHENTICATION]: 'Authentication',
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
+  [IntegrationCategory.OAUTH]: 'Connected Services',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.SMS]: 'SMS',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {
@@ -84,8 +221,15 @@ export function IntegrationCard({
   const [showMenu, setShowMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
-  const logo = providerLogos[integration.provider] || {
-    icon: integration.provider.charAt(0),
+  // Get provider config or generate a fallback with initials (never a question mark)
+  const getProviderInitials = (provider: string) => {
+    // Convert PAYPAL_REST -> PR, AUTHORIZE_NET -> AN, etc.
+    return provider.split('_').map(word => word.charAt(0)).join('').substring(0, 3);
+  };
+
+  const config = providerConfig[integration.provider] || {
+    icon: getProviderInitials(integration.provider),
+    bgColor: 'bg-zinc-700',
     gradient: 'from-zinc-500 to-zinc-600',
   };
 
@@ -107,11 +251,21 @@ export function IntegrationCard({
         <div className="flex items-start gap-3">
           <div
             className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-gradient-to-br',
-              logo.gradient
+              'w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden',
+              config.iconUrl ? config.bgColor : `bg-gradient-to-br ${config.gradient}`
             )}
           >
-            {logo.icon}
+            {config.iconUrl ? (
+              <Image
+                src={config.iconUrl}
+                alt={integration.name}
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain"
+              />
+            ) : (
+              <span className="text-white font-bold text-sm">{config.icon}</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">

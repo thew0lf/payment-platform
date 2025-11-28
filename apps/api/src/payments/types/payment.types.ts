@@ -11,6 +11,7 @@
 
 export enum PaymentProviderType {
   PAYFLOW = 'PAYFLOW',
+  PAYPAL_REST = 'PAYPAL_REST',
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
@@ -195,9 +196,16 @@ export interface AuthorizeNetCredentials {
   environment: 'sandbox' | 'production';
 }
 
-export type ProviderCredentials = 
-  | PayflowCredentials 
-  | NMICredentials 
+export interface PayPalRestCredentials {
+  clientId: string;
+  clientSecret: string;
+  environment: 'sandbox' | 'production';
+}
+
+export type ProviderCredentials =
+  | PayflowCredentials
+  | PayPalRestCredentials
+  | NMICredentials
   | AuthorizeNetCredentials;
 
 export interface ProviderConfig {

@@ -1,14 +1,34 @@
 import { api } from '../api';
 
 export enum IntegrationProvider {
+  // Payment Gateways
   PAYPAL_PAYFLOW = 'PAYPAL_PAYFLOW',
+  PAYPAL_REST = 'PAYPAL_REST',
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
+  // Authentication
   AUTH0 = 'AUTH0',
   OKTA = 'OKTA',
+  COGNITO = 'COGNITO',
+  // Communication
   TWILIO = 'TWILIO',
   SENDGRID = 'SENDGRID',
+  AWS_SES = 'AWS_SES',
+  AWS_SNS = 'AWS_SNS',
+  KLAVIYO = 'KLAVIYO',
+  // AI
+  AWS_BEDROCK = 'AWS_BEDROCK',
+  OPENAI = 'OPENAI',
+  // Storage
+  AWS_S3 = 'AWS_S3',
+  // Monitoring
+  DATADOG = 'DATADOG',
+  SENTRY = 'SENTRY',
+  CLOUDWATCH = 'CLOUDWATCH',
+  // Feature Flags
+  LAUNCHDARKLY = 'LAUNCHDARKLY',
+  AWS_APPCONFIG = 'AWS_APPCONFIG',
   // OAuth Providers
   GOOGLE = 'GOOGLE',
   MICROSOFT = 'MICROSOFT',

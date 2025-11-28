@@ -31,6 +31,7 @@ export enum IntegrationProvider {
 
   // Payment Gateways (Client-configurable)
   PAYPAL_PAYFLOW = 'PAYPAL_PAYFLOW',
+  PAYPAL_REST = 'PAYPAL_REST',
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
@@ -153,6 +154,11 @@ export interface TwilioCredentials {
   accountSid: string;
   authToken: string;
   fromNumber?: string;
+}
+
+export interface PayPalRestCredentials {
+  clientId: string;
+  clientSecret: string;
 }
 
 // OAuth token credentials (used for encrypted token storage)

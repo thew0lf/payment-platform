@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { X, ArrowLeft, ArrowRight, Check, Zap, Key, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -42,22 +43,120 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.SMS]: 'SMS',
 };
 
-const providerLogos: Record<string, { icon: string; gradient: string }> = {
-  [IntegrationProvider.PAYPAL_PAYFLOW]: { icon: 'PP', gradient: 'from-blue-500 to-blue-600' },
-  [IntegrationProvider.NMI]: { icon: 'NMI', gradient: 'from-emerald-500 to-emerald-600' },
-  [IntegrationProvider.AUTHORIZE_NET]: { icon: 'AN', gradient: 'from-orange-500 to-orange-600' },
-  [IntegrationProvider.STRIPE]: { icon: 'S', gradient: 'from-violet-500 to-violet-600' },
-  [IntegrationProvider.AUTH0]: { icon: 'A0', gradient: 'from-rose-500 to-rose-600' },
-  [IntegrationProvider.OKTA]: { icon: 'OK', gradient: 'from-blue-600 to-indigo-600' },
-  [IntegrationProvider.TWILIO]: { icon: 'TW', gradient: 'from-red-500 to-red-600' },
-  [IntegrationProvider.SENDGRID]: { icon: 'SG', gradient: 'from-cyan-500 to-cyan-600' },
+// Provider configuration with icons and brand colors
+const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: string; gradient: string }> = {
+  // Payment Gateways
+  [IntegrationProvider.PAYPAL_PAYFLOW]: {
+    icon: 'PP',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
+  },
+  [IntegrationProvider.PAYPAL_REST]: {
+    icon: 'PP',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
+  },
+  [IntegrationProvider.STRIPE]: {
+    icon: 'S',
+    iconUrl: '/integrations/stripe.svg',
+    bgColor: 'bg-[#635BFF]',
+    gradient: 'from-[#635BFF] to-[#8B85FF]',
+  },
+  [IntegrationProvider.AUTHORIZE_NET]: {
+    icon: 'AN',
+    iconUrl: '/integrations/authorize-net.svg',
+    bgColor: 'bg-[#F26722]',
+    gradient: 'from-[#F26722] to-[#FF8B4D]',
+  },
+  [IntegrationProvider.NMI]: {
+    icon: 'NMI',
+    iconUrl: '/integrations/nmi.svg',
+    bgColor: 'bg-[#00A651]',
+    gradient: 'from-[#00A651] to-[#00D468]',
+  },
+  // Authentication
+  [IntegrationProvider.AUTH0]: {
+    icon: 'A0',
+    iconUrl: '/integrations/auth0.svg',
+    bgColor: 'bg-[#EB5424]',
+    gradient: 'from-[#EB5424] to-[#FF7A4D]',
+  },
+  [IntegrationProvider.OKTA]: {
+    icon: 'OK',
+    iconUrl: '/integrations/okta.svg',
+    bgColor: 'bg-[#007DC1]',
+    gradient: 'from-[#007DC1] to-[#00A3E0]',
+  },
+  [IntegrationProvider.COGNITO]: {
+    icon: 'CG',
+    iconUrl: '/integrations/cognito.svg',
+    bgColor: 'bg-[#DD344C]',
+    gradient: 'from-[#DD344C] to-[#FF5A6E]',
+  },
+  // Communication
+  [IntegrationProvider.TWILIO]: {
+    icon: 'TW',
+    iconUrl: '/integrations/twilio.svg',
+    bgColor: 'bg-[#F22F46]',
+    gradient: 'from-[#F22F46] to-[#FF5A6E]',
+  },
+  [IntegrationProvider.SENDGRID]: {
+    icon: 'SG',
+    iconUrl: '/integrations/sendgrid.svg',
+    bgColor: 'bg-[#1A82E2]',
+    gradient: 'from-[#1A82E2] to-[#4DA3FF]',
+  },
+  [IntegrationProvider.AWS_SES]: {
+    icon: 'SES',
+    iconUrl: '/integrations/aws-ses.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  [IntegrationProvider.KLAVIYO]: {
+    icon: 'KL',
+    iconUrl: '/integrations/klaviyo.svg',
+    bgColor: 'bg-[#111111]',
+    gradient: 'from-[#111111] to-[#5DCB7E]',
+  },
   // OAuth Providers
-  [IntegrationProvider.GOOGLE]: { icon: 'G', gradient: 'from-red-500 to-yellow-500' },
-  [IntegrationProvider.MICROSOFT]: { icon: 'M', gradient: 'from-blue-500 to-green-500' },
-  [IntegrationProvider.SLACK]: { icon: 'S', gradient: 'from-purple-500 to-pink-500' },
-  [IntegrationProvider.HUBSPOT]: { icon: 'HS', gradient: 'from-orange-500 to-red-500' },
-  [IntegrationProvider.SALESFORCE]: { icon: 'SF', gradient: 'from-blue-400 to-blue-600' },
-  [IntegrationProvider.QUICKBOOKS]: { icon: 'QB', gradient: 'from-green-500 to-green-600' },
+  [IntegrationProvider.GOOGLE]: {
+    icon: 'G',
+    iconUrl: '/integrations/google.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#4285F4] to-[#34A853]',
+  },
+  [IntegrationProvider.MICROSOFT]: {
+    icon: 'MS',
+    iconUrl: '/integrations/microsoft.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#00A4EF] to-[#7FBA00]',
+  },
+  [IntegrationProvider.SLACK]: {
+    icon: 'SL',
+    iconUrl: '/integrations/slack.svg',
+    bgColor: 'bg-[#4A154B]',
+    gradient: 'from-[#4A154B] to-[#E01E5A]',
+  },
+  [IntegrationProvider.HUBSPOT]: {
+    icon: 'HS',
+    iconUrl: '/integrations/hubspot.svg',
+    bgColor: 'bg-[#FF7A59]',
+    gradient: 'from-[#FF7A59] to-[#FF9A7A]',
+  },
+  [IntegrationProvider.SALESFORCE]: {
+    icon: 'SF',
+    iconUrl: '/integrations/salesforce.svg',
+    bgColor: 'bg-[#00A1E0]',
+    gradient: 'from-[#00A1E0] to-[#1ECBE1]',
+  },
+  [IntegrationProvider.QUICKBOOKS]: {
+    icon: 'QB',
+    iconUrl: '/integrations/quickbooks.svg',
+    bgColor: 'bg-[#2CA01C]',
+    gradient: 'from-[#2CA01C] to-[#4CD93A]',
+  },
 };
 
 type Step = 'select' | 'configure' | 'credentials';
@@ -243,7 +342,15 @@ export function AddIntegrationModal({
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     {defs.map((def) => {
-                      const logo = providerLogos[def.provider] || { icon: '?', gradient: 'from-zinc-500 to-zinc-600' };
+                      // Generate initials from provider name (never a question mark)
+                      const getProviderInitials = (provider: string) => {
+                        return provider.split('_').map(word => word.charAt(0)).join('').substring(0, 3);
+                      };
+                      const config = providerConfig[def.provider] || {
+                        icon: getProviderInitials(def.provider),
+                        bgColor: 'bg-zinc-700',
+                        gradient: 'from-zinc-500 to-zinc-600'
+                      };
                       const hasPlatformOption = platformOptions.some((p) => p.provider === def.provider);
                       return (
                         <button
@@ -253,11 +360,21 @@ export function AddIntegrationModal({
                         >
                           <div
                             className={cn(
-                              'w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br',
-                              logo.gradient
+                              'w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden',
+                              config.iconUrl ? config.bgColor : `bg-gradient-to-br ${config.gradient}`
                             )}
                           >
-                            {logo.icon}
+                            {config.iconUrl ? (
+                              <Image
+                                src={config.iconUrl}
+                                alt={def.name}
+                                width={24}
+                                height={24}
+                                className="w-6 h-6 object-contain"
+                              />
+                            ) : (
+                              <span className="text-white font-bold text-xs">{config.icon}</span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">

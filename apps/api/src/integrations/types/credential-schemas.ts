@@ -76,6 +76,15 @@ export const TWILIO_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+export const PAYPAL_REST_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['clientId', 'clientSecret'],
+  properties: {
+    clientId: { type: 'string', title: 'Client ID', description: 'Your PayPal REST API Client ID. Found in PayPal Developer Dashboard → My Apps & Credentials → Select your app → Client ID.' },
+    clientSecret: { type: 'string', title: 'Client Secret', format: 'password', description: 'Your PayPal REST API Secret. Found in PayPal Developer Dashboard → My Apps & Credentials → Select your app → Secret (click Show).' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -88,6 +97,7 @@ export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
 
 export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialSchema>> = {
   [IntegrationProvider.PAYPAL_PAYFLOW]: PAYFLOW_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.PAYPAL_REST]: PAYPAL_REST_CREDENTIAL_SCHEMA,
   [IntegrationProvider.NMI]: NMI_CREDENTIAL_SCHEMA,
   [IntegrationProvider.AUTHORIZE_NET]: AUTHORIZE_NET_CREDENTIAL_SCHEMA,
   [IntegrationProvider.STRIPE]: STRIPE_CREDENTIAL_SCHEMA,
