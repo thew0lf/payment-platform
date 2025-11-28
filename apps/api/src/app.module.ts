@@ -14,6 +14,9 @@ import { RoutingModule } from './routing/routing.module';
 import { BillingModule } from './billing';
 import { MomentumIntelligenceModule } from './momentum-intelligence/momentum-intelligence.module';
 import { IntegrationsModule } from './integrations';
+import { OrdersModule } from './orders/orders.module';
+import { ProductsModule } from './products/products.module';
+import { FulfillmentModule } from './fulfillment/fulfillment.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { IntegrationsModule } from './integrations';
     BillingModule,
     MomentumIntelligenceModule,
     IntegrationsModule,
+    OrdersModule,
+    ProductsModule,
+    FulfillmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

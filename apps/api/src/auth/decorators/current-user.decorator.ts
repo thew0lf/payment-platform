@@ -4,8 +4,11 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   role: string;
+  scopeType: string;
+  scopeId: string;
   organizationId?: string;
   clientId?: string;
+  companyId?: string;
 }
 
 /**
