@@ -43,7 +43,7 @@ export class ShipmentsService {
       throw new BadRequestException('Cannot create shipment for canceled order');
     }
 
-    const shipmentNumber = await this.orderNumberService.generateShipmentNumber();
+    const shipmentNumber = await this.orderNumberService.generateShipmentNumber(companyId);
 
     // Use transaction to create shipment and lock address atomically
     const shipment = await this.prisma.$transaction(async (tx) => {

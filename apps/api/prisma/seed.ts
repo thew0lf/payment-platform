@@ -12,6 +12,54 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// =============================================================================
+// CODE GENERATION HELPERS
+// =============================================================================
+
+const RESERVED_CODES = new Set([
+  '0000', 'AAAA', 'TEST', 'DEMO', 'NULL', 'NONE', 'XXXX', 'ZZZZ',
+]);
+
+function extractCodeFromName(name: string): string {
+  const clean = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (clean.length >= 4) {
+    return clean.slice(0, 4);
+  }
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = clean;
+  while (code.length < 4) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+function generateUniqueCode(name: string, existingCodes: Set<string>): string {
+  let code = extractCodeFromName(name);
+  let attempt = 0;
+
+  while (existingCodes.has(code) || RESERVED_CODES.has(code)) {
+    attempt++;
+    if (attempt <= 99) {
+      const suffix = String(attempt).padStart(2, '0');
+      code = extractCodeFromName(name).slice(0, 2) + suffix;
+    } else {
+      // Random fallback
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      code = '';
+      for (let i = 0; i < 4; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
+    }
+  }
+
+  existingCodes.add(code);
+  return code;
+}
+
+// Track used codes to avoid collisions
+const usedClientCodes = new Set<string>();
+const usedCompanyCodes = new Map<string, Set<string>>(); // clientId -> codes
+
 async function main() {
   console.log('🌱 Payment Platform - Database Seeding');
   console.log('=====================================\n');
@@ -50,20 +98,23 @@ async function main() {
   console.log('✅ Org admin created:', orgAdmin.email);
 
   // Create Client 1: Velocity Agency
+  const client1Code = generateUniqueCode('Velocity Agency', usedClientCodes);
   const client1 = await prisma.client.upsert({
     where: { organizationId_slug: { organizationId: org.id, slug: 'velocity-agency' } },
-    update: {},
+    update: { code: client1Code },
     create: {
       organizationId: org.id,
       name: 'Velocity Agency',
       slug: 'velocity-agency',
+      code: client1Code,
       contactName: 'Sarah Chen',
       contactEmail: 'sarah@velocityagency.com',
       plan: 'PREMIUM',
       status: 'ACTIVE',
     },
   });
-  console.log('✅ Client created:', client1.name);
+  usedCompanyCodes.set(client1.id, new Set<string>());
+  console.log('✅ Client created:', client1.name, `(${client1Code})`);
 
   // Create Client Admin
   const clientAdminPassword = await bcrypt.hash('demo123', 10);
@@ -92,19 +143,24 @@ async function main() {
   ];
 
   for (const companyData of companies) {
+    const companyCodes = usedCompanyCodes.get(client1.id) || new Set<string>();
+    const companyCode = generateUniqueCode(companyData.name, companyCodes);
+    usedCompanyCodes.set(client1.id, companyCodes);
+
     const company = await prisma.company.upsert({
       where: { clientId_slug: { clientId: client1.id, slug: companyData.slug } },
-      update: {},
+      update: { code: companyCode },
       create: {
         clientId: client1.id,
         name: companyData.name,
         slug: companyData.slug,
+        code: companyCode,
         timezone: 'America/New_York',
         currency: 'USD',
         status: 'ACTIVE',
       },
     });
-    console.log('✅ Company created:', company.name);
+    console.log('✅ Company created:', company.name, `(${companyCode})`);
 
     // Create Company Manager
     const managerPassword = await bcrypt.hash('demo123', 10);
@@ -181,20 +237,23 @@ async function main() {
   }
 
   // Create Client 2: Digital First
+  const client2Code = generateUniqueCode('Digital First', usedClientCodes);
   const client2 = await prisma.client.upsert({
     where: { organizationId_slug: { organizationId: org.id, slug: 'digital-first' } },
-    update: {},
+    update: { code: client2Code },
     create: {
       organizationId: org.id,
       name: 'Digital First',
       slug: 'digital-first',
+      code: client2Code,
       contactName: 'Mike Torres',
       contactEmail: 'mike@digitalfirst.io',
       plan: 'STANDARD',
       status: 'ACTIVE',
     },
   });
-  console.log('✅ Client created:', client2.name);
+  usedCompanyCodes.set(client2.id, new Set<string>());
+  console.log('✅ Client created:', client2.name, `(${client2Code})`);
 
   // Create companies for Client 2
   const client2Companies = [
@@ -203,19 +262,24 @@ async function main() {
   ];
 
   for (const companyData of client2Companies) {
+    const companyCodes = usedCompanyCodes.get(client2.id) || new Set<string>();
+    const companyCode = generateUniqueCode(companyData.name, companyCodes);
+    usedCompanyCodes.set(client2.id, companyCodes);
+
     const company = await prisma.company.upsert({
       where: { clientId_slug: { clientId: client2.id, slug: companyData.slug } },
-      update: {},
+      update: { code: companyCode },
       create: {
         clientId: client2.id,
         name: companyData.name,
         slug: companyData.slug,
+        code: companyCode,
         timezone: 'UTC',
         currency: 'USD',
         status: 'ACTIVE',
       },
     });
-    console.log('✅ Company created:', company.name);
+    console.log('✅ Company created:', company.name, `(${companyCode})`);
   }
 
   // =============================================================================

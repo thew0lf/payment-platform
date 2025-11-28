@@ -47,6 +47,7 @@ model Client {
   organizationId String
   name           String
   slug           String
+  code           String?  @unique  // 4-char alphanumeric code (e.g., "ACME")
   contactName    String?
   contactEmail   String?
   contactPhone   String?
@@ -75,6 +76,7 @@ model Company {
   clientId      String
   name          String
   slug          String
+  code          String?  // 4-char alphanumeric code (e.g., "BREW")
   domain        String?
   logo          String?
   timezone      String   @default("UTC")
@@ -115,6 +117,7 @@ model Company {
   upsellConfig       UpsellConfig?
 
   @@unique([clientId, slug])
+  @@unique([clientId, code])  // Company codes unique per client
   @@map("companies")
 }
 
