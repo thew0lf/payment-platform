@@ -21,19 +21,22 @@ Comprehensive code/architecture review. Use: `/review [description or file path]
 
 **Verdict:** Approve | Approve with suggestions | Request changes
 
-### `/feature` - Feature File Review
-Product ticket review before implementation. Use: `/feature [ticket description]`
+### `/feature` - Feature File Review (Senior Developer Review)
+Senior developer review of a product ticket before implementation. Use: `/feature [ticket description]`
 
 **Checklist:**
 1. Requirements Clarification - Is the ask clear?
 2. Technical Feasibility - Can we build this?
 3. Scope Assessment - Right size? Break down?
-4. Dependencies - Systems/teams affected
-5. Effort Estimate - S/M/L/XL complexity
-6. Questions for Product - Gaps, edge cases
-7. Technical Approach - High-level plan
-8. Risks/Concerns - Blockers, challenges
-9. Acceptance Criteria - Testable and complete?
+4. Architecture Impact - How does this fit?
+5. Dependencies - Systems/teams affected
+6. Effort Estimate - S/M/L/XL complexity
+7. Questions for Product - Gaps, edge cases
+8. Technical Approach - High-level plan
+9. Security Considerations - Auth, data access
+10. Performance Implications - Scale, caching
+11. Risks/Concerns - Blockers, challenges
+12. Acceptance Criteria - Testable and complete?
 
 **Verdict:** Ready to build | Needs clarification | Needs breakdown
 
