@@ -9,11 +9,13 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { ShipmentsService } from './services/shipments.service';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { Shipment, ShipmentEvent } from './types/fulfillment.types';
 import {
   CreateShipmentDto,
@@ -26,7 +28,10 @@ import {
 @Controller('fulfillment')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FulfillmentController {
-  constructor(private readonly shipmentsService: ShipmentsService) {}
+  constructor(
+    private readonly shipmentsService: ShipmentsService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════════
   // SHIPMENTS
@@ -43,12 +48,13 @@ export class FulfillmentController {
   }
 
   @Get('shipments')
-  async getShipmentsByOrder(
+  async getShipments(
     @Query('orderId') orderId: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Shipment[]> {
-    const companyId = this.getCompanyId(user);
-    return this.shipmentsService.findByOrderId(orderId, companyId);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    return this.shipmentsService.findAll(orderId, companyId);
   }
 
   @Get('shipments/:id')
@@ -119,6 +125,10 @@ export class FulfillmentController {
   // HELPER
   // ═══════════════════════════════════════════════════════════════
 
+  /**
+   * Get companyId for write operations (create/update/delete).
+   * Requires explicit company context.
+   */
   private getCompanyId(user: AuthenticatedUser): string {
     // For COMPANY scope users, the scopeId IS the companyId
     if (user.scopeType === 'COMPANY') {
@@ -131,6 +141,43 @@ export class FulfillmentController {
     if (user.clientId) {
       return user.clientId;
     }
-    throw new Error('User does not have a valid company context');
+    throw new ForbiddenException('Company context required for this operation');
+  }
+
+  /**
+   * Get companyId for query operations.
+   * For ORGANIZATION/CLIENT scope users, allows:
+   * - Passing companyId query param to filter by specific company (with validation)
+   * - Returns undefined to query all accessible shipments (when no companyId passed)
+   */
+  private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
+    // For COMPANY scope users, always filter by their company
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // For users with explicit companyId/clientId, use that
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // For ORGANIZATION or CLIENT scope admins
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      // If they passed a companyId query param, validate access first
+      if (queryCompanyId) {
+        const hasAccess = await this.hierarchyService.canAccessCompany(
+          { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+          queryCompanyId,
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException('Access denied to the requested company');
+        }
+        return queryCompanyId;
+      }
+      // Otherwise return undefined to allow querying all shipments they have access to
+      return undefined;
+    }
+
+    throw new ForbiddenException('Unable to determine company context');
   }
 }

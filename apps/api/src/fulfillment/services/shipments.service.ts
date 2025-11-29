@@ -95,6 +95,33 @@ export class ShipmentsService {
   // READ
   // ═══════════════════════════════════════════════════════════════
 
+  /**
+   * Find all shipments, optionally filtered by orderId and/or companyId.
+   * For org/client admins, companyId may be undefined to see all shipments.
+   */
+  async findAll(orderId?: string, companyId?: string): Promise<Shipment[]> {
+    const where: Prisma.ShipmentWhereInput = {};
+
+    // Filter by orderId if provided
+    if (orderId) {
+      where.orderId = orderId;
+    }
+
+    // Filter by company through the order relation if companyId is provided
+    if (companyId) {
+      where.order = { companyId };
+    }
+
+    const shipments = await this.prisma.shipment.findMany({
+      where,
+      include: { events: { orderBy: { occurredAt: 'desc' } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100, // Limit to prevent massive queries
+    });
+
+    return shipments.map(this.mapToShipment.bind(this));
+  }
+
   async findByOrderId(orderId: string, companyId: string): Promise<Shipment[]> {
     // Verify order belongs to company
     const order = await this.prisma.order.findFirst({

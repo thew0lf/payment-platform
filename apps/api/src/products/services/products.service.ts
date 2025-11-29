@@ -84,10 +84,15 @@ export class ProductsService {
   // ═══════════════════════════════════════════════════════════════
 
   async findAll(
-    companyId: string,
+    companyId: string | undefined,
     query: ProductQueryDto,
   ): Promise<{ products: Product[]; total: number }> {
-    const where: Prisma.ProductWhereInput = { companyId };
+    const where: Prisma.ProductWhereInput = {};
+
+    // Only filter by companyId if provided (undefined = all products for org/client admins)
+    if (companyId) {
+      where.companyId = companyId;
+    }
 
     if (query.category) where.category = query.category as any;
     if (query.status) where.status = query.status as any;

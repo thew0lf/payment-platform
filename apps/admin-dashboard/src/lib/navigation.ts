@@ -20,6 +20,7 @@ import {
   Zap,
   Wrench,
   Settings,
+  Trash2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -82,6 +83,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Zap,
   Wrench,
   Settings,
+  Trash2,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -181,6 +183,7 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },
+      { id: 'deleted', label: 'Trash', href: '/deleted', icon: Trash2 },
     ],
   },
 ];

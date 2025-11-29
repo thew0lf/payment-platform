@@ -2,6 +2,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.dev.avnz.io:
 
 let authToken: string | null = null;
 
+// Get token from memory or localStorage
+function getToken(): string | null {
+  if (authToken) return authToken;
+  if (typeof window !== 'undefined') {
+    authToken = localStorage.getItem('avnz_token');
+  }
+  return authToken;
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -11,8 +20,9 @@ async function request<T>(
     ...options.headers,
   };
 
-  if (authToken) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${authToken}`;
+  const token = getToken();
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {

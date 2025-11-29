@@ -67,7 +67,13 @@ model Client {
   users        User[]       @relation("ClientUsers")
   integrations ClientIntegration[]
 
+  // Soft delete fields
+  deletedAt    DateTime?
+  deletedBy    String?
+  cascadeId    String?
+
   @@unique([organizationId, slug])
+  @@index([deletedAt])
   @@map("clients")
 }
 
@@ -116,7 +122,13 @@ model Company {
   momentumAnalytics  MomentumAnalytics[]
   upsellConfig       UpsellConfig?
 
+  // Soft delete fields
+  deletedAt          DateTime?
+  deletedBy          String?
+  cascadeId          String?
+
   @@unique([clientId, slug])
+  @@index([deletedAt])
   @@map("companies")
 }
 
@@ -140,7 +152,13 @@ model Department {
   teams     Team[]
   users     User[]   @relation("DepartmentUsers")
 
+  // Soft delete fields
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
+
   @@unique([companyId, slug])
+  @@index([deletedAt])
   @@map("departments")
 }
 
@@ -222,7 +240,14 @@ model User {
 
   // Activity
   auditLogs      AuditLog[]
+  deletionLogs   DeletionLog[] @relation("UserDeletions")
 
+  // Soft delete fields
+  deletedAt      DateTime?
+  deletedBy      String?
+  cascadeId      String?
+
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -284,7 +309,14 @@ model Customer {
   voiceCalls      VoiceCall[]
   upsellOffers    UpsellOffer[]
 
-  @@unique([companyId, email])
+  // Soft delete fields
+  deletedAt       DateTime?
+  deletedBy       String?
+  cascadeId       String?
+
+  @@unique([companyId, email, deletedAt])
+  @@index([companyId, email])
+  @@index([deletedAt])
   @@map("customers")
 }
 
@@ -329,7 +361,13 @@ model Address {
   // Relations
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
+  // Soft delete fields (CustomerAddress)
+  deletedAt  DateTime?
+  deletedBy  String?
+  cascadeId  String?
+
   @@index([customerId, type])
+  @@index([deletedAt])
   @@map("addresses")
 }
 
@@ -492,9 +530,16 @@ model Product {
   company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 
-  @@unique([companyId, sku])
-  @@unique([companyId, slug])
+  // Soft delete fields
+  deletedAt  DateTime?
+  deletedBy  String?
+  cascadeId  String?
+
+  @@unique([companyId, sku, deletedAt])
+  @@unique([companyId, slug, deletedAt])
   @@index([companyId, category])
+  @@index([companyId, status, trackInventory])
+  @@index([deletedAt])
   @@map("products")
 }
 
@@ -595,10 +640,17 @@ model Order {
   shipments       Shipment[]
   transactions    Transaction[]
 
+  // Soft delete fields
+  deletedAt       DateTime?
+  deletedBy       String?
+  cascadeId       String?
+
   @@index([companyId, orderedAt])
+  @@index([companyId, status, fulfillmentStatus])
   @@index([customerId])
   @@index([status])
   @@index([orderNumber])
+  @@index([deletedAt])
   @@map("orders")
 }
 
@@ -818,6 +870,13 @@ model Subscription {
   transactions Transaction[]
   orders       Order[]
 
+  // Soft delete fields
+  deletedAt    DateTime?
+  deletedBy    String?
+  cascadeId    String?
+
+  @@index([companyId, status])
+  @@index([deletedAt])
   @@map("subscriptions")
 }
 
@@ -879,6 +938,7 @@ model Transaction {
   paymentVault    PaymentVault?    @relation(fields: [paymentVaultId], references: [id])
 
   @@index([companyId, createdAt])
+  @@index([companyId, status, createdAt])
   @@index([customerId])
   @@index([orderId])
   @@index([status])
@@ -975,10 +1035,16 @@ model MerchantAccount {
   // Integration relation
   clientIntegration     ClientIntegration?
 
-  @@unique([companyId, name])
+  // Soft delete fields
+  deletedAt             DateTime?
+  deletedBy             String?
+  cascadeId             String?
+
+  @@unique([companyId, name, deletedAt])
   @@index([companyId])
   @@index([providerType])
   @@index([status])
+  @@index([deletedAt])
   @@map("merchant_accounts")
 }
 
@@ -1079,10 +1145,16 @@ model RoutingRule {
   updatedAt             DateTime  @updatedAt
   createdBy             String?
 
-  @@unique([companyId, name])
+  // Soft delete fields
+  deletedAt             DateTime?
+  deletedBy             String?
+  cascadeId             String?
+
+  @@unique([companyId, name, deletedAt])
   @@index([companyId])
   @@index([status])
   @@index([priority])
+  @@index([deletedAt])
   @@map("routing_rules")
 }
 
@@ -3578,4 +3650,93 @@ model ClientIntegration {
   @@unique([clientId, provider, name])
   @@index([clientId])
   @@map("client_integrations")
+}
+
+// =============================================================================
+// SOFT DELETE & DELETION AUDIT LOG
+// Enterprise soft delete system with cascade tracking and retention management
+// =============================================================================
+
+model DeletionLog {
+  id                String    @id @default(cuid())
+
+  // Entity identification
+  entityType        String    // Model name: Client, Company, Customer, etc.
+  entityId          String    // ID of the deleted entity
+  entityName        String?   // Friendly name for display
+
+  // Company context (for access control)
+  companyId         String?
+
+  // Who deleted
+  deletedBy         String    // User ID who initiated deletion
+  deletedAt         DateTime  @default(now())
+  reason            String?   // Optional deletion reason
+
+  // Cascade tracking
+  cascadeId         String?   // Groups related cascade deletions
+  cascadedFrom      String?   // Parent entity ID if cascade-deleted
+
+  // Entity snapshot (for potential restoration)
+  snapshot          Json?     // Full entity data at deletion time
+
+  // Retention management
+  expiresAt         DateTime  // When permanent purge is allowed
+
+  // Restoration tracking
+  restoredAt        DateTime?
+  restoredBy        String?
+
+  // Permanent deletion tracking
+  purgedAt          DateTime?
+  purgeReason       String?   // RETENTION_EXPIRED, GDPR_REQUEST, ADMIN_REQUEST
+
+  // Relations
+  deletedByUser     User?     @relation("UserDeletions", fields: [deletedBy], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([companyId])
+  @@index([cascadeId])
+  @@index([deletedAt])
+  @@index([restoredAt])
+  @@index([expiresAt])
+  @@map("deletion_logs")
+}
+
+// =============================================================================
+// WEBHOOK NOTIFICATIONS
+// =============================================================================
+
+model Webhook {
+  id                String    @id @default(cuid())
+  companyId         String
+
+  // Webhook details
+  name              String
+  url               String
+  events            String[]  @default([])
+
+  // Authentication
+  secret            String?
+  headers           Json?     @default("{}")
+
+  // Status
+  isActive          Boolean   @default(true)
+  lastTriggeredAt   DateTime?
+  lastStatus        String?
+  failureCount      Int       @default(0)
+
+  // Soft delete
+  deletedAt         DateTime?
+  deletedBy         String?
+  cascadeId         String?
+
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([companyId, name, deletedAt])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@map("webhooks")
 }

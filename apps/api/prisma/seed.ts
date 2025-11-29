@@ -200,9 +200,10 @@ async function main() {
     for (let i = 1; i <= 5; i++) {
       await prisma.customer.upsert({
         where: {
-          companyId_email: {
+          companyId_email_deletedAt: {
             companyId: company.id,
             email: `customer${i}@example.com`,
+            deletedAt: null,
           },
         },
         update: {},
@@ -663,9 +664,10 @@ async function seedDemoMerchantAccounts(companyId: string) {
   for (const account of accounts) {
     await prisma.merchantAccount.upsert({
       where: {
-        companyId_name: {
+        companyId_name_deletedAt: {
           companyId: account.companyId,
           name: account.name,
+          deletedAt: null,
         },
       },
       update: account,
@@ -856,9 +858,10 @@ async function seedDemoRoutingRules(
   for (const rule of rules) {
     await prisma.routingRule.upsert({
       where: {
-        companyId_name: {
+        companyId_name_deletedAt: {
           companyId: rule.companyId,
           name: rule.name,
+          deletedAt: null,
         },
       },
       update: {

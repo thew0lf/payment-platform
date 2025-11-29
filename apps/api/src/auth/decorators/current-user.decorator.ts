@@ -9,6 +9,7 @@ export interface AuthenticatedUser {
   organizationId?: string;
   clientId?: string;
   companyId?: string;
+  departmentId?: string;
 }
 
 /**

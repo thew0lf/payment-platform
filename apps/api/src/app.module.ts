@@ -18,6 +18,7 @@ import { IntegrationsModule } from './integrations';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { FulfillmentModule } from './fulfillment/fulfillment.module';
+import { SoftDeleteModule } from './soft-delete/soft-delete.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FulfillmentModule } from './fulfillment/fulfillment.module';
     OrdersModule,
     ProductsModule,
     FulfillmentModule,
+    SoftDeleteModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -273,6 +273,10 @@ export class AdjustStockDto {
 export class ProductQueryDto {
   @IsOptional()
   @IsString()
+  companyId?: string;
+
+  @IsOptional()
+  @IsString()
   category?: string;
 
   @IsOptional()

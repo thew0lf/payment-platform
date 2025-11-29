@@ -140,10 +140,15 @@ export class OrdersService {
   // ═══════════════════════════════════════════════════════════════
 
   async findAll(
-    companyId: string,
+    companyId: string | undefined,
     query: OrderQueryDto,
   ): Promise<{ orders: Order[]; total: number }> {
-    const where: Prisma.OrderWhereInput = { companyId };
+    const where: Prisma.OrderWhereInput = {};
+
+    // Only filter by companyId if provided (undefined = all orders for org/client admins)
+    if (companyId) {
+      where.companyId = companyId;
+    }
 
     if (query.customerId) where.customerId = query.customerId;
     if (query.status) where.status = query.status as any;

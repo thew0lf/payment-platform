@@ -248,6 +248,10 @@ export class MarkPaidDto {
 
 export class OrderQueryDto {
   @IsOptional()
+  @IsString()
+  companyId?: string;
+
+  @IsOptional()
   @IsUUID()
   customerId?: string;
 
