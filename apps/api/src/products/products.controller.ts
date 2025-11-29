@@ -60,18 +60,20 @@ export class ProductsController {
   @Get(':id')
   async findById(
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Product> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.productsService.findById(id, companyId);
   }
 
   @Get('sku/:sku')
   async findBySku(
     @Param('sku') sku: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Product> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.productsService.findBySku(companyId, sku);
   }
 

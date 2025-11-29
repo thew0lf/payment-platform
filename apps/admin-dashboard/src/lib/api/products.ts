@@ -227,13 +227,15 @@ export const productsApi = {
   },
 
   // Get product by ID
-  get: async (id: string): Promise<Product> => {
-    return apiRequest.get<Product>(`/api/products/${id}`);
+  get: async (id: string, companyId?: string): Promise<Product> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<Product>(`/api/products/${id}${params}`);
   },
 
   // Get product by SKU
-  getBySku: async (sku: string): Promise<Product> => {
-    return apiRequest.get<Product>(`/api/products/sku/${sku}`);
+  getBySku: async (sku: string, companyId?: string): Promise<Product> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<Product>(`/api/products/sku/${sku}${params}`);
   },
 
   // Create product
