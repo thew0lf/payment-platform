@@ -75,8 +75,10 @@ Thumbs.db
 tmp/
 temp/
 
-# Claude Code
-.claude/
+# Claude Code (keep commands, ignore settings)
+.claude/settings.json
+.claude/settings.local.json
+!.claude/commands/
 
 # Turbo
 .turbo/

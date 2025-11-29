@@ -1,5 +1,44 @@
 # Payment Platform - Claude Code Instructions
 
+## Review Commands
+
+### `/review` - Senior Developer Review
+Comprehensive code/architecture review. Use: `/review [description or file path]`
+
+**Checklist:**
+1. Code Analysis - Correctness, edge cases, bugs, error handling
+2. Architecture - Right approach? Better patterns? Scalability?
+3. Opinion/Critique - What doesn't look right
+4. Suggestions - Improvements, better UX
+5. Trade-offs - Pros/cons vs alternatives
+6. Security - Vulnerabilities, input validation, auth gaps
+7. Performance - N+1 queries, re-renders, caching
+8. Maintainability - Code clarity, naming, future dev experience
+9. Testing Gaps - What needs tests? Edge cases?
+10. Technical Debt - Shortcuts, things to revisit
+11. Dependencies - Impact on other systems
+12. Standards - Follows project conventions?
+
+**Verdict:** Approve | Approve with suggestions | Request changes
+
+### `/feature` - Feature File Review
+Product ticket review before implementation. Use: `/feature [ticket description]`
+
+**Checklist:**
+1. Requirements Clarification - Is the ask clear?
+2. Technical Feasibility - Can we build this?
+3. Scope Assessment - Right size? Break down?
+4. Dependencies - Systems/teams affected
+5. Effort Estimate - S/M/L/XL complexity
+6. Questions for Product - Gaps, edge cases
+7. Technical Approach - High-level plan
+8. Risks/Concerns - Blockers, challenges
+9. Acceptance Criteria - Testable and complete?
+
+**Verdict:** Ready to build | Needs clarification | Needs breakdown
+
+---
+
 ## Development Workflow
 
 ### Feature Documentation Rule
