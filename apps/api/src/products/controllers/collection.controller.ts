@@ -15,6 +15,7 @@ import {
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import {
   CollectionService,
   CreateCollectionDto,
@@ -25,7 +26,10 @@ import {
 @Controller('products/collections')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CollectionController {
-  constructor(private readonly collectionService: CollectionService) {}
+  constructor(
+    private readonly collectionService: CollectionService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
 
   @Post()
   @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
@@ -40,9 +44,13 @@ export class CollectionController {
   @Get()
   async findAll(
     @Query('includeInactive') includeInactive: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Collection[]> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      return []; // No company context, return empty
+    }
     return this.collectionService.findAll(companyId, includeInactive === 'true');
   }
 
@@ -155,5 +163,28 @@ export class CollectionController {
       return user.companyId;
     }
     throw new ForbiddenException('Company context required');
+  }
+
+  private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      if (queryCompanyId) {
+        const hasAccess = await this.hierarchyService.canAccessCompany(
+          { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+          queryCompanyId,
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException('Access denied to the requested company');
+        }
+        return queryCompanyId;
+      }
+      return undefined;
+    }
+    return undefined;
   }
 }

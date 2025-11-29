@@ -15,12 +15,16 @@ import {
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { CategoryService, CreateCategoryDto, UpdateCategoryDto, CategoryTreeNode } from '../services/category.service';
 
 @Controller('products/categories')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CategoryController {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(
+    private readonly categoryService: CategoryService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
 
   @Post()
   @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
@@ -35,15 +39,25 @@ export class CategoryController {
   @Get()
   async findAll(
     @Query('includeInactive') includeInactive: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      return [];
+    }
     return this.categoryService.findAll(companyId, includeInactive === 'true');
   }
 
   @Get('tree')
-  async getTree(@CurrentUser() user: AuthenticatedUser): Promise<CategoryTreeNode[]> {
-    const companyId = this.getCompanyId(user);
+  async getTree(
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<CategoryTreeNode[]> {
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      return [];
+    }
     return this.categoryService.getTree(companyId);
   }
 
@@ -86,5 +100,28 @@ export class CategoryController {
       return user.companyId;
     }
     throw new ForbiddenException('Company context required');
+  }
+
+  private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      if (queryCompanyId) {
+        const hasAccess = await this.hierarchyService.canAccessCompany(
+          { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+          queryCompanyId,
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException('Access denied to the requested company');
+        }
+        return queryCompanyId;
+      }
+      return undefined;
+    }
+    return undefined;
   }
 }
