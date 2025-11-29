@@ -143,22 +143,38 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#2CA01C]',
     gradient: 'from-[#2CA01C] to-[#4CD93A]',
   },
-  // AI
+  // AI & ML
   [IntegrationProvider.AWS_BEDROCK]: {
     icon: 'BR',
+    iconUrl: '/integrations/aws-bedrock.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
   [IntegrationProvider.OPENAI]: {
     icon: 'AI',
+    iconUrl: '/integrations/openai.svg',
     bgColor: 'bg-[#10A37F]',
     gradient: 'from-[#10A37F] to-[#1ED9A4]',
+  },
+  [IntegrationProvider.LANGUAGETOOL]: {
+    icon: 'LT',
+    iconUrl: '/integrations/languagetool.svg',
+    bgColor: 'bg-[#0A2540]',
+    gradient: 'from-[#0A2540] to-[#486BF7]',
   },
   // Storage
   [IntegrationProvider.AWS_S3]: {
     icon: 'S3',
+    iconUrl: '/integrations/aws-s3.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#569A31]',
+  },
+  // Image Processing (NOT storage - processes images on-demand)
+  [IntegrationProvider.CLOUDINARY]: {
+    icon: 'CL',
+    iconUrl: '/integrations/cloudinary.svg',
+    bgColor: 'bg-[#3448C5]',
+    gradient: 'from-[#3448C5] to-[#F5BD51]',
   },
   // Monitoring
   [IntegrationProvider.DATADOG]: {
@@ -200,6 +216,9 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.OAUTH]: 'Connected Services',
   [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
   [IntegrationCategory.SMS]: 'SMS',
+  [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
+  [IntegrationCategory.STORAGE]: 'Storage',
+  [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {

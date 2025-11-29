@@ -222,6 +222,23 @@ Third-party service connections managed per-company.
 | Shipping | ShipStation, EasyPost, ShipEngine |
 | Accounting | QuickBooks, Xero |
 | Identity | Auth0, Okta |
+| AI & ML | AWS Bedrock, OpenAI, LanguageTool |
+| Storage | AWS S3 |
+| Image Processing | Cloudinary |
+
+### Product Integration Services
+Services for AI-powered product management:
+
+| Service | Purpose | Key Methods |
+|---------|---------|-------------|
+| `BedrockService` | AI content generation | `generateProductDescription()`, `generateAltText()`, `suggestCategorization()` |
+| `S3StorageService` | Image storage & CDN | `uploadFile()`, `generateThumbnails()`, `getSignedDownloadUrl()` |
+| `LanguageToolService` | Grammar checking | `checkGrammar()`, `checkAndCorrect()`, `checkMultipleFields()` |
+| `CloudinaryService` | Image processing (no storage) | `removeBackground()`, `smartCrop()`, `enhance()`, `upscale()` |
+
+**Architecture Note:** Cloudinary uses "fetch" mode to process S3 URLs on-demand. S3 is the ONLY storage layer.
+
+**Key files:** `apps/api/src/integrations/services/providers/`
 
 ### Adding New Integrations
 1. Add provider to `IntegrationProvider` enum in Prisma schema

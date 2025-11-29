@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthType, IntegrationCategory, IntegrationDefinition, IntegrationProvider } from '../types/integration.types';
-import { CREDENTIAL_SCHEMAS } from '../types/credential-schemas';
+import { CREDENTIAL_SCHEMAS, AWS_BEDROCK_CREDENTIAL_SCHEMA, AWS_S3_CREDENTIAL_SCHEMA, LANGUAGETOOL_CREDENTIAL_SCHEMA, CLOUDINARY_CREDENTIAL_SCHEMA } from '../types/credential-schemas';
 
 @Injectable()
 export class IntegrationDefinitionService implements OnModuleInit {
@@ -262,6 +262,69 @@ export class IntegrationDefinitionService implements OnModuleInit {
         isPlatformOffered: false,
         authType: AuthType.OAUTH2,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.QUICKBOOKS]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      // AI/ML Integrations
+      {
+        provider: IntegrationProvider.AWS_BEDROCK,
+        category: IntegrationCategory.AI_ML,
+        name: 'AWS Bedrock',
+        description: 'Amazon Bedrock AI service with Claude models for content generation, summarization, and analysis',
+        logoUrl: '/integrations/aws-bedrock.svg',
+        documentationUrl: 'https://docs.aws.amazon.com/bedrock/',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: AWS_BEDROCK_CREDENTIAL_SCHEMA,
+        requiredCompliance: ['soc2', 'iso27001', 'hipaa'],
+        status: 'active',
+      },
+      {
+        provider: IntegrationProvider.LANGUAGETOOL,
+        category: IntegrationCategory.AI_ML,
+        name: 'LanguageTool',
+        description: 'Grammar, spelling, and style checking for 30+ languages with AI-powered suggestions',
+        logoUrl: '/integrations/languagetool.svg',
+        documentationUrl: 'https://languagetool.org/http-api/',
+        isOrgOnly: false,
+        isClientAllowed: true,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: LANGUAGETOOL_CREDENTIAL_SCHEMA,
+        requiredCompliance: [],
+        status: 'active',
+      },
+      // Storage Integrations
+      {
+        provider: IntegrationProvider.AWS_S3,
+        category: IntegrationCategory.STORAGE,
+        name: 'AWS S3',
+        description: 'Amazon S3 object storage for product images, documents, and media files with CloudFront CDN support',
+        logoUrl: '/integrations/aws-s3.svg',
+        documentationUrl: 'https://docs.aws.amazon.com/s3/',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: AWS_S3_CREDENTIAL_SCHEMA,
+        requiredCompliance: ['soc2', 'iso27001', 'pci_dss'],
+        status: 'active',
+      },
+      // Image Processing (NOT storage - Cloudinary processes, S3 stores)
+      {
+        provider: IntegrationProvider.CLOUDINARY,
+        category: IntegrationCategory.IMAGE_PROCESSING,
+        name: 'Cloudinary',
+        description: 'AI-powered image processing for background removal, smart cropping, and enhancement. Images stored in S3, processed by Cloudinary on-demand.',
+        logoUrl: '/integrations/cloudinary.svg',
+        documentationUrl: 'https://cloudinary.com/documentation',
+        isOrgOnly: false,
+        isClientAllowed: true,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: CLOUDINARY_CREDENTIAL_SCHEMA,
         requiredCompliance: ['soc2'],
         status: 'active',
       },

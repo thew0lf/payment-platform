@@ -17,6 +17,7 @@ export enum IntegrationCategory {
   PUSH_NOTIFICATION = 'PUSH_NOTIFICATION',
   AI_ML = 'AI_ML',
   STORAGE = 'STORAGE',
+  IMAGE_PROCESSING = 'IMAGE_PROCESSING',
   MONITORING = 'MONITORING',
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
@@ -48,9 +49,11 @@ export enum IntegrationProvider {
   // AI
   AWS_BEDROCK = 'AWS_BEDROCK',
   OPENAI = 'OPENAI',
+  LANGUAGETOOL = 'LANGUAGETOOL',
 
   // Storage
   AWS_S3 = 'AWS_S3',
+  CLOUDINARY = 'CLOUDINARY',
 
   // Monitoring
   DATADOG = 'DATADOG',

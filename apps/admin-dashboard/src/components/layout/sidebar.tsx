@@ -198,47 +198,88 @@ export function Sidebar({ isOpen, onClose, badges }: SidebarProps) {
         </div>
       )}
 
-      {/* Company Selector */}
+      {/* Company Switcher */}
       {(isOrgLevel || isClientLevel) && companiesForDisplay.length > 0 && (
-        <div className="px-3 py-2 border-b border-zinc-800" data-switcher>
-          <p className="text-xs text-zinc-600 font-medium mb-2 px-2 uppercase tracking-wider">
-            Companies
-          </p>
-          <button
-            onClick={() => setSelectedCompanyId(null)}
-            className={cn(
-              'w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors',
-              !selectedCompanyId
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-            )}
-          >
-            <Building2 className="w-4 h-4" />
-            All Companies
-          </button>
-          {companiesForDisplay.slice(0, 5).map((company) => (
+        <div className="p-3 border-b border-zinc-800" data-switcher>
+          <div className="relative">
             <button
-              key={company.id}
-              onClick={() => setSelectedCompanyId(company.id)}
-              className={cn(
-                'w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors',
-                selectedCompanyId === company.id
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCompanySwitcher(!showCompanySwitcher);
+              }}
+              className="w-full flex items-center gap-2 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+              aria-expanded={showCompanySwitcher}
+              aria-haspopup="listbox"
             >
-              <div className="w-4 h-4 rounded bg-zinc-700 flex items-center justify-center text-[10px] font-medium">
-                {company.name.charAt(0)}
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">
+                {selectedCompany?.name.charAt(0) || 'A'}
               </div>
-              <span className="truncate">{company.name}</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-white truncate">
+                  {selectedCompany?.name || 'All Companies'}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {selectedCompany
+                    ? 'Company view'
+                    : `${companiesForDisplay.length} companies`}
+                </p>
+              </div>
+              <ChevronDown
+                className={cn(
+                  'w-4 h-4 text-zinc-500 transition-transform',
+                  showCompanySwitcher && 'rotate-180'
+                )}
+              />
             </button>
-          ))}
-          {companiesForDisplay.length > 5 && (
-            <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-zinc-500 hover:text-zinc-300">
-              <Plus className="w-4 h-4" />
-              {companiesForDisplay.length - 5} more...
-            </button>
-          )}
+
+            {showCompanySwitcher && (
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden z-50 shadow-xl max-h-64 overflow-y-auto"
+                role="listbox"
+              >
+                <button
+                  onClick={() => {
+                    setSelectedCompanyId(null);
+                    setShowCompanySwitcher(false);
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700',
+                    !selectedCompanyId && 'bg-zinc-700'
+                  )}
+                  role="option"
+                  aria-selected={!selectedCompanyId}
+                >
+                  <Building2 className="w-4 h-4 text-zinc-400" />
+                  <span className="text-zinc-300">All Companies</span>
+                  {!selectedCompanyId && <Check className="w-4 h-4 text-cyan-400 ml-auto" />}
+                </button>
+                <div className="border-t border-zinc-700" />
+                {companiesForDisplay.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => {
+                      setSelectedCompanyId(company.id);
+                      setShowCompanySwitcher(false);
+                    }}
+                    className={cn(
+                      'w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700',
+                      selectedCompanyId === company.id && 'bg-zinc-700'
+                    )}
+                    role="option"
+                    aria-selected={selectedCompanyId === company.id}
+                  >
+                    <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-600 rounded flex items-center justify-center text-xs font-bold text-white">
+                      {company.name.charAt(0)}
+                    </div>
+                    <span className="text-zinc-300 flex-1 text-left truncate">{company.name}</span>
+                    {selectedCompanyId === company.id && (
+                      <Check className="w-4 h-4 text-cyan-400" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -255,13 +296,6 @@ export function Sidebar({ isOpen, onClose, badges }: SidebarProps) {
             />
           ))}
       </nav>
-
-      {/* Value Metric - NCI: Continuous value reminder */}
-      <div className="p-3 mx-3 mb-3 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-xl">
-        <p className="text-xs text-emerald-400 font-medium">TIME SAVED THIS MONTH</p>
-        <p className="text-2xl font-bold text-white mt-1">18.5 hrs</p>
-        <p className="text-xs text-zinc-500 mt-1">≈ $1,110 in labor costs</p>
-      </div>
 
       {/* User Menu */}
       <div className="p-3 border-t border-zinc-800" data-user-menu>

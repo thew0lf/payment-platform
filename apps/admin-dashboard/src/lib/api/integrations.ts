@@ -20,8 +20,10 @@ export enum IntegrationProvider {
   // AI
   AWS_BEDROCK = 'AWS_BEDROCK',
   OPENAI = 'OPENAI',
+  LANGUAGETOOL = 'LANGUAGETOOL',
   // Storage
   AWS_S3 = 'AWS_S3',
+  CLOUDINARY = 'CLOUDINARY',
   // Monitoring
   DATADOG = 'DATADOG',
   SENTRY = 'SENTRY',
@@ -46,6 +48,9 @@ export enum IntegrationCategory {
   OAUTH = 'OAUTH',
   EMAIL_TRANSACTIONAL = 'EMAIL_TRANSACTIONAL',
   SMS = 'SMS',
+  AI_ML = 'AI_ML',
+  STORAGE = 'STORAGE',
+  IMAGE_PROCESSING = 'IMAGE_PROCESSING',
 }
 
 export enum IntegrationStatus {

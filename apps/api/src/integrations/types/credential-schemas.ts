@@ -85,6 +85,55 @@ export const PAYPAL_REST_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// AWS Bedrock Credential Schema
+export const AWS_BEDROCK_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region where Bedrock is available (e.g., us-east-1, us-west-2). Ensure Bedrock is enabled in this region.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with Bedrock permissions. Create in AWS Console → IAM → Users → Security Credentials.' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created. Store securely.' },
+    modelId: { type: 'string', title: 'Default Model ID', default: 'anthropic.claude-3-sonnet-20240229-v1:0', description: 'Claude model to use for content generation. Available models depend on your AWS region and account access.' },
+  },
+};
+
+// AWS S3 Credential Schema
+export const AWS_S3_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'bucket', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region for the S3 bucket. Should match your bucket location for optimal performance.' },
+    bucket: { type: 'string', title: 'Bucket Name', description: 'S3 bucket name for storing files. Bucket must exist and be accessible with the provided credentials.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with S3 permissions (s3:PutObject, s3:GetObject, s3:DeleteObject, s3:ListBucket).' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created.' },
+    cloudfrontDomain: { type: 'string', title: 'CloudFront Domain (Optional)', description: 'CloudFront distribution domain for CDN delivery (e.g., d1234567890.cloudfront.net). Improves image load times.' },
+    keyPrefix: { type: 'string', title: 'Key Prefix (Optional)', default: 'products/', description: 'Prefix for all uploaded files (e.g., "uploads/", "products/"). Helps organize files in the bucket.' },
+  },
+};
+
+// LanguageTool Credential Schema
+export const LANGUAGETOOL_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: [],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key (Premium)', format: 'password', description: 'API key for premium features (optional for free tier). Get from LanguageTool.org → Premium → API Access.' },
+    username: { type: 'string', title: 'Username (Premium)', description: 'Username for premium API access. Required for premium tier.' },
+    baseUrl: { type: 'string', title: 'API Base URL', default: 'https://api.languagetool.org/v2', description: 'API endpoint URL. Use default for cloud API, or your self-hosted instance URL.' },
+  },
+};
+
+// Cloudinary Credential Schema
+export const CLOUDINARY_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['cloudName', 'apiKey', 'apiSecret'],
+  properties: {
+    cloudName: { type: 'string', title: 'Cloud Name', description: 'Your Cloudinary cloud name. Found in Cloudinary Dashboard → Account Details → Cloud name.' },
+    apiKey: { type: 'string', title: 'API Key', description: 'Cloudinary API key. Found in Cloudinary Dashboard → Account Details → API Key.' },
+    apiSecret: { type: 'string', title: 'API Secret', format: 'password', description: 'Cloudinary API secret. Found in Cloudinary Dashboard → Account Details → API Secret. Keep confidential.' },
+    uploadPreset: { type: 'string', title: 'Upload Preset (Optional)', description: 'Default upload preset for transformations. Create in Settings → Upload → Upload presets.' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -104,6 +153,12 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   [IntegrationProvider.AUTH0]: AUTH0_CREDENTIAL_SCHEMA,
   [IntegrationProvider.AWS_SES]: AWS_SES_CREDENTIAL_SCHEMA,
   [IntegrationProvider.TWILIO]: TWILIO_CREDENTIAL_SCHEMA,
+  // AI/ML providers
+  [IntegrationProvider.AWS_BEDROCK]: AWS_BEDROCK_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.LANGUAGETOOL]: LANGUAGETOOL_CREDENTIAL_SCHEMA,
+  // Storage providers
+  [IntegrationProvider.AWS_S3]: AWS_S3_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.CLOUDINARY]: CLOUDINARY_CREDENTIAL_SCHEMA,
   // OAuth providers use OAUTH_APP_CREDENTIAL_SCHEMA for app configuration
   [IntegrationProvider.GOOGLE]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.MICROSOFT]: OAUTH_APP_CREDENTIAL_SCHEMA,
