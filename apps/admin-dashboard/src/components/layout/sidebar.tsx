@@ -2,56 +2,36 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Receipt,
-  CreditCard,
-  Users,
-  GitBranch,
-  Wallet,
-  Building2,
-  Settings,
+  Zap,
   ChevronDown,
   Check,
   Plus,
-  Zap,
   Building,
-  BarChart3,
-  Server,
+  Building2,
   LogOut,
   User,
-  Plug,
-  Landmark,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { useHierarchy } from '@/contexts/hierarchy-context';
-import { getNavigationItems } from '@/lib/permissions';
-
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard,
-  Receipt,
-  CreditCard,
-  Users,
-  GitBranch,
-  Wallet,
-  Building2,
-  Settings,
-  Building,
-  BarChart3,
-  Server,
-  Plug,
-  Landmark,
-};
+import { NavSection } from './nav-section';
+import { useSidebarState } from '@/hooks/use-sidebar-state';
+import {
+  getNavigationSections,
+  NavBadges,
+  ScopeType,
+  UserRole,
+} from '@/lib/navigation';
 
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  badges?: NavBadges;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
-  const pathname = usePathname();
+export function Sidebar({ isOpen, onClose, badges }: SidebarProps) {
   const { user, logout } = useAuth();
   const {
     accessLevel,
@@ -66,51 +46,59 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
   const [showClientSwitcher, setShowClientSwitcher] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
-  // Load expanded state from localStorage on mount
+  const { expandedSections, toggleSection, isInitialized } = useSidebarState();
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    const saved = localStorage.getItem('sidebar-expanded-menus');
-    if (saved) {
-      try {
-        setExpandedMenus(JSON.parse(saved));
-      } catch (e) {
-        // Ignore parse errors
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-switcher]')) {
+        setShowClientSwitcher(false);
+        setShowCompanySwitcher(false);
       }
-    }
+      if (!target.closest('[data-user-menu]')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
-
-  const toggleMenu = (menuId: string) => {
-    setExpandedMenus(prev => {
-      const next = { ...prev, [menuId]: !prev[menuId] };
-      localStorage.setItem('sidebar-expanded-menus', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const isChildActive = (children: typeof navItems | undefined) => {
-    if (!children) return false;
-    return children.some(child =>
-      pathname === child.href || pathname?.startsWith(child.href + '/')
-    );
-  };
 
   if (!user) return null;
 
-  const navItems = getNavigationItems(user);
+  // Map access level to scope type
+  const scopeType: ScopeType = (accessLevel as ScopeType) || 'COMPANY';
+  const userRole: UserRole = (user.role as UserRole) || 'USER';
+
+  // Get filtered navigation sections based on user scope and role
+  const navSections = getNavigationSections(scopeType, userRole);
+
   const isOrgLevel = accessLevel === 'ORGANIZATION';
   const isClientLevel = accessLevel === 'CLIENT';
 
-  const selectedClient = availableClients.find(c => c.id === selectedClientId);
-  const selectedCompany = availableCompanies.find(c => c.id === selectedCompanyId);
+  const selectedClient = availableClients.find((c) => c.id === selectedClientId);
+  const selectedCompany = availableCompanies.find((c) => c.id === selectedCompanyId);
 
   // Filter companies based on selected client (for org level)
-  const companiesForDisplay = isOrgLevel && selectedClientId
-    ? availableCompanies.filter(c => c.clientId === selectedClientId)
-    : availableCompanies;
+  const companiesForDisplay =
+    isOrgLevel && selectedClientId
+      ? availableCompanies.filter((c) => c.clientId === selectedClientId)
+      : availableCompanies;
 
   return (
-    <aside className="w-64 bg-zinc-900/50 border-r border-zinc-800 flex flex-col h-screen">
+    <aside
+      className={cn(
+        'w-64 bg-zinc-900/50 border-r border-zinc-800 flex flex-col h-screen',
+        // Mobile: slide in/out
+        'fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out',
+        'md:relative md:translate-x-0',
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      )}
+      role="navigation"
+      aria-label="Main navigation"
+    >
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b border-zinc-800">
         <Link href="/" className="flex items-center gap-2">
@@ -125,11 +113,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
 
       {/* Client Switcher - Organization Level Only */}
       {isOrgLevel && (
-        <div className="p-3 border-b border-zinc-800">
+        <div className="p-3 border-b border-zinc-800" data-switcher>
           <div className="relative">
             <button
-              onClick={() => setShowClientSwitcher(!showClientSwitcher)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowClientSwitcher(!showClientSwitcher);
+              }}
               className="w-full flex items-center gap-2 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+              aria-expanded={showClientSwitcher}
+              aria-haspopup="listbox"
             >
               <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">
                 {selectedClient?.name.charAt(0) || 'A'}
@@ -139,17 +132,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
                   {selectedClient?.name || 'All Clients'}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {selectedClient ? `${selectedClient._count?.companies || 0} companies` : 'Platform view'}
+                  {selectedClient
+                    ? `${selectedClient._count?.companies || 0} companies`
+                    : 'Platform view'}
                 </p>
               </div>
-              <ChevronDown className={cn(
-                "w-4 h-4 text-zinc-500 transition-transform",
-                showClientSwitcher && "rotate-180"
-              )} />
+              <ChevronDown
+                className={cn(
+                  'w-4 h-4 text-zinc-500 transition-transform',
+                  showClientSwitcher && 'rotate-180'
+                )}
+              />
             </button>
 
             {showClientSwitcher && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden z-50 shadow-xl">
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden z-50 shadow-xl"
+                role="listbox"
+              >
                 <button
                   onClick={() => {
                     setSelectedClientId(null);
@@ -157,16 +157,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
                     setShowClientSwitcher(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700",
-                    !selectedClientId && "bg-zinc-700"
+                    'w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700',
+                    !selectedClientId && 'bg-zinc-700'
                   )}
+                  role="option"
+                  aria-selected={!selectedClientId}
                 >
                   <Building className="w-4 h-4 text-zinc-400" />
                   <span className="text-zinc-300">All Clients</span>
                   {!selectedClientId && <Check className="w-4 h-4 text-cyan-400 ml-auto" />}
                 </button>
                 <div className="border-t border-zinc-700" />
-                {availableClients.map(client => (
+                {availableClients.map((client) => (
                   <button
                     key={client.id}
                     onClick={() => {
@@ -175,15 +177,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
                       setShowClientSwitcher(false);
                     }}
                     className={cn(
-                      "w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700",
-                      selectedClientId === client.id && "bg-zinc-700"
+                      'w-full flex items-center gap-2 p-2 text-sm hover:bg-zinc-700',
+                      selectedClientId === client.id && 'bg-zinc-700'
                     )}
+                    role="option"
+                    aria-selected={selectedClientId === client.id}
                   >
                     <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded flex items-center justify-center text-xs font-bold text-white">
                       {client.name.charAt(0)}
                     </div>
                     <span className="text-zinc-300 flex-1 text-left">{client.name}</span>
-                    {selectedClientId === client.id && <Check className="w-4 h-4 text-cyan-400" />}
+                    {selectedClientId === client.id && (
+                      <Check className="w-4 h-4 text-cyan-400" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -194,29 +200,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
 
       {/* Company Selector */}
       {(isOrgLevel || isClientLevel) && companiesForDisplay.length > 0 && (
-        <div className="px-3 py-2 border-b border-zinc-800">
+        <div className="px-3 py-2 border-b border-zinc-800" data-switcher>
           <p className="text-xs text-zinc-600 font-medium mb-2 px-2 uppercase tracking-wider">
             Companies
           </p>
           <button
             onClick={() => setSelectedCompanyId(null)}
             className={cn(
-              "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors",
-              !selectedCompanyId ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+              'w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors',
+              !selectedCompanyId
+                ? 'bg-zinc-800 text-white'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
             )}
           >
             <Building2 className="w-4 h-4" />
             All Companies
           </button>
-          {companiesForDisplay.slice(0, 5).map(company => (
+          {companiesForDisplay.slice(0, 5).map((company) => (
             <button
               key={company.id}
               onClick={() => setSelectedCompanyId(company.id)}
               className={cn(
-                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors",
+                'w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors',
                 selectedCompanyId === company.id
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               )}
             >
               <div className="w-4 h-4 rounded bg-zinc-700 flex items-center justify-center text-[10px] font-medium">
@@ -234,104 +242,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item, index) => {
-          if (item.id === 'divider') {
-            return <div key={`divider-${index}`} className="my-4 border-t border-zinc-800" />;
-          }
-
-          const Icon = iconMap[item.icon] || LayoutDashboard;
-          const hasChildren = item.children && item.children.length > 0;
-          const isExpanded = expandedMenus[item.id] || isChildActive(item.children);
-          const isActive = pathname === item.href ||
-            (item.href !== '/' && pathname?.startsWith(item.href));
-          const isParentActive = hasChildren && isChildActive(item.children);
-
-          // Item with children (expandable)
-          if (hasChildren) {
-            return (
-              <div key={item.id} className="space-y-1">
-                <button
-                  onClick={() => toggleMenu(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                    isParentActive
-                      ? "bg-zinc-800/50 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform duration-200",
-                      isExpanded ? "rotate-180" : ""
-                    )}
-                  />
-                </button>
-
-                <div
-                  className={cn(
-                    "overflow-hidden transition-all duration-200",
-                    isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                  )}
-                >
-                  <div className="ml-4 pl-3 border-l border-zinc-800 space-y-1 py-1">
-                    {item.children!.map((child) => {
-                      const ChildIcon = iconMap[child.icon] || Settings;
-                      const isChildItemActive = pathname === child.href ||
-                        pathname?.startsWith(child.href + '/');
-
-                      return (
-                        <Link
-                          key={child.id}
-                          href={child.href}
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
-                            isChildItemActive
-                              ? "bg-zinc-800 text-white"
-                              : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                          )}
-                        >
-                          <ChildIcon className="w-4 h-4" />
-                          <span>{child.label}</span>
-                          {child.badge && (
-                            <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">
-                              {child.badge}
-                            </span>
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Regular item (no children)
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                isActive
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      {/* Navigation Sections */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto" aria-label="Sidebar navigation">
+        {isInitialized &&
+          navSections.map((section) => (
+            <NavSection
+              key={section.id}
+              section={section}
+              isExpanded={expandedSections[section.id] ?? section.defaultExpanded}
+              onToggle={() => toggleSection(section.id)}
+              badges={badges}
+            />
+          ))}
       </nav>
 
       {/* Value Metric - NCI: Continuous value reminder */}
@@ -342,11 +264,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
       </div>
 
       {/* User Menu */}
-      <div className="p-3 border-t border-zinc-800">
+      <div className="p-3 border-t border-zinc-800" data-user-menu>
         <div className="relative">
           <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowUserMenu(!showUserMenu);
+            }}
             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            aria-expanded={showUserMenu}
+            aria-haspopup="menu"
           >
             <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-sm font-bold text-white">
               {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
@@ -359,26 +286,33 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
                 {user.role.toLowerCase().replace('_', ' ')}
               </p>
             </div>
-            <ChevronDown className={cn(
-              "w-4 h-4 text-zinc-500 transition-transform",
-              showUserMenu && "rotate-180"
-            )} />
+            <ChevronDown
+              className={cn(
+                'w-4 h-4 text-zinc-500 transition-transform',
+                showUserMenu && 'rotate-180'
+              )}
+            />
           </button>
 
           {showUserMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden z-50 shadow-xl">
+            <div
+              className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden z-50 shadow-xl"
+              role="menu"
+            >
               <Link
                 href="/settings/profile"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
                 onClick={() => setShowUserMenu(false)}
+                role="menuitem"
               >
                 <User className="w-4 h-4" />
                 Profile
               </Link>
               <Link
-                href="/settings"
+                href="/settings/general"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
                 onClick={() => setShowUserMenu(false)}
+                role="menuitem"
               >
                 <Settings className="w-4 h-4" />
                 Settings
@@ -390,6 +324,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
                   logout();
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-zinc-700"
+                role="menuitem"
               >
                 <LogOut className="w-4 h-4" />
                 Sign out
@@ -398,6 +333,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps = {}) {
           )}
         </div>
       </div>
+
+      {/* Mobile overlay backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[-1] md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
     </aside>
   );
 }

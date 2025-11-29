@@ -1,20 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search,
-  LayoutDashboard,
-  Receipt,
-  Users,
-  CreditCard,
-  Settings,
-  Building2,
-  GitBranch,
-  Plus,
   ArrowRight,
+  Command,
+  CornerDownLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAllNavItems } from '@/lib/navigation';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -24,158 +19,254 @@ interface CommandPaletteProps {
 interface CommandItem {
   id: string;
   label: string;
+  section: string;
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
-  action: () => void;
-  category: string;
 }
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const commands: CommandItem[] = [
-    // Navigation
-    { id: 'dashboard', label: 'Go to Dashboard', icon: LayoutDashboard, action: () => router.push('/'), category: 'Navigation' },
-    { id: 'transactions', label: 'Go to Transactions', icon: Receipt, action: () => router.push('/transactions'), category: 'Navigation' },
-    { id: 'customers', label: 'Go to Customers', icon: Users, action: () => router.push('/customers'), category: 'Navigation' },
-    { id: 'payments', label: 'Go to Payment Methods', icon: CreditCard, action: () => router.push('/payments'), category: 'Navigation' },
-    { id: 'routing', label: 'Go to Routing Rules', icon: GitBranch, action: () => router.push('/routing'), category: 'Navigation' },
-    { id: 'settings', label: 'Go to Settings', icon: Settings, action: () => router.push('/settings'), category: 'Navigation' },
-    // Actions
-    { id: 'new-transaction', label: 'Create Transaction', icon: Plus, action: () => router.push('/transactions/new'), category: 'Actions' },
-    { id: 'new-customer', label: 'Add Customer', icon: Plus, action: () => router.push('/customers/new'), category: 'Actions' },
-    { id: 'new-company', label: 'Add Company', icon: Building2, action: () => router.push('/companies/new'), category: 'Actions' },
-  ];
+  // Get all navigation items from centralized config
+  const allItems = useMemo((): CommandItem[] => {
+    return getAllNavItems().map((item) => ({
+      id: item.id,
+      label: item.label,
+      section: item.section,
+      href: item.href,
+      icon: item.icon,
+    }));
+  }, []);
 
-  const filteredCommands = query
-    ? commands.filter(cmd =>
-        cmd.label.toLowerCase().includes(query.toLowerCase())
-      )
-    : commands;
+  // Filter items based on query
+  const filteredItems = useMemo(() => {
+    if (!query.trim()) return allItems;
 
-  const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-    if (!acc[cmd.category]) acc[cmd.category] = [];
-    acc[cmd.category].push(cmd);
-    return acc;
-  }, {} as Record<string, CommandItem[]>);
+    const searchTerms = query.toLowerCase().split(/\s+/);
+    return allItems.filter((item) => {
+      const searchableText = `${item.label} ${item.section}`.toLowerCase();
+      return searchTerms.every((term) => searchableText.includes(term));
+    });
+  }, [query, allItems]);
 
-  // Keyboard shortcuts
+  // Group items by section
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, CommandItem[]> = {};
+    filteredItems.forEach((item) => {
+      if (!groups[item.section]) {
+        groups[item.section] = [];
+      }
+      groups[item.section].push(item);
+    });
+    return groups;
+  }, [filteredItems]);
+
+  // Flatten for keyboard navigation
+  const flatItems = useMemo(() => {
+    return Object.values(groupedItems).flat();
+  }, [groupedItems]);
+
+  // Reset state when opening
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    if (open) {
+      setQuery('');
+      setSelectedIndex(0);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setSelectedIndex((prev) => Math.min(prev + 1, flatItems.length - 1));
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (flatItems[selectedIndex]) {
+            router.push(flatItems[selectedIndex].href);
+            onOpenChange(false);
+            setQuery('');
+          }
+          break;
+        case 'Escape':
+          event.preventDefault();
+          onOpenChange(false);
+          setQuery('');
+          break;
+      }
+    },
+    [flatItems, selectedIndex, router, onOpenChange]
+  );
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (listRef.current && selectedIndex >= 0) {
+      const selectedElement = listRef.current.querySelector(
+        `[data-index="${selectedIndex}"]`
+      );
+      selectedElement?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex]);
+
+  // Global keyboard shortcut
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Open with Cmd+K
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         onOpenChange(!open);
       }
 
-      if (!open) return;
-
       // Close with Escape
-      if (e.key === 'Escape') {
-        onOpenChange(false);
-        setQuery('');
-      }
-
-      // Navigate with arrows
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, filteredCommands.length - 1));
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-      }
-
-      // Select with Enter
-      if (e.key === 'Enter' && filteredCommands[selectedIndex]) {
-        filteredCommands[selectedIndex].action();
+      if (e.key === 'Escape' && open) {
         onOpenChange(false);
         setQuery('');
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange, filteredCommands, selectedIndex]);
-
-  // Reset selection when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [open, onOpenChange]);
 
   if (!open) return null;
 
+  let itemIndex = -1;
+
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-24"
-      onClick={() => {
-        onOpenChange(false);
-        setQuery('');
-      }}
-    >
+    <>
+      {/* Backdrop */}
       <div
-        className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg mx-4 shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        onClick={() => {
+          onOpenChange(false);
+          setQuery('');
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Command Palette Dialog */}
+      <div
+        className="fixed inset-x-4 top-[20%] mx-auto max-w-xl z-50 md:inset-x-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
       >
-        {/* Search Input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
-          <Search className="w-5 h-5 text-zinc-500" />
-          <input
-            type="text"
-            placeholder="Search commands..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-white placeholder-zinc-500"
-            autoFocus
-          />
-          <kbd className="px-2 py-1 bg-zinc-800 rounded text-xs text-zinc-500">ESC</kbd>
-        </div>
+        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
+          {/* Search Input */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
+            <Search className="w-5 h-5 text-zinc-500" aria-hidden="true" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedIndex(0);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Search pages..."
+              className="flex-1 bg-transparent text-white placeholder-zinc-500 outline-none text-sm"
+              aria-label="Search navigation"
+              autoComplete="off"
+            />
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800 rounded text-xs text-zinc-400">
+              <span>esc</span>
+            </kbd>
+          </div>
 
-        {/* Commands List */}
-        <div className="max-h-80 overflow-y-auto p-2">
-          {Object.entries(groupedCommands).map(([category, items]) => (
-            <div key={category}>
-              <p className="px-3 py-2 text-xs text-zinc-600 font-medium uppercase tracking-wider">
-                {category}
-              </p>
-              {items.map((cmd, index) => {
-                const Icon = cmd.icon;
-                const globalIndex = filteredCommands.indexOf(cmd);
-                const isSelected = globalIndex === selectedIndex;
+          {/* Results */}
+          <div
+            ref={listRef}
+            className="max-h-[60vh] overflow-y-auto py-2"
+            role="listbox"
+          >
+            {flatItems.length === 0 ? (
+              <div className="px-4 py-8 text-center text-zinc-500">
+                <p className="text-sm">No results found</p>
+                <p className="text-xs mt-1">Try a different search term</p>
+              </div>
+            ) : (
+              Object.entries(groupedItems).map(([section, items]) => (
+                <div key={section}>
+                  <div className="px-4 py-2">
+                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                      {section}
+                    </span>
+                  </div>
+                  {items.map((item) => {
+                    itemIndex++;
+                    const currentIndex = itemIndex;
+                    const Icon = item.icon;
+                    const isSelected = selectedIndex === currentIndex;
 
-                return (
-                  <button
-                    key={cmd.id}
-                    onClick={() => {
-                      cmd.action();
-                      onOpenChange(false);
-                      setQuery('');
-                    }}
-                    onMouseEnter={() => setSelectedIndex(globalIndex)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                      isSelected
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-300 hover:bg-zinc-800/50"
-                    )}
-                  >
-                    <Icon className="w-4 h-4 text-zinc-400" />
-                    <span className="flex-1 text-left">{cmd.label}</span>
-                    {isSelected && <ArrowRight className="w-4 h-4 text-zinc-500" />}
-                  </button>
-                );
-              })}
+                    return (
+                      <button
+                        key={item.id}
+                        data-index={currentIndex}
+                        onClick={() => {
+                          router.push(item.href);
+                          onOpenChange(false);
+                          setQuery('');
+                        }}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
+                          isSelected
+                            ? 'bg-zinc-800 text-white'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                        )}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                        <span className="flex-1 text-sm">{item.label}</span>
+                        {isSelected && (
+                          <ArrowRight className="w-4 h-4 text-zinc-500" aria-hidden="true" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Footer with keyboard hints */}
+          <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-800 text-xs text-zinc-500">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">↑</kbd>
+                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">↓</kbd>
+                <span className="ml-1">to navigate</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded flex items-center">
+                  <CornerDownLeft className="w-3 h-3" />
+                </kbd>
+                <span className="ml-1">to select</span>
+              </span>
             </div>
-          ))}
-
-          {filteredCommands.length === 0 && (
-            <div className="px-3 py-8 text-center text-zinc-500">
-              No commands found for "{query}"
-            </div>
-          )}
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded flex items-center">
+                <Command className="w-3 h-3" />
+              </kbd>
+              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">K</kbd>
+              <span className="ml-1">to open</span>
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -376,4 +376,80 @@ export class DashboardService {
       },
     };
   }
+
+  /**
+   * Get badge counts for sidebar navigation
+   * Returns counts for actionable items
+   */
+  async getBadgeCounts(
+    user: UserContext,
+    filters?: { companyId?: string; clientId?: string },
+  ): Promise<{
+    orders: number;
+    fulfillment: number;
+    lowStock: number;
+  }> {
+    // Get accessible company IDs
+    let companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    // Apply additional filters
+    if (filters?.companyId && companyIds.includes(filters.companyId)) {
+      companyIds = [filters.companyId];
+    } else if (filters?.clientId && user.scopeType === 'ORGANIZATION') {
+      const clientCompanies = await this.prisma.company.findMany({
+        where: { clientId: filters.clientId, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      companyIds = clientCompanies
+        .map((c) => c.id)
+        .filter((id) => companyIds.includes(id));
+    }
+
+    // Handle empty company IDs
+    if (companyIds.length === 0) {
+      return { orders: 0, fulfillment: 0, lowStock: 0 };
+    }
+
+    // Count pending orders (orders that need action)
+    const pendingOrders = await this.prisma.order.count({
+      where: {
+        companyId: { in: companyIds },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        fulfillmentStatus: { in: ['UNFULFILLED', 'PARTIALLY_FULFILLED'] },
+      },
+    });
+
+    // Count shipments that need action (pending shipments)
+    const pendingShipments = await this.prisma.shipment.count({
+      where: {
+        order: {
+          companyId: { in: companyIds },
+        },
+        status: { in: ['PENDING', 'LABEL_CREATED'] },
+      },
+    });
+
+    // Count low stock products
+    const lowStockProducts = await this.prisma.product.count({
+      where: {
+        companyId: { in: companyIds },
+        status: 'ACTIVE',
+        trackInventory: true,
+        // Using raw comparison for low stock
+        AND: [
+          {
+            stockQuantity: {
+              lte: 10, // Default threshold, or we could use a subquery
+            },
+          },
+        ],
+      },
+    });
+
+    return {
+      orders: pendingOrders,
+      fulfillment: pendingShipments,
+      lowStock: lowStockProducts,
+    };
+  }
 }

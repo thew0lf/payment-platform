@@ -49,4 +49,13 @@ export class DashboardController {
       { companyId, clientId },
     );
   }
+
+  @Get('badges')
+  async getBadgeCounts(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.dashboardService.getBadgeCounts(req.user, { companyId, clientId });
+  }
 }
