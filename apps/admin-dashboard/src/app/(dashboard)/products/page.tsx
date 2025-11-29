@@ -15,8 +15,10 @@ import {
   Edit,
   MoreHorizontal,
   X,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   productsApi,
   Product,
@@ -364,6 +366,7 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function ProductsPage() {
+  const { accessLevel, selectedCompanyId } = useHierarchy();
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -383,7 +386,17 @@ export default function ProductsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Check if user needs to select a company
+  const needsCompanySelection = (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
+
   const fetchProducts = useCallback(async () => {
+    if (needsCompanySelection) {
+      setProducts([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -391,6 +404,7 @@ export default function ProductsPage() {
       const params: ProductQueryParams = {
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
+        companyId: selectedCompanyId || undefined,
       };
 
       if (search) params.search = search;
@@ -406,7 +420,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, categoryFilter, statusFilter]);
+  }, [page, search, categoryFilter, statusFilter, selectedCompanyId, needsCompanySelection]);
 
   useEffect(() => {
     fetchProducts();
@@ -425,7 +439,7 @@ export default function ProductsPage() {
 
   const handleSaveProduct = async (data: CreateProductInput | UpdateProductInput) => {
     if (editingProduct) {
-      await productsApi.update(editingProduct.id, data);
+      await productsApi.update(editingProduct.id, data, selectedCompanyId || undefined);
     } else {
       await productsApi.create(data as CreateProductInput);
     }
@@ -459,7 +473,8 @@ export default function ProductsPage() {
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+          disabled={needsCompanySelection}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Product
@@ -553,15 +568,28 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {/* Company Selection Required */}
+      {needsCompanySelection && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-zinc-500" />
+          </div>
+          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
+          <p className="text-sm text-zinc-500 max-w-md">
+            Choose a company from the sidebar to view and manage products.
+          </p>
+        </div>
+      )}
+
       {/* Loading State */}
-      {loading && products.length === 0 && (
+      {!needsCompanySelection && loading && products.length === 0 && (
         <div className="flex items-center justify-center py-20">
           <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
-      {!loading && products.length === 0 && (
+      {!needsCompanySelection && !loading && products.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Package className="w-12 h-12 text-zinc-600 mb-4" />
           <h3 className="text-lg font-medium text-white mb-2">No products found</h3>

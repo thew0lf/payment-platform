@@ -244,23 +244,27 @@ export const productsApi = {
   },
 
   // Update product
-  update: async (id: string, data: UpdateProductInput): Promise<Product> => {
-    return apiRequest.patch<Product>(`/api/products/${id}`, data);
+  update: async (id: string, data: UpdateProductInput, companyId?: string): Promise<Product> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.patch<Product>(`/api/products/${id}${params}`, data);
   },
 
   // Update stock
-  updateStock: async (id: string, quantity: number): Promise<Product> => {
-    return apiRequest.patch<Product>(`/api/products/${id}/stock`, { quantity });
+  updateStock: async (id: string, quantity: number, companyId?: string): Promise<Product> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.patch<Product>(`/api/products/${id}/stock${params}`, { quantity });
   },
 
   // Adjust stock
-  adjustStock: async (id: string, adjustment: number, reason?: string): Promise<Product> => {
-    return apiRequest.post<Product>(`/api/products/${id}/stock/adjust`, { adjustment, reason });
+  adjustStock: async (id: string, adjustment: number, reason?: string, companyId?: string): Promise<Product> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.post<Product>(`/api/products/${id}/stock/adjust${params}`, { adjustment, reason });
   },
 
   // Delete (archive) product
-  delete: async (id: string): Promise<void> => {
-    return apiRequest.delete(`/api/products/${id}`);
+  delete: async (id: string, companyId?: string): Promise<void> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.delete(`/api/products/${id}${params}`);
   },
 };
 

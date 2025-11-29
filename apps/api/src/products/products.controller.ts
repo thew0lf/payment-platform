@@ -81,10 +81,14 @@ export class ProductsController {
   @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
   async update(
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId: string,
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Product> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      throw new ForbiddenException('Company context required for this operation');
+    }
     return this.productsService.update(id, companyId, dto, user.id);
   }
 
@@ -93,9 +97,13 @@ export class ProductsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      throw new ForbiddenException('Company context required for this operation');
+    }
     return this.productsService.archive(id, companyId, user.id);
   }
 
@@ -107,10 +115,14 @@ export class ProductsController {
   @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
   async updateStock(
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId: string,
     @Body() dto: UpdateStockDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Product> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      throw new ForbiddenException('Company context required for this operation');
+    }
     return this.productsService.updateStock(id, companyId, dto.quantity, user.id);
   }
 
@@ -119,10 +131,14 @@ export class ProductsController {
   @HttpCode(HttpStatus.OK)
   async adjustStock(
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId: string,
     @Body() dto: AdjustStockDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Product> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      throw new ForbiddenException('Company context required for this operation');
+    }
     return this.productsService.adjustStock(id, companyId, dto.adjustment, user.id, dto.reason);
   }
 
