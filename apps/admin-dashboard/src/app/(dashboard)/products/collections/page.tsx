@@ -16,8 +16,10 @@ import {
   FileStack,
   Eye,
   EyeOff,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   collectionsApi,
   Collection,
@@ -416,6 +418,7 @@ function DeleteModal({ collection, onClose, onConfirm }: DeleteModalProps) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function CollectionsPage() {
+  const { accessLevel, selectedCompanyId, selectedCompany } = useHierarchy();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -426,12 +429,21 @@ export default function CollectionsPage() {
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
   const [deletingCollection, setDeletingCollection] = useState<Collection | null>(null);
 
+  // Check if user needs to select a company
+  const needsCompanySelection = (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
+
   const fetchCollections = useCallback(async () => {
+    if (needsCompanySelection) {
+      setCollections([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const data = await collectionsApi.list(true); // Include inactive
+      const data = await collectionsApi.list(true, selectedCompanyId || undefined);
       setCollections(data);
     } catch (err) {
       console.error('Failed to fetch collections:', err);
@@ -439,7 +451,7 @@ export default function CollectionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedCompanyId, needsCompanySelection]);
 
   useEffect(() => {
     fetchCollections();
@@ -513,7 +525,9 @@ export default function CollectionsPage() {
           </button>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            disabled={needsCompanySelection}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={needsCompanySelection ? 'Select a company first' : undefined}
           >
             <Plus className="w-4 h-4" />
             Add Collection
@@ -545,14 +559,27 @@ export default function CollectionsPage() {
       )}
 
       {/* Loading State */}
-      {loading && collections.length === 0 && (
+      {loading && collections.length === 0 && !needsCompanySelection && (
         <div className="flex items-center justify-center py-20">
           <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
         </div>
       )}
 
+      {/* Company Selection Required */}
+      {needsCompanySelection && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-zinc-500" />
+          </div>
+          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
+          <p className="text-sm text-zinc-500 max-w-md">
+            Choose a company from the sidebar to view and manage collections.
+          </p>
+        </div>
+      )}
+
       {/* Empty State */}
-      {!loading && collections.length === 0 && (
+      {!loading && !needsCompanySelection && collections.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-12 h-12 text-zinc-600 mb-4" />
           <h3 className="text-lg font-medium text-white mb-2">No collections yet</h3>

@@ -268,13 +268,17 @@ export const productsApi = {
 
 export const categoriesApi = {
   // List all categories
-  list: async (includeInactive = false): Promise<Category[]> => {
-    return apiRequest.get<Category[]>(`/api/products/categories?includeInactive=${includeInactive}`);
+  list: async (includeInactive = false, companyId?: string): Promise<Category[]> => {
+    const params = new URLSearchParams();
+    params.set('includeInactive', String(includeInactive));
+    if (companyId) params.set('companyId', companyId);
+    return apiRequest.get<Category[]>(`/api/products/categories?${params}`);
   },
 
   // Get category tree
-  getTree: async (): Promise<CategoryTreeNode[]> => {
-    return apiRequest.get<CategoryTreeNode[]>('/api/products/categories/tree');
+  getTree: async (companyId?: string): Promise<CategoryTreeNode[]> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<CategoryTreeNode[]>(`/api/products/categories/tree${params}`);
   },
 
   // Get category by ID
@@ -304,8 +308,9 @@ export const categoriesApi = {
 
 export const tagsApi = {
   // List all tags
-  list: async (): Promise<Tag[]> => {
-    return apiRequest.get<Tag[]>('/api/products/tags');
+  list: async (companyId?: string): Promise<Tag[]> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<Tag[]>(`/api/products/tags${params}`);
   },
 
   // Get tag by ID
@@ -335,8 +340,11 @@ export const tagsApi = {
 
 export const collectionsApi = {
   // List all collections
-  list: async (includeInactive = false): Promise<Collection[]> => {
-    return apiRequest.get<Collection[]>(`/api/products/collections?includeInactive=${includeInactive}`);
+  list: async (includeInactive = false, companyId?: string): Promise<Collection[]> => {
+    const params = new URLSearchParams();
+    params.set('includeInactive', String(includeInactive));
+    if (companyId) params.set('companyId', companyId);
+    return apiRequest.get<Collection[]>(`/api/products/collections?${params}`);
   },
 
   // Get featured collections

@@ -15,8 +15,10 @@ import {
   X,
   AlertTriangle,
   ArrowLeft,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   categoriesApi,
   Category,
@@ -376,6 +378,7 @@ function TreeItem({ node, expandedIds, onToggle, onEdit, onDelete }: TreeItemPro
 // ═══════════════════════════════════════════════════════════════
 
 export default function CategoriesPage() {
+  const { accessLevel, selectedCompanyId } = useHierarchy();
   const [tree, setTree] = useState<CategoryTreeNode[]>([]);
   const [flatCategories, setFlatCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -389,14 +392,24 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
+  // Check if user needs to select a company
+  const needsCompanySelection = (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
+
   const fetchCategories = useCallback(async () => {
+    if (needsCompanySelection) {
+      setTree([]);
+      setFlatCategories([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const [treeData, listData] = await Promise.all([
-        categoriesApi.getTree(),
-        categoriesApi.list(true), // Include inactive
+        categoriesApi.getTree(selectedCompanyId || undefined),
+        categoriesApi.list(true, selectedCompanyId || undefined),
       ]);
       setTree(treeData);
       setFlatCategories(listData);
@@ -406,7 +419,7 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedCompanyId, needsCompanySelection]);
 
   useEffect(() => {
     fetchCategories();
@@ -500,7 +513,9 @@ export default function CategoriesPage() {
           </button>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            disabled={needsCompanySelection}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={needsCompanySelection ? 'Select a company first' : undefined}
           >
             <Plus className="w-4 h-4" />
             Add Category
@@ -516,14 +531,27 @@ export default function CategoriesPage() {
       )}
 
       {/* Loading State */}
-      {loading && tree.length === 0 && (
+      {loading && tree.length === 0 && !needsCompanySelection && (
         <div className="flex items-center justify-center py-20">
           <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
         </div>
       )}
 
+      {/* Company Selection Required */}
+      {needsCompanySelection && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-zinc-500" />
+          </div>
+          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
+          <p className="text-sm text-zinc-500 max-w-md">
+            Choose a company from the sidebar to view and manage categories.
+          </p>
+        </div>
+      )}
+
       {/* Empty State */}
-      {!loading && tree.length === 0 && (
+      {!loading && !needsCompanySelection && tree.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <FolderTree className="w-12 h-12 text-zinc-600 mb-4" />
           <h3 className="text-lg font-medium text-white mb-2">No categories yet</h3>
