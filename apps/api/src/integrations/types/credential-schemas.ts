@@ -134,6 +134,16 @@ export const CLOUDINARY_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// Runway Credential Schema
+export const RUNWAY_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'Runway API key from your account settings. Found in Runway Dashboard → Settings → API Keys.' },
+    apiVersion: { type: 'string', title: 'API Version', default: '2024-09-13', description: 'Runway API version to use. Use latest version unless you need compatibility with older features.' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -158,7 +168,10 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   [IntegrationProvider.LANGUAGETOOL]: LANGUAGETOOL_CREDENTIAL_SCHEMA,
   // Storage providers
   [IntegrationProvider.AWS_S3]: AWS_S3_CREDENTIAL_SCHEMA,
+  // Image Processing providers
   [IntegrationProvider.CLOUDINARY]: CLOUDINARY_CREDENTIAL_SCHEMA,
+  // Video Generation providers
+  [IntegrationProvider.RUNWAY]: RUNWAY_CREDENTIAL_SCHEMA,
   // OAuth providers use OAUTH_APP_CREDENTIAL_SCHEMA for app configuration
   [IntegrationProvider.GOOGLE]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.MICROSOFT]: OAUTH_APP_CREDENTIAL_SCHEMA,

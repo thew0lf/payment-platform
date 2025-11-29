@@ -18,6 +18,7 @@ export enum IntegrationCategory {
   AI_ML = 'AI_ML',
   STORAGE = 'STORAGE',
   IMAGE_PROCESSING = 'IMAGE_PROCESSING',
+  VIDEO_GENERATION = 'VIDEO_GENERATION',
   MONITORING = 'MONITORING',
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
@@ -53,7 +54,12 @@ export enum IntegrationProvider {
 
   // Storage
   AWS_S3 = 'AWS_S3',
+
+  // Image Processing
   CLOUDINARY = 'CLOUDINARY',
+
+  // Video Generation
+  RUNWAY = 'RUNWAY',
 
   // Monitoring
   DATADOG = 'DATADOG',

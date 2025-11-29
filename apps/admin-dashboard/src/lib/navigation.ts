@@ -21,6 +21,9 @@ import {
   Wrench,
   Settings,
   Trash2,
+  FolderTree,
+  Tags,
+  Layers,
   LucideIcon,
 } from 'lucide-react';
 
@@ -84,6 +87,9 @@ export const iconMap: Record<string, LucideIcon> = {
   Wrench,
   Settings,
   Trash2,
+  FolderTree,
+  Tags,
+  Layers,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -135,6 +141,9 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'products', label: 'Products', href: '/products', icon: ShoppingBag, badgeKey: 'lowStock' },
+      { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
+      { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
+      { id: 'collections', label: 'Collections', href: '/products/collections', icon: Layers },
     ],
   },
 

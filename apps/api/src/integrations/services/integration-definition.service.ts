@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthType, IntegrationCategory, IntegrationDefinition, IntegrationProvider } from '../types/integration.types';
-import { CREDENTIAL_SCHEMAS, AWS_BEDROCK_CREDENTIAL_SCHEMA, AWS_S3_CREDENTIAL_SCHEMA, LANGUAGETOOL_CREDENTIAL_SCHEMA, CLOUDINARY_CREDENTIAL_SCHEMA } from '../types/credential-schemas';
+import { CREDENTIAL_SCHEMAS, AWS_BEDROCK_CREDENTIAL_SCHEMA, AWS_S3_CREDENTIAL_SCHEMA, LANGUAGETOOL_CREDENTIAL_SCHEMA, CLOUDINARY_CREDENTIAL_SCHEMA, RUNWAY_CREDENTIAL_SCHEMA } from '../types/credential-schemas';
 
 @Injectable()
 export class IntegrationDefinitionService implements OnModuleInit {
@@ -326,6 +326,22 @@ export class IntegrationDefinitionService implements OnModuleInit {
         authType: AuthType.API_KEY,
         credentialSchema: CLOUDINARY_CREDENTIAL_SCHEMA,
         requiredCompliance: ['soc2'],
+        status: 'active',
+      },
+      // Video Generation
+      {
+        provider: IntegrationProvider.RUNWAY,
+        category: IntegrationCategory.VIDEO_GENERATION,
+        name: 'Runway',
+        description: 'Premium AI video generation from product images. Create cinematic 4K product videos with full commercial rights.',
+        logoUrl: '/integrations/runway.svg',
+        documentationUrl: 'https://docs.runwayml.com/',
+        isOrgOnly: false,
+        isClientAllowed: true,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: RUNWAY_CREDENTIAL_SCHEMA,
+        requiredCompliance: [],
         status: 'active',
       },
     ];

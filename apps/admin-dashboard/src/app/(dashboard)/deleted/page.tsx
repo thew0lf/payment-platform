@@ -278,7 +278,7 @@ export default function DeletedItemsPage() {
                       </TableCell>
                       <TableCell>
                         {item.cascadedCount > 0 && (
-                          <Badge variant="secondary">{item.cascadedCount} items</Badge>
+                          <Badge variant="outline">{item.cascadedCount} items</Badge>
                         )}
                       </TableCell>
                       <TableCell>

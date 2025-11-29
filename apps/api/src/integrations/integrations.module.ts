@@ -15,6 +15,7 @@ import { BedrockService } from './services/providers/bedrock.service';
 import { S3StorageService } from './services/providers/s3-storage.service';
 import { LanguageToolService } from './services/providers/languagetool.service';
 import { CloudinaryService } from './services/providers/cloudinary.service';
+import { RunwayService } from './services/providers/runway.service';
 
 @Global()
 @Module({
@@ -33,6 +34,7 @@ import { CloudinaryService } from './services/providers/cloudinary.service';
     S3StorageService,
     LanguageToolService,
     CloudinaryService,
+    RunwayService,
   ],
   exports: [
     CredentialEncryptionService,
@@ -46,6 +48,7 @@ import { CloudinaryService } from './services/providers/cloudinary.service';
     S3StorageService,
     LanguageToolService,
     CloudinaryService,
+    RunwayService,
   ],
 })
 export class IntegrationsModule {}

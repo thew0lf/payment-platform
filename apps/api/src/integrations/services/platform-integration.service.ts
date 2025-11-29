@@ -8,6 +8,12 @@ import {
   CreatePlatformIntegrationDto, UpdatePlatformIntegrationDto,
   ConfigureClientSharingDto, IntegrationTestResult,
 } from '../types/integration.types';
+// Provider Services
+import { BedrockService } from './providers/bedrock.service';
+import { S3StorageService } from './providers/s3-storage.service';
+import { LanguageToolService } from './providers/languagetool.service';
+import { CloudinaryService } from './providers/cloudinary.service';
+import { RunwayService } from './providers/runway.service';
 
 @Injectable()
 export class PlatformIntegrationService {
@@ -18,6 +24,11 @@ export class PlatformIntegrationService {
     private readonly encryptionService: CredentialEncryptionService,
     private readonly definitionService: IntegrationDefinitionService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly bedrockService: BedrockService,
+    private readonly s3StorageService: S3StorageService,
+    private readonly languageToolService: LanguageToolService,
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly runwayService: RunwayService,
   ) {}
 
   async create(orgId: string, dto: CreatePlatformIntegrationDto, createdBy: string): Promise<PlatformIntegration> {
@@ -131,6 +142,20 @@ export class PlatformIntegrationService {
       case IntegrationProvider.AUTH0:
         if (!credentials.domain || !credentials.clientId || !credentials.clientSecret) return { success: false, message: 'Missing Auth0 credentials' };
         return { success: true, message: 'Auth0 credentials validated' };
+      // AI/ML Providers
+      case IntegrationProvider.AWS_BEDROCK:
+        return this.bedrockService.testConnection(credentials as any);
+      case IntegrationProvider.LANGUAGETOOL:
+        return this.languageToolService.testConnection(credentials as any);
+      // Storage Providers
+      case IntegrationProvider.AWS_S3:
+        return this.s3StorageService.testConnection(credentials as any);
+      // Image Processing Providers
+      case IntegrationProvider.CLOUDINARY:
+        return this.cloudinaryService.testConnection(credentials as any);
+      // Video Generation Providers
+      case IntegrationProvider.RUNWAY:
+        return this.runwayService.testConnection(credentials as any);
       default:
         return { success: true, message: 'Credentials validated' };
     }

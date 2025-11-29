@@ -24,6 +24,10 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.OAUTH]: 'Connected Services',
   [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
   [IntegrationCategory.SMS]: 'SMS',
+  [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
+  [IntegrationCategory.STORAGE]: 'Storage',
+  [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
+  [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
 };
 
 export default function PlatformIntegrationsPage() {

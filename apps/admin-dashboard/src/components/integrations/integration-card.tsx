@@ -176,6 +176,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#3448C5]',
     gradient: 'from-[#3448C5] to-[#F5BD51]',
   },
+  // Video Generation
+  [IntegrationProvider.RUNWAY]: {
+    icon: 'RW',
+    iconUrl: '/integrations/runway.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#6366F1]',
+  },
   // Monitoring
   [IntegrationProvider.DATADOG]: {
     icon: 'DD',
@@ -219,6 +226,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
   [IntegrationCategory.STORAGE]: 'Storage',
   [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
+  [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {

@@ -122,6 +122,16 @@ model Company {
   momentumAnalytics  MomentumAnalytics[]
   upsellConfig       UpsellConfig?
 
+  // Feature 10: Enhanced Products
+  categories         Category[]
+  tags               Tag[]
+  variantOptions     VariantOption[]
+  collections        Collection[]
+  bundles            Bundle[]
+  inventoryLocations InventoryLocation[]
+  marketingVideos    MarketingVideo[]
+  videoTemplates     MarketingVideoTemplate[]
+
   // Soft delete fields
   deletedAt          DateTime?
   deletedBy          String?
@@ -242,6 +252,10 @@ model User {
   auditLogs      AuditLog[]
   deletionLogs   DeletionLog[] @relation("UserDeletions")
 
+  // Feature 10: Enhanced Products
+  inventoryAdjustments InventoryAdjustment[]
+  marketingVideos      MarketingVideo[]
+
   // Soft delete fields
   deletedAt      DateTime?
   deletedBy      String?
@@ -308,6 +322,9 @@ model Customer {
   saveAttempts    SaveAttempt[]
   voiceCalls      VoiceCall[]
   upsellOffers    UpsellOffer[]
+
+  // Feature 10C: Marketing Videos
+  marketingVideos MarketingVideo[]
 
   // Soft delete fields
   deletedAt       DateTime?
@@ -526,9 +543,32 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // AI Generated Content
+  aiGeneratedDescription Boolean   @default(false)
+  aiGeneratedAt          DateTime?
+
+  // Flexible Attributes (JSON)
+  attributes Json? // Custom key-value attributes
+
   // Relations
   company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+
+  // Feature 10: Categories, Tags, Media
+  categoryAssignments ProductCategoryAssignment[]
+  tags                ProductTag[]
+  media               ProductMedia[]
+  priceRules          ProductPriceRule[]
+
+  // Feature 10B: Variants, Collections, Bundles, Inventory
+  variants          ProductVariant[]
+  collectionItems   CollectionProduct[]
+  bundle            Bundle?
+  bundleItems       BundleItem[]
+  inventoryLevels   InventoryLevel[]
+
+  // Feature 10C: Marketing Videos
+  marketingVideos MarketingVideo[]
 
   // Soft delete fields
   deletedAt  DateTime?
@@ -537,7 +577,7 @@ model Product {
 
   @@unique([companyId, sku, deletedAt])
   @@unique([companyId, slug, deletedAt])
-  @@index([companyId, category])
+  @@index([companyId, status])
   @@index([companyId, status, trackInventory])
   @@index([deletedAt])
   @@map("products")
@@ -3739,4 +3779,688 @@ model Webhook {
   @@index([companyId])
   @@index([deletedAt])
   @@map("webhooks")
+}
+
+// =============================================================================
+// FEATURE 10: ENHANCED PRODUCTS SYSTEM
+// Categories, Tags, Media, Price Rules
+// =============================================================================
+
+model Category {
+  id          String   @id @default(cuid())
+  companyId   String
+  parentId    String?
+
+  name        String
+  slug        String
+  description String?
+  imageUrl    String?
+
+  // Hierarchy
+  level       Int      @default(0)
+  path        String   // Materialized path: "root/parent/child"
+
+  // Display
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company  Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products ProductCategoryAssignment[]
+
+  @@unique([companyId, slug])
+  @@unique([companyId, parentId, name])
+  @@index([companyId, parentId])
+  @@index([companyId, isActive])
+  @@index([path])
+  @@map("categories")
+}
+
+model ProductCategoryAssignment {
+  id         String  @id @default(cuid())
+  productId  String
+  categoryId String
+  isPrimary  Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
+model Tag {
+  id        String  @id @default(cuid())
+  companyId String
+
+  name  String
+  slug  String
+  color String? // Hex color for UI
+
+  createdAt DateTime @default(now())
+
+  company  Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products ProductTag[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@map("tags")
+}
+
+model ProductTag {
+  id        String @id @default(cuid())
+  productId String
+  tagId     String
+
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, tagId])
+  @@index([tagId])
+  @@map("product_tags")
+}
+
+model ProductMedia {
+  id        String  @id @default(cuid())
+  productId String
+  variantId String? // Optional: variant-specific media
+
+  type MediaType
+  url  String
+  thumbnailUrl String?
+
+  // Metadata
+  filename String
+  mimeType String
+  size     Int  // Bytes
+  width    Int?
+  height   Int?
+  duration Int? // Seconds (for video)
+
+  // Display
+  altText   String?
+  caption   String?
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  // AI Generation Info
+  generatedBy        String? // 'RUNWAY', 'CLOUDINARY', etc.
+  generationMetadata Json?   // Task ID, settings used, etc.
+
+  // Storage Info
+  storageProvider String @default("S3")
+  storageKey      String // S3 key or path
+  cdnUrl          String? // CloudFront URL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([productId, type, sortOrder])
+  @@index([variantId])
+  @@map("product_media")
+}
+
+model ProductPriceRule {
+  id        String @id @default(cuid())
+  productId String
+
+  name String
+  type PriceRuleType
+
+  // Conditions
+  minQuantity     Int?
+  maxQuantity     Int?
+  customerGroupId String?
+  startDate       DateTime?
+  endDate         DateTime?
+
+  // Adjustment
+  adjustmentType  AdjustmentType
+  adjustmentValue Decimal @db.Decimal(10, 2)
+
+  // Priority (higher wins)
+  priority Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, isActive])
+  @@index([startDate, endDate])
+  @@map("product_price_rules")
+}
+
+// =============================================================================
+// FEATURE 10B: EXTENDED PRODUCTS
+// Variants, Collections, Bundles, Inventory
+// =============================================================================
+
+model ProductVariant {
+  id        String @id @default(cuid())
+  productId String
+
+  name    String // e.g., "Large / Red"
+  sku     String
+  barcode String?
+
+  // Variant Options
+  options Json // { "Size": "Large", "Color": "Red" }
+
+  // Pricing (overrides product if set)
+  price          Decimal? @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  costPrice      Decimal? @db.Decimal(10, 2)
+
+  // Physical (overrides product if set)
+  weight Decimal? @db.Decimal(10, 3)
+
+  // Inventory
+  trackInventory    Boolean @default(true)
+  inventoryQuantity Int     @default(0)
+  lowStockThreshold Int?
+
+  // Status
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  // Soft Delete
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media           ProductMedia[]
+  inventoryLevels InventoryLevel[]
+  bundleItems     BundleItem[]
+
+  @@unique([productId, sku])
+  @@index([productId, isActive, deletedAt])
+  @@index([sku])
+  @@map("product_variants")
+}
+
+model VariantOption {
+  id        String @id @default(cuid())
+  companyId String
+
+  name        String // e.g., "Size", "Color"
+  displayName String
+  sortOrder   Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  company Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  values  VariantOptionValue[]
+
+  @@unique([companyId, name])
+  @@map("variant_options")
+}
+
+model VariantOptionValue {
+  id       String @id @default(cuid())
+  optionId String
+
+  value        String  // e.g., "Small", "Medium", "Large"
+  displayValue String?
+  colorCode    String? // Hex for color swatches
+  imageUrl     String? // Image for visual options
+  sortOrder    Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  option VariantOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, value])
+  @@map("variant_option_values")
+}
+
+model Collection {
+  id        String @id @default(cuid())
+  companyId String
+
+  name        String
+  slug        String
+  description String?
+
+  // Display
+  imageUrl  String?
+  bannerUrl String?
+
+  // Type
+  type CollectionType @default(MANUAL)
+
+  // Auto-collection rules (if type = AUTOMATIC)
+  rules Json? // { conditions: [...], match: 'all' | 'any' }
+
+  // Publishing
+  isActive    Boolean   @default(true)
+  publishedAt DateTime?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  // Display Order
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company  Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products CollectionProduct[]
+
+  @@unique([companyId, slug])
+  @@index([companyId, isActive])
+  @@map("collections")
+}
+
+model CollectionProduct {
+  id           String @id @default(cuid())
+  collectionId String
+  productId    String
+  sortOrder    Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, productId])
+  @@index([productId])
+  @@map("collection_products")
+}
+
+model Bundle {
+  id        String @id @default(cuid())
+  companyId String
+  productId String @unique // Bundle IS a product
+
+  // Bundle Settings
+  type     BundleType @default(FIXED)
+  minItems Int?       // For MIX_AND_MATCH
+  maxItems Int?
+
+  // Pricing
+  pricingStrategy BundlePricing   @default(FIXED)
+  discountType    AdjustmentType?
+  discountValue   Decimal?        @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items   BundleItem[]
+
+  @@map("bundles")
+}
+
+model BundleItem {
+  id        String  @id @default(cuid())
+  bundleId  String
+  productId String
+  variantId String?
+
+  quantity   Int     @default(1)
+  isRequired Boolean @default(true)
+  sortOrder  Int     @default(0)
+
+  // Override pricing for this item in bundle
+  priceOverride Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  bundle  Bundle          @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([bundleId, productId, variantId])
+  @@map("bundle_items")
+}
+
+model InventoryLocation {
+  id        String @id @default(cuid())
+  companyId String
+
+  name String
+  code String
+  type LocationType @default(WAREHOUSE)
+
+  // Address
+  address1   String?
+  address2   String?
+  city       String?
+  state      String?
+  postalCode String?
+  country    String?
+
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inventoryLevels InventoryLevel[]
+
+  @@unique([companyId, code])
+  @@map("inventory_locations")
+}
+
+model InventoryLevel {
+  id         String  @id @default(cuid())
+  locationId String
+  productId  String?
+  variantId  String?
+
+  // Quantities
+  onHand    Int @default(0)
+  committed Int @default(0) // Reserved for orders
+  incoming  Int @default(0) // Expected from POs
+  available Int @default(0) // Computed: onHand - committed
+
+  // Thresholds
+  reorderPoint    Int?
+  reorderQuantity Int?
+
+  updatedAt DateTime @updatedAt
+
+  location    InventoryLocation       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product     Product?                @relation(fields: [productId], references: [id])
+  variant     ProductVariant?         @relation(fields: [variantId], references: [id])
+  adjustments InventoryAdjustment[]
+
+  @@unique([locationId, productId, variantId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("inventory_levels")
+}
+
+model InventoryAdjustment {
+  id               String @id @default(cuid())
+  inventoryLevelId String
+
+  type             AdjustmentReason
+  quantity         Int // Positive or negative
+  previousQuantity Int
+  newQuantity      Int
+
+  reason        String?
+  referenceType String? // 'ORDER', 'TRANSFER', 'COUNT'
+  referenceId   String?
+
+  createdAt   DateTime @default(now())
+  createdById String
+
+  inventoryLevel InventoryLevel @relation(fields: [inventoryLevelId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation(fields: [createdById], references: [id])
+
+  @@index([inventoryLevelId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("inventory_adjustments")
+}
+
+// =============================================================================
+// FEATURE 10C: AI MARKETING VIDEOS
+// =============================================================================
+
+model MarketingVideo {
+  id        String  @id @default(cuid())
+  companyId String
+  productId String?
+
+  // Video Info
+  name   String
+  type   MarketingVideoType
+  status VideoGenerationStatus @default(PENDING)
+
+  // Template & Style
+  templateId String?
+  style      Json? // Colors, fonts, mood
+
+  // Content
+  script        String?
+  voiceoverText String?
+  callToAction  String?
+
+  // Final Output
+  outputUrl    String?
+  thumbnailUrl String?
+  duration     Int? // Seconds
+
+  // Generation Tracking
+  generationStartedAt   DateTime?
+  generationCompletedAt DateTime?
+  generationError       String?
+  creditsUsed           Decimal?  @db.Decimal(10, 2)
+
+  // Momentum Intelligence Link (for retention videos)
+  customerId     String?
+  interventionId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+
+  company   Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product   Product?                  @relation(fields: [productId], references: [id])
+  template  MarketingVideoTemplate?   @relation(fields: [templateId], references: [id])
+  customer  Customer?                 @relation(fields: [customerId], references: [id])
+  createdBy User                      @relation(fields: [createdById], references: [id])
+  scenes    MarketingVideoScene[]
+  variants  MarketingVideoVariant[]
+
+  @@index([companyId, status])
+  @@index([productId])
+  @@index([customerId])
+  @@map("marketing_videos")
+}
+
+model MarketingVideoScene {
+  id      String @id @default(cuid())
+  videoId String
+
+  sceneNumber Int
+  duration    Int // Seconds
+
+  // Visual
+  mediaType        SceneMediaType
+  mediaUrl         String?
+  mediaGeneratedBy String? // 'RUNWAY', 'STATIC', etc.
+
+  // Text Overlay
+  textOverlay  String?
+  textPosition String? // 'top', 'center', 'bottom'
+  textStyle    Json?
+
+  // Transition
+  transitionIn  String? // 'fade', 'slide', etc.
+  transitionOut String?
+
+  createdAt DateTime @default(now())
+
+  video MarketingVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, sceneNumber])
+  @@map("marketing_video_scenes")
+}
+
+model MarketingVideoVariant {
+  id      String @id @default(cuid())
+  videoId String
+
+  platform    VideoPlatform
+  aspectRatio String // '9:16', '1:1', '16:9'
+
+  outputUrl    String?
+  thumbnailUrl String?
+
+  // Platform-specific metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  video MarketingVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, platform])
+  @@map("marketing_video_variants")
+}
+
+model MarketingVideoTemplate {
+  id        String  @id @default(cuid())
+  companyId String? // Null = system template
+
+  name        String
+  description String?
+  type        MarketingVideoType
+
+  // Template Structure
+  sceneCount      Int
+  defaultDuration Int  // Total seconds
+  structure       Json // Scene definitions
+
+  // Style Defaults
+  defaultStyle Json?
+
+  // Script Template
+  scriptTemplate String?
+
+  isActive Boolean @default(true)
+  isSystem Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  videos  MarketingVideo[]
+
+  @@index([type, isActive])
+  @@map("marketing_video_templates")
+}
+
+// =============================================================================
+// FEATURE 10/10B/10C ENUMS
+// =============================================================================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  MODEL_3D
+  DOCUMENT
+}
+
+enum PriceRuleType {
+  QUANTITY_BREAK  // Buy more, save more
+  CUSTOMER_GROUP  // Special pricing for group
+  TIME_BASED      // Sale pricing
+  SUBSCRIPTION    // Recurring order discount
+}
+
+enum AdjustmentType {
+  FIXED_AMOUNT // -$5.00
+  PERCENTAGE   // -10%
+  FIXED_PRICE  // Set to $19.99
+}
+
+enum CollectionType {
+  MANUAL    // Manually curated
+  AUTOMATIC // Rules-based auto-population
+}
+
+enum BundleType {
+  FIXED            // Specific products, fixed quantities
+  MIX_AND_MATCH    // Customer chooses from allowed products
+  SUBSCRIPTION_BOX // Curated monthly box
+}
+
+enum BundlePricing {
+  FIXED      // Set bundle price
+  CALCULATED // Sum of items with optional discount
+  TIERED     // Price varies by selection
+}
+
+enum LocationType {
+  WAREHOUSE
+  STORE
+  DROPSHIP
+  VIRTUAL
+}
+
+enum AdjustmentReason {
+  RECEIVED         // Stock received
+  SOLD             // Sold to customer
+  RETURNED         // Customer return
+  DAMAGED          // Damaged/written off
+  LOST             // Lost/shrinkage
+  FOUND            // Found during count
+  TRANSFERRED      // Moved between locations
+  COUNT_ADJUSTMENT // Physical count correction
+  OTHER
+}
+
+enum MarketingVideoType {
+  PRODUCT_SHOWCASE      // Standard product video
+  PRODUCT_LAUNCH        // New product announcement
+  SALE_PROMO            // Sale/discount promotion
+  TESTIMONIAL           // Customer testimonial style
+  TUTORIAL              // How-to/explainer
+  BRAND_STORY           // Brand narrative
+  RETENTION_WINBACK     // Personalized win-back
+  RETENTION_ANNIVERSARY // Customer milestone
+  RETENTION_REMINDER    // Subscription reminder
+  SOCIAL_AD             // Generic social ad
+}
+
+enum VideoGenerationStatus {
+  PENDING
+  GENERATING_SCRIPT
+  GENERATING_MEDIA
+  GENERATING_VOICE
+  COMPOSING
+  EXPORTING
+  COMPLETED
+  FAILED
+}
+
+enum SceneMediaType {
+  PRODUCT_IMAGE
+  AI_GENERATED_VIDEO
+  STOCK_VIDEO
+  SOLID_COLOR
+  GRADIENT
+}
+
+enum VideoPlatform {
+  TIKTOK
+  INSTAGRAM_REELS
+  INSTAGRAM_STORIES
+  INSTAGRAM_FEED
+  FACEBOOK_REELS
+  FACEBOOK_FEED
+  YOUTUBE_SHORTS
+  YOUTUBE
+  TWITTER
+  LINKEDIN
 }

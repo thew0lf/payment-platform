@@ -171,7 +171,7 @@ export function RestoreModal({
         </Button>
         <Button
           onClick={handleRestore}
-          disabled={loading || restoring || (details && !details.canRestore)}
+          disabled={loading || restoring || Boolean(details && !details.canRestore)}
           className="bg-emerald-600 hover:bg-emerald-700"
         >
           {restoring ? (

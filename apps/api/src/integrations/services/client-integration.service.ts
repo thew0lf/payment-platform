@@ -9,6 +9,10 @@ import {
   IntegrationMode, IntegrationDefinition, PlatformIntegration,
   CreateClientIntegrationDto, UpdateClientIntegrationDto, IntegrationTestResult,
 } from '../types/integration.types';
+// Provider Services
+import { LanguageToolService } from './providers/languagetool.service';
+import { CloudinaryService } from './providers/cloudinary.service';
+import { RunwayService } from './providers/runway.service';
 
 @Injectable()
 export class ClientIntegrationService {
@@ -20,6 +24,9 @@ export class ClientIntegrationService {
     private readonly definitionService: IntegrationDefinitionService,
     private readonly platformService: PlatformIntegrationService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly languageToolService: LanguageToolService,
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly runwayService: RunwayService,
   ) {}
 
   async create(clientId: string, organizationId: string, dto: CreateClientIntegrationDto, createdBy: string): Promise<ClientIntegration> {
@@ -174,6 +181,15 @@ export class ClientIntegrationService {
       case IntegrationProvider.STRIPE:
         if (!credentials.secretKey) return { success: false, message: 'Missing Stripe secret key' };
         return { success: true, message: 'Stripe credentials validated' };
+      // AI/ML Providers (client-allowed)
+      case IntegrationProvider.LANGUAGETOOL:
+        return this.languageToolService.testConnection(credentials as any);
+      // Image Processing Providers (client-allowed)
+      case IntegrationProvider.CLOUDINARY:
+        return this.cloudinaryService.testConnection(credentials as any);
+      // Video Generation Providers (client-allowed)
+      case IntegrationProvider.RUNWAY:
+        return this.runwayService.testConnection(credentials as any);
       default:
         return { success: true, message: 'Credentials validated' };
     }

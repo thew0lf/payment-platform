@@ -155,6 +155,6 @@ export const apiRequest = {
     request<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
   patch: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
-  delete: <T>(endpoint: string) =>
-    request<T>(endpoint, { method: 'DELETE' }).then(r => r.data),
+  delete: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
 };
