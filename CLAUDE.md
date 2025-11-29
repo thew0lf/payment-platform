@@ -195,6 +195,30 @@ apps/api/src/
 ### Products Module
 - **Controller**: `products.controller.ts` - Product CRUD
 - **Fields**: SKU, name, category, price, roastLevel, origin, flavorNotes, stockQuantity
+- **Sub-controllers**: `CategoryController`, `TagController`, `CollectionController`
+
+### Product Catalog Organization
+```
+apps/api/src/products/
+├── products.controller.ts       # Main product CRUD
+├── controllers/
+│   ├── category.controller.ts   # /api/products/categories
+│   ├── tag.controller.ts        # /api/products/tags
+│   └── collection.controller.ts # /api/products/collections
+└── services/
+    ├── products.service.ts
+    ├── category.service.ts
+    ├── tag.service.ts
+    └── collection.service.ts
+```
+
+**Route Ordering Note:** In `products.module.ts`, specific controllers (Category, Tag, Collection) must be registered BEFORE ProductsController to prevent the `:id` param from catching routes like `/products/tags`.
+
+| Entity | Purpose | Key Features |
+|--------|---------|--------------|
+| Category | Hierarchical product organization | Parent/child tree structure, `level`, `path` |
+| Tag | Flexible product labeling | Color-coded, many-to-many with products |
+| Collection | Product groupings | Manual or automatic (rule-based) |
 
 ### Fulfillment Module
 - **Shipments**: Track shipments with carrier, tracking number, status
@@ -205,6 +229,39 @@ All modules use `CompanyAuthGuard` to ensure:
 - Users only see data for their company/client scope
 - `companyId` is automatically injected from JWT token
 - Cross-company access is blocked
+
+### Company Selection for Org/Client Users
+
+Organization and Client scope users can manage multiple companies. The pattern for handling this:
+
+**Backend Pattern:**
+```typescript
+// In controllers, use getCompanyIdForQuery() for read/write operations
+@Get(':id')
+async findById(
+  @Param('id') id: string,
+  @Query('companyId') queryCompanyId: string,  // Accept from query
+  @CurrentUser() user: AuthenticatedUser,
+): Promise<Product> {
+  const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+  return this.service.findById(id, companyId);
+}
+```
+
+**Frontend Pattern:**
+```typescript
+// Use useHierarchy() context to get selected company
+const { accessLevel, selectedCompanyId } = useHierarchy();
+
+// Check if company selection is needed
+const needsCompanySelection =
+  (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
+
+// Pass companyId to API calls
+await productsApi.update(id, data, selectedCompanyId || undefined);
+```
+
+**UI Pattern:** Show "Select a Company" message when `needsCompanySelection` is true, with disabled action buttons.
 
 ## Integrations System
 
