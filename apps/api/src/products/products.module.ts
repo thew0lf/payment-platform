@@ -18,10 +18,11 @@ import { CollectionService } from './services/collection.service';
 @Module({
   imports: [PrismaModule, EventEmitterModule.forRoot(), HierarchyModule],
   controllers: [
-    ProductsController,
+    // More specific routes must come FIRST to avoid being caught by :id param
     CategoryController,
     TagController,
     CollectionController,
+    ProductsController,
   ],
   providers: [
     ProductsService,
