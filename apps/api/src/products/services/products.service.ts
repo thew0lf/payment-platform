@@ -30,9 +30,9 @@ export class ProductsService {
   // ═══════════════════════════════════════════════════════════════
 
   async create(companyId: string, dto: CreateProductDto, userId: string): Promise<Product> {
-    // Check for duplicate SKU
+    // Check for duplicate SKU (only among non-deleted products)
     const existing = await this.prisma.product.findFirst({
-      where: { companyId, sku: dto.sku },
+      where: { companyId, sku: dto.sku, deletedAt: null },
     });
 
     if (existing) {
@@ -87,7 +87,7 @@ export class ProductsService {
     companyId: string | undefined,
     query: ProductQueryDto,
   ): Promise<{ products: Product[]; total: number }> {
-    const where: Prisma.ProductWhereInput = {};
+    const where: Prisma.ProductWhereInput = { deletedAt: null };
 
     // Only filter by companyId if provided (undefined = all products for org/client admins)
     if (companyId) {
@@ -127,7 +127,7 @@ export class ProductsService {
 
   async findById(id: string, companyId: string): Promise<Product> {
     const product = await this.prisma.product.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!product) {
@@ -139,7 +139,7 @@ export class ProductsService {
 
   async findBySku(companyId: string, sku: string): Promise<Product> {
     const product = await this.prisma.product.findFirst({
-      where: { companyId, sku },
+      where: { companyId, sku, deletedAt: null },
     });
 
     if (!product) {
@@ -155,17 +155,17 @@ export class ProductsService {
 
   async update(id: string, companyId: string, dto: UpdateProductDto, userId: string): Promise<Product> {
     const existing = await this.prisma.product.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
       throw new NotFoundException(`Product ${id} not found`);
     }
 
-    // Check for duplicate SKU if changing
+    // Check for duplicate SKU if changing (only among non-deleted products)
     if (dto.sku && dto.sku !== existing.sku) {
       const duplicate = await this.prisma.product.findFirst({
-        where: { companyId, sku: dto.sku, id: { not: id } },
+        where: { companyId, sku: dto.sku, id: { not: id }, deletedAt: null },
       });
       if (duplicate) {
         throw new ConflictException(`Product with SKU ${dto.sku} already exists`);
@@ -210,7 +210,7 @@ export class ProductsService {
 
   async updateStock(id: string, companyId: string, quantity: number, userId: string): Promise<Product> {
     const existing = await this.prisma.product.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -236,7 +236,7 @@ export class ProductsService {
     reason?: string,
   ): Promise<Product> {
     const existing = await this.prisma.product.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -277,7 +277,7 @@ export class ProductsService {
 
   async archive(id: string, companyId: string, userId: string): Promise<void> {
     const existing = await this.prisma.product.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {

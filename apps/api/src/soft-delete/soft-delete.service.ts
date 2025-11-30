@@ -566,6 +566,8 @@ export class SoftDeleteService {
       Subscription: this.prisma.subscription,
       Order: this.prisma.order,
       Product: this.prisma.product,
+      ProductVariant: this.prisma.productVariant,
+      Category: this.prisma.category,
       MerchantAccount: this.prisma.merchantAccount,
       RoutingRule: this.prisma.routingRule,
       Webhook: this.prisma.webhook,
@@ -602,6 +604,8 @@ export class SoftDeleteService {
       case 'Department':
       case 'Customer':
       case 'Product':
+      case 'ProductVariant':
+      case 'Category':
       case 'Order':
       case 'Subscription':
       case 'MerchantAccount':
@@ -716,6 +720,8 @@ export class SoftDeleteService {
       Subscription: tx.subscription,
       Order: tx.order,
       Product: tx.product,
+      ProductVariant: tx.productVariant,
+      Category: tx.category,
       MerchantAccount: tx.merchantAccount,
       RoutingRule: tx.routingRule,
       Webhook: tx.webhook,
@@ -883,6 +889,26 @@ export class SoftDeleteService {
             select: { deletedAt: true },
           });
           return !!customer?.deletedAt;
+        }
+        return false;
+      },
+      ProductVariant: async () => {
+        if (entity.productId) {
+          const product = await this.prisma.product.findUnique({
+            where: { id: entity.productId },
+            select: { deletedAt: true },
+          });
+          return !!product?.deletedAt;
+        }
+        return false;
+      },
+      Category: async () => {
+        if (entity.companyId) {
+          const company = await this.prisma.company.findUnique({
+            where: { id: entity.companyId },
+            select: { deletedAt: true },
+          });
+          return !!company?.deletedAt;
         }
         return false;
       },

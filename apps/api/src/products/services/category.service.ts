@@ -47,9 +47,9 @@ export class CategoryService {
   async create(companyId: string, dto: CreateCategoryDto): Promise<any> {
     const slug = dto.slug || this.generateSlug(dto.name);
 
-    // Check for duplicate slug
-    const existing = await this.prisma.category.findUnique({
-      where: { companyId_slug: { companyId, slug } },
+    // Check for duplicate slug (only among non-deleted categories)
+    const existing = await this.prisma.category.findFirst({
+      where: { companyId, slug, deletedAt: null },
     });
     if (existing) {
       throw new ConflictException(`Category with slug "${slug}" already exists`);
@@ -60,8 +60,8 @@ export class CategoryService {
     let path = slug;
 
     if (dto.parentId) {
-      const parent = await this.prisma.category.findUnique({
-        where: { id: dto.parentId },
+      const parent = await this.prisma.category.findFirst({
+        where: { id: dto.parentId, deletedAt: null },
       });
       if (!parent) {
         throw new NotFoundException('Parent category not found');
@@ -93,16 +93,16 @@ export class CategoryService {
    */
   async update(companyId: string, categoryId: string, dto: UpdateCategoryDto): Promise<any> {
     const existing = await this.prisma.category.findFirst({
-      where: { id: categoryId, companyId },
+      where: { id: categoryId, companyId, deletedAt: null },
     });
     if (!existing) {
       throw new NotFoundException('Category not found');
     }
 
-    // If slug is changing, check for conflicts
+    // If slug is changing, check for conflicts (only among non-deleted)
     if (dto.slug && dto.slug !== existing.slug) {
-      const slugConflict = await this.prisma.category.findUnique({
-        where: { companyId_slug: { companyId, slug: dto.slug } },
+      const slugConflict = await this.prisma.category.findFirst({
+        where: { companyId, slug: dto.slug, deletedAt: null, id: { not: categoryId } },
       });
       if (slugConflict) {
         throw new ConflictException(`Category with slug "${dto.slug}" already exists`);
@@ -149,7 +149,7 @@ export class CategoryService {
    * Get all categories as a flat list
    */
   async findAll(companyId: string, includeInactive = false): Promise<any[]> {
-    const where: Prisma.CategoryWhereInput = { companyId };
+    const where: Prisma.CategoryWhereInput = { companyId, deletedAt: null };
     if (!includeInactive) {
       where.isActive = true;
     }
@@ -170,7 +170,7 @@ export class CategoryService {
    */
   async getTree(companyId: string): Promise<CategoryTreeNode[]> {
     const categories = await this.prisma.category.findMany({
-      where: { companyId, isActive: true },
+      where: { companyId, isActive: true, deletedAt: null },
       orderBy: [{ level: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
       include: {
         _count: {
@@ -218,10 +218,11 @@ export class CategoryService {
    */
   async findById(companyId: string, categoryId: string): Promise<any> {
     const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, companyId },
+      where: { id: categoryId, companyId, deletedAt: null },
       include: {
         parent: true,
         children: {
+          where: { deletedAt: null },
           orderBy: { sortOrder: 'asc' },
         },
         _count: {
@@ -238,13 +239,15 @@ export class CategoryService {
   }
 
   /**
-   * Delete a category
+   * Delete a category (soft delete)
    */
-  async delete(companyId: string, categoryId: string): Promise<void> {
+  async delete(companyId: string, categoryId: string, deletedBy?: string): Promise<void> {
     const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, companyId },
+      where: { id: categoryId, companyId, deletedAt: null },
       include: {
-        children: true,
+        children: {
+          where: { deletedAt: null },
+        },
         _count: { select: { products: true } },
       },
     });
@@ -253,20 +256,19 @@ export class CategoryService {
       throw new NotFoundException('Category not found');
     }
 
-    // Prevent deletion if has children
+    // Prevent deletion if has active children
     if (category.children.length > 0) {
       throw new ConflictException('Cannot delete category with subcategories');
     }
 
-    // Remove product associations and delete
-    await this.prisma.$transaction([
-      this.prisma.productCategoryAssignment.deleteMany({
-        where: { categoryId },
-      }),
-      this.prisma.category.delete({
-        where: { id: categoryId },
-      }),
-    ]);
+    // Soft delete the category (keep product associations for audit trail)
+    await this.prisma.category.update({
+      where: { id: categoryId },
+      data: {
+        deletedAt: new Date(),
+        deletedBy,
+      },
+    });
   }
 
   private generateSlug(name: string): string {

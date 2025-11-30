@@ -31,7 +31,7 @@ export class RoutingRuleService {
 
   async create(companyId: string, dto: CreateRoutingRuleDto, createdBy?: string): Promise<RoutingRule> {
     const existing = await this.prisma.routingRule.findFirst({
-      where: { companyId, name: dto.name },
+      where: { companyId, name: dto.name, deletedAt: null },
     });
     if (existing) {
       throw new ConflictException(`Rule with name "${dto.name}" already exists`);
@@ -77,7 +77,7 @@ export class RoutingRuleService {
   }
 
   async findAll(companyId: string, status?: RuleStatus): Promise<RoutingRule[]> {
-    const where: any = { companyId };
+    const where: any = { companyId, deletedAt: null };
     if (status) where.status = status;
 
     const rules = await this.prisma.routingRule.findMany({
@@ -89,7 +89,9 @@ export class RoutingRuleService {
   }
 
   async findById(id: string): Promise<RoutingRule> {
-    const rule = await this.prisma.routingRule.findUnique({ where: { id } });
+    const rule = await this.prisma.routingRule.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!rule) {
       throw new NotFoundException(`Routing rule ${id} not found`);
     }
@@ -97,7 +99,9 @@ export class RoutingRuleService {
   }
 
   async update(id: string, dto: UpdateRoutingRuleDto): Promise<RoutingRule> {
-    const existing = await this.prisma.routingRule.findUnique({ where: { id } });
+    const existing = await this.prisma.routingRule.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!existing) {
       throw new NotFoundException(`Routing rule ${id} not found`);
     }
@@ -145,16 +149,25 @@ export class RoutingRuleService {
     return this.mapToRoutingRule(updated);
   }
 
-  async delete(id: string): Promise<void> {
-    const rule = await this.prisma.routingRule.findUnique({ where: { id } });
+  async delete(id: string, deletedBy?: string): Promise<void> {
+    const rule = await this.prisma.routingRule.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!rule) {
       throw new NotFoundException(`Routing rule ${id} not found`);
     }
 
-    await this.prisma.routingRule.delete({ where: { id } });
+    // Soft delete instead of hard delete
+    await this.prisma.routingRule.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy,
+      },
+    });
     this.invalidateCache(rule.companyId);
     this.eventEmitter.emit('routingRule.deleted', { ruleId: id });
-    this.logger.log(`Deleted routing rule: ${rule.name} (${id})`);
+    this.logger.log(`Soft deleted routing rule: ${rule.name} (${id})`);
   }
 
   // ═══════════════════════════════════════════════════════════════

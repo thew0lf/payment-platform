@@ -26,9 +26,9 @@ export class MerchantAccountService {
   // ═══════════════════════════════════════════════════════════════
 
   async create(companyId: string, dto: CreateMerchantAccountDto, createdBy?: string): Promise<MerchantAccount> {
-    // Check for duplicate name
+    // Check for duplicate name (only among non-deleted accounts)
     const existing = await this.prisma.merchantAccount.findFirst({
-      where: { companyId, name: dto.name },
+      where: { companyId, name: dto.name, deletedAt: null },
     });
     if (existing) {
       throw new ConflictException(`Account with name "${dto.name}" already exists`);
@@ -107,7 +107,7 @@ export class MerchantAccountService {
   }
 
   async findAll(query: MerchantAccountQuery): Promise<{ accounts: MerchantAccount[]; total: number }> {
-    const where: any = {};
+    const where: any = { deletedAt: null };
 
     if (query.companyId) where.companyId = query.companyId;
     if (query.providerType) where.providerType = query.providerType;
@@ -132,7 +132,9 @@ export class MerchantAccountService {
   }
 
   async findById(id: string): Promise<MerchantAccount> {
-    const account = await this.prisma.merchantAccount.findUnique({ where: { id } });
+    const account = await this.prisma.merchantAccount.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!account) {
       throw new NotFoundException(`Merchant account ${id} not found`);
     }
@@ -141,14 +143,16 @@ export class MerchantAccountService {
 
   async findByCompany(companyId: string): Promise<MerchantAccount[]> {
     const accounts = await this.prisma.merchantAccount.findMany({
-      where: { companyId },
+      where: { companyId, deletedAt: null },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }],
     });
     return accounts.map(this.mapToMerchantAccount.bind(this));
   }
 
   async update(id: string, dto: UpdateMerchantAccountDto): Promise<MerchantAccount> {
-    const existing = await this.prisma.merchantAccount.findUnique({ where: { id } });
+    const existing = await this.prisma.merchantAccount.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!existing) {
       throw new NotFoundException(`Merchant account ${id} not found`);
     }
@@ -210,14 +214,23 @@ export class MerchantAccountService {
     return this.mapToMerchantAccount(updated);
   }
 
-  async delete(id: string): Promise<void> {
-    const account = await this.prisma.merchantAccount.findUnique({ where: { id } });
+  async delete(id: string, deletedBy?: string): Promise<void> {
+    const account = await this.prisma.merchantAccount.findFirst({
+      where: { id, deletedAt: null }
+    });
     if (!account) {
       throw new NotFoundException(`Merchant account ${id} not found`);
     }
 
-    await this.prisma.merchantAccount.delete({ where: { id } });
-    this.logger.log(`Deleted merchant account: ${account.name} (${id})`);
+    // Soft delete instead of hard delete
+    await this.prisma.merchantAccount.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy,
+      },
+    });
+    this.logger.log(`Soft deleted merchant account: ${account.name} (${id})`);
     this.eventEmitter.emit('merchant-account.deleted', { accountId: id, accountName: account.name });
   }
 
@@ -437,7 +450,7 @@ export class MerchantAccountService {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async healthCheckAllAccounts(): Promise<void> {
     const accounts = await this.prisma.merchantAccount.findMany({
-      where: { status: { in: ['active', 'pending'] } },
+      where: { status: { in: ['active', 'pending'] }, deletedAt: null },
       select: { id: true, todaySuccessCount: true, todayFailureCount: true },
     });
 

@@ -256,6 +256,14 @@ model User {
   inventoryAdjustments InventoryAdjustment[]
   marketingVideos      MarketingVideo[]
 
+  // Soft delete tracking
+  deletedCategories    Category[]    @relation("CategoryDeletedBy")
+
+  // Feature 02: RBAC Relations
+  roleAssignments      UserRoleAssignment[]
+  permissionGrants     PermissionGrant[]
+  sessions             UserSession[]
+
   // Soft delete fields
   deletedAt      DateTime?
   deletedBy      String?
@@ -3812,17 +3820,24 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  company  Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryHierarchy")
-  products ProductCategoryAssignment[]
+  // Soft Delete
+  deletedAt  DateTime?
+  deletedBy  String?
+  cascadeId  String?
 
-  @@unique([companyId, slug])
-  @@unique([companyId, parentId, name])
+  // Relations
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryHierarchy")
+  products   ProductCategoryAssignment[]
+  deletedByUser User?   @relation("CategoryDeletedBy", fields: [deletedBy], references: [id])
+
+  @@unique([companyId, slug, deletedAt])
+  @@unique([companyId, parentId, name, deletedAt])
   @@index([companyId, parentId])
   @@index([companyId, isActive])
   @@index([path])
+  @@index([deletedAt])
   @@map("categories")
 }
 
@@ -4468,4 +4483,177 @@ enum VideoPlatform {
   YOUTUBE
   TWITTER
   LINKEDIN
+}
+
+// =============================================================================
+// FEATURE 02: DYNAMIC RBAC SYSTEM
+// Role-Based Access Control with Permission Ceiling Pattern
+// =============================================================================
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique  // e.g., "transactions:read", "users:write"
+  name        String             // Human-readable name
+  description String?
+  category    String             // Grouping: "transactions", "users", "settings"
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  rolePermissions    RolePermission[]
+  permissionGrants   PermissionGrant[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model Role {
+  id           String    @id @default(cuid())
+  name         String              // e.g., "Company Admin", "Billing Manager"
+  slug         String              // e.g., "company_admin", "billing_manager"
+  description  String?
+  color        String?             // For UI display
+
+  // Scope - where this role can be assigned
+  scopeType    ScopeType           // ORGANIZATION, CLIENT, COMPANY, etc.
+  scopeId      String?             // Optional: limit to specific org/client/company
+
+  // Role properties
+  isSystem     Boolean  @default(false)  // Built-in roles (cannot be deleted)
+  isDefault    Boolean  @default(false)  // Auto-assigned to new users at this scope
+  priority     Int      @default(100)    // Lower = more important (for display)
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Soft delete
+  deletedAt    DateTime?
+  deletedBy    String?
+
+  // Relations
+  permissions    RolePermission[]
+  userRoleAssignments UserRoleAssignment[]
+
+  @@unique([scopeType, scopeId, slug])
+  @@index([scopeType, scopeId])
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  // Constraints
+  constraints  Json?    // Optional: limit permission scope (e.g., {"resourceId": "..."})
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+
+  // Relations
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+
+  // Scope where this role applies
+  scopeType ScopeType
+  scopeId   String
+
+  // Assignment metadata
+  assignedBy String?
+  assignedAt DateTime @default(now())
+  expiresAt  DateTime?  // Optional: temporary role assignment
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, scopeType, scopeId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([scopeType, scopeId])
+  @@map("user_role_assignments")
+}
+
+model PermissionGrant {
+  id           String   @id @default(cuid())
+  userId       String
+  permissionId String
+
+  // Scope where this permission applies
+  scopeType    ScopeType
+  scopeId      String
+
+  // Grant type
+  grantType    PermissionGrantType @default(ALLOW)  // ALLOW or DENY
+
+  // Grant metadata
+  grantedBy    String?
+  grantedAt    DateTime @default(now())
+  expiresAt    DateTime?
+  reason       String?   // Why was this granted/denied
+
+  // Constraints
+  constraints  Json?     // Optional scope limitations
+
+  // Relations
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId, scopeType, scopeId])
+  @@index([userId])
+  @@index([scopeType, scopeId])
+  @@map("permission_grants")
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+
+  // Session info
+  sessionToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  deviceInfo   Json?
+
+  // Location
+  city         String?
+  country      String?
+
+  // Status
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  revokedBy    String?
+  revokeReason String?
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([isActive, expiresAt])
+  @@map("user_sessions")
+}
+
+// RBAC Enums
+enum PermissionGrantType {
+  ALLOW
+  DENY
 }

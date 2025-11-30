@@ -22,6 +22,8 @@ export const SOFT_DELETE_MODELS = [
   'Subscription',
   'Order',
   'Product',
+  'ProductVariant',
+  'Category',
   'MerchantAccount',
   'RoutingRule',
   'Webhook',
@@ -54,6 +56,8 @@ export const RETENTION_PERIODS: Record<SoftDeleteModel, number> = {
   Subscription: 365,     // 1 year - billing history
   Order: 365,            // 1 year - dispute resolution
   Product: 90,           // 90 days
+  ProductVariant: 90,    // 90 days - linked to products
+  Category: 90,          // 90 days - product taxonomy
   MerchantAccount: 365,  // 1 year - transaction references
   RoutingRule: 90,       // 90 days
   Webhook: 90,           // 90 days
@@ -69,8 +73,9 @@ export const RETENTION_PERIODS: Record<SoftDeleteModel, number> = {
  */
 export const CASCADE_RELATIONSHIPS: Partial<Record<SoftDeleteModel, SoftDeleteModel[]>> = {
   Client: ['Company'],
-  Company: ['Customer', 'Product', 'Order', 'Department', 'RoutingRule', 'Webhook'],
+  Company: ['Customer', 'Product', 'Category', 'Order', 'Department', 'RoutingRule', 'Webhook'],
   Customer: ['CustomerAddress', 'Subscription'],
+  Product: ['ProductVariant'],
   Department: [], // Users are not cascade deleted, they should be reassigned
 };
 
@@ -82,12 +87,14 @@ export function getParentField(parentType: SoftDeleteModel, childType: SoftDelet
     'Client:Company': 'clientId',
     'Company:Customer': 'companyId',
     'Company:Product': 'companyId',
+    'Company:Category': 'companyId',
     'Company:Order': 'companyId',
     'Company:Department': 'companyId',
     'Company:RoutingRule': 'companyId',
     'Company:Webhook': 'companyId',
     'Customer:CustomerAddress': 'customerId',
     'Customer:Subscription': 'customerId',
+    'Product:ProductVariant': 'productId',
     'Department:User': 'departmentId',
   };
 
@@ -148,38 +155,44 @@ export type PermanentDeleteReason = (typeof PERMANENT_DELETE_REASONS)[number];
 
 /**
  * Minimum role required to delete each entity type
+ * Role names: platform_admin, client_admin, company_admin, company_user
  */
 export const DELETE_PERMISSIONS: Record<SoftDeleteModel, string[]> = {
-  Client: ['SUPER_ADMIN'],
-  Company: ['SUPER_ADMIN', 'ADMIN'],
-  Department: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  User: ['SUPER_ADMIN', 'ADMIN'],
-  Customer: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  CustomerAddress: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  Subscription: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  Order: ['SUPER_ADMIN', 'ADMIN'],
-  Product: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  MerchantAccount: ['SUPER_ADMIN', 'ADMIN'],
-  RoutingRule: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-  Webhook: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+  Client: ['platform_admin'],
+  Company: ['platform_admin', 'client_admin'],
+  Department: ['platform_admin', 'client_admin', 'company_admin'],
+  User: ['platform_admin', 'client_admin'],
+  Customer: ['platform_admin', 'client_admin', 'company_admin'],
+  CustomerAddress: ['platform_admin', 'client_admin', 'company_admin'],
+  Subscription: ['platform_admin', 'client_admin', 'company_admin'],
+  Order: ['platform_admin', 'client_admin'],
+  Product: ['platform_admin', 'client_admin', 'company_admin'],
+  ProductVariant: ['platform_admin', 'client_admin', 'company_admin'],
+  Category: ['platform_admin', 'client_admin', 'company_admin'],
+  MerchantAccount: ['platform_admin', 'client_admin'],
+  RoutingRule: ['platform_admin', 'client_admin', 'company_admin'],
+  Webhook: ['platform_admin', 'client_admin', 'company_admin'],
 };
 
 /**
  * Minimum role required to restore each entity type
+ * Role names: platform_admin, client_admin, company_admin, company_user
  */
 export const RESTORE_PERMISSIONS: Record<SoftDeleteModel, string[]> = {
-  Client: ['SUPER_ADMIN'],
-  Company: ['SUPER_ADMIN', 'ADMIN'],
-  Department: ['SUPER_ADMIN', 'ADMIN'],
-  User: ['SUPER_ADMIN', 'ADMIN'],
-  Customer: ['SUPER_ADMIN', 'ADMIN'],
-  CustomerAddress: ['SUPER_ADMIN', 'ADMIN'],
-  Subscription: ['SUPER_ADMIN', 'ADMIN'],
-  Order: ['SUPER_ADMIN', 'ADMIN'],
-  Product: ['SUPER_ADMIN', 'ADMIN'],
-  MerchantAccount: ['SUPER_ADMIN', 'ADMIN'],
-  RoutingRule: ['SUPER_ADMIN', 'ADMIN'],
-  Webhook: ['SUPER_ADMIN', 'ADMIN'],
+  Client: ['platform_admin'],
+  Company: ['platform_admin', 'client_admin'],
+  Department: ['platform_admin', 'client_admin'],
+  User: ['platform_admin', 'client_admin'],
+  Customer: ['platform_admin', 'client_admin'],
+  CustomerAddress: ['platform_admin', 'client_admin'],
+  Subscription: ['platform_admin', 'client_admin'],
+  Order: ['platform_admin', 'client_admin'],
+  Product: ['platform_admin', 'client_admin'],
+  ProductVariant: ['platform_admin', 'client_admin'],
+  Category: ['platform_admin', 'client_admin'],
+  MerchantAccount: ['platform_admin', 'client_admin'],
+  RoutingRule: ['platform_admin', 'client_admin'],
+  Webhook: ['platform_admin', 'client_admin'],
 };
 
 /**
