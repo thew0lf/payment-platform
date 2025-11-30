@@ -16,19 +16,28 @@ import {
   MoreHorizontal,
   X,
   Building2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   productsApi,
+  mediaApi,
   Product,
+  ProductMedia,
   ProductQueryParams,
   CreateProductInput,
   UpdateProductInput,
+  MediaProcessAction,
+  GeneratedDescription,
   PRODUCT_CATEGORIES,
   PRODUCT_STATUSES,
   ROAST_LEVELS,
 } from '@/lib/api/products';
+import { MediaUpload, MediaGallery } from '@/components/products';
+import { AIDescriptionModal } from '@/components/products/ai-description-modal';
+import { AISuggestions } from '@/components/products/ai-suggestions';
+import { AIGenerateButton, GrammarCheckInline } from '@/components/products/ai-generate-button';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -47,14 +56,19 @@ const PAGE_SIZE = 20;
 // PRODUCT MODAL
 // ═══════════════════════════════════════════════════════════════
 
+type ModalTab = 'details' | 'media';
+
 interface ProductModalProps {
   product?: Product | null;
   onClose: () => void;
   onSave: (data: CreateProductInput | UpdateProductInput) => Promise<void>;
+  onRefresh?: () => void;
 }
 
-function ProductModal({ product, onClose, onSave }: ProductModalProps) {
+function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps) {
+  const { selectedCompanyId } = useHierarchy();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<ModalTab>('details');
   const [formData, setFormData] = useState<CreateProductInput>({
     sku: product?.sku || '',
     name: product?.name || '',
@@ -69,8 +83,81 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
     lowStockThreshold: product?.lowStockThreshold || 10,
     status: product?.status || 'DRAFT',
     isVisible: product?.isVisible ?? true,
+    metaTitle: (product as any)?.metaTitle || '',
+    metaDescription: (product as any)?.metaDescription || '',
   });
   const [flavorInput, setFlavorInput] = useState('');
+
+  // AI state
+  const [showAIModal, setShowAIModal] = useState(false);
+
+  // Media state
+  const [media, setMedia] = useState<ProductMedia[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+
+  // Load media when tab changes to media
+  useEffect(() => {
+    if (activeTab === 'media' && product?.id) {
+      loadMedia();
+    }
+  }, [activeTab, product?.id]);
+
+  const loadMedia = async () => {
+    if (!product?.id) return;
+    setMediaLoading(true);
+    try {
+      const mediaList = await mediaApi.list(product.id);
+      setMedia(mediaList);
+    } catch (err) {
+      console.error('Failed to load media:', err);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleMediaUpload = async (files: File[]) => {
+    if (!product?.id) return;
+    if (files.length === 1) {
+      await mediaApi.upload(product.id, files[0]);
+    } else {
+      await mediaApi.uploadMultiple(product.id, files);
+    }
+    await loadMedia();
+    onRefresh?.();
+  };
+
+  const handleMediaReorder = async (mediaIds: string[]) => {
+    if (!product?.id) return;
+    await mediaApi.reorder(product.id, mediaIds);
+    await loadMedia();
+  };
+
+  const handleMediaSetPrimary = async (mediaId: string) => {
+    if (!product?.id) return;
+    await mediaApi.setAsPrimary(product.id, mediaId);
+    await loadMedia();
+    onRefresh?.();
+  };
+
+  const handleMediaDelete = async (mediaId: string) => {
+    if (!product?.id) return;
+    await mediaApi.delete(product.id, mediaId);
+    await loadMedia();
+    onRefresh?.();
+  };
+
+  const handleMediaUpdate = async (mediaId: string, data: { altText?: string; caption?: string }) => {
+    if (!product?.id) return;
+    await mediaApi.update(product.id, mediaId, data);
+    await loadMedia();
+  };
+
+  const handleMediaProcess = async (mediaId: string, action: MediaProcessAction) => {
+    if (!product?.id) return;
+    await mediaApi.process(product.id, mediaId, { action });
+    await loadMedia();
+    onRefresh?.();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,13 +189,36 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
     }));
   };
 
+  // Handle AI generated description
+  const handleAIApply = (result: GeneratedDescription) => {
+    setFormData((prev) => ({
+      ...prev,
+      description: result.description,
+      metaTitle: result.metaTitle || prev.metaTitle,
+      metaDescription: result.metaDescription || prev.metaDescription,
+    }));
+  };
+
+  // Handle AI category suggestions
+  const handleApplyCategory = (category: string) => {
+    setFormData((prev) => ({ ...prev, category }));
+  };
+
+  // Handle AI tags (add to flavor notes for now)
+  const handleApplyTags = (tags: string[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      flavorNotes: tags,
+    }));
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed inset-4 md:inset-x-auto md:inset-y-10 md:left-1/2 md:-translate-x-1/2 md:max-w-2xl md:w-full z-50 overflow-hidden">
+      <div className="fixed inset-4 md:inset-x-auto md:inset-y-10 md:left-1/2 md:-translate-x-1/2 md:max-w-3xl md:w-full z-50 overflow-hidden">
         <div className="h-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
@@ -120,7 +230,44 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
             </button>
           </div>
 
-          {/* Form */}
+          {/* Tabs (only show for existing products) */}
+          {product && (
+            <div className="flex border-b border-zinc-800 px-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab('details')}
+                className={cn(
+                  'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                  activeTab === 'details'
+                    ? 'text-cyan-400 border-cyan-400'
+                    : 'text-zinc-500 border-transparent hover:text-white'
+                )}
+              >
+                Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('media')}
+                className={cn(
+                  'px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2',
+                  activeTab === 'media'
+                    ? 'text-cyan-400 border-cyan-400'
+                    : 'text-zinc-500 border-transparent hover:text-white'
+                )}
+              >
+                <ImageIcon className="w-4 h-4" />
+                Media
+                {media.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-zinc-800 rounded text-xs">
+                    {media.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Details Tab / Form */}
+          {(activeTab === 'details' || !product) && (
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
             <div className="space-y-6">
               {/* Basic Info */}
@@ -150,7 +297,17 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Description</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-zinc-400">Description</label>
+                  <AIGenerateButton
+                    productName={formData.name}
+                    currentText={formData.description}
+                    companyId={selectedCompanyId || undefined}
+                    onOpenGenerateModal={() => setShowAIModal(true)}
+                    onApplyText={(text) => setFormData((p) => ({ ...p, description: text }))}
+                    size="sm"
+                  />
+                </div>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
@@ -158,6 +315,13 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
                   placeholder="Describe your product..."
                 />
+                {formData.description && (
+                  <GrammarCheckInline
+                    text={formData.description}
+                    onApplyCorrected={(text) => setFormData((p) => ({ ...p, description: text }))}
+                    className="mt-2"
+                  />
+                )}
               </div>
 
               {/* Category & Status */}
@@ -255,6 +419,19 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
                 )}
               </div>
 
+              {/* AI Suggestions */}
+              {formData.name && (
+                <AISuggestions
+                  productName={formData.name}
+                  description={formData.description}
+                  companyId={selectedCompanyId || undefined}
+                  onApplyCategory={handleApplyCategory}
+                  onApplyTags={handleApplyTags}
+                  currentCategory={formData.category}
+                  currentTags={formData.flavorNotes}
+                />
+              )}
+
               {/* Pricing */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -335,28 +512,84 @@ function ProductModal({ product, onClose, onSave }: ProductModalProps) {
               </div>
             </div>
           </form>
+          )}
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 transition-colors"
-            >
-              {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
-              {product ? 'Save Changes' : 'Create Product'}
-            </button>
-          </div>
+          {/* Media Tab */}
+          {activeTab === 'media' && product && (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Upload Section */}
+              <div>
+                <h3 className="text-sm font-medium text-white mb-3">Upload Media</h3>
+                <MediaUpload onUpload={handleMediaUpload} maxFiles={10} />
+              </div>
+
+              {/* Gallery Section */}
+              <div>
+                <h3 className="text-sm font-medium text-white mb-3">
+                  Media Gallery
+                  {media.length > 0 && (
+                    <span className="text-zinc-500 font-normal ml-2">
+                      ({media.length} {media.length === 1 ? 'item' : 'items'})
+                    </span>
+                  )}
+                </h3>
+                {mediaLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+                  </div>
+                ) : (
+                  <MediaGallery
+                    media={media}
+                    onReorder={handleMediaReorder}
+                    onSetPrimary={handleMediaSetPrimary}
+                    onDelete={handleMediaDelete}
+                    onUpdate={handleMediaUpdate}
+                    onProcess={handleMediaProcess}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Footer - show for details tab or new product */}
+          {(activeTab === 'details' || !product) && (
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 transition-colors"
+              >
+                {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                {product ? 'Save Changes' : 'Create Product'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* AI Description Modal */}
+      <AIDescriptionModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        productName={formData.name}
+        category={formData.category}
+        attributes={{
+          roastLevel: formData.roastLevel,
+          origin: formData.origin,
+          flavorNotes: formData.flavorNotes,
+        }}
+        currentDescription={formData.description}
+        onApply={handleAIApply}
+        companyId={selectedCompanyId || undefined}
+      />
     </>
   );
 }
@@ -725,6 +958,7 @@ export default function ProductsPage() {
           product={editingProduct}
           onClose={closeModal}
           onSave={handleSaveProduct}
+          onRefresh={fetchProducts}
         />
       )}
     </div>

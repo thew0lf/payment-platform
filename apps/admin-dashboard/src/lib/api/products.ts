@@ -158,6 +158,63 @@ export interface CreateTagInput {
 export interface UpdateTagInput extends Partial<CreateTagInput> {}
 
 // ═══════════════════════════════════════════════════════════════
+// MEDIA TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export type MediaType = 'IMAGE' | 'VIDEO' | 'MODEL_3D' | 'DOCUMENT';
+
+export type MediaProcessAction = 'remove_background' | 'smart_crop' | 'enhance' | 'upscale';
+
+export interface ProductMedia {
+  id: string;
+  productId: string;
+  variantId?: string;
+  type: MediaType;
+  url: string;
+  thumbnailUrl?: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  width?: number;
+  height?: number;
+  altText?: string;
+  caption?: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  storageProvider: string;
+  storageKey: string;
+  cdnUrl?: string;
+  generatedBy?: string;
+  generationMetadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMediaInput {
+  variantId?: string;
+  altText?: string;
+  caption?: string;
+}
+
+export interface UpdateMediaInput {
+  variantId?: string;
+  altText?: string;
+  caption?: string;
+}
+
+export interface ProcessMediaOptions {
+  width?: number;
+  height?: number;
+  scale?: number;
+  gravity?: string;
+}
+
+export interface ProcessMediaInput {
+  action: MediaProcessAction;
+  options?: ProcessMediaOptions;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // COLLECTION TYPES
 // ═══════════════════════════════════════════════════════════════
 
@@ -407,6 +464,114 @@ export const collectionsApi = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// MEDIA API
+// ═══════════════════════════════════════════════════════════════
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+export const mediaApi = {
+  // List media for a product
+  list: async (productId: string, variantId?: string): Promise<ProductMedia[]> => {
+    const params = variantId ? `?variantId=${variantId}` : '';
+    return apiRequest.get<ProductMedia[]>(`/api/products/${productId}/media${params}`);
+  },
+
+  // Upload single file
+  upload: async (
+    productId: string,
+    file: File,
+    options?: CreateMediaInput
+  ): Promise<ProductMedia> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options?.variantId) formData.append('variantId', options.variantId);
+    if (options?.altText) formData.append('altText', options.altText);
+    if (options?.caption) formData.append('caption', options.caption);
+
+    const token = localStorage.getItem('avnz_token');
+    const response = await fetch(`${API_URL}/api/products/${productId}/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  // Upload multiple files
+  uploadMultiple: async (
+    productId: string,
+    files: File[],
+    options?: CreateMediaInput
+  ): Promise<ProductMedia[]> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    if (options?.variantId) formData.append('variantId', options.variantId);
+    if (options?.altText) formData.append('altText', options.altText);
+    if (options?.caption) formData.append('caption', options.caption);
+
+    const token = localStorage.getItem('avnz_token');
+    const response = await fetch(`${API_URL}/api/products/${productId}/media/bulk`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  // Update media metadata
+  update: async (
+    productId: string,
+    mediaId: string,
+    data: UpdateMediaInput
+  ): Promise<ProductMedia> => {
+    return apiRequest.patch<ProductMedia>(`/api/products/${productId}/media/${mediaId}`, data);
+  },
+
+  // Delete media
+  delete: async (productId: string, mediaId: string): Promise<void> => {
+    return apiRequest.delete(`/api/products/${productId}/media/${mediaId}`);
+  },
+
+  // Reorder media
+  reorder: async (productId: string, mediaIds: string[]): Promise<ProductMedia[]> => {
+    return apiRequest.post<ProductMedia[]>(`/api/products/${productId}/media/reorder`, { mediaIds });
+  },
+
+  // Set media as primary
+  setAsPrimary: async (productId: string, mediaId: string): Promise<ProductMedia> => {
+    return apiRequest.post<ProductMedia>(`/api/products/${productId}/media/${mediaId}/primary`);
+  },
+
+  // Process media with AI (background removal, crop, enhance, upscale)
+  process: async (
+    productId: string,
+    mediaId: string,
+    data: ProcessMediaInput
+  ): Promise<ProductMedia> => {
+    return apiRequest.post<ProductMedia>(
+      `/api/products/${productId}/media/${mediaId}/process`,
+      data
+    );
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -437,4 +602,526 @@ export const ROAST_LEVELS = [
 export const COLLECTION_TYPES = [
   { value: 'MANUAL', label: 'Manual Collection' },
   { value: 'AUTOMATIC', label: 'Automatic Collection' },
+] as const;
+
+// ═══════════════════════════════════════════════════════════════
+// AI GENERATION TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export type AITone = 'professional' | 'casual' | 'luxury' | 'technical';
+export type AILength = 'short' | 'medium' | 'long';
+
+export interface GenerateDescriptionInput {
+  productName: string;
+  category?: string;
+  attributes?: Record<string, unknown>;
+  tone?: AITone;
+  length?: AILength;
+  targetAudience?: string;
+  includeSEO?: boolean;
+  companyId?: string;
+}
+
+export interface GeneratedDescription {
+  description: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  suggestions?: string[];
+}
+
+export interface SuggestCategoryInput {
+  productName: string;
+  description?: string;
+  companyId?: string;
+}
+
+export interface CategorySuggestion {
+  category: string;
+  subcategory?: string;
+  tags: string[];
+  confidence?: number;
+}
+
+export interface GenerateAltTextInput {
+  productName: string;
+  imageDescription?: string;
+  companyId?: string;
+}
+
+export interface CheckGrammarInput {
+  text: string;
+  language?: string;
+}
+
+export interface GrammarIssue {
+  message: string;
+  offset: number;
+  length: number;
+  replacements: string[];
+}
+
+export interface GrammarCheckResult {
+  original: string;
+  corrected: string;
+  issues: GrammarIssue[];
+  issueCount: number;
+}
+
+export interface ImproveDescriptionInput {
+  description: string;
+  tone?: AITone;
+  focusAreas?: string[];
+  companyId?: string;
+}
+
+export interface ImprovedDescription {
+  original: string;
+  improved: string;
+  changes: string[];
+}
+
+export interface ApplyAIContentInput {
+  description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI API
+// ═══════════════════════════════════════════════════════════════
+
+export const aiApi = {
+  // Generate a product description using AI
+  generateDescription: async (data: GenerateDescriptionInput): Promise<GeneratedDescription> => {
+    return apiRequest.post<GeneratedDescription>('/api/products/ai/generate-description', data);
+  },
+
+  // Suggest category and tags for a product
+  suggestCategory: async (data: SuggestCategoryInput): Promise<CategorySuggestion> => {
+    return apiRequest.post<CategorySuggestion>('/api/products/ai/suggest-category', data);
+  },
+
+  // Generate alt text for product images
+  generateAltText: async (data: GenerateAltTextInput): Promise<{ altText: string }> => {
+    return apiRequest.post<{ altText: string }>('/api/products/ai/generate-alt-text', data);
+  },
+
+  // Check grammar in text
+  checkGrammar: async (data: CheckGrammarInput): Promise<GrammarCheckResult> => {
+    return apiRequest.post<GrammarCheckResult>('/api/products/ai/check-grammar', data);
+  },
+
+  // Improve an existing product description
+  improveDescription: async (data: ImproveDescriptionInput): Promise<ImprovedDescription> => {
+    return apiRequest.post<ImprovedDescription>('/api/products/ai/improve-description', data);
+  },
+
+  // Apply AI-generated content to a product
+  applyAIContent: async (productId: string, data: ApplyAIContentInput): Promise<void> => {
+    return apiRequest.post(`/api/products/ai/${productId}/apply`, data);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// AI CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+export const AI_TONES = [
+  { value: 'professional', label: 'Professional' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'luxury', label: 'Luxury' },
+  { value: 'technical', label: 'Technical' },
+] as const;
+
+export const AI_LENGTHS = [
+  { value: 'short', label: 'Short (1-2 sentences)' },
+  { value: 'medium', label: 'Medium (3-4 sentences)' },
+  { value: 'long', label: 'Long (1-2 paragraphs)' },
+] as const;
+
+export const GRAMMAR_LANGUAGES = [
+  { value: 'en-US', label: 'English (US)' },
+  { value: 'en-GB', label: 'English (UK)' },
+  { value: 'en-AU', label: 'English (Australia)' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'it', label: 'Italian' },
+] as const;
+
+// ═══════════════════════════════════════════════════════════════
+// PRICE RULE TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export type PriceRuleType = 'QUANTITY_BREAK' | 'CUSTOMER_GROUP' | 'TIME_BASED' | 'SUBSCRIPTION';
+export type AdjustmentType = 'FIXED_AMOUNT' | 'PERCENTAGE' | 'FIXED_PRICE';
+
+export interface ProductPriceRule {
+  id: string;
+  productId: string;
+  name: string;
+  type: PriceRuleType;
+  adjustmentType: AdjustmentType;
+  adjustmentValue: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  customerGroupId?: string;
+  startDate?: string;
+  endDate?: string;
+  priority: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePriceRuleInput {
+  name: string;
+  type: PriceRuleType;
+  adjustmentType: AdjustmentType;
+  adjustmentValue: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  customerGroupId?: string;
+  startDate?: string;
+  endDate?: string;
+  priority?: number;
+  isActive?: boolean;
+}
+
+export interface UpdatePriceRuleInput {
+  name?: string;
+  type?: PriceRuleType;
+  adjustmentType?: AdjustmentType;
+  adjustmentValue?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  customerGroupId?: string;
+  startDate?: string;
+  endDate?: string;
+  priority?: number;
+  isActive?: boolean;
+}
+
+export interface CalculatePriceInput {
+  quantity?: number;
+  customerGroupId?: string;
+}
+
+export interface CalculatedPrice {
+  originalPrice: number;
+  finalPrice: number;
+  discount: number;
+  discountPercent: number;
+  appliedRules: Array<{
+    id: string;
+    name: string;
+    type: PriceRuleType;
+    adjustment: number;
+  }>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VARIANT OPTION TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export interface VariantOptionValue {
+  id: string;
+  optionId: string;
+  value: string;
+  displayValue?: string;
+  colorCode?: string;
+  imageUrl?: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface VariantOption {
+  id: string;
+  companyId: string;
+  name: string;
+  displayName: string;
+  sortOrder: number;
+  values: VariantOptionValue[];
+  createdAt: string;
+}
+
+export interface CreateVariantOptionValueInput {
+  value: string;
+  displayValue?: string;
+  colorCode?: string;
+  imageUrl?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateVariantOptionValueInput {
+  id?: string;
+  value?: string;
+  displayValue?: string;
+  colorCode?: string;
+  imageUrl?: string;
+  sortOrder?: number;
+}
+
+export interface CreateVariantOptionInput {
+  name: string;
+  displayName: string;
+  sortOrder?: number;
+  values: CreateVariantOptionValueInput[];
+}
+
+export interface UpdateVariantOptionInput {
+  name?: string;
+  displayName?: string;
+  sortOrder?: number;
+  values?: UpdateVariantOptionValueInput[];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT VARIANT TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string;
+  barcode?: string;
+  options: Record<string, string>;
+  price?: number;
+  compareAtPrice?: number;
+  costPrice?: number;
+  weight?: number;
+  trackInventory: boolean;
+  inventoryQuantity: number;
+  lowStockThreshold?: number;
+  isActive: boolean;
+  sortOrder: number;
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  media?: ProductMedia[];
+  product?: {
+    id: string;
+    companyId: string;
+    name: string;
+  };
+}
+
+export interface CreateVariantInput {
+  name: string;
+  sku: string;
+  barcode?: string;
+  options: Record<string, string>;
+  price?: number;
+  compareAtPrice?: number;
+  costPrice?: number;
+  weight?: number;
+  trackInventory?: boolean;
+  inventoryQuantity?: number;
+  lowStockThreshold?: number;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateVariantInput extends Partial<CreateVariantInput> {}
+
+export interface BulkCreateVariantsInput {
+  variants: CreateVariantInput[];
+}
+
+export interface BulkUpdateVariantInput {
+  id: string;
+  price?: number;
+  compareAtPrice?: number;
+  inventoryQuantity?: number;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface BulkUpdateVariantsInput {
+  variants: BulkUpdateVariantInput[];
+}
+
+export interface GenerateVariantsInput {
+  optionIds: string[];
+  skuPrefix?: string;
+  defaultPrice?: number;
+  defaultInventory?: number;
+  trackInventory?: boolean;
+}
+
+export interface GenerateVariantsResult {
+  created: number;
+  variants: ProductVariant[];
+}
+
+export interface UpdateInventoryInput {
+  quantity: number;
+  reason?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VARIANT OPTIONS API
+// ═══════════════════════════════════════════════════════════════
+
+export const variantOptionsApi = {
+  // List all variant options for a company
+  list: async (companyId?: string): Promise<VariantOption[]> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<VariantOption[]>(`/api/products/variant-options${params}`);
+  },
+
+  // Get a single variant option
+  get: async (id: string): Promise<VariantOption> => {
+    return apiRequest.get<VariantOption>(`/api/products/variant-options/${id}`);
+  },
+
+  // Create a new variant option
+  create: async (data: CreateVariantOptionInput, companyId?: string): Promise<VariantOption> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.post<VariantOption>(`/api/products/variant-options${params}`, data);
+  },
+
+  // Update a variant option
+  update: async (id: string, data: UpdateVariantOptionInput): Promise<VariantOption> => {
+    return apiRequest.patch<VariantOption>(`/api/products/variant-options/${id}`, data);
+  },
+
+  // Delete a variant option
+  delete: async (id: string): Promise<void> => {
+    return apiRequest.delete(`/api/products/variant-options/${id}`);
+  },
+
+  // Add a value to an option
+  addValue: async (optionId: string, data: CreateVariantOptionValueInput): Promise<VariantOptionValue> => {
+    return apiRequest.post<VariantOptionValue>(`/api/products/variant-options/${optionId}/values`, data);
+  },
+
+  // Remove a value from an option
+  removeValue: async (optionId: string, valueId: string): Promise<void> => {
+    return apiRequest.delete(`/api/products/variant-options/${optionId}/values/${valueId}`);
+  },
+
+  // Reorder options
+  reorderOptions: async (optionIds: string[], companyId?: string): Promise<void> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.post(`/api/products/variant-options/reorder${params}`, { optionIds });
+  },
+
+  // Reorder values within an option
+  reorderValues: async (optionId: string, valueIds: string[]): Promise<void> => {
+    return apiRequest.post(`/api/products/variant-options/${optionId}/values/reorder`, { valueIds });
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT VARIANTS API
+// ═══════════════════════════════════════════════════════════════
+
+export const variantsApi = {
+  // List all variants for a product
+  list: async (productId: string, includeDeleted = false): Promise<ProductVariant[]> => {
+    const params = includeDeleted ? '?includeDeleted=true' : '';
+    return apiRequest.get<ProductVariant[]>(`/api/products/${productId}/variants${params}`);
+  },
+
+  // Get available options for a product's company
+  getAvailableOptions: async (productId: string): Promise<VariantOption[]> => {
+    return apiRequest.get<VariantOption[]>(`/api/products/${productId}/variants/options`);
+  },
+
+  // Get a single variant
+  get: async (productId: string, variantId: string): Promise<ProductVariant> => {
+    return apiRequest.get<ProductVariant>(`/api/products/${productId}/variants/${variantId}`);
+  },
+
+  // Create a new variant
+  create: async (productId: string, data: CreateVariantInput): Promise<ProductVariant> => {
+    return apiRequest.post<ProductVariant>(`/api/products/${productId}/variants`, data);
+  },
+
+  // Update a variant
+  update: async (productId: string, variantId: string, data: UpdateVariantInput): Promise<ProductVariant> => {
+    return apiRequest.patch<ProductVariant>(`/api/products/${productId}/variants/${variantId}`, data);
+  },
+
+  // Delete a variant (soft delete)
+  delete: async (productId: string, variantId: string): Promise<void> => {
+    return apiRequest.delete(`/api/products/${productId}/variants/${variantId}`);
+  },
+
+  // Bulk create variants
+  bulkCreate: async (productId: string, data: BulkCreateVariantsInput): Promise<ProductVariant[]> => {
+    return apiRequest.post<ProductVariant[]>(`/api/products/${productId}/variants/bulk`, data);
+  },
+
+  // Bulk update variants
+  bulkUpdate: async (productId: string, data: BulkUpdateVariantsInput): Promise<ProductVariant[]> => {
+    return apiRequest.patch<ProductVariant[]>(`/api/products/${productId}/variants/bulk`, data);
+  },
+
+  // Generate variants from option combinations
+  generate: async (productId: string, data: GenerateVariantsInput): Promise<GenerateVariantsResult> => {
+    return apiRequest.post<GenerateVariantsResult>(`/api/products/${productId}/variants/generate`, data);
+  },
+
+  // Update variant inventory
+  updateInventory: async (productId: string, variantId: string, data: UpdateInventoryInput): Promise<ProductVariant> => {
+    return apiRequest.post<ProductVariant>(`/api/products/${productId}/variants/${variantId}/inventory`, data);
+  },
+
+  // Reorder variants
+  reorder: async (productId: string, variantIds: string[]): Promise<void> => {
+    return apiRequest.post(`/api/products/${productId}/variants/reorder`, { variantIds });
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PRICE RULES API
+// ═══════════════════════════════════════════════════════════════
+
+export const priceRulesApi = {
+  // List all price rules for a product
+  list: async (productId: string, activeOnly = false): Promise<ProductPriceRule[]> => {
+    const params = activeOnly ? '?activeOnly=true' : '';
+    return apiRequest.get<ProductPriceRule[]>(`/api/products/${productId}/price-rules${params}`);
+  },
+
+  // Create a new price rule
+  create: async (productId: string, data: CreatePriceRuleInput): Promise<ProductPriceRule> => {
+    return apiRequest.post<ProductPriceRule>(`/api/products/${productId}/price-rules`, data);
+  },
+
+  // Update a price rule
+  update: async (productId: string, ruleId: string, data: UpdatePriceRuleInput): Promise<ProductPriceRule> => {
+    return apiRequest.patch<ProductPriceRule>(`/api/products/${productId}/price-rules/${ruleId}`, data);
+  },
+
+  // Delete a price rule
+  delete: async (productId: string, ruleId: string): Promise<void> => {
+    return apiRequest.delete(`/api/products/${productId}/price-rules/${ruleId}`);
+  },
+
+  // Calculate price with all applicable rules
+  calculate: async (productId: string, data: CalculatePriceInput = {}): Promise<CalculatedPrice> => {
+    return apiRequest.post<CalculatedPrice>(`/api/products/${productId}/price-rules/calculate`, data);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PRICE RULE CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+export const PRICE_RULE_TYPES = [
+  { value: 'QUANTITY_BREAK', label: 'Quantity Break', description: 'Discount based on order quantity' },
+  { value: 'CUSTOMER_GROUP', label: 'Customer Group', description: 'Special pricing for customer segments' },
+  { value: 'TIME_BASED', label: 'Time-Based', description: 'Limited-time promotional pricing' },
+  { value: 'SUBSCRIPTION', label: 'Subscription', description: 'Recurring subscription discount' },
+] as const;
+
+export const ADJUSTMENT_TYPES = [
+  { value: 'FIXED_AMOUNT', label: 'Fixed Amount', description: 'Subtract a fixed dollar amount' },
+  { value: 'PERCENTAGE', label: 'Percentage', description: 'Discount by percentage' },
+  { value: 'FIXED_PRICE', label: 'Fixed Price', description: 'Set a specific sale price' },
 ] as const;

@@ -4107,6 +4107,10 @@ model Bundle {
   discountType    AdjustmentType?
   discountValue   Decimal?        @db.Decimal(10, 2)
 
+  // Status
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4114,6 +4118,7 @@ model Bundle {
   product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   items   BundleItem[]
 
+  @@index([companyId])
   @@map("bundles")
 }
 
