@@ -24,6 +24,8 @@ import {
   FolderTree,
   Tags,
   Layers,
+  Shield,
+  Lock,
   LucideIcon,
 } from 'lucide-react';
 
@@ -90,6 +92,8 @@ export const iconMap: Record<string, LucideIcon> = {
   FolderTree,
   Tags,
   Layers,
+  Shield,
+  Lock,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -191,6 +195,8 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
+      { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
+      { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },
       { id: 'deleted', label: 'Trash', href: '/deleted', icon: Trash2 },
     ],
