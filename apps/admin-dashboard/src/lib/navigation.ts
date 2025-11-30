@@ -26,6 +26,9 @@ import {
   Layers,
   Shield,
   Lock,
+  Store,
+  Factory,
+  Link2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -94,6 +97,9 @@ export const iconMap: Record<string, LucideIcon> = {
   Layers,
   Shield,
   Lock,
+  Store,
+  Factory,
+  Link2,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -159,6 +165,19 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'shipments', label: 'Shipments', href: '/shipments', icon: PackageCheck, badgeKey: 'fulfillment' },
+    ],
+  },
+
+  // Vendors - Organization level only
+  {
+    id: 'vendors',
+    label: 'Vendors',
+    icon: Factory,
+    defaultExpanded: false,
+    requiredScopes: ['ORGANIZATION'],
+    items: [
+      { id: 'all-vendors', label: 'All Vendors', href: '/vendors', icon: Store },
+      { id: 'connections', label: 'Connections', href: '/vendors/connections', icon: Link2 },
     ],
   },
 

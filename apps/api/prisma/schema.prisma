@@ -38,6 +38,7 @@ model Organization {
   users     User[]   @relation("OrganizationUsers")
   apiKeys   ApiKey[]
   platformIntegrations PlatformIntegration[]
+  vendors   Vendor[]
 
   @@map("organizations")
 }
@@ -131,6 +132,9 @@ model Company {
   inventoryLocations InventoryLocation[]
   marketingVideos    MarketingVideo[]
   videoTemplates     MarketingVideoTemplate[]
+
+  // Feature 03: Vendor System
+  vendorConnections  VendorClientConnection[]
 
   // Soft delete fields
   deletedAt          DateTime?
@@ -578,6 +582,9 @@ model Product {
   // Feature 10C: Marketing Videos
   marketingVideos MarketingVideo[]
 
+  // Feature 03: Vendor System
+  vendorProductSyncs VendorProductSync[]
+
   // Soft delete fields
   deletedAt  DateTime?
   deletedBy  String?
@@ -687,6 +694,9 @@ model Order {
   items           OrderItem[]
   shipments       Shipment[]
   transactions    Transaction[]
+
+  // Feature 03: Vendor System
+  vendorOrders    VendorOrder[]
 
   // Soft delete fields
   deletedAt       DateTime?
@@ -1622,6 +1632,11 @@ enum ScopeType {
   COMPANY
   DEPARTMENT
   TEAM
+  // Vendor hierarchy (parallel to Client)
+  VENDOR
+  VENDOR_COMPANY
+  VENDOR_DEPARTMENT
+  VENDOR_TEAM
 }
 
 enum UserRole {
@@ -4656,4 +4671,402 @@ model UserSession {
 enum PermissionGrantType {
   ALLOW
   DENY
+}
+
+// =============================================================================
+// VENDOR SYSTEM (Feature 03)
+// Parallel to Client hierarchy: Organization → Vendor → VendorCompany
+// =============================================================================
+
+enum VendorStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum VendorTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum VendorType {
+  SUPPLIER
+  DROPSHIPPER
+  WHITE_LABEL
+  AFFILIATE
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum ProductSyncMode {
+  MANUAL
+  AUTOMATIC
+  WEBHOOK
+}
+
+enum ProductSyncStatus {
+  PENDING
+  SYNCING
+  COMPLETED
+  FAILED
+}
+
+// Vendor - Parallel to Client under Organization
+model Vendor {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  code           String?  @unique  // 4-char alphanumeric code (e.g., "ACFL")
+
+  // Contact
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+
+  // Business Info
+  businessName   String?
+  taxId          String?
+  website        String?
+  logo           String?
+  description    String?  @db.Text
+
+  // Status & Classification
+  status         VendorStatus @default(PENDING_VERIFICATION)
+  tier           VendorTier   @default(BRONZE)
+  vendorType     VendorType   @default(SUPPLIER)
+  isVerified     Boolean      @default(false)
+  verifiedAt     DateTime?
+
+  // Performance Metrics (denormalized for quick access)
+  averageRating       Float?   @default(0)
+  totalOrders         Int      @default(0)
+  completionRate      Float?   @default(100)
+  averageShipDays     Float?
+
+  // Settings
+  settings       Json     @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendorCompanies    VendorCompany[]
+  clientConnections  VendorClientConnection[]
+
+  // Soft delete fields
+  deletedAt    DateTime?
+  deletedBy    String?
+  cascadeId    String?
+
+  @@unique([organizationId, slug])
+  @@index([status])
+  @@index([tier])
+  @@index([vendorType])
+  @@index([deletedAt])
+  @@map("vendors")
+}
+
+// VendorCompany - Parallel to Company under Client
+model VendorCompany {
+  id           String   @id @default(cuid())
+  vendorId     String
+  name         String
+  slug         String
+  code         String?  @unique  // 4-char alphanumeric code (e.g., "ACOF")
+
+  // Business Info
+  domain       String?
+  logo         String?
+  timezone     String   @default("UTC")
+  currency     String   @default("USD")
+
+  // Location
+  address      String?
+  city         String?
+  state        String?
+  country      String   @default("US")
+  postalCode   String?
+
+  // Capabilities
+  capabilities String[] // e.g., ["white_label", "dropship", "wholesale"]
+  productCategories String[] // Categories this vendor company specializes in
+
+  // Status
+  status       EntityStatus @default(ACTIVE)
+
+  // Settings
+  settings     Json     @default("{}")
+
+  // Lead times
+  defaultLeadTimeDays Int @default(3)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendor              Vendor                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  clientConnections   VendorClientConnection[]
+  products            VendorProduct[]
+  orders              VendorOrder[]
+
+  // Soft delete fields
+  deletedAt    DateTime?
+  deletedBy    String?
+  cascadeId    String?
+
+  @@unique([vendorId, slug])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("vendor_companies")
+}
+
+// VendorClientConnection - Bridge between Company and VendorCompany
+model VendorClientConnection {
+  id              String   @id @default(cuid())
+  vendorId        String
+  vendorCompanyId String
+  companyId       String   // The client's company that is connected
+
+  // Status
+  status          ConnectionStatus @default(PENDING)
+
+  // Connection settings
+  customPricing   Json?    // Company-specific pricing overrides
+  terms           Json?    // Agreement terms
+  creditLimit     Float?
+  paymentTerms    String?  // e.g., "NET30", "NET60"
+
+  // Product sync settings
+  syncMode        ProductSyncMode @default(MANUAL)
+  lastSyncAt      DateTime?
+  autoSyncEnabled Boolean  @default(false)
+
+  // Performance tracking per connection
+  totalOrders     Int      @default(0)
+  totalRevenue    Float    @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  approvedAt DateTime?
+  approvedBy String?
+
+  // Relations
+  vendor        Vendor        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorCompany VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  syncedProducts VendorProductSync[]
+  orders        VendorOrder[]
+
+  @@unique([vendorCompanyId, companyId])
+  @@index([status])
+  @@index([vendorId])
+  @@index([vendorCompanyId])
+  @@index([companyId])
+  @@map("vendor_client_connections")
+}
+
+// VendorProduct - Products offered by vendor companies
+model VendorProduct {
+  id              String   @id @default(cuid())
+  vendorCompanyId String
+
+  // Product info
+  sku             String
+  name            String
+  description     String?  @db.Text
+
+  // Pricing
+  wholesalePrice  Float    // Price to clients
+  retailPrice     Float?   // Suggested retail price
+  currency        String   @default("USD")
+
+  // Inventory
+  stockQuantity   Int      @default(0)
+  lowStockThreshold Int    @default(10)
+
+  // Product details
+  weight          Float?
+  dimensions      Json?    // { length, width, height, unit }
+  images          String[]
+  categories      String[]
+
+  // Lead time
+  leadTimeDays    Int?
+
+  // Status
+  isActive        Boolean  @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendorCompany   VendorCompany       @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  syncedProducts  VendorProductSync[]
+  orderItems      VendorOrderItem[]
+
+  @@unique([vendorCompanyId, sku])
+  @@index([isActive])
+  @@map("vendor_products")
+}
+
+// VendorProductSync - Tracks which vendor products are synced to which company
+model VendorProductSync {
+  id           String   @id @default(cuid())
+  connectionId String
+  vendorProductId String
+  companyProductId String? // Link to the company's product if synced
+
+  // Sync status
+  status       ProductSyncStatus @default(PENDING)
+  lastSyncAt   DateTime?
+  syncError    String?
+
+  // Price override for this connection
+  customPrice  Float?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  connection    VendorClientConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  vendorProduct VendorProduct          @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+  companyProduct Product?              @relation(fields: [companyProductId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, vendorProductId])
+  @@index([status])
+  @@map("vendor_product_syncs")
+}
+
+// VendorOrder - Orders placed with vendors
+model VendorOrder {
+  id              String   @id @default(cuid())
+  connectionId    String
+  vendorCompanyId String
+  orderNumber     String   @unique
+
+  // Source order (if created from a customer order)
+  sourceOrderId   String?
+
+  // Status
+  status          OrderStatus @default(PENDING)
+
+  // Totals
+  subtotal        Float
+  shippingCost    Float    @default(0)
+  tax             Float    @default(0)
+  total           Float
+  currency        String   @default("USD")
+
+  // Shipping
+  shippingAddress Json?
+  shippingMethod  String?
+  trackingNumber  String?
+  carrier         ShippingCarrier?
+
+  // Dates
+  expectedDeliveryAt DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+
+  // Notes
+  notes           String?  @db.Text
+  vendorNotes     String?  @db.Text
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  connection    VendorClientConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  vendorCompany VendorCompany          @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  sourceOrder   Order?                 @relation(fields: [sourceOrderId], references: [id], onDelete: SetNull)
+  items         VendorOrderItem[]
+
+  @@index([status])
+  @@index([vendorCompanyId])
+  @@index([sourceOrderId])
+  @@map("vendor_orders")
+}
+
+// VendorOrderItem - Line items in vendor orders
+model VendorOrderItem {
+  id             String   @id @default(cuid())
+  vendorOrderId  String
+  vendorProductId String
+
+  // Item details
+  sku            String
+  name           String
+  quantity       Int
+  unitPrice      Float
+  totalPrice     Float
+
+  // Fulfillment
+  quantityFulfilled Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendorOrder   VendorOrder   @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
+  vendorProduct VendorProduct @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+
+  @@index([vendorOrderId])
+  @@map("vendor_order_items")
+}
+
+// MarketplaceReview - Reviews for vendor products in the marketplace
+model MarketplaceReview {
+  id              String   @id @default(cuid())
+  vendorId        String
+  vendorCompanyId String
+  companyId       String   // The Company (client's company) writing the review
+
+  // Review content
+  rating          Int      // 1-5 stars
+  title           String?
+  content         String?  @db.Text
+
+  // Verification
+  isVerified      Boolean  @default(false)
+  verifiedPurchase Boolean @default(false)
+
+  // Moderation
+  isApproved      Boolean  @default(true)
+  moderatedAt     DateTime?
+  moderatedBy     String?
+
+  // Helpful votes
+  helpfulCount    Int      @default(0)
+
+  // Response from vendor
+  vendorResponse  String?  @db.Text
+  respondedAt     DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([vendorCompanyId])
+  @@index([companyId])
+  @@index([rating])
+  @@map("marketplace_reviews")
 }
