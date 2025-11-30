@@ -222,6 +222,8 @@ async function seedRbac() {
 
   // Seed roles
   console.log('  Creating system roles...');
+  let platformAdminRole: { id: string } | null = null;
+
   for (const roleData of DEFAULT_ROLES) {
     const { permissions: permissionCodes, ...role } = roleData;
 
@@ -263,6 +265,11 @@ async function seedRbac() {
       });
     }
 
+    // Keep track of platform_admin role for user assignment
+    if (role.slug === 'platform_admin') {
+      platformAdminRole = roleRecord;
+    }
+
     // Link permissions
     await prisma.rolePermission.deleteMany({
       where: { roleId: roleRecord.id },
@@ -283,6 +290,49 @@ async function seedRbac() {
     }
 
     console.log(`  ✓ Created role: ${role.name} with ${permissionCodes.length} permissions`);
+  }
+
+  // Assign platform_admin role to existing SUPER_ADMIN and ADMIN users
+  if (platformAdminRole) {
+    console.log('  Assigning platform_admin to organization admins...');
+
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+        deletedAt: null,
+      },
+      include: {
+        organization: true,
+      },
+    });
+
+    for (const user of adminUsers) {
+      if (!user.organizationId) continue;
+
+      // Check if already has this role assignment
+      const existingAssignment = await prisma.userRoleAssignment.findFirst({
+        where: {
+          userId: user.id,
+          roleId: platformAdminRole.id,
+          scopeType: ScopeType.ORGANIZATION,
+          scopeId: user.organizationId,
+        },
+      });
+
+      if (!existingAssignment) {
+        await prisma.userRoleAssignment.create({
+          data: {
+            userId: user.id,
+            roleId: platformAdminRole.id,
+            scopeType: ScopeType.ORGANIZATION,
+            scopeId: user.organizationId,
+          },
+        });
+        console.log(`    ✓ Assigned platform_admin to ${user.email}`);
+      } else {
+        console.log(`    - ${user.email} already has platform_admin`);
+      }
+    }
   }
 
   console.log('✅ RBAC seeding complete!');
