@@ -205,9 +205,49 @@ export class OrdersService {
     return this.mapToOrder(order);
   }
 
+  /**
+   * Find order by ID without company scope.
+   * Used by org/client admins who verify access separately.
+   */
+  async findByIdUnscoped(id: string): Promise<Order> {
+    const order = await this.prisma.order.findFirst({
+      where: { id },
+      include: {
+        items: true,
+        shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+
+    return this.mapToOrder(order);
+  }
+
   async findByOrderNumber(orderNumber: string, companyId: string): Promise<Order> {
     const order = await this.prisma.order.findFirst({
       where: { orderNumber, companyId },
+      include: {
+        items: true,
+        shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${orderNumber} not found`);
+    }
+
+    return this.mapToOrder(order);
+  }
+
+  /**
+   * Find order by order number without company scope.
+   * Used by org/client admins who verify access separately.
+   */
+  async findByOrderNumberUnscoped(orderNumber: string): Promise<Order> {
+    const order = await this.prisma.order.findFirst({
+      where: { orderNumber },
       include: {
         items: true,
         shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },

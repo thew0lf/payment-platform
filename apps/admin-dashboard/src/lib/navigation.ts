@@ -1,6 +1,4 @@
 import {
-  Building,
-  Building2,
   LayoutDashboard,
   ShoppingCart,
   Receipt,
@@ -29,6 +27,8 @@ import {
   Store,
   Factory,
   Link2,
+  RotateCcw,
+  ClipboardList,
   LucideIcon,
 } from 'lucide-react';
 
@@ -70,8 +70,6 @@ export interface NavSection {
 // ═══════════════════════════════════════════════════════════════
 
 export const iconMap: Record<string, LucideIcon> = {
-  Building,
-  Building2,
   LayoutDashboard,
   ShoppingCart,
   Receipt,
@@ -100,6 +98,8 @@ export const iconMap: Record<string, LucideIcon> = {
   Store,
   Factory,
   Link2,
+  RotateCcw,
+  ClipboardList,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -107,18 +107,6 @@ export const iconMap: Record<string, LucideIcon> = {
 // ═══════════════════════════════════════════════════════════════
 
 export const navigationSections: NavSection[] = [
-  // Platform Admin - Org/Client only
-  {
-    id: 'platform-admin',
-    label: 'Platform Admin',
-    icon: Building2,
-    defaultExpanded: false,
-    requiredScopes: ['ORGANIZATION', 'CLIENT'],
-    items: [
-      { id: 'clients', label: 'Clients', href: '/admin/clients', icon: Building },
-    ],
-  },
-
   // Insights (Dashboard)
   {
     id: 'insights',
@@ -140,6 +128,7 @@ export const navigationSections: NavSection[] = [
       { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
+      { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
     ],
   },
 
@@ -217,6 +206,7 @@ export const navigationSections: NavSection[] = [
       { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
       { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },
+      { id: 'audit-logs', label: 'Audit Logs', href: '/settings/audit-logs', icon: ClipboardList },
       { id: 'deleted', label: 'Trash', href: '/deleted', icon: Trash2 },
     ],
   },

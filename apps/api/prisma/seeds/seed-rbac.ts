@@ -339,13 +339,15 @@ async function seedRbac() {
 }
 
 // Run if called directly
-seedRbac()
-  .catch((e) => {
-    console.error('Error seeding RBAC:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedRbac()
+    .catch((e) => {
+      console.error('Error seeding RBAC:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
 
 export { seedRbac, DEFAULT_PERMISSIONS, DEFAULT_ROLES };

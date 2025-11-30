@@ -413,3 +413,37 @@ export function getRoleColorClass(color: string | undefined): string {
   };
   return colorMap[color] || 'bg-gray-500';
 }
+
+// ═══════════════════════════════════════════════════════════════
+// API OBJECT (for compatibility with team components)
+// ═══════════════════════════════════════════════════════════════
+
+export const rbacApi = {
+  getPermissions,
+  createPermission,
+  getPermission,
+  deletePermission,
+  getRoles: async (params: { scopeType?: ScopeType; scopeId?: string } = {}): Promise<{ roles: Role[] }> => {
+    const roles = await getRoles(params.scopeType, params.scopeId);
+    return { roles };
+  },
+  createRole,
+  getRole,
+  updateRole,
+  deleteRole,
+  setRolePermissions,
+  assignRole,
+  unassignRole,
+  getUserRoles,
+  grantPermission,
+  revokeGrant,
+  getUserGrants,
+  getUserEffectivePermissions,
+  getMyPermissions,
+  checkMyPermission,
+  getMySessions,
+  revokeMySession,
+  revokeAllMySessions,
+  getUserSessions,
+  revokeUserSessions,
+};

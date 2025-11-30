@@ -76,6 +76,21 @@ export class OrdersController {
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Order> {
+    // For organization/client admins, we need to verify access to the order's company
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      // First fetch the order without company filter to get its companyId
+      const order = await this.ordersService.findByIdUnscoped(id);
+      // Then validate the user has access to that company
+      const hasAccess = await this.hierarchyService.canAccessCompany(
+        { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+        order.companyId,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException('Access denied to this order');
+      }
+      return order;
+    }
+    // For company-scoped users, use the original logic
     const companyId = this.getCompanyId(user);
     return this.ordersService.findById(id, companyId);
   }
@@ -85,6 +100,21 @@ export class OrdersController {
     @Param('orderNumber') orderNumber: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Order> {
+    // For organization/client admins, we need to verify access to the order's company
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      // First fetch the order without company filter to get its companyId
+      const order = await this.ordersService.findByOrderNumberUnscoped(orderNumber);
+      // Then validate the user has access to that company
+      const hasAccess = await this.hierarchyService.canAccessCompany(
+        { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+        order.companyId,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException('Access denied to this order');
+      }
+      return order;
+    }
+    // For company-scoped users, use the original logic
     const companyId = this.getCompanyId(user);
     return this.ordersService.findByOrderNumber(orderNumber, companyId);
   }

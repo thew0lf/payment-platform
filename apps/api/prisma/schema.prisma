@@ -17,61 +17,61 @@ datasource db {
 // =============================================================================
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  domain    String?  @unique
-  logo      String?
-  settings  Json     @default("{}")
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  domain   String? @unique
+  logo     String?
+  settings Json    @default("{}")
 
   // Billing
-  billingEmail    String?
-  billingPlan     BillingPlan @default(STARTER)
-  billingStatus   BillingStatus @default(ACTIVE)
+  billingEmail  String?
+  billingPlan   BillingPlan   @default(STARTER)
+  billingStatus BillingStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  clients   Client[]
-  users     User[]   @relation("OrganizationUsers")
-  apiKeys   ApiKey[]
+  clients              Client[]
+  users                User[]                @relation("OrganizationUsers")
+  apiKeys              ApiKey[]
   platformIntegrations PlatformIntegration[]
-  vendors   Vendor[]
+  vendors              Vendor[]
 
   @@map("organizations")
 }
 
 model Client {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   slug           String
-  code           String?  @unique  // 4-char alphanumeric code (e.g., "ACME")
+  code           String? @unique // 4-char alphanumeric code (e.g., "ACME")
   contactName    String?
   contactEmail   String?
   contactPhone   String?
-  settings       Json     @default("{}")
+  settings       Json    @default("{}")
 
   // Client plan/status
-  plan          ClientPlan   @default(BASIC)
-  status        EntityStatus @default(ACTIVE)
+  plan   ClientPlan   @default(BASIC)
+  status EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   companies    Company[]
-  users        User[]       @relation("ClientUsers")
+  users        User[]              @relation("ClientUsers")
   integrations ClientIntegration[]
 
   // Soft delete fields
-  deletedAt    DateTime?
-  deletedBy    String?
-  cascadeId    String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([organizationId, slug])
   @@index([deletedAt])
@@ -79,49 +79,49 @@ model Client {
 }
 
 model Company {
-  id            String   @id @default(cuid())
-  clientId      String
-  name          String
-  slug          String
-  code          String?  @unique  // 4-char alphanumeric code (e.g., "BREW") - globally unique
-  domain        String?
-  logo          String?
-  timezone      String   @default("UTC")
-  currency      String   @default("USD")
-  settings      Json     @default("{}")
+  id       String  @id @default(cuid())
+  clientId String
+  name     String
+  slug     String
+  code     String? @unique // 4-char alphanumeric code (e.g., "BREW") - globally unique
+  domain   String?
+  logo     String?
+  timezone String  @default("UTC")
+  currency String  @default("USD")
+  settings Json    @default("{}")
 
   // Payment configuration
-  paymentConfig Json     @default("{}")
+  paymentConfig Json @default("{}")
 
   // Status
-  status        EntityStatus @default(ACTIVE)
+  status EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  client             Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  departments        Department[]
-  users              User[]              @relation("CompanyUsers")
-  paymentProviders   PaymentProvider[]
-  subscriptions      Subscription[]
-  transactions       Transaction[]
-  customers          Customer[]
-  products           Product[]
-  orders             Order[]
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  departments      Department[]
+  users            User[]            @relation("CompanyUsers")
+  paymentProviders PaymentProvider[]
+  subscriptions    Subscription[]
+  transactions     Transaction[]
+  customers        Customer[]
+  products         Product[]
+  orders           Order[]
 
   // Momentum Intelligence Relations
-  customerIntents    CustomerIntent[]
-  interventions      Intervention[]
-  saveAttempts       SaveAttempt[]
-  voiceCalls         VoiceCall[]
-  generatedContents  GeneratedContent[]
-  upsellOffers       UpsellOffer[]
-  saveFlowConfig     SaveFlowConfig?
-  voiceScripts       VoiceScript[]
-  momentumAnalytics  MomentumAnalytics[]
-  upsellConfig       UpsellConfig?
+  customerIntents   CustomerIntent[]
+  interventions     Intervention[]
+  saveAttempts      SaveAttempt[]
+  voiceCalls        VoiceCall[]
+  generatedContents GeneratedContent[]
+  upsellOffers      UpsellOffer[]
+  saveFlowConfig    SaveFlowConfig?
+  voiceScripts      VoiceScript[]
+  momentumAnalytics MomentumAnalytics[]
+  upsellConfig      UpsellConfig?
 
   // Feature 10: Enhanced Products
   categories         Category[]
@@ -134,12 +134,17 @@ model Company {
   videoTemplates     MarketingVideoTemplate[]
 
   // Feature 03: Vendor System
-  vendorConnections  VendorClientConnection[]
+  vendorConnections VendorClientConnection[]
+
+  // Customer Service Relations
+  refunds        Refund[]
+  refundSettings RefundSettings?
+  customerTags   CustomerTag[]
 
   // Soft delete fields
-  deletedAt          DateTime?
-  deletedBy          String?
-  cascadeId          String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([clientId, slug])
   @@index([deletedAt])
@@ -147,24 +152,24 @@ model Company {
 }
 
 model Department {
-  id        String   @id @default(cuid())
-  companyId String
-  name      String
-  slug      String
+  id          String  @id @default(cuid())
+  companyId   String
+  name        String
+  slug        String
   description String?
-  settings  Json     @default("{}")
+  settings    Json    @default("{}")
 
   // Status
-  status    EntityStatus @default(ACTIVE)
+  status EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  teams     Team[]
-  users     User[]   @relation("DepartmentUsers")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  teams   Team[]
+  users   User[]  @relation("DepartmentUsers")
 
   // Soft delete fields
   deletedAt DateTime?
@@ -177,27 +182,27 @@ model Department {
 }
 
 model Team {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   departmentId String
   name         String
   slug         String
   description  String?
-  settings     Json     @default("{}")
+  settings     Json    @default("{}")
 
   // Team lead
-  teamLeadId   String?
+  teamLeadId String?
 
   // Status
-  status       EntityStatus @default(ACTIVE)
+  status EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  department  Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  teamLead    User?        @relation("TeamLead", fields: [teamLeadId], references: [id])
-  members     TeamMember[]
+  department Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teamLead   User?        @relation("TeamLead", fields: [teamLeadId], references: [id])
+  members    TeamMember[]
 
   @@unique([departmentId, slug])
   @@map("teams")
@@ -208,28 +213,28 @@ model Team {
 // =============================================================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String?
-  firstName     String?
-  lastName      String?
-  avatar        String?
-  phone         String?
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String?
+  firstName    String?
+  lastName     String?
+  avatar       String?
+  phone        String?
 
   // Auth
-  auth0Id       String?  @unique
-  emailVerified Boolean  @default(false)
+  auth0Id       String?   @unique
+  emailVerified Boolean   @default(false)
   lastLoginAt   DateTime?
 
   // Primary scope (where user was created)
-  scopeType     ScopeType
-  scopeId       String
+  scopeType ScopeType
+  scopeId   String
 
   // Global role
-  role          UserRole @default(USER)
+  role UserRole @default(USER)
 
   // Status
-  status        UserStatus @default(ACTIVE)
+  status UserStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -239,49 +244,55 @@ model User {
   organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
   organizationId String?
 
-  client         Client?       @relation("ClientUsers", fields: [clientId], references: [id])
-  clientId       String?
+  client   Client? @relation("ClientUsers", fields: [clientId], references: [id])
+  clientId String?
 
-  company        Company?      @relation("CompanyUsers", fields: [companyId], references: [id])
-  companyId      String?
+  company   Company? @relation("CompanyUsers", fields: [companyId], references: [id])
+  companyId String?
 
-  department     Department?   @relation("DepartmentUsers", fields: [departmentId], references: [id])
-  departmentId   String?
+  department   Department? @relation("DepartmentUsers", fields: [departmentId], references: [id])
+  departmentId String?
 
   // Team memberships (many-to-many)
   teamMemberships TeamMember[]
   teamsLed        Team[]       @relation("TeamLead")
 
   // Activity
-  auditLogs      AuditLog[]
-  deletionLogs   DeletionLog[] @relation("UserDeletions")
+  auditLogs    AuditLog[]
+  deletionLogs DeletionLog[] @relation("UserDeletions")
 
   // Feature 10: Enhanced Products
   inventoryAdjustments InventoryAdjustment[]
   marketingVideos      MarketingVideo[]
 
   // Soft delete tracking
-  deletedCategories    Category[]    @relation("CategoryDeletedBy")
+  deletedCategories Category[] @relation("CategoryDeletedBy")
 
   // Feature 02: RBAC Relations
-  roleAssignments      UserRoleAssignment[]
-  permissionGrants     PermissionGrant[]
-  sessions             UserSession[]
+  roleAssignments  UserRoleAssignment[]
+  permissionGrants PermissionGrant[]
+  sessions         UserSession[]
+
+  // Customer Service Relations
+  customerNotes    CustomerNote[]
+  refundsRequested Refund[]       @relation("RefundRequester")
+  refundsApproved  Refund[]       @relation("RefundApprover")
+  refundsRejected  Refund[]       @relation("RefundRejecter")
 
   // Soft delete fields
-  deletedAt      DateTime?
-  deletedBy      String?
-  cascadeId      String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@index([deletedAt])
   @@map("users")
 }
 
 model TeamMember {
-  id       String   @id @default(cuid())
-  teamId   String
-  userId   String
-  role     TeamRole @default(MEMBER)
+  id     String   @id @default(cuid())
+  teamId String
+  userId String
+  role   TeamRole @default(MEMBER)
 
   // Timestamps
   joinedAt  DateTime @default(now())
@@ -300,20 +311,20 @@ model TeamMember {
 // =============================================================================
 
 model Customer {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   companyId String
 
   // Customer info
-  email       String
-  firstName   String?
-  lastName    String?
-  phone       String?
+  email     String
+  firstName String?
+  lastName  String?
+  phone     String?
 
   // Metadata
-  metadata    Json   @default("{}")
+  metadata Json @default("{}")
 
   // Status
-  status      CustomerStatus @default(ACTIVE)
+  status CustomerStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -338,10 +349,14 @@ model Customer {
   // Feature 10C: Marketing Videos
   marketingVideos MarketingVideo[]
 
+  // Customer Service Relations
+  notes   CustomerNote[]
+  refunds Refund[]
+
   // Soft delete fields
-  deletedAt       DateTime?
-  deletedBy       String?
-  cascadeId       String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([companyId, email, deletedAt])
   @@index([companyId, email])
@@ -350,19 +365,19 @@ model Customer {
 }
 
 model Address {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   customerId String
 
   // Address type
-  type       AddressType @default(BOTH)
-  label      String?     // "Home", "Office", "Warehouse"
-  isDefault  Boolean     @default(false)
+  type      AddressType @default(BOTH)
+  label     String? // "Home", "Office", "Warehouse"
+  isDefault Boolean     @default(false)
 
   // Contact
-  firstName  String
-  lastName   String
-  company    String?
-  phone      String?
+  firstName String
+  lastName  String
+  company   String?
+  phone     String?
 
   // Address fields
   street1    String
@@ -370,18 +385,18 @@ model Address {
   city       String
   state      String
   postalCode String
-  country    String   @default("US")
+  country    String  @default("US")
 
   // Delivery
   deliveryInstructions String?
 
   // Validation
-  isValidated  Boolean   @default(false)
-  validatedAt  DateTime?
+  isValidated        Boolean   @default(false)
+  validatedAt        DateTime?
   validationResponse Json?
 
   // Status
-  status     EntityStatus @default(ACTIVE)
+  status EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -391,9 +406,9 @@ model Address {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Soft delete fields (CustomerAddress)
-  deletedAt  DateTime?
-  deletedBy  String?
-  cascadeId  String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@index([customerId, type])
   @@index([deletedAt])
@@ -405,49 +420,70 @@ model Address {
 // =============================================================================
 
 model PaymentVault {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   customerId String
 
   // Payment method type
-  type       PaymentMethodType
+  type PaymentMethodType
 
   // Gateway reference (never store raw card data)
-  gatewayCustomerId String?  // Customer ID at payment gateway
-  gatewayPaymentId  String?  // Payment method ID at gateway
+  gatewayCustomerId String? // Customer ID at payment gateway
+  gatewayPaymentId  String? // Payment method ID at gateway
 
-  // Encrypted token (AES-256-GCM)
-  // Contains gateway token, encrypted at application level
-  encryptedToken    String
-  keyVersion        Int      @default(1)  // For key rotation
+  // ===========================================
+  // ENCRYPTED SENSITIVE DATA (AES-256-GCM)
+  // ===========================================
+  // All sensitive data stored in encrypted JSON blob
+  // Contains: full card number, CVV token, full account numbers,
+  // check routing/account, check images, etc.
+  encryptedData  String  // Encrypted JSON with sensitive payment details
+  keyVersion     Int     @default(1) // For key rotation
+  encryptionAlgo String  @default("AES-256-GCM") // Encryption algorithm used
 
-  // Display data only (safe to store)
-  last4             String   // Last 4 digits
-  brand             String?  // VISA, MASTERCARD, AMEX, etc.
-  expMonth          Int?     // Card expiry month
-  expYear           Int?     // Card expiry year
-  bankName          String?  // For ACH
-  accountType       String?  // checking, savings
+  // For CHECK payments, encryptedData contains:
+  // - routingNumber: Full 9-digit ABA routing number
+  // - accountNumber: Full bank account number
+  // - checkNumber: Check number
+  // - checkImageFront: Base64 or S3 reference to front image
+  // - checkImageBack: Base64 or S3 reference to back image
+  // - micrLine: Full MICR line data
+
+  // ===========================================
+  // DISPLAY DATA ONLY (Safe to store unencrypted)
+  // ===========================================
+  last4       String  // Last 4 digits of card/account
+  bin         String? // First 6 digits (BIN) - identifies issuer, not cardholder
+  brand       String? // VISA, MASTERCARD, AMEX, etc. (for cards)
+  expMonth    Int?    // Card expiry month
+  expYear     Int?    // Card expiry year
+  bankName    String? // Bank name (for ACH/CHECK)
+  accountType String? // checking, savings
+  funding     String? // credit, debit, prepaid (for cards)
+
+  // Check-specific display fields (non-sensitive)
+  checkNumberLast4 String? // Last 4 of check number
+  routingLast4     String? // Last 4 of routing number
 
   // Fingerprint for duplicate detection
-  fingerprint       String?
+  fingerprint String?
 
   // Billing address (reference for AVS)
   billingAddressSnapshot Json?
 
   // Status
-  isDefault         Boolean  @default(false)
-  isActive          Boolean  @default(true)
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
 
   // Compliance
   consentRecordedAt DateTime?
   consentIp         String?
 
   // Usage tracking
-  lastUsedAt        DateTime?
-  usageCount        Int      @default(0)
+  lastUsedAt DateTime?
+  usageCount Int       @default(0)
 
   // Expiration
-  expiresAt         DateTime?
+  expiresAt DateTime?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -464,11 +500,11 @@ model PaymentVault {
 }
 
 model BillingAccount {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   customerId String
 
   // Display name
-  name       String?  // "Primary Card", "Business Account"
+  name String? // "Primary Card", "Business Account"
 
   // Default payment method
   paymentVaultId String?
@@ -477,12 +513,12 @@ model BillingAccount {
   billingAddress Json
 
   // Auto-pay settings
-  autoPayEnabled  Boolean @default(true)
-  autoPayDay      Int?    // Day of month for auto-pay
+  autoPayEnabled Boolean @default(true)
+  autoPayDay     Int? // Day of month for auto-pay
 
   // Status
-  isDefault       Boolean @default(false)
-  status          EntityStatus @default(ACTIVE)
+  isDefault Boolean      @default(false)
+  status    EntityStatus @default(ACTIVE)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -502,8 +538,8 @@ model BillingAccount {
 // =============================================================================
 
 model Product {
-  id          String   @id @default(cuid())
-  companyId   String
+  id        String @id @default(cuid())
+  companyId String
 
   // Product identification
   sku         String
@@ -516,38 +552,38 @@ model Product {
   subcategory String?
 
   // Coffee-specific attributes
-  roastLevel    RoastLevel?
-  origin        String?       // "Ethiopia", "Colombia", "Brazil Blend"
-  flavorNotes   String[]      // ["chocolate", "citrus", "nutty"]
-  process       String?       // "washed", "natural", "honey"
-  altitude      String?       // "1800-2200m"
-  varietal      String?       // "Bourbon", "Typica", "Gesha"
+  roastLevel  RoastLevel?
+  origin      String? // "Ethiopia", "Colombia", "Brazil Blend"
+  flavorNotes String[] // ["chocolate", "citrus", "nutty"]
+  process     String? // "washed", "natural", "honey"
+  altitude    String? // "1800-2200m"
+  varietal    String? // "Bourbon", "Typica", "Gesha"
 
   // Sizing
-  weight        Decimal?  @db.Decimal(10, 2)
-  weightUnit    String    @default("oz")  // oz, g, lb, kg
+  weight     Decimal? @db.Decimal(10, 2)
+  weightUnit String   @default("oz") // oz, g, lb, kg
 
   // Pricing
-  price           Decimal  @db.Decimal(10, 2)
-  compareAtPrice  Decimal? @db.Decimal(10, 2)
-  costPrice       Decimal? @db.Decimal(10, 2)  // For margin tracking
-  currency        String   @default("USD")
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  costPrice      Decimal? @db.Decimal(10, 2) // For margin tracking
+  currency       String   @default("USD")
 
   // Subscription settings
-  isSubscribable      Boolean @default(true)
-  subscriptionDiscount Decimal? @db.Decimal(5, 2)  // Percentage
+  isSubscribable       Boolean  @default(true)
+  subscriptionDiscount Decimal? @db.Decimal(5, 2) // Percentage
 
   // Inventory
-  trackInventory  Boolean @default(true)
-  stockQuantity   Int     @default(0)
-  lowStockThreshold Int   @default(10)
+  trackInventory    Boolean @default(true)
+  stockQuantity     Int     @default(0)
+  lowStockThreshold Int     @default(10)
 
   // Status
-  status          ProductStatus @default(ACTIVE)
-  isVisible       Boolean       @default(true)
+  status    ProductStatus @default(ACTIVE)
+  isVisible Boolean       @default(true)
 
   // SEO/Display
-  images          Json    @default("[]")  // Array of image URLs
+  images          Json    @default("[]") // Array of image URLs
   metaTitle       String?
   metaDescription String?
 
@@ -573,11 +609,11 @@ model Product {
   priceRules          ProductPriceRule[]
 
   // Feature 10B: Variants, Collections, Bundles, Inventory
-  variants          ProductVariant[]
-  collectionItems   CollectionProduct[]
-  bundle            Bundle?
-  bundleItems       BundleItem[]
-  inventoryLevels   InventoryLevel[]
+  variants        ProductVariant[]
+  collectionItems CollectionProduct[]
+  bundle          Bundle?
+  bundleItems     BundleItem[]
+  inventoryLevels InventoryLevel[]
 
   // Feature 10C: Marketing Videos
   marketingVideos MarketingVideo[]
@@ -586,9 +622,9 @@ model Product {
   vendorProductSyncs VendorProductSync[]
 
   // Soft delete fields
-  deletedAt  DateTime?
-  deletedBy  String?
-  cascadeId  String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([companyId, sku, deletedAt])
   @@unique([companyId, slug, deletedAt])
@@ -603,49 +639,49 @@ model Product {
 // =============================================================================
 
 model Order {
-  id              String   @id @default(cuid())
-  companyId       String
-  customerId      String
-  subscriptionId  String?
+  id               String  @id @default(cuid())
+  companyId        String
+  customerId       String
+  subscriptionId   String?
   billingAccountId String?
 
   // Order identification
-  orderNumber     String   @unique
-  externalId      String?  // External system reference
+  orderNumber String  @unique
+  externalId  String? // External system reference
 
   // Order type
-  type            OrderType @default(ONE_TIME)
+  type OrderType @default(ONE_TIME)
 
   // Status
-  status          OrderStatus @default(PENDING)
+  status OrderStatus @default(PENDING)
 
   // ===========================================
   // ADDRESS SNAPSHOTS (Immutable after lock)
   // ===========================================
 
   // Shipping address - copied at order, editable until locked
-  shippingSnapshot    Json
-  shippingAddressId   String?  // Reference to original address
+  shippingSnapshot  Json
+  shippingAddressId String? // Reference to original address
 
   // Billing address - copied at order, editable until locked
-  billingSnapshot     Json
-  billingAddressId    String?  // Reference to original address
+  billingSnapshot  Json
+  billingAddressId String? // Reference to original address
 
   // Address lock mechanism
-  addressLockedAt     DateTime?  // null = editable, set = frozen
-  addressLockedBy     String?    // "system", "fulfillment", userId
+  addressLockedAt DateTime? // null = editable, set = frozen
+  addressLockedBy String? // "system", "fulfillment", userId
 
   // ===========================================
   // ORDER TOTALS
   // ===========================================
 
-  subtotal        Decimal  @db.Decimal(10, 2)
-  discountAmount  Decimal  @db.Decimal(10, 2) @default(0)
-  discountCode    String?
-  shippingAmount  Decimal  @db.Decimal(10, 2) @default(0)
-  taxAmount       Decimal  @db.Decimal(10, 2) @default(0)
-  total           Decimal  @db.Decimal(10, 2)
-  currency        String   @default("USD")
+  subtotal       Decimal @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  discountCode   String?
+  shippingAmount Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
+  currency       String  @default("USD")
 
   // ===========================================
   // PAYMENT
@@ -653,7 +689,12 @@ model Order {
 
   paymentStatus   PaymentStatus @default(PENDING)
   paidAt          DateTime?
-  paymentMethod   String?       // Snapshot: "VISA ending 4242"
+  paymentMethod   String? // Display: "VISA ending 4242" or "Check #1234"
+  paymentVaultId  String? // Reference to PaymentVault for sensitive data
+
+  // Display-only payment snapshot (NO SENSITIVE DATA)
+  // All sensitive info (full numbers, images) stored in PaymentVault
+  paymentSnapshot Json?   // { type, brand, last4, bin, expMonth, expYear, funding, bankName, checkNumberLast4 }
 
   // ===========================================
   // FULFILLMENT TRACKING
@@ -663,11 +704,11 @@ model Order {
   fulfilledAt       DateTime?
 
   // Customer notes
-  customerNotes   String?
-  internalNotes   String?
+  customerNotes String?
+  internalNotes String?
 
   // Metadata
-  metadata        Json @default("{}")
+  metadata Json @default("{}")
 
   // Continuity tracking
   continuitySessionId String?
@@ -678,30 +719,33 @@ model Order {
   // TIMESTAMPS
   // ===========================================
 
-  orderedAt       DateTime @default(now())  // When customer placed order
-  confirmedAt     DateTime?                 // When payment confirmed
-  canceledAt      DateTime?
-  cancelReason    String?
+  orderedAt    DateTime  @default(now()) // When customer placed order
+  confirmedAt  DateTime? // When payment confirmed
+  canceledAt   DateTime?
+  cancelReason String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer        Customer        @relation(fields: [customerId], references: [id])
-  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id])
-  billingAccount  BillingAccount? @relation(fields: [billingAccountId], references: [id])
-  items           OrderItem[]
-  shipments       Shipment[]
-  transactions    Transaction[]
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id])
+  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id])
+  items          OrderItem[]
+  shipments      Shipment[]
+  transactions   Transaction[]
 
   // Feature 03: Vendor System
-  vendorOrders    VendorOrder[]
+  vendorOrders VendorOrder[]
+
+  // Refunds
+  refunds Refund[]
 
   // Soft delete fields
-  deletedAt       DateTime?
-  deletedBy       String?
-  cascadeId       String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@index([companyId, orderedAt])
   @@index([companyId, status, fulfillmentStatus])
@@ -713,31 +757,31 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  productId String?  // Nullable for deleted products
+  productId String? // Nullable for deleted products
 
   // ===========================================
   // PRODUCT SNAPSHOT (Immutable)
   // Captures product state at time of order
   // ===========================================
 
-  sku           String
-  name          String
-  description   String?
+  sku         String
+  name        String
+  description String?
 
   // Product attributes snapshot
-  productSnapshot Json    // Full product data at order time
+  productSnapshot Json // Full product data at order time
 
   // Quantity & Pricing
-  quantity      Int
-  unitPrice     Decimal  @db.Decimal(10, 2)
-  discountAmount Decimal @db.Decimal(10, 2) @default(0)
-  taxAmount     Decimal  @db.Decimal(10, 2) @default(0)
-  totalPrice    Decimal  @db.Decimal(10, 2)
+  quantity       Int
+  unitPrice      Decimal @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  totalPrice     Decimal @db.Decimal(10, 2)
 
   // Fulfillment
-  fulfilledQuantity Int @default(0)
+  fulfilledQuantity Int               @default(0)
   fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
 
   // Timestamps
@@ -757,50 +801,50 @@ model OrderItem {
 // =============================================================================
 
 model Shipment {
-  id        String   @id @default(cuid())
-  orderId   String
+  id      String @id @default(cuid())
+  orderId String
 
   // Shipment identification
   shipmentNumber String @unique
 
   // Carrier & Tracking
-  carrier         ShippingCarrier
-  carrierService  String?         // "Priority Mail", "Ground", "2-Day"
-  trackingNumber  String?
-  trackingUrl     String?
+  carrier        ShippingCarrier
+  carrierService String? // "Priority Mail", "Ground", "2-Day"
+  trackingNumber String?
+  trackingUrl    String?
 
   // Shipping method used
-  shippingMethod  ShippingMethod @default(GROUND)
+  shippingMethod ShippingMethod @default(GROUND)
 
   // Package details
-  weight          Decimal?  @db.Decimal(10, 2)
-  weightUnit      String    @default("oz")
-  length          Decimal?  @db.Decimal(10, 2)
-  width           Decimal?  @db.Decimal(10, 2)
-  height          Decimal?  @db.Decimal(10, 2)
-  dimensionUnit   String    @default("in")
+  weight        Decimal? @db.Decimal(10, 2)
+  weightUnit    String   @default("oz")
+  length        Decimal? @db.Decimal(10, 2)
+  width         Decimal? @db.Decimal(10, 2)
+  height        Decimal? @db.Decimal(10, 2)
+  dimensionUnit String   @default("in")
 
   // Cost
-  shippingCost    Decimal?  @db.Decimal(10, 2)
-  insuranceAmount Decimal?  @db.Decimal(10, 2)
+  shippingCost    Decimal? @db.Decimal(10, 2)
+  insuranceAmount Decimal? @db.Decimal(10, 2)
 
   // Labels
-  shippingLabelUrl  String?
-  returnLabelUrl    String?
+  shippingLabelUrl String?
+  returnLabelUrl   String?
 
   // Address snapshot (from order at time of shipment)
   shippingAddressSnapshot Json
 
   // Status
-  status          ShipmentStatus @default(PENDING)
+  status ShipmentStatus @default(PENDING)
 
   // Estimated dates
   estimatedShipDate     DateTime?
   estimatedDeliveryDate DateTime?
 
   // Actual dates
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
 
   // Signature
   signatureRequired Boolean @default(false)
@@ -820,7 +864,7 @@ model Shipment {
 }
 
 model ShipmentEvent {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   shipmentId String
 
   // Event details
@@ -829,9 +873,9 @@ model ShipmentEvent {
   location    String?
 
   // Raw carrier data
-  carrierCode     String?
-  carrierMessage  String?
-  carrierData     Json?
+  carrierCode    String?
+  carrierMessage String?
+  carrierData    Json?
 
   // When it happened
   occurredAt DateTime
@@ -851,25 +895,25 @@ model ShipmentEvent {
 // =============================================================================
 
 model PaymentProvider {
-  id        String   @id @default(cuid())
+  id        String              @id @default(cuid())
   companyId String
   name      String
   type      PaymentProviderType
 
   // Credentials (encrypted at application level)
   encryptedCredentials String
-  keyVersion           Int     @default(1)
+  keyVersion           Int    @default(1)
 
   // Configuration
-  isDefault    Boolean @default(false)
-  isActive     Boolean @default(true)
-  priority     Int     @default(0)
-  environment  String  @default("sandbox")  // sandbox, production
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+  priority    Int     @default(0)
+  environment String  @default("sandbox") // sandbox, production
 
   // Supported features
-  supportsRefunds     Boolean @default(true)
-  supportsVoid        Boolean @default(true)
-  supportsRecurring   Boolean @default(true)
+  supportsRefunds   Boolean @default(true)
+  supportsVoid      Boolean @default(true)
+  supportsRecurring Boolean @default(true)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -883,15 +927,15 @@ model PaymentProvider {
 }
 
 model Subscription {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   companyId  String
   customerId String
 
   // Plan details
-  planName    String
-  planAmount  Decimal  @db.Decimal(10, 2)
-  currency    String   @default("USD")
-  interval    BillingInterval
+  planName   String
+  planAmount Decimal         @db.Decimal(10, 2)
+  currency   String          @default("USD")
+  interval   BillingInterval
 
   // Billing cycle
   currentPeriodStart DateTime
@@ -903,20 +947,20 @@ model Subscription {
   trialEnd   DateTime?
 
   // Shipping preference for subscription orders
-  shippingAddressId String?
-  shippingPreferences Json @default("{}")
+  shippingAddressId   String?
+  shippingPreferences Json    @default("{}")
 
   // Status
-  status     SubscriptionStatus @default(ACTIVE)
-  canceledAt DateTime?
+  status       SubscriptionStatus @default(ACTIVE)
+  canceledAt   DateTime?
   cancelReason String?
 
   // Pause functionality
-  pausedAt     DateTime?
+  pausedAt      DateTime?
   pauseResumeAt DateTime?
 
   // Metadata
-  metadata   Json @default("{}")
+  metadata Json @default("{}")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -929,9 +973,9 @@ model Subscription {
   orders       Order[]
 
   // Soft delete fields
-  deletedAt    DateTime?
-  deletedBy    String?
-  cascadeId    String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@index([companyId, status])
   @@index([deletedAt])
@@ -939,7 +983,7 @@ model Subscription {
 }
 
 model Transaction {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   companyId         String
   customerId        String?
   subscriptionId    String?
@@ -948,34 +992,34 @@ model Transaction {
   paymentVaultId    String?
 
   // Transaction reference
-  transactionNumber String   @unique
+  transactionNumber String @unique
 
   // Transaction details
-  type             TransactionType
-  amount           Decimal  @db.Decimal(10, 2)
-  currency         String   @default("USD")
-  description      String?
+  type        TransactionType
+  amount      Decimal         @db.Decimal(10, 2)
+  currency    String          @default("USD")
+  description String?
 
   // Provider response
   providerTransactionId String?
   providerResponse      Json?
 
   // Status
-  status           TransactionStatus @default(PENDING)
-  failureReason    String?
-  failureCode      String?
+  status        TransactionStatus @default(PENDING)
+  failureReason String?
+  failureCode   String?
 
   // Refund tracking
-  refundedAmount   Decimal? @db.Decimal(10, 2)
-  parentTransactionId String?  // For refunds, links to original charge
+  refundedAmount      Decimal? @db.Decimal(10, 2)
+  parentTransactionId String? // For refunds, links to original charge
 
   // Risk & Fraud
-  riskScore        Int?
-  riskFlags        String[]
+  riskScore Int?
+  riskFlags String[]
 
   // AVS/CVV results
-  avsResult        String?
-  cvvResult        String?
+  avsResult String?
+  cvvResult String?
 
   // Continuity tracking
   continuitySessionId String?
@@ -1008,43 +1052,43 @@ model Transaction {
 // =============================================================================
 
 model MerchantAccount {
-  id                    String    @id @default(cuid())
-  companyId             String
+  id        String @id @default(cuid())
+  companyId String
 
   // Friendly naming
-  name                  String
-  description           String?
-  color                 String?
-  icon                  String?
-  tags                  String[]  @default([])
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  tags        String[] @default([])
 
   // Provider configuration
-  providerType          String
-  merchantId            String
-  descriptor            String?
-  descriptorPhone       String?
-  credentials           Json
-  environment           String    @default("sandbox")
+  providerType    String
+  merchantId      String
+  descriptor      String?
+  descriptorPhone String?
+  credentials     Json
+  environment     String  @default("sandbox")
 
   // Status
-  status                String    @default("pending")
-  statusReason          String?
-  statusChangedAt       DateTime?
+  status          String    @default("pending")
+  statusReason    String?
+  statusChangedAt DateTime?
 
   // Transaction limits
-  minTransactionAmount  Int       @default(50)
-  maxTransactionAmount  Int       @default(10000000)
-  dailyTransactionLimit Int?
-  dailyVolumeLimit      Int?
-  weeklyTransactionLimit Int?
-  weeklyVolumeLimit     Int?
+  minTransactionAmount    Int  @default(50)
+  maxTransactionAmount    Int  @default(10000000)
+  dailyTransactionLimit   Int?
+  dailyVolumeLimit        Int?
+  weeklyTransactionLimit  Int?
+  weeklyVolumeLimit       Int?
   monthlyTransactionLimit Int?
-  monthlyVolumeLimit    Int?
-  yearlyTransactionLimit Int?
-  yearlyVolumeLimit     Int?
-  velocityWindow        Int?
+  monthlyVolumeLimit      Int?
+  yearlyTransactionLimit  Int?
+  yearlyVolumeLimit       Int?
+  velocityWindow          Int?
   velocityMaxTransactions Int?
-  velocityMaxAmount     Int?
+  velocityMaxAmount       Int?
 
   // Current usage
   todayTransactionCount Int       @default(0)
@@ -1061,42 +1105,42 @@ model MerchantAccount {
   usageResetAt          DateTime  @default(now())
 
   // Fees & restrictions (JSON)
-  fees                  Json?
-  restrictions          Json?
+  fees         Json?
+  restrictions Json?
 
   // Routing
-  priority              Int       @default(100)
-  weight                Int       @default(100)
-  isDefault             Boolean   @default(false)
-  isBackupOnly          Boolean   @default(false)
+  priority     Int     @default(100)
+  weight       Int     @default(100)
+  isDefault    Boolean @default(false)
+  isBackupOnly Boolean @default(false)
 
   // Health
-  healthStatus          String    @default("healthy")
-  successRate           Float     @default(100)
-  avgLatencyMs          Float     @default(0)
-  lastHealthCheck       DateTime?
-  lastErrorCode         String?
-  lastErrorMessage      String?
-  lastErrorAt           DateTime?
-  uptimePercent         Float     @default(100)
+  healthStatus     String    @default("healthy")
+  successRate      Float     @default(100)
+  avgLatencyMs     Float     @default(0)
+  lastHealthCheck  DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+  lastErrorAt      DateTime?
+  uptimePercent    Float     @default(100)
 
   // Financial
-  reserveBalance        Int?
-  availableBalance      Int?
+  reserveBalance   Int?
+  availableBalance Int?
 
   // Metadata
-  notes                 String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
 
   // Integration relation
-  clientIntegration     ClientIntegration?
+  clientIntegration ClientIntegration?
 
   // Soft delete fields
-  deletedAt             DateTime?
-  deletedBy             String?
-  cascadeId             String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([companyId, name, deletedAt])
   @@index([companyId])
@@ -1111,38 +1155,38 @@ model MerchantAccount {
 // =============================================================================
 
 model AccountPool {
-  id                    String    @id @default(cuid())
-  companyId             String
+  id        String @id @default(cuid())
+  companyId String
 
   // Friendly naming
-  name                  String
-  description           String?
-  color                 String?
-  icon                  String?
-  tags                  String[]  @default([])
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  tags        String[] @default([])
 
   // Members (stored as JSON array of PoolMembership)
-  accounts              Json      @default("[]")
+  accounts Json @default("[]")
 
   // Load balancing strategy
-  balancingStrategy     String    @default("WEIGHTED")
+  balancingStrategy String @default("WEIGHTED")
 
   // Configuration (stored as JSON)
-  failover              Json      // FailoverConfig
-  healthRouting         Json      // HealthRoutingConfig
-  limitRouting          Json      // LimitRoutingConfig
-  stickySession         Json?     // StickySessionConfig (optional)
+  failover      Json // FailoverConfig
+  healthRouting Json // HealthRoutingConfig
+  limitRouting  Json // LimitRoutingConfig
+  stickySession Json? // StickySessionConfig (optional)
 
   // Status
-  status                String    @default("active")
+  status String @default("active")
 
   // Round-robin state
-  lastAccountIndex      Int       @default(0)
+  lastAccountIndex Int @default(0)
 
   // Metadata
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
 
   @@unique([companyId, name])
   @@index([companyId])
@@ -1155,58 +1199,58 @@ model AccountPool {
 // =============================================================================
 
 model RoutingRule {
-  id                    String    @id @default(cuid())
-  companyId             String
+  id        String @id @default(cuid())
+  companyId String
 
   // Friendly naming
-  name                  String
-  description           String?
-  color                 String?
-  tags                  String[]  @default([])
+  name        String
+  description String?
+  color       String?
+  tags        String[] @default([])
 
   // Status
-  status                String    @default("INACTIVE")
-  priority              Int       @default(100)
+  status   String @default("INACTIVE")
+  priority Int    @default(100)
 
   // Conditions & Actions (JSON)
-  conditions            Json
-  actions               Json
+  conditions Json
+  actions    Json
 
   // Fallback
-  fallbackAction        String?
-  fallbackPoolId        String?
-  fallbackMessage       String?
+  fallbackAction  String?
+  fallbackPoolId  String?
+  fallbackMessage String?
 
   // A/B Testing
-  testingEnabled        Boolean   @default(false)
-  testingTrafficPct     Float?
-  testingControlPoolId  String?
-  testingTestPoolId     String?
-  testingStartDate      DateTime?
-  testingEndDate        DateTime?
-  testingMetrics        String[]  @default([])
+  testingEnabled       Boolean   @default(false)
+  testingTrafficPct    Float?
+  testingControlPoolId String?
+  testingTestPoolId    String?
+  testingStartDate     DateTime?
+  testingEndDate       DateTime?
+  testingMetrics       String[]  @default([])
 
   // Scheduling
-  activateAt            DateTime?
-  deactivateAt          DateTime?
-  timezone              String?
-  recurringSchedule     String?
+  activateAt        DateTime?
+  deactivateAt      DateTime?
+  timezone          String?
+  recurringSchedule String?
 
   // Analytics
-  matchCount            Int       @default(0)
-  lastMatchedAt         DateTime?
-  avgProcessingTimeMs   Float     @default(0)
+  matchCount          Int       @default(0)
+  lastMatchedAt       DateTime?
+  avgProcessingTimeMs Float     @default(0)
 
   // Metadata
-  version               Int       @default(1)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String?
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
 
   // Soft delete fields
-  deletedAt             DateTime?
-  deletedBy             String?
-  cascadeId             String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([companyId, name, deletedAt])
   @@index([companyId])
@@ -1217,39 +1261,39 @@ model RoutingRule {
 }
 
 model RoutingDecision {
-  id                    String    @id @default(cuid())
-  companyId             String
-  transactionId         String
+  id            String @id @default(cuid())
+  companyId     String
+  transactionId String
 
   // Decision
-  primaryAccountId      String?
-  primaryAccountName    String?
-  fallbackAccountIds    String[]  @default([])
-  blocked               Boolean   @default(false)
-  blockReason           String?
-  flaggedForReview      Boolean   @default(false)
-  reviewReason          String?
-  require3ds            Boolean   @default(false)
+  primaryAccountId   String?
+  primaryAccountName String?
+  fallbackAccountIds String[] @default([])
+  blocked            Boolean  @default(false)
+  blockReason        String?
+  flaggedForReview   Boolean  @default(false)
+  reviewReason       String?
+  require3ds         Boolean  @default(false)
 
   // Amounts
-  surchargeAmount       Int       @default(0)
-  discountAmount        Int       @default(0)
-  originalAmount        Int
-  finalAmount           Int
+  surchargeAmount Int @default(0)
+  discountAmount  Int @default(0)
+  originalAmount  Int
+  finalAmount     Int
 
   // Applied rules
-  appliedRuleIds        String[]  @default([])
-  appliedRuleNames      String[]  @default([])
+  appliedRuleIds   String[] @default([])
+  appliedRuleNames String[] @default([])
 
   // Performance
-  evaluationTimeMs      Int
-  conditionsChecked     Int
-  rulesEvaluated        Int
+  evaluationTimeMs  Int
+  conditionsChecked Int
+  rulesEvaluated    Int
 
   // Context
-  contextSnapshot       Json?
+  contextSnapshot Json?
 
-  createdAt             DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([companyId])
   @@index([transactionId])
@@ -1262,95 +1306,95 @@ model RoutingDecision {
 // =============================================================================
 
 model PricingPlan {
-  id                    String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Plan identification
-  name                  String    @unique
-  displayName           String
-  description           String?
+  name        String  @unique
+  displayName String
+  description String?
 
   // Billing
-  billingInterval       String    @default("MONTHLY")
-  baseCost              Int       @default(0)
-  currency              String    @default("USD")
+  billingInterval String @default("MONTHLY")
+  baseCost        Int    @default(0)
+  currency        String @default("USD")
 
   // Included allowances (JSON)
-  included              Json      // { transactions: number, volume: number, apiCalls: number, ... }
+  included Json // { transactions: number, volume: number, apiCalls: number, ... }
 
   // Overage pricing (JSON)
-  overage               Json      // { transactionPrice: number, volumePercent: number, ... }
+  overage Json // { transactionPrice: number, volumePercent: number, ... }
 
   // Features (JSON)
-  features              Json      @default("[]")
+  features Json @default("[]")
 
   // Limits (JSON)
-  limits                Json?     // { maxCompanies: number, maxUsers: number, ... }
+  limits Json? // { maxCompanies: number, maxUsers: number, ... }
 
   // Status
-  status                String    @default("active")
-  isDefault             Boolean   @default(false)
+  status    String  @default("active")
+  isDefault Boolean @default(false)
 
   // Metadata
-  sortOrder             Int       @default(0)
-  metadata              Json?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  sortOrder Int      @default(0)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  subscriptions         ClientSubscription[]
+  subscriptions ClientSubscription[]
 
   @@index([status])
   @@map("pricing_plans")
 }
 
 model ClientSubscription {
-  id                    String    @id @default(cuid())
-  clientId              String    @unique
-  planId                String
+  id       String @id @default(cuid())
+  clientId String @unique
+  planId   String
 
   // Status
-  status                String    @default("active")
-  statusReason          String?
-  statusChangedAt       DateTime?
+  status          String    @default("active")
+  statusReason    String?
+  statusChangedAt DateTime?
 
   // Billing cycle
-  currentPeriodStart    DateTime
-  currentPeriodEnd      DateTime
-  nextBillingDate       DateTime?
-  billingAnchorDay      Int       @default(1)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  nextBillingDate    DateTime?
+  billingAnchorDay   Int       @default(1)
 
   // Trial
-  trialStart            DateTime?
-  trialEnd              DateTime?
+  trialStart DateTime?
+  trialEnd   DateTime?
 
   // Cancellation
-  canceledAt            DateTime?
-  cancelReason          String?
-  cancelAtPeriodEnd     Boolean   @default(false)
+  canceledAt        DateTime?
+  cancelReason      String?
+  cancelAtPeriodEnd Boolean   @default(false)
 
   // Pause
-  pausedAt              DateTime?
-  pauseResumeAt         DateTime?
-  pauseReason           String?
+  pausedAt      DateTime?
+  pauseResumeAt DateTime?
+  pauseReason   String?
 
   // Discount
-  discountPercent       Float?
-  discountReason        String?
-  discountExpiresAt     DateTime?
+  discountPercent   Float?
+  discountReason    String?
+  discountExpiresAt DateTime?
 
   // Stripe integration
-  stripeCustomerId      String?
-  stripeSubscriptionId  String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
 
   // Metadata
-  metadata              Json?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  plan                  PricingPlan     @relation(fields: [planId], references: [id])
-  usagePeriods          UsagePeriod[]
-  invoices              Invoice[]
+  plan         PricingPlan   @relation(fields: [planId], references: [id])
+  usagePeriods UsagePeriod[]
+  invoices     Invoice[]
 
   @@index([planId])
   @@index([status])
@@ -1358,49 +1402,49 @@ model ClientSubscription {
 }
 
 model UsagePeriod {
-  id                    String    @id @default(cuid())
-  subscriptionId        String
-  clientId              String
+  id             String @id @default(cuid())
+  subscriptionId String
+  clientId       String
 
   // Period dates
-  periodStart           DateTime
-  periodEnd             DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
   // Transaction metrics
-  transactionCount      Int       @default(0)
-  transactionVolume     BigInt    @default(0)
-  transactionCost       Int       @default(0)
+  transactionCount  Int    @default(0)
+  transactionVolume BigInt @default(0)
+  transactionCost   Int    @default(0)
 
   // Volume cost
-  volumeCost            Int       @default(0)
+  volumeCost Int @default(0)
 
   // API usage
-  apiCallCount          Int       @default(0)
-  apiCallCost           Int       @default(0)
+  apiCallCount Int @default(0)
+  apiCallCost  Int @default(0)
 
   // Resource usage
-  companiesUsed         Int       @default(0)
-  usersUsed             Int       @default(0)
-  storageUsedMb         Int       @default(0)
+  companiesUsed Int @default(0)
+  usersUsed     Int @default(0)
+  storageUsedMb Int @default(0)
 
   // Costs
-  baseCost              Int       @default(0)
-  overageCost           Int       @default(0)
-  totalCost             Int       @default(0)
+  baseCost    Int @default(0)
+  overageCost Int @default(0)
+  totalCost   Int @default(0)
 
   // Status
-  status                String    @default("active")
+  status String @default("active")
 
   // Metadata
-  closedAt              DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Relations
-  subscription          ClientSubscription @relation(fields: [subscriptionId], references: [id])
-  companyRecords        CompanyUsageRecord[]
-  usageEvents           UsageEvent[]
-  invoices              Invoice[]
+  subscription   ClientSubscription   @relation(fields: [subscriptionId], references: [id])
+  companyRecords CompanyUsageRecord[]
+  usageEvents    UsageEvent[]
+  invoices       Invoice[]
 
   @@index([subscriptionId])
   @@index([clientId])
@@ -1410,24 +1454,24 @@ model UsagePeriod {
 }
 
 model CompanyUsageRecord {
-  id                    String    @id @default(cuid())
-  usagePeriodId         String
-  companyId             String
+  id            String @id @default(cuid())
+  usagePeriodId String
+  companyId     String
 
   // Metrics
-  transactionCount      Int       @default(0)
-  transactionVolume     BigInt    @default(0)
-  apiCallCount          Int       @default(0)
+  transactionCount  Int    @default(0)
+  transactionVolume BigInt @default(0)
+  apiCallCount      Int    @default(0)
 
   // Calculated costs (allocated share)
-  allocatedCost         Int       @default(0)
+  allocatedCost Int @default(0)
 
   // Metadata
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  usagePeriod           UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
+  usagePeriod UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
 
   @@unique([usagePeriodId, companyId])
   @@index([companyId])
@@ -1435,27 +1479,27 @@ model CompanyUsageRecord {
 }
 
 model UsageEvent {
-  id                    String    @id @default(cuid())
-  usagePeriodId         String
-  companyId             String?
+  id            String  @id @default(cuid())
+  usagePeriodId String
+  companyId     String?
 
   // Event details
-  eventType             String
-  quantity              Int       @default(1)
-  unitCost              Int       @default(0)
-  totalCost             Int       @default(0)
+  eventType String
+  quantity  Int    @default(1)
+  unitCost  Int    @default(0)
+  totalCost Int    @default(0)
 
   // Reference
-  referenceType         String?
-  referenceId           String?
+  referenceType String?
+  referenceId   String?
 
   // Metadata
-  metadata              Json?
-  occurredAt            DateTime  @default(now())
-  createdAt             DateTime  @default(now())
+  metadata   Json?
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   // Relations
-  usagePeriod           UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
+  usagePeriod UsagePeriod @relation(fields: [usagePeriodId], references: [id], onDelete: Cascade)
 
   @@index([usagePeriodId])
   @@index([companyId])
@@ -1465,61 +1509,61 @@ model UsageEvent {
 }
 
 model Invoice {
-  id                    String    @id @default(cuid())
-  clientId              String
-  subscriptionId        String
-  usagePeriodId         String?
+  id             String  @id @default(cuid())
+  clientId       String
+  subscriptionId String
+  usagePeriodId  String?
 
   // Invoice number
-  invoiceNumber         String    @unique
+  invoiceNumber String @unique
 
   // Period
-  periodStart           DateTime
-  periodEnd             DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
   // Amounts (in cents)
-  subtotal              Int
-  discount              Int       @default(0)
-  tax                   Int       @default(0)
-  total                 Int
-  amountPaid            Int       @default(0)
-  amountDue             Int
+  subtotal   Int
+  discount   Int @default(0)
+  tax        Int @default(0)
+  total      Int
+  amountPaid Int @default(0)
+  amountDue  Int
 
   // Currency
-  currency              String    @default("USD")
+  currency String @default("USD")
 
   // Line items (JSON array)
-  lineItems             Json      @default("[]")
+  lineItems Json @default("[]")
 
   // Status
-  status                String    @default("draft")
+  status String @default("draft")
 
   // Dates
-  dueDate               DateTime
-  paidAt                DateTime?
-  voidedAt              DateTime?
-  sentAt                DateTime?
+  dueDate  DateTime
+  paidAt   DateTime?
+  voidedAt DateTime?
+  sentAt   DateTime?
 
   // Stripe
   stripeInvoiceId       String?
   stripePaymentIntentId String?
 
   // Payment
-  paymentMethod         String?
+  paymentMethod String?
 
   // PDF
-  pdfUrl                String?
+  pdfUrl String?
 
   // Notes
-  notes                 String?
+  notes String?
 
   // Metadata
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  subscription          ClientSubscription @relation(fields: [subscriptionId], references: [id])
-  usagePeriod           UsagePeriod?       @relation(fields: [usagePeriodId], references: [id])
+  subscription ClientSubscription @relation(fields: [subscriptionId], references: [id])
+  usagePeriod  UsagePeriod?       @relation(fields: [usagePeriodId], references: [id])
 
   @@index([clientId])
   @@index([subscriptionId])
@@ -1533,21 +1577,21 @@ model Invoice {
 // =============================================================================
 
 model ApiKey {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   name           String
-  keyHash        String   @unique
-  keyPrefix      String   // First 8 chars for identification
+  keyHash        String @unique
+  keyPrefix      String // First 8 chars for identification
 
   // Permissions
-  scopes         String[] @default([])
+  scopes String[] @default([])
 
   // Usage
-  lastUsedAt     DateTime?
-  expiresAt      DateTime?
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
 
   // Status
-  isActive       Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -1560,13 +1604,13 @@ model ApiKey {
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
+  id     String  @id @default(cuid())
+  userId String?
 
   // What happened
-  action    String
-  entity    String
-  entityId  String?
+  action   String
+  entity   String
+  entityId String?
 
   // Context
   scopeType ScopeType?
@@ -1687,11 +1731,15 @@ enum PaymentProviderType {
 enum PaymentMethodType {
   CARD
   ACH
+  CHECK
+  WIRE
   WALLET_APPLE
   WALLET_GOOGLE
   PAYPAL
   AFFIRM
   KLARNA
+  CASH
+  INVOICE
 }
 
 enum PaymentStatus {
@@ -1777,15 +1825,15 @@ enum OrderType {
 }
 
 enum OrderStatus {
-  PENDING           // Created, awaiting payment
-  CONFIRMED         // Payment received
-  PROCESSING        // Being prepared (address locked)
+  PENDING // Created, awaiting payment
+  CONFIRMED // Payment received
+  PROCESSING // Being prepared (address locked)
   PARTIALLY_SHIPPED // Some items shipped
-  SHIPPED           // All items shipped
-  DELIVERED         // Customer received
-  COMPLETED         // Finalized
-  CANCELED          // Canceled by customer/system
-  REFUNDED          // Fully refunded
+  SHIPPED // All items shipped
+  DELIVERED // Customer received
+  COMPLETED // Finalized
+  CANCELED // Canceled by customer/system
+  REFUNDED // Fully refunded
 }
 
 enum FulfillmentStatus {
@@ -1818,14 +1866,14 @@ enum ShippingMethod {
 }
 
 enum ShipmentStatus {
-  PENDING           // Label not created
-  LABEL_CREATED     // Label printed, not shipped
-  IN_TRANSIT        // With carrier
-  OUT_FOR_DELIVERY  // On truck for delivery
-  DELIVERED         // Delivered
-  FAILED            // Delivery failed
-  RETURNED          // Returned to sender
-  EXCEPTION         // Problem occurred
+  PENDING // Label not created
+  LABEL_CREATED // Label printed, not shipped
+  IN_TRANSIT // With carrier
+  OUT_FOR_DELIVERY // On truck for delivery
+  DELIVERED // Delivered
+  FAILED // Delivery failed
+  RETURNED // Returned to sender
+  EXCEPTION // Problem occurred
 }
 
 enum ShipmentEventType {
@@ -1857,31 +1905,31 @@ enum DataClassification {
 // =============================================================================
 
 model CustomerIntent {
-  id                String   @id @default(cuid())
-  companyId         String
-  customerId        String
+  id         String @id @default(cuid())
+  companyId  String
+  customerId String
 
   // Risk Assessment
-  churnScore        Float    @default(0)
-  churnRisk         ChurnRiskLevel @default(LOW)
-  confidence        Float    @default(0)
+  churnScore Float          @default(0)
+  churnRisk  ChurnRiskLevel @default(LOW)
+  confidence Float          @default(0)
 
   // Contributing Signals
-  signals           Json     // Array of detected signals
-  primaryFactors    String[]
+  signals        Json // Array of detected signals
+  primaryFactors String[]
 
   // Recommended Action
   recommendedAction InterventionType?
   urgency           InterventionUrgency @default(MONITORING)
 
   // Timestamps
-  calculatedAt      DateTime @default(now())
-  expiresAt         DateTime
+  calculatedAt DateTime @default(now())
+  expiresAt    DateTime
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  interventions     Intervention[]
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  interventions Intervention[]
 
   @@index([companyId, customerId])
   @@index([churnRisk, urgency])
@@ -1889,40 +1937,40 @@ model CustomerIntent {
 }
 
 model Intervention {
-  id                String   @id @default(cuid())
-  companyId         String
-  customerId        String
-  intentId          String?
+  id         String  @id @default(cuid())
+  companyId  String
+  customerId String
+  intentId   String?
 
   // Intervention Details
-  type              InterventionType
-  channel           DeliveryChannel
-  stage             String?          // For multi-stage flows
+  type    InterventionType
+  channel DeliveryChannel
+  stage   String? // For multi-stage flows
 
   // Content
-  templateId        String?
-  content           Json?            // Generated/customized content
-  offers            Json?            // Any offers presented
+  templateId String?
+  content    Json? // Generated/customized content
+  offers     Json? // Any offers presented
 
   // Execution
-  status            InterventionStatus @default(PENDING)
-  scheduledAt       DateTime?
-  executedAt        DateTime?
+  status      InterventionStatus @default(PENDING)
+  scheduledAt DateTime?
+  executedAt  DateTime?
 
   // Outcome
-  outcome           InterventionOutcome?
-  outcomeDetails    Json?
-  revenueImpact     Float?           // Positive = saved, Negative = lost
+  outcome        InterventionOutcome?
+  outcomeDetails Json?
+  revenueImpact  Float? // Positive = saved, Negative = lost
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  intent            CustomerIntent? @relation(fields: [intentId], references: [id])
-  voiceCall         VoiceCall?
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer  Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  intent    CustomerIntent? @relation(fields: [intentId], references: [id])
+  voiceCall VoiceCall?
 
   @@index([companyId, customerId])
   @@index([status, scheduledAt])
@@ -1931,38 +1979,38 @@ model Intervention {
 }
 
 model SaveAttempt {
-  id                String   @id @default(cuid())
-  companyId         String
-  customerId        String
+  id         String @id @default(cuid())
+  companyId  String
+  customerId String
 
   // Flow Tracking
-  flowConfigId      String
-  startedAt         DateTime @default(now())
-  completedAt       DateTime?
+  flowConfigId String
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
 
   // Stage Progress
-  currentStage      Int      @default(1)
-  stageHistory      Json     // Array of stage entries with timestamps
+  currentStage Int  @default(1)
+  stageHistory Json // Array of stage entries with timestamps
 
   // Diagnosis
   cancellationReason String?
-  reasonCategory    String?
+  reasonCategory     String?
 
   // Outcome
-  outcome           SaveOutcome?
-  savedBy           String?          // Which stage/offer saved them
-  offerAccepted     Json?
+  outcome       SaveOutcome?
+  savedBy       String? // Which stage/offer saved them
+  offerAccepted Json?
 
   // Attribution
-  revenuePreserved  Float?           // LTV that was saved
+  revenuePreserved Float? // LTV that was saved
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([companyId, customerId])
   @@index([outcome, savedBy])
@@ -1970,60 +2018,60 @@ model SaveAttempt {
 }
 
 model VoiceCall {
-  id                String   @id @default(cuid())
-  companyId         String
-  customerId        String
-  interventionId    String?  @unique
+  id             String  @id @default(cuid())
+  companyId      String
+  customerId     String
+  interventionId String? @unique
 
   // Twilio Details
-  twilioCallSid     String   @unique
-  direction         CallDirection
-  fromNumber        String
-  toNumber          String
+  twilioCallSid String        @unique
+  direction     CallDirection
+  fromNumber    String
+  toNumber      String
 
   // Timing
-  initiatedAt       DateTime @default(now())
-  answeredAt        DateTime?
-  endedAt           DateTime?
-  duration          Int?             // Seconds
+  initiatedAt DateTime  @default(now())
+  answeredAt  DateTime?
+  endedAt     DateTime?
+  duration    Int? // Seconds
 
   // AI Processing
-  scriptId          String
-  transcriptRaw     String?  @db.Text
-  transcriptProcessed Json?          // Structured transcript with intents
+  scriptId            String
+  transcriptRaw       String? @db.Text
+  transcriptProcessed Json? // Structured transcript with intents
 
   // Sentiment & Intent
-  overallSentiment  Sentiment?
-  detectedIntents   String[]
-  keyMoments        Json?            // Important moments in call
+  overallSentiment Sentiment?
+  detectedIntents  String[]
+  keyMoments       Json? // Important moments in call
 
   // Outcome
-  status            VoiceCallStatus @default(INITIATED)
-  outcome           CallOutcome?
-  outcomeDetails    Json?
+  status         VoiceCallStatus @default(INITIATED)
+  outcome        CallOutcome?
+  outcomeDetails Json?
 
   // Offers & Actions
-  offersPresented   Json?
-  offerAccepted     Json?
-  actionsTaken      Json?            // Pause, discount, escalate, etc.
+  offersPresented Json?
+  offerAccepted   Json?
+  actionsTaken    Json? // Pause, discount, escalate, etc.
 
   // Escalation
-  escalatedToHuman  Boolean  @default(false)
-  escalationReason  String?
-  humanAgentId      String?
+  escalatedToHuman Boolean @default(false)
+  escalationReason String?
+  humanAgentId     String?
 
   // Quality
-  qualityScore      Float?           // 0-100
-  qualityNotes      String?
+  qualityScore Float? // 0-100
+  qualityNotes String?
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  intervention      Intervention? @relation(fields: [interventionId], references: [id])
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  intervention Intervention? @relation(fields: [interventionId], references: [id])
 
   @@index([companyId, customerId])
   @@index([twilioCallSid])
@@ -2032,45 +2080,45 @@ model VoiceCall {
 }
 
 model UpsellOffer {
-  id                String   @id @default(cuid())
-  companyId         String
-  customerId        String
+  id         String @id @default(cuid())
+  companyId  String
+  customerId String
 
   // Offer Details
-  type              UpsellType
-  moment            UpsellMoment
-  productId         String?
+  type      UpsellType
+  moment    UpsellMoment
+  productId String?
 
   // Presentation
-  contentId         String?          // Link to GeneratedContent
-  position          String           // Where shown in flow
+  contentId String? // Link to GeneratedContent
+  position  String // Where shown in flow
 
   // Offer Terms
-  originalPrice     Float?
-  offerPrice        Float?
-  discount          Float?
-  validUntil        DateTime?
+  originalPrice Float?
+  offerPrice    Float?
+  discount      Float?
+  validUntil    DateTime?
 
   // Behavioral Config
-  triggerUsed       String?          // Which trigger presented this
+  triggerUsed String? // Which trigger presented this
 
   // Outcome
-  presented         Boolean  @default(false)
-  presentedAt       DateTime?
-  accepted          Boolean?
-  acceptedAt        DateTime?
-  revenue           Float?           // If accepted
+  presented   Boolean   @default(false)
+  presentedAt DateTime?
+  accepted    Boolean?
+  acceptedAt  DateTime?
+  revenue     Float? // If accepted
 
   // Attribution
-  attributionWindow Int?             // Hours
+  attributionWindow Int? // Hours
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([companyId, customerId])
   @@index([type, moment, accepted])
@@ -2078,101 +2126,101 @@ model UpsellOffer {
 }
 
 model UpsellConfig {
-  id                      String    @id @default(cuid())
-  companyId               String    @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  enabled                 Boolean   @default(true)
-  aiRecommendations       Boolean   @default(true)
+  enabled           Boolean @default(true)
+  aiRecommendations Boolean @default(true)
 
   // Frequency limits (JSON)
-  globalLimits            Json      // { maxPresentationsPerDay, maxPresentationsPerWeek, cooldownAfterDecline, cooldownAfterAccept }
+  globalLimits Json // { maxPresentationsPerDay, maxPresentationsPerWeek, cooldownAfterDecline, cooldownAfterAccept }
 
   // Channel settings (JSON)
-  channelDefaults         Json      @default("{}") // Per-channel configuration
+  channelDefaults Json @default("{}") // Per-channel configuration
 
   // AI settings (JSON)
-  aiSettings              Json      // { minConfidence, minRelevanceScore, maxRecommendations, optimizeFor }
+  aiSettings Json // { minConfidence, minRelevanceScore, maxRecommendations, optimizeFor }
 
   // Behavioral triggers (JSON)
-  triggerSettings         Json      // { enabledTriggers, triggerConfigs }
+  triggerSettings Json // { enabledTriggers, triggerConfigs }
 
   // A/B testing (JSON)
-  abTesting               Json      @default("{\"enabled\": false, \"defaultTrafficSplit\": 50}")
+  abTesting Json @default("{\"enabled\": false, \"defaultTrafficSplit\": 50}")
 
   // Timestamps
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company                 Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("upsell_configs")
 }
 
 model SaveFlowConfig {
-  id                String   @id @default(cuid())
-  companyId         String   @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  enabled           Boolean  @default(true)
+  enabled Boolean @default(true)
 
   // Stage Configurations (JSON for flexibility)
-  patternInterrupt  Json
-  diagnosisSurvey   Json
+  patternInterrupt       Json
+  diagnosisSurvey        Json
   branchingInterventions Json
-  nuclearOffer      Json
-  lossVisualization Json
-  exitSurvey        Json
-  winback           Json
+  nuclearOffer           Json
+  lossVisualization      Json
+  exitSurvey             Json
+  winback                Json
 
   // Voice AI Settings
-  voiceAIEnabled    Boolean  @default(false)
-  voiceAIConfig     Json?
+  voiceAIEnabled Boolean @default(false)
+  voiceAIConfig  Json?
 
   // A/B Testing
   activeExperiments Json?
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("save_flow_configs")
 }
 
 model VoiceScript {
-  id                String   @id @default(cuid())
-  companyId         String
+  id        String @id @default(cuid())
+  companyId String
 
   // Script Details
-  name              String
-  type              VoiceScriptType
-  description       String?
+  name        String
+  type        VoiceScriptType
+  description String?
 
   // Script Content (JSON for flexibility)
-  opening           Json     // greeting, patternInterrupt, acknowledgment
-  diagnosis         Json     // primaryQuestion, followUpQuestions, sentimentResponses
-  interventions     Json     // condition-based responses with offers
-  objectionHandling Json     // objection-response pairs
-  closing           Json     // acceptOffer, declineOffer, escalateToHuman, scheduleCallback
-  behavioralTriggers Json    // stage-based trigger configuration
+  opening            Json // greeting, patternInterrupt, acknowledgment
+  diagnosis          Json // primaryQuestion, followUpQuestions, sentimentResponses
+  interventions      Json // condition-based responses with offers
+  objectionHandling  Json // objection-response pairs
+  closing            Json // acceptOffer, declineOffer, escalateToHuman, scheduleCallback
+  behavioralTriggers Json // stage-based trigger configuration
 
   // Status
-  isActive          Boolean  @default(true)
-  isDefault         Boolean  @default(false)
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false)
 
   // Performance
-  usageCount        Int      @default(0)
-  avgSaveRate       Float?
-  avgCallDuration   Float?
+  usageCount      Int    @default(0)
+  avgSaveRate     Float?
+  avgCallDuration Float?
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, name])
   @@index([companyId, type])
@@ -2180,74 +2228,74 @@ model VoiceScript {
 }
 
 model BehavioralTrigger {
-  id                String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Trigger Details
-  name              String   @unique
-  displayName       String
-  description       String?
-  category          String   // e.g., "urgency", "social_proof", "loss_aversion"
+  name        String  @unique
+  displayName String
+  description String?
+  category    String // e.g., "urgency", "social_proof", "loss_aversion"
 
   // Implementation Guide (JSON)
-  implementation    Json     // pricing, headlines, visuals guidance
-  examples          String[]
+  implementation Json // pricing, headlines, visuals guidance
+  examples       String[]
 
   // Usage Stats
-  usageCount        Int      @default(0)
-  avgEffectiveness  Float?
+  usageCount       Int    @default(0)
+  avgEffectiveness Float?
 
   // Status
-  isActive          Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([category])
   @@map("behavioral_triggers")
 }
 
 model MomentumAnalytics {
-  id                String   @id @default(cuid())
-  companyId         String
-  periodStart       DateTime
-  periodEnd         DateTime
+  id          String   @id @default(cuid())
+  companyId   String
+  periodStart DateTime
+  periodEnd   DateTime
 
   // Save Metrics
-  totalSaveAttempts Int      @default(0)
-  successfulSaves   Int      @default(0)
-  saveRate          Float    @default(0)
-  revenuePreserved  Float    @default(0)
+  totalSaveAttempts Int   @default(0)
+  successfulSaves   Int   @default(0)
+  saveRate          Float @default(0)
+  revenuePreserved  Float @default(0)
 
   // Stage Performance (JSON)
-  stageMetrics      Json     // Performance by stage
+  stageMetrics Json // Performance by stage
 
   // Channel Performance
-  emailSaves        Int      @default(0)
-  smsSaves          Int      @default(0)
-  voiceSaves        Int      @default(0)
-  inAppSaves        Int      @default(0)
+  emailSaves Int @default(0)
+  smsSaves   Int @default(0)
+  voiceSaves Int @default(0)
+  inAppSaves Int @default(0)
 
   // Voice AI Metrics
-  totalCalls        Int      @default(0)
-  avgCallDuration   Float    @default(0)
-  voiceSaveRate     Float    @default(0)
+  totalCalls      Int   @default(0)
+  avgCallDuration Float @default(0)
+  voiceSaveRate   Float @default(0)
 
   // Content Performance
-  contentGenerated  Int      @default(0)
+  contentGenerated     Int   @default(0)
   topPerformingContent Json?
 
   // Upsell Metrics
-  upsellsPresented  Int      @default(0)
-  upsellsAccepted   Int      @default(0)
-  upsellRevenue     Float    @default(0)
+  upsellsPresented Int   @default(0)
+  upsellsAccepted  Int   @default(0)
+  upsellRevenue    Float @default(0)
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, periodStart, periodEnd])
   @@index([companyId])
@@ -2403,36 +2451,36 @@ enum VoiceScriptType {
 // =============================================================================
 
 model IntentDetection {
-  id                     String   @id @default(cuid())
-  companyId              String
-  customerId             String
-  sessionId              String?
+  id         String  @id @default(cuid())
+  companyId  String
+  customerId String
+  sessionId  String?
 
   // Primary intent
-  primaryIntent          String
-  primaryConfidence      Float
+  primaryIntent     String
+  primaryConfidence Float
 
   // Secondary intents (JSON array)
-  secondaryIntents       Json     @default("[]")
+  secondaryIntents Json @default("[]")
 
   // Cancel-specific
   cancelReason           String?
   cancelReasonConfidence Float?
 
   // Sentiment
-  sentiment              String
-  sentimentScore         Float
+  sentiment      String
+  sentimentScore Float
 
   // Urgency
-  urgency                String
+  urgency String
 
   // Source
-  source                 String
-  sourceData             Json?
+  source     String
+  sourceData Json?
 
   // Timestamps
-  detectedAt             DateTime @default(now())
-  createdAt              DateTime @default(now())
+  detectedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([companyId])
   @@index([customerId])
@@ -2460,18 +2508,18 @@ model ChurnSignal {
 }
 
 model ChurnRiskScore {
-  id                  String    @id @default(cuid())
-  customerId          String    @unique
-  companyId           String
-  score               Float
-  riskLevel           String
-  signalBreakdown     Json
-  trend               String
-  trendDelta          Float
-  predictedChurnDate  DateTime?
-  recommendedActions  String[]  @default([])
-  calculatedAt        DateTime  @default(now())
-  nextCalculationAt   DateTime
+  id                 String    @id @default(cuid())
+  customerId         String    @unique
+  companyId          String
+  score              Float
+  riskLevel          String
+  signalBreakdown    Json
+  trend              String
+  trendDelta         Float
+  predictedChurnDate DateTime?
+  recommendedActions String[]  @default([])
+  calculatedAt       DateTime  @default(now())
+  nextCalculationAt  DateTime
 
   @@index([companyId])
   @@index([riskLevel])
@@ -2480,45 +2528,45 @@ model ChurnRiskScore {
 }
 
 model CustomerEngagementMetrics {
-  id                       String    @id @default(cuid())
-  customerId               String    @unique
-  companyId                String
+  id         String @id @default(cuid())
+  customerId String @unique
+  companyId  String
 
   // Login/Activity
-  lastLoginAt              DateTime?
-  loginFrequency           Float     @default(0)
-  loginFrequencyTrend      Float     @default(0)
+  lastLoginAt         DateTime?
+  loginFrequency      Float     @default(0)
+  loginFrequencyTrend Float     @default(0)
 
   // Feature usage
-  featuresUsed             String[]  @default([])
-  featureUsageScore        Float     @default(0)
+  featuresUsed      String[] @default([])
+  featureUsageScore Float    @default(0)
 
   // Order metrics
-  totalOrders              Int       @default(0)
-  ordersLast30Days         Int       @default(0)
-  ordersLast90Days         Int       @default(0)
-  orderFrequencyTrend      Float     @default(0)
+  totalOrders         Int   @default(0)
+  ordersLast30Days    Int   @default(0)
+  ordersLast90Days    Int   @default(0)
+  orderFrequencyTrend Float @default(0)
 
   // Skip behavior
-  totalSkips               Int       @default(0)
-  skipsLast30Days          Int       @default(0)
-  skipRate                 Float     @default(0)
+  totalSkips      Int   @default(0)
+  skipsLast30Days Int   @default(0)
+  skipRate        Float @default(0)
 
   // Support
-  supportTicketsTotal      Int       @default(0)
-  supportTicketsLast30Days Int       @default(0)
-  avgTicketResolutionHours Float     @default(0)
+  supportTicketsTotal      Int   @default(0)
+  supportTicketsLast30Days Int   @default(0)
+  avgTicketResolutionHours Float @default(0)
 
   // Feedback
-  lastNpsScore             Int?
-  lastNpsDate              DateTime?
-  lastFeedbackSentiment    String?
+  lastNpsScore          Int?
+  lastNpsDate           DateTime?
+  lastFeedbackSentiment String?
 
   // Scores
-  engagementScore          Float     @default(50)
-  healthScore              Float     @default(50)
+  engagementScore Float @default(50)
+  healthScore     Float @default(50)
 
-  calculatedAt             DateTime  @default(now())
+  calculatedAt DateTime @default(now())
 
   @@index([companyId])
   @@index([engagementScore])
@@ -2532,46 +2580,46 @@ model CustomerEngagementMetrics {
 // =============================================================================
 
 model CSSession {
-  id                String    @id @default(cuid())
-  companyId         String
-  customerId        String
+  id         String @id @default(cuid())
+  companyId  String
+  customerId String
 
   // Session Details
-  channel           String    // voice, chat, email, sms
-  currentTier       CSTier    @default(AI_REP)
-  status            CSSessionStatus @default(ACTIVE)
+  channel     String // voice, chat, email, sms
+  currentTier CSTier          @default(AI_REP)
+  status      CSSessionStatus @default(ACTIVE)
 
   // Issue
-  issueCategory     String?
-  issueSummary      String?
+  issueCategory String?
+  issueSummary  String?
 
   // Sentiment Tracking
-  customerSentiment String    @default("NEUTRAL")
-  sentimentHistory  Json      @default("[]")
+  customerSentiment String @default("NEUTRAL")
+  sentimentHistory  Json   @default("[]")
 
   // Escalation
-  escalationHistory Json      @default("[]")
+  escalationHistory Json @default("[]")
 
   // Context
-  context           Json      @default("{}")
+  context Json @default("{}")
 
   // Resolution
-  resolutionType    String?
-  resolutionSummary String?
-  resolutionActions Json?
+  resolutionType       String?
+  resolutionSummary    String?
+  resolutionActions    Json?
   customerSatisfaction Int?
-  followUpRequired  Boolean   @default(false)
-  followUpDate      DateTime?
+  followUpRequired     Boolean   @default(false)
+  followUpDate         DateTime?
 
   // Timestamps
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  resolvedAt        DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
 
   // Relations
-  messages          CSMessage[]
-  refunds           Refund[]
-  rmas              RMA[]
+  messages CSMessage[]
+  refunds  Refund[]
+  rmas     RMA[]
 
   @@index([companyId])
   @@index([customerId])
@@ -2581,52 +2629,52 @@ model CSSession {
 }
 
 model CSMessage {
-  id         String   @id @default(cuid())
-  sessionId  String
-  role       String   // customer, ai_rep, ai_manager, human_agent, system
-  content    String   @db.Text
-  sentiment  String?
-  metadata   Json?
+  id        String  @id @default(cuid())
+  sessionId String
+  role      String // customer, ai_rep, ai_manager, human_agent, system
+  content   String  @db.Text
+  sentiment String?
+  metadata  Json?
 
   // Timestamps
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  session    CSSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session CSSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("cs_messages")
 }
 
 model CSConfig {
-  id                String   @id @default(cuid())
-  companyId         String   @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  enabled           Boolean  @default(true)
+  enabled Boolean @default(true)
 
   // Tier configurations (JSON)
-  aiRepConfig       Json
-  aiManagerConfig   Json
-  humanAgentConfig  Json
+  aiRepConfig      Json
+  aiManagerConfig  Json
+  humanAgentConfig Json
 
   // Irate customer protocol
-  irateProtocol     Json
+  irateProtocol Json
 
   // Channel configurations
-  channelConfigs    Json
+  channelConfigs Json
 
   // Business hours
-  businessHours     Json
+  businessHours Json
 
   // Response templates
-  responseTemplates Json     @default("[]")
+  responseTemplates Json @default("[]")
 
   // Integrations
-  integrations      Json     @default("{}")
+  integrations Json @default("{}")
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("cs_configs")
 }
@@ -2636,18 +2684,18 @@ model CSConfig {
 // =============================================================================
 
 model Refund {
-  id              String   @id @default(cuid())
-  companyId       String
-  customerId      String
-  orderId         String
-  rmaId           String?
-  csSessionId     String?
+  id          String  @id @default(cuid())
+  companyId   String
+  customerId  String
+  orderId     String
+  rmaId       String?
+  csSessionId String?
 
   // Refund Details
-  type            RefundType @default(MANUAL)
-  status          RefundStatus @default(PENDING)
-  reason          RefundReason
-  reasonDetails   String?
+  type          RefundType   @default(MANUAL)
+  status        RefundStatus @default(PENDING)
+  reason        RefundReason
+  reasonDetails String?
 
   // Amount
   requestedAmount Decimal  @db.Decimal(10, 2)
@@ -2656,38 +2704,44 @@ model Refund {
   amountBreakdown Json?
 
   // Method
-  method          RefundMethod @default(ORIGINAL_PAYMENT)
+  method RefundMethod @default(ORIGINAL_PAYMENT)
 
   // Approval
-  approvalLevel   String
-  approvedBy      String?
-  approvedAt      DateTime?
-  rejectedBy      String?
-  rejectedAt      DateTime?
-  rejectionReason String?
+  approvalLevel    String
+  approvedBy       String?
+  approvedAt       DateTime?
+  rejectedBy       String?
+  rejectedAt       DateTime?
+  rejectionReason  String?
   autoApprovalRule String?
 
   // Processing
-  paymentProcessor     String?
+  paymentProcessor       String?
   processorTransactionId String?
-  processedAt          DateTime?
-  failureReason        String?
-  retryCount           Int @default(0)
+  processedAt            DateTime?
+  failureReason          String?
+  retryCount             Int       @default(0)
 
   // Metadata
-  initiatedBy     String   // customer, ai_rep, ai_manager, human_agent, system
-  channel         String?
-  customerImpact  String?
-  fraudScore      Float?
-  tags            String[] @default([])
+  initiatedBy    String // customer, ai_rep, ai_manager, human_agent, system
+  channel        String?
+  customerImpact String?
+  fraudScore     Float?
+  tags           String[] @default([])
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  completedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
 
   // Relations
+  company         Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer   @relation(fields: [customerId], references: [id])
+  order           Order      @relation(fields: [orderId], references: [id])
   csSession       CSSession? @relation(fields: [csSessionId], references: [id])
+  requestedByUser User?      @relation("RefundRequester", fields: [initiatedBy], references: [id])
+  approvedByUser  User?      @relation("RefundApprover", fields: [approvedBy], references: [id])
+  rejectedByUser  User?      @relation("RefundRejecter", fields: [rejectedBy], references: [id])
 
   @@index([companyId])
   @@index([customerId])
@@ -2698,26 +2752,26 @@ model Refund {
 }
 
 model RefundPolicy {
-  id              String   @id @default(cuid())
-  companyId       String   @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  enabled         Boolean  @default(true)
+  enabled Boolean @default(true)
 
   // Rules (JSON)
-  generalRules    Json
-  autoApprovalRules Json   @default("[]")
-  tierLimits      Json
+  generalRules        Json
+  autoApprovalRules   Json @default("[]")
+  tierLimits          Json
   reasonSpecificRules Json @default("[]")
 
   // Notifications
-  notifications   Json
+  notifications Json
 
   // Fraud prevention
   fraudPrevention Json
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("refund_policies")
 }
@@ -2727,64 +2781,64 @@ model RefundPolicy {
 // =============================================================================
 
 model RMA {
-  id              String   @id @default(cuid())
-  rmaNumber       String   @unique
-  companyId       String
-  customerId      String
-  orderId         String
-  csSessionId     String?
+  id          String  @id @default(cuid())
+  rmaNumber   String  @unique
+  companyId   String
+  customerId  String
+  orderId     String
+  csSessionId String?
 
   // RMA Details
-  type            RMAType  @default(RETURN)
-  status          RMAStatus @default(REQUESTED)
-  reason          ReturnReason
-  reasonDetails   String?
+  type          RMAType      @default(RETURN)
+  status        RMAStatus    @default(REQUESTED)
+  reason        ReturnReason
+  reasonDetails String?
 
   // Items
-  items           Json     // Array of RMAItem
+  items Json // Array of RMAItem
 
   // Shipping
-  labelType       String   // prepaid, customer_paid, pickup
-  carrier         String?
-  trackingNumber  String?
-  trackingUrl     String?
-  labelUrl        String?
-  labelSentAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  returnAddress   Json
+  labelType      String // prepaid, customer_paid, pickup
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+  labelUrl       String?
+  labelSentAt    DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  returnAddress  Json
 
   // Inspection
-  inspectionStatus  String?
-  inspectionResult  String?
-  inspectionNotes   String?
-  inspectionPhotos  String[] @default([])
-  inspectedAt       DateTime?
-  inspectedBy       String?
+  inspectionStatus String?
+  inspectionResult String?
+  inspectionNotes  String?
+  inspectionPhotos String[]  @default([])
+  inspectedAt      DateTime?
+  inspectedBy      String?
 
   // Resolution
-  resolutionType    String   @default("refund")
-  resolutionStatus  String   @default("pending")
-  resolutionData    Json?
+  resolutionType   String @default("refund")
+  resolutionStatus String @default("pending")
+  resolutionData   Json?
 
   // Timeline
-  timeline        Json     @default("[]")
+  timeline Json @default("[]")
 
   // Metadata
-  initiatedBy     String
-  channel         String?
-  priority        String   @default("normal")
-  tags            String[] @default([])
-  internalNotes   String?
+  initiatedBy   String
+  channel       String?
+  priority      String   @default("normal")
+  tags          String[] @default([])
+  internalNotes String?
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  expiresAt       DateTime
-  completedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expiresAt   DateTime
+  completedAt DateTime?
 
   // Relations
-  csSession       CSSession? @relation(fields: [csSessionId], references: [id])
+  csSession CSSession? @relation(fields: [csSessionId], references: [id])
 
   @@index([companyId])
   @@index([customerId])
@@ -2795,27 +2849,27 @@ model RMA {
 }
 
 model RMAPolicy {
-  id              String   @id @default(cuid())
-  companyId       String   @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  enabled         Boolean  @default(true)
+  enabled Boolean @default(true)
 
   // Rules (JSON)
-  generalRules    Json
-  returnReasons   Json     @default("[]")
-  shippingConfig  Json
+  generalRules     Json
+  returnReasons    Json @default("[]")
+  shippingConfig   Json
   inspectionConfig Json
   resolutionConfig Json
 
   // Notifications
-  notifications   Json
+  notifications Json
 
   // Automation
-  automation      Json
+  automation Json
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("rma_policies")
 }
@@ -2825,59 +2879,59 @@ model RMAPolicy {
 // =============================================================================
 
 model TermsDocument {
-  id              String   @id @default(cuid())
-  companyId       String
+  id        String @id @default(cuid())
+  companyId String
 
   // Document Details
-  type            TermsType
-  title           String
-  version         String
-  status          TermsStatus @default(DRAFT_TERMS)
+  type    TermsType
+  title   String
+  version String
+  status  TermsStatus @default(DRAFT_TERMS)
 
   // Content
-  fullText        String   @db.Text
-  htmlFormatted   String?  @db.Text
-  sections        Json     @default("[]")
-  language        String   @default("en")
-  translations    Json?
+  fullText      String  @db.Text
+  htmlFormatted String? @db.Text
+  sections      Json    @default("[]")
+  language      String  @default("en")
+  translations  Json?
 
   // Readability
-  readabilityScore Int     @default(0)
-  wordCount       Int      @default(0)
-  estimatedReadTime Int    @default(0)
+  readabilityScore  Int @default(0)
+  wordCount         Int @default(0)
+  estimatedReadTime Int @default(0)
 
   // Metadata
-  author          String?
-  lastModifiedBy  String?
-  reviewedBy      String?
-  approvedBy      String?
-  approvedAt      DateTime?
-  generatedBy     String?  // human, ai, hybrid
-  aiModel         String?
-  tags            String[] @default([])
-  internalNotes   String?
-  externalUrl     String?
+  author         String?
+  lastModifiedBy String?
+  reviewedBy     String?
+  approvedBy     String?
+  approvedAt     DateTime?
+  generatedBy    String? // human, ai, hybrid
+  aiModel        String?
+  tags           String[]  @default([])
+  internalNotes  String?
+  externalUrl    String?
 
   // Compliance
-  complianceFrameworks String[] @default([])
-  jurisdictions   String[] @default([])
-  complianceRequirements Json @default("[]")
+  complianceFrameworks   String[] @default([])
+  jurisdictions          String[] @default([])
+  complianceRequirements Json     @default("[]")
 
   // History
-  history         Json     @default("[]")
+  history Json @default("[]")
 
   // Dates
-  effectiveDate   DateTime?
-  expirationDate  DateTime?
+  effectiveDate  DateTime?
+  expirationDate DateTime?
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  publishedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
 
   // Relations
-  summaries       TermsSummary[]
-  acceptances     TermsAcceptance[]
+  summaries   TermsSummary[]
+  acceptances TermsAcceptance[]
 
   @@index([companyId])
   @@index([type])
@@ -2886,58 +2940,58 @@ model TermsDocument {
 }
 
 model TermsSummary {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   termsDocumentId String
 
   // Summary Details
-  format          String   // bullet_points, faq, plain_language, key_points, comparison
-  level           String   // simple, standard, technical, legal
+  format String // bullet_points, faq, plain_language, key_points, comparison
+  level  String // simple, standard, technical, legal
 
-  content         String   @db.Text
+  content         String @db.Text
   keyPoints       Json?
   faqs            Json?
   importantDates  Json?
   userRights      Json?
   userObligations Json?
 
-  language        String   @default("en")
+  language String @default("en")
 
   // Timestamps
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  termsDocument   TermsDocument @relation(fields: [termsDocumentId], references: [id], onDelete: Cascade)
+  termsDocument TermsDocument @relation(fields: [termsDocumentId], references: [id], onDelete: Cascade)
 
   @@index([termsDocumentId])
   @@map("terms_summaries")
 }
 
 model TermsAcceptance {
-  id                String   @id @default(cuid())
-  termsDocumentId   String
-  termsVersion      String
-  customerId        String
-  userId            String?
+  id              String  @id @default(cuid())
+  termsDocumentId String
+  termsVersion    String
+  customerId      String
+  userId          String?
 
   // Acceptance Details
-  acceptanceMethod  String   // checkbox, click, signature, verbal, implicit
+  acceptanceMethod String // checkbox, click, signature, verbal, implicit
 
   // Context
-  ipAddress         String?
-  userAgent         String?
-  location          String?
-  deviceType        String?
-  channel           String?
+  ipAddress  String?
+  userAgent  String?
+  location   String?
+  deviceType String?
+  channel    String?
 
   // Withdrawal
-  withdrawnAt       DateTime?
-  withdrawalReason  String?
+  withdrawnAt      DateTime?
+  withdrawalReason String?
 
   // Timestamps
-  acceptedAt        DateTime @default(now())
+  acceptedAt DateTime @default(now())
 
   // Relations
-  termsDocument     TermsDocument @relation(fields: [termsDocumentId], references: [id])
+  termsDocument TermsDocument @relation(fields: [termsDocumentId], references: [id])
 
   @@index([termsDocumentId])
   @@index([customerId])
@@ -2946,34 +3000,34 @@ model TermsAcceptance {
 }
 
 model TermsAnalytics {
-  id                String   @id @default(cuid())
-  termsDocumentId   String
+  id              String @id @default(cuid())
+  termsDocumentId String
 
   // Views
-  totalViews        Int      @default(0)
-  uniqueViews       Int      @default(0)
-  avgTimeOnPage     Float    @default(0)
+  totalViews    Int   @default(0)
+  uniqueViews   Int   @default(0)
+  avgTimeOnPage Float @default(0)
 
   // Acceptances
-  totalAcceptances  Int      @default(0)
-  acceptanceRate    Float    @default(0)
+  totalAcceptances Int   @default(0)
+  acceptanceRate   Float @default(0)
 
   // Section engagement
-  sectionViews      Json     @default("{}")
+  sectionViews Json @default("{}")
 
   // Search
-  searchQueries     Json     @default("[]")
+  searchQueries Json @default("[]")
 
   // FAQ clicks
-  faqClicks         Json     @default("{}")
+  faqClicks Json @default("{}")
 
   // Period
-  periodStart       DateTime
-  periodEnd         DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([termsDocumentId, periodStart, periodEnd])
   @@index([termsDocumentId])
@@ -3009,23 +3063,28 @@ enum RefundStatus {
   COMPLETED
   REJECTED
   CANCELLED
-  // Note: FAILED already exists in TransactionStatus context
+  FAILED
 }
 
 enum RefundType {
   AUTO
   MANUAL
+  FULL
+  PARTIAL
   BULK
   MANAGER_OVERRIDE
 }
 
 enum RefundReason {
   PRODUCT_DEFECT
+  DAMAGED_ITEM
   WRONG_ITEM
   NOT_AS_DESCRIBED
   SHIPPING_DAMAGE
+  SHIPPING_ISSUE
   NEVER_RECEIVED
   DUPLICATE_CHARGE
+  DUPLICATE_ORDER
   SUBSCRIPTION_CANCELLATION
   CUSTOMER_REQUEST
   SERVICE_ISSUE
@@ -3033,6 +3092,8 @@ enum RefundReason {
   LATE_DELIVERY
   PRICE_MATCH
   GOODWILL
+  FRAUD
+  OTHER
   OTHER_REASON
 }
 
@@ -3119,24 +3180,24 @@ enum TermsStatus {
 // =============================================================================
 
 enum AuthType {
-  API_KEY           // Traditional API key authentication
-  OAUTH2            // OAuth 2.0 authorization code flow
-  OAUTH2_CLIENT     // OAuth 2.0 client credentials flow
-  BASIC_AUTH        // Basic HTTP authentication
-  CUSTOM            // Custom authentication (webhook-based, etc.)
+  API_KEY // Traditional API key authentication
+  OAUTH2 // OAuth 2.0 authorization code flow
+  OAUTH2_CLIENT // OAuth 2.0 client credentials flow
+  BASIC_AUTH // Basic HTTP authentication
+  CUSTOM // Custom authentication (webhook-based, etc.)
 }
 
 enum OAuthTokenStatus {
-  ACTIVE            // Token is valid and can be used
-  EXPIRED           // Token has expired, needs refresh
-  REFRESH_FAILED    // Refresh attempt failed
-  REVOKED           // Token was revoked by user or provider
-  INVALID           // Token is invalid (e.g., changed permissions)
+  ACTIVE // Token is valid and can be used
+  EXPIRED // Token has expired, needs refresh
+  REFRESH_FAILED // Refresh attempt failed
+  REVOKED // Token was revoked by user or provider
+  INVALID // Token is invalid (e.g., changed permissions)
 }
 
 enum OAuthFlowType {
-  PLATFORM          // Platform-level integration (org admin connecting)
-  CLIENT            // Client-level integration (client connecting their own)
+  PLATFORM // Platform-level integration (org admin connecting)
+  CLIENT // Client-level integration (client connecting their own)
 }
 
 // =============================================================================
@@ -3144,45 +3205,45 @@ enum OAuthFlowType {
 // =============================================================================
 
 model ContentTemplate {
-  id                    String    @id @default(cuid())
-  companyId             String
+  id        String @id @default(cuid())
+  companyId String
 
-  name                  String
-  description           String?
-  type                  String
-  purpose               String
-  status                String    @default("DRAFT")
+  name        String
+  description String?
+  type        String
+  purpose     String
+  status      String  @default("DRAFT")
 
-  subject               String?
-  preheader             String?
-  body                  String
-  bodyHtml              String?
+  subject   String?
+  preheader String?
+  body      String
+  bodyHtml  String?
 
-  variables             Json      @default("[]")
+  variables Json @default("[]")
 
-  aiGenerated           Boolean   @default(false)
-  aiProvider            String?
-  aiPrompt              String?
+  aiGenerated Boolean @default(false)
+  aiProvider  String?
+  aiPrompt    String?
 
-  triggersApplied       String[]  @default([])
-  triggerConfig         Json?
+  triggersApplied String[] @default([])
+  triggerConfig   Json?
 
-  personalizationLevel  String    @default("basic")
-  dynamicSections       Json?
+  personalizationLevel String @default("basic")
+  dynamicSections      Json?
 
-  usageCount            Int       @default(0)
-  conversionRate        Float?
-  openRate              Float?
-  clickRate             Float?
+  usageCount     Int    @default(0)
+  conversionRate Float?
+  openRate       Float?
+  clickRate      Float?
 
-  version               Int       @default(1)
-  previousVersionId     String?
+  version           Int     @default(1)
+  previousVersionId String?
 
-  createdBy             String
-  publishedAt           DateTime?
+  createdBy   String
+  publishedAt DateTime?
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([type])
@@ -3192,47 +3253,47 @@ model ContentTemplate {
 }
 
 model GeneratedContent {
-  id                    String    @id @default(cuid())
-  companyId             String
-  templateId            String?
+  id         String  @id @default(cuid())
+  companyId  String
+  templateId String?
 
-  type                  String
-  purpose               String
-  provider              String
+  type     String
+  purpose  String
+  provider String
 
-  prompt                String
-  systemPrompt          String?
+  prompt       String
+  systemPrompt String?
 
-  subject               String?
-  body                  String
-  bodyHtml              String?
+  subject  String?
+  body     String
+  bodyHtml String?
 
-  variations            Json?
-  selectedVariationId   String?
+  variations          Json?
+  selectedVariationId String?
 
-  customerId            String?
-  customerContext       Json?
+  customerId      String?
+  customerContext Json?
 
-  triggersApplied       String[]  @default([])
-  triggerApplications   Json?
+  triggersApplied     String[] @default([])
+  triggerApplications Json?
 
-  qualityScore          Float?
-  readabilityScore      Float?
-  sentimentScore        Float?
+  qualityScore     Float?
+  readabilityScore Float?
+  sentimentScore   Float?
 
-  tokensUsed            Int       @default(0)
-  generationTimeMs      Int       @default(0)
-  cost                  Float?
+  tokensUsed       Int    @default(0)
+  generationTimeMs Int    @default(0)
+  cost             Float?
 
-  status                String    @default("GENERATED")
-  reviewedBy            String?
-  reviewedAt            DateTime?
-  reviewNotes           String?
+  status      String    @default("GENERATED")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
 
-  createdAt             DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([type])
@@ -3242,19 +3303,19 @@ model GeneratedContent {
 }
 
 model ContentGenerationConfig {
-  id                    String    @id @default(cuid())
-  companyId             String    @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  providers             Json
-  claude                Json
-  ollama                Json
-  quality               Json
-  triggers              Json
-  brandVoice            Json
-  personalization       Json
+  providers       Json
+  claude          Json
+  ollama          Json
+  quality         Json
+  triggers        Json
+  brandVoice      Json
+  personalization Json
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("content_generation_configs")
 }
@@ -3264,54 +3325,54 @@ model ContentGenerationConfig {
 // =============================================================================
 
 model DeliveryMessage {
-  id                      String    @id @default(cuid())
-  companyId               String
-  customerId              String
+  id         String @id @default(cuid())
+  companyId  String
+  customerId String
 
-  recipientEmail          String?
-  recipientPhone          String?
-  recipientDeviceTokens   String[]  @default([])
+  recipientEmail        String?
+  recipientPhone        String?
+  recipientDeviceTokens String[] @default([])
 
-  channel                 String
-  priority                String    @default("NORMAL")
+  channel  String
+  priority String @default("NORMAL")
 
-  templateId              String?
-  contentId               String?
-  subject                 String?
-  body                    String
-  bodyHtml                String?
+  templateId String?
+  contentId  String?
+  subject    String?
+  body       String
+  bodyHtml   String?
 
-  category                String
-  tags                    String[]  @default([])
+  category String
+  tags     String[] @default([])
 
-  scheduleType            String    @default("IMMEDIATE")
-  scheduledFor            DateTime?
-  optimalSendWindow       Json?
+  scheduleType      String    @default("IMMEDIATE")
+  scheduledFor      DateTime?
+  optimalSendWindow Json?
 
-  status                  String    @default("PENDING")
-  statusHistory           Json      @default("[]")
+  status        String @default("PENDING")
+  statusHistory Json   @default("[]")
 
-  providerMessageId       String?
-  sentAt                  DateTime?
-  deliveredAt             DateTime?
-  openedAt                DateTime?
-  clickedAt               DateTime?
-  convertedAt             DateTime?
-  failedAt                DateTime?
-  failureReason           String?
+  providerMessageId String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  convertedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
 
-  opensCount              Int       @default(0)
-  clicksCount             Int       @default(0)
-  clickedLinks            String[]  @default([])
+  opensCount   Int      @default(0)
+  clicksCount  Int      @default(0)
+  clickedLinks String[] @default([])
 
-  variantId               String?
-  experimentId            String?
+  variantId    String?
+  experimentId String?
 
-  automationId            String?
-  automationStepId        String?
+  automationId     String?
+  automationStepId String?
 
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([customerId])
@@ -3321,11 +3382,11 @@ model DeliveryMessage {
 }
 
 model DeliveryRetry {
-  id                      String    @id @default(cuid())
-  messageId               String
-  retriesRemaining        Int
-  lastRetryAt             DateTime?
-  nextRetryAt             DateTime
+  id               String    @id @default(cuid())
+  messageId        String
+  retriesRemaining Int
+  lastRetryAt      DateTime?
+  nextRetryAt      DateTime
 
   @@index([messageId])
   @@index([nextRetryAt])
@@ -3333,65 +3394,65 @@ model DeliveryRetry {
 }
 
 model CustomerPreference {
-  id                      String    @id @default(cuid())
-  customerId              String
-  channel                 String
-  unsubscribed            Boolean   @default(false)
-  unsubscribedAt          DateTime?
+  id             String    @id @default(cuid())
+  customerId     String
+  channel        String
+  unsubscribed   Boolean   @default(false)
+  unsubscribedAt DateTime?
 
   @@unique([customerId, channel])
   @@map("customer_preferences")
 }
 
 model DeliveryConfig {
-  id                      String    @id @default(cuid())
-  companyId               String    @unique
+  id        String @id @default(cuid())
+  companyId String @unique
 
-  channelPriority         String[]
-  defaultChannel          String
+  channelPriority String[]
+  defaultChannel  String
 
-  sendTimeOptimization    Json
-  globalRateLimits        Json
+  sendTimeOptimization Json
+  globalRateLimits     Json
 
-  honorUnsubscribes       Boolean   @default(true)
-  doubleOptIn             Boolean   @default(false)
+  honorUnsubscribes Boolean @default(true)
+  doubleOptIn       Boolean @default(false)
 
-  trackOpens              Boolean   @default(true)
-  trackClicks             Boolean   @default(true)
-  trackConversions        Boolean   @default(true)
+  trackOpens       Boolean @default(true)
+  trackClicks      Boolean @default(true)
+  trackConversions Boolean @default(true)
 
-  retrySettings           Json
+  retrySettings Json
 
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("delivery_configs")
 }
 
 model Automation {
-  id                      String    @id @default(cuid())
-  companyId               String
+  id        String @id @default(cuid())
+  companyId String
 
-  name                    String
-  description             String?
-  category                String
-  status                  String    @default("DRAFT")
+  name        String
+  description String?
+  category    String
+  status      String  @default("DRAFT")
 
-  trigger                 Json
-  steps                   Json
+  trigger Json
+  steps   Json
 
-  settings                Json
+  settings Json
 
-  enrollmentCount         Int       @default(0)
-  completionCount         Int       @default(0)
-  conversionCount         Int       @default(0)
-  conversionRate          Float?
+  enrollmentCount Int    @default(0)
+  completionCount Int    @default(0)
+  conversionCount Int    @default(0)
+  conversionRate  Float?
 
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  activatedAt             DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  activatedAt DateTime?
 
-  enrollments             AutomationEnrollment[]
+  enrollments AutomationEnrollment[]
 
   @@index([companyId])
   @@index([status])
@@ -3399,29 +3460,29 @@ model Automation {
 }
 
 model AutomationEnrollment {
-  id                      String    @id @default(cuid())
-  automationId            String
-  customerId              String
+  id           String @id @default(cuid())
+  automationId String
+  customerId   String
 
-  status                  String    @default("ACTIVE")
+  status String @default("ACTIVE")
 
-  currentStepId           String?
-  currentStepStartedAt    DateTime?
+  currentStepId        String?
+  currentStepStartedAt DateTime?
 
-  stepsCompleted          String[]  @default([])
-  messagesSent            String[]  @default([])
+  stepsCompleted String[] @default([])
+  messagesSent   String[] @default([])
 
-  triggerData             Json?
+  triggerData Json?
 
-  enrolledAt              DateTime  @default(now())
-  completedAt             DateTime?
-  exitedAt                DateTime?
-  exitReason              String?
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  exitedAt    DateTime?
+  exitReason  String?
 
-  convertedAt             DateTime?
-  conversionValue         Decimal?  @db.Decimal(10, 2)
+  convertedAt     DateTime?
+  conversionValue Decimal?  @db.Decimal(10, 2)
 
-  automation              Automation @relation(fields: [automationId], references: [id])
+  automation Automation @relation(fields: [automationId], references: [id])
 
   @@index([automationId])
   @@index([customerId])
@@ -3434,25 +3495,25 @@ model AutomationEnrollment {
 // =============================================================================
 
 model AnalyticsReport {
-  id                      String    @id @default(cuid())
-  companyId               String
+  id        String @id @default(cuid())
+  companyId String
 
-  name                    String
-  description             String?
+  name        String
+  description String?
 
-  metrics                 Json      // Array of MetricCategory
-  customMetrics           Json?     // Custom metric definitions
+  metrics       Json // Array of MetricCategory
+  customMetrics Json? // Custom metric definitions
 
-  filters                 Json      // Date range, segments, products, channels
-  schedule                Json?     // Frequency, day, time, timezone
-  delivery                Json      // Format, recipients, options
+  filters  Json // Date range, segments, products, channels
+  schedule Json? // Frequency, day, time, timezone
+  delivery Json // Format, recipients, options
 
-  isActive                Boolean   @default(true)
+  isActive Boolean @default(true)
 
-  lastGeneratedAt         DateTime?
+  lastGeneratedAt DateTime?
 
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([isActive])
@@ -3460,51 +3521,51 @@ model AnalyticsReport {
 }
 
 model AnalyticsSnapshot {
-  id                      String    @id @default(cuid())
-  companyId               String
+  id        String @id @default(cuid())
+  companyId String
 
-  snapshotDate            DateTime
-  granularity             String    // hour, day, week, month
+  snapshotDate DateTime
+  granularity  String // hour, day, week, month
 
   // Churn metrics
-  churnRate               Float     @default(0)
-  churnedCustomers        Int       @default(0)
-  churnedRevenue          Decimal   @db.Decimal(10, 2) @default(0)
+  churnRate        Float   @default(0)
+  churnedCustomers Int     @default(0)
+  churnedRevenue   Decimal @default(0) @db.Decimal(10, 2)
 
   // Save flow metrics
-  saveAttempts            Int       @default(0)
-  successfulSaves         Int       @default(0)
-  saveRate                Float     @default(0)
-  revenueSaved            Decimal   @db.Decimal(10, 2) @default(0)
+  saveAttempts    Int     @default(0)
+  successfulSaves Int     @default(0)
+  saveRate        Float   @default(0)
+  revenueSaved    Decimal @default(0) @db.Decimal(10, 2)
 
   // Voice metrics
-  totalCalls              Int       @default(0)
-  avgCallDuration         Float     @default(0)
-  callSaveRate            Float     @default(0)
+  totalCalls      Int   @default(0)
+  avgCallDuration Float @default(0)
+  callSaveRate    Float @default(0)
 
   // Delivery metrics
-  messagesSent            Int       @default(0)
-  messagesDelivered       Int       @default(0)
-  deliveryRate            Float     @default(0)
-  openRate                Float     @default(0)
-  clickRate               Float     @default(0)
+  messagesSent      Int   @default(0)
+  messagesDelivered Int   @default(0)
+  deliveryRate      Float @default(0)
+  openRate          Float @default(0)
+  clickRate         Float @default(0)
 
   // Upsell metrics
-  upsellsPresented        Int       @default(0)
-  upsellsConverted        Int       @default(0)
-  upsellConversionRate    Float     @default(0)
-  upsellRevenue           Decimal   @db.Decimal(10, 2) @default(0)
+  upsellsPresented     Int     @default(0)
+  upsellsConverted     Int     @default(0)
+  upsellConversionRate Float   @default(0)
+  upsellRevenue        Decimal @default(0) @db.Decimal(10, 2)
 
   // Revenue metrics
-  totalRevenue            Decimal   @db.Decimal(10, 2) @default(0)
-  recurringRevenue        Decimal   @db.Decimal(10, 2) @default(0)
-  netRevenueRetention     Float     @default(0)
+  totalRevenue        Decimal @default(0) @db.Decimal(10, 2)
+  recurringRevenue    Decimal @default(0) @db.Decimal(10, 2)
+  netRevenueRetention Float   @default(0)
 
   // Active customers
-  activeSubscriptions     Int       @default(0)
-  atRiskCustomers         Int       @default(0)
+  activeSubscriptions Int @default(0)
+  atRiskCustomers     Int @default(0)
 
-  createdAt               DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([companyId, snapshotDate, granularity])
   @@index([companyId])
@@ -3513,26 +3574,26 @@ model AnalyticsSnapshot {
 }
 
 model DashboardAlert {
-  id                      String    @id @default(cuid())
-  companyId               String
+  id        String @id @default(cuid())
+  companyId String
 
-  type                    String    // warning, critical, info, success
-  category                String    // churn, save_flow, delivery, upsell, revenue, engagement
-  title                   String
-  message                 String
+  type     String // warning, critical, info, success
+  category String // churn, save_flow, delivery, upsell, revenue, engagement
+  title    String
+  message  String
 
-  metric                  String?
-  threshold               Float?
-  currentValue            Float?
-  actionUrl               String?
+  metric       String?
+  threshold    Float?
+  currentValue Float?
+  actionUrl    String?
 
-  acknowledgedAt          DateTime?
-  acknowledgedBy          String?
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
 
-  dismissedAt             DateTime?
-  dismissedBy             String?
+  dismissedAt DateTime?
+  dismissedBy String?
 
-  createdAt               DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([companyId])
   @@index([type])
@@ -3546,68 +3607,68 @@ model DashboardAlert {
 // =============================================================================
 
 model IntegrationDefinition {
-  id                  String    @id @default(cuid())
-  provider            String    @unique
-  category            String
-  name                String
-  description         String
-  logoUrl             String?
-  documentationUrl    String?
-  isOrgOnly           Boolean   @default(false)
-  isClientAllowed     Boolean   @default(true)
-  isPlatformOffered   Boolean   @default(false)
-  credentialSchema    Json
-  settingsSchema      Json      @default("{}")
-  requiredCompliance  String[]  @default([])
-  status              String    @default("active")
+  id                 String   @id @default(cuid())
+  provider           String   @unique
+  category           String
+  name               String
+  description        String
+  logoUrl            String?
+  documentationUrl   String?
+  isOrgOnly          Boolean  @default(false)
+  isClientAllowed    Boolean  @default(true)
+  isPlatformOffered  Boolean  @default(false)
+  credentialSchema   Json
+  settingsSchema     Json     @default("{}")
+  requiredCompliance String[] @default([])
+  status             String   @default("active")
 
   // OAuth Configuration
-  authType            AuthType  @default(API_KEY)
-  oauthConfig         Json?     // OAuth-specific config: authorizationUrl, tokenUrl, scopes, etc.
+  authType    AuthType @default(API_KEY)
+  oauthConfig Json? // OAuth-specific config: authorizationUrl, tokenUrl, scopes, etc.
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("integration_definitions")
 }
 
 // OAuth Token Storage for OAuth-based integrations
 model OAuthToken {
-  id                    String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Ownership - can be platform-level or client-level
   platformIntegrationId String?
   clientIntegrationId   String?
 
   // Token data (encrypted)
-  accessToken           String    @db.Text
-  refreshToken          String?   @db.Text
-  tokenType             String    @default("Bearer")
+  accessToken  String  @db.Text
+  refreshToken String? @db.Text
+  tokenType    String  @default("Bearer")
 
   // Expiration tracking
-  expiresAt             DateTime?
-  refreshExpiresAt      DateTime?
+  expiresAt        DateTime?
+  refreshExpiresAt DateTime?
 
   // Scopes granted
-  scopes                String[]  @default([])
+  scopes String[] @default([])
 
   // Provider-specific data
-  providerUserId        String?   // User ID at the OAuth provider
-  providerAccountId     String?   // Account ID if different from user
-  providerData          Json?     // Additional provider-specific metadata
+  providerUserId    String? // User ID at the OAuth provider
+  providerAccountId String? // Account ID if different from user
+  providerData      Json? // Additional provider-specific metadata
 
   // Encryption
-  keyVersion            Int       @default(1)
+  keyVersion Int @default(1)
 
   // Status
-  status                OAuthTokenStatus @default(ACTIVE)
-  lastRefreshedAt       DateTime?
-  lastUsedAt            DateTime?
-  errorMessage          String?
+  status          OAuthTokenStatus @default(ACTIVE)
+  lastRefreshedAt DateTime?
+  lastUsedAt      DateTime?
+  errorMessage    String?
 
   // Timestamps
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([platformIntegrationId])
   @@index([clientIntegrationId])
@@ -3618,31 +3679,31 @@ model OAuthToken {
 
 // OAuth State for CSRF protection during authorization flow
 model OAuthState {
-  id                    String    @id @default(cuid())
-  state                 String    @unique
+  id    String @id @default(cuid())
+  state String @unique
 
   // Context for the OAuth flow
-  provider              String
-  organizationId        String?
-  clientId              String?
-  userId                String
+  provider       String
+  organizationId String?
+  clientId       String?
+  userId         String
 
   // Flow type
-  flowType              OAuthFlowType @default(PLATFORM)
+  flowType OAuthFlowType @default(PLATFORM)
 
   // Redirect after completion
-  redirectUrl           String?
+  redirectUrl String?
 
   // Additional context
-  metadata              Json?
+  metadata Json?
 
   // Expiration (short-lived)
-  expiresAt             DateTime
+  expiresAt DateTime
 
   // Status
-  usedAt                DateTime?
+  usedAt DateTime?
 
-  createdAt             DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([state])
   @@index([expiresAt])
@@ -3650,28 +3711,28 @@ model OAuthState {
 }
 
 model PlatformIntegration {
-  id                    String    @id @default(cuid())
-  organizationId        String
-  provider              String
-  category              String
-  name                  String
-  description           String?
-  credentials           Json
-  settings              Json      @default("{}")
-  environment           String    @default("SANDBOX")
-  isSharedWithClients   Boolean   @default(false)
-  clientPricing         Json?
-  status                String    @default("PENDING")
-  lastTestedAt          DateTime?
-  lastTestResult        String?
-  errorMessage          String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String
-  updatedBy             String?
+  id                  String    @id @default(cuid())
+  organizationId      String
+  provider            String
+  category            String
+  name                String
+  description         String?
+  credentials         Json
+  settings            Json      @default("{}")
+  environment         String    @default("SANDBOX")
+  isSharedWithClients Boolean   @default(false)
+  clientPricing       Json?
+  status              String    @default("PENDING")
+  lastTestedAt        DateTime?
+  lastTestResult      String?
+  errorMessage        String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  createdBy           String
+  updatedBy           String?
 
-  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  clientIntegrations    ClientIntegration[]
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientIntegrations ClientIntegration[]
 
   @@unique([organizationId, provider])
   @@index([organizationId])
@@ -3679,36 +3740,36 @@ model PlatformIntegration {
 }
 
 model ClientIntegration {
-  id                      String    @id @default(cuid())
-  clientId                String
-  provider                String
-  category                String
-  name                    String
-  description             String?
-  mode                    String    @default("OWN")
-  credentials             Json?
-  platformIntegrationId   String?
-  settings                Json      @default("{}")
-  environment             String    @default("SANDBOX")
-  usageThisMonth          Json?
-  isDefault               Boolean   @default(false)
-  priority                Int       @default(0)
-  status                  String    @default("PENDING")
-  isVerified              Boolean   @default(false)
-  verifiedAt              DateTime?
-  verifiedBy              String?
-  lastTestedAt            DateTime?
-  lastTestResult          String?
-  errorMessage            String?
-  merchantAccountId       String?   @unique
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  createdBy               String
-  updatedBy               String?
+  id                    String    @id @default(cuid())
+  clientId              String
+  provider              String
+  category              String
+  name                  String
+  description           String?
+  mode                  String    @default("OWN")
+  credentials           Json?
+  platformIntegrationId String?
+  settings              Json      @default("{}")
+  environment           String    @default("SANDBOX")
+  usageThisMonth        Json?
+  isDefault             Boolean   @default(false)
+  priority              Int       @default(0)
+  status                String    @default("PENDING")
+  isVerified            Boolean   @default(false)
+  verifiedAt            DateTime?
+  verifiedBy            String?
+  lastTestedAt          DateTime?
+  lastTestResult        String?
+  errorMessage          String?
+  merchantAccountId     String?   @unique
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String
+  updatedBy             String?
 
-  client                  Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  platformIntegration     PlatformIntegration? @relation(fields: [platformIntegrationId], references: [id])
-  merchantAccount         MerchantAccount? @relation(fields: [merchantAccountId], references: [id])
+  client              Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platformIntegration PlatformIntegration? @relation(fields: [platformIntegrationId], references: [id])
+  merchantAccount     MerchantAccount?     @relation(fields: [merchantAccountId], references: [id])
 
   @@unique([clientId, provider, name])
   @@index([clientId])
@@ -3721,41 +3782,41 @@ model ClientIntegration {
 // =============================================================================
 
 model DeletionLog {
-  id                String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Entity identification
-  entityType        String    // Model name: Client, Company, Customer, etc.
-  entityId          String    // ID of the deleted entity
-  entityName        String?   // Friendly name for display
+  entityType String // Model name: Client, Company, Customer, etc.
+  entityId   String // ID of the deleted entity
+  entityName String? // Friendly name for display
 
   // Company context (for access control)
-  companyId         String?
+  companyId String?
 
   // Who deleted
-  deletedBy         String    // User ID who initiated deletion
-  deletedAt         DateTime  @default(now())
-  reason            String?   // Optional deletion reason
+  deletedBy String // User ID who initiated deletion
+  deletedAt DateTime @default(now())
+  reason    String? // Optional deletion reason
 
   // Cascade tracking
-  cascadeId         String?   // Groups related cascade deletions
-  cascadedFrom      String?   // Parent entity ID if cascade-deleted
+  cascadeId    String? // Groups related cascade deletions
+  cascadedFrom String? // Parent entity ID if cascade-deleted
 
   // Entity snapshot (for potential restoration)
-  snapshot          Json?     // Full entity data at deletion time
+  snapshot Json? // Full entity data at deletion time
 
   // Retention management
-  expiresAt         DateTime  // When permanent purge is allowed
+  expiresAt DateTime // When permanent purge is allowed
 
   // Restoration tracking
-  restoredAt        DateTime?
-  restoredBy        String?
+  restoredAt DateTime?
+  restoredBy String?
 
   // Permanent deletion tracking
-  purgedAt          DateTime?
-  purgeReason       String?   // RETENTION_EXPIRED, GDPR_REQUEST, ADMIN_REQUEST
+  purgedAt    DateTime?
+  purgeReason String? // RETENTION_EXPIRED, GDPR_REQUEST, ADMIN_REQUEST
 
   // Relations
-  deletedByUser     User?     @relation("UserDeletions", fields: [deletedBy], references: [id])
+  deletedByUser User? @relation("UserDeletions", fields: [deletedBy], references: [id])
 
   @@index([entityType, entityId])
   @@index([companyId])
@@ -3771,32 +3832,32 @@ model DeletionLog {
 // =============================================================================
 
 model Webhook {
-  id                String    @id @default(cuid())
-  companyId         String
+  id        String @id @default(cuid())
+  companyId String
 
   // Webhook details
-  name              String
-  url               String
-  events            String[]  @default([])
+  name   String
+  url    String
+  events String[] @default([])
 
   // Authentication
-  secret            String?
-  headers           Json?     @default("{}")
+  secret  String?
+  headers Json?   @default("{}")
 
   // Status
-  isActive          Boolean   @default(true)
-  lastTriggeredAt   DateTime?
-  lastStatus        String?
-  failureCount      Int       @default(0)
+  isActive        Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  lastStatus      String?
+  failureCount    Int       @default(0)
 
   // Soft delete
-  deletedAt         DateTime?
-  deletedBy         String?
-  cascadeId         String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   // Timestamps
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([companyId, name, deletedAt])
   @@index([companyId])
@@ -3810,9 +3871,9 @@ model Webhook {
 // =============================================================================
 
 model Category {
-  id          String   @id @default(cuid())
-  companyId   String
-  parentId    String?
+  id        String  @id @default(cuid())
+  companyId String
+  parentId  String?
 
   name        String
   slug        String
@@ -3820,12 +3881,12 @@ model Category {
   imageUrl    String?
 
   // Hierarchy
-  level       Int      @default(0)
-  path        String   // Materialized path: "root/parent/child"
+  level Int    @default(0)
+  path  String // Materialized path: "root/parent/child"
 
   // Display
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   // SEO
   metaTitle       String?
@@ -3836,16 +3897,16 @@ model Category {
   updatedAt DateTime @updatedAt
 
   // Soft Delete
-  deletedAt  DateTime?
-  deletedBy  String?
-  cascadeId  String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   // Relations
-  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children   Category[] @relation("CategoryHierarchy")
-  products   ProductCategoryAssignment[]
-  deletedByUser User?   @relation("CategoryDeletedBy", fields: [deletedBy], references: [id])
+  company       Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent        Category?                   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[]                  @relation("CategoryHierarchy")
+  products      ProductCategoryAssignment[]
+  deletedByUser User?                       @relation("CategoryDeletedBy", fields: [deletedBy], references: [id])
 
   @@unique([companyId, slug, deletedAt])
   @@unique([companyId, parentId, name, deletedAt])
@@ -3874,7 +3935,7 @@ model ProductCategoryAssignment {
 }
 
 model Tag {
-  id        String  @id @default(cuid())
+  id        String @id @default(cuid())
   companyId String
 
   name  String
@@ -3911,14 +3972,14 @@ model ProductMedia {
   productId String
   variantId String? // Optional: variant-specific media
 
-  type MediaType
-  url  String
+  type         MediaType
+  url          String
   thumbnailUrl String?
 
   // Metadata
   filename String
   mimeType String
-  size     Int  // Bytes
+  size     Int // Bytes
   width    Int?
   height   Int?
   duration Int? // Seconds (for video)
@@ -3931,10 +3992,10 @@ model ProductMedia {
 
   // AI Generation Info
   generatedBy        String? // 'RUNWAY', 'CLOUDINARY', etc.
-  generationMetadata Json?   // Task ID, settings used, etc.
+  generationMetadata Json? // Task ID, settings used, etc.
 
   // Storage Info
-  storageProvider String @default("S3")
+  storageProvider String  @default("S3")
   storageKey      String // S3 key or path
   cdnUrl          String? // CloudFront URL
 
@@ -3965,7 +4026,7 @@ model ProductPriceRule {
 
   // Adjustment
   adjustmentType  AdjustmentType
-  adjustmentValue Decimal @db.Decimal(10, 2)
+  adjustmentValue Decimal        @db.Decimal(10, 2)
 
   // Priority (higher wins)
   priority Int     @default(0)
@@ -4052,7 +4113,7 @@ model VariantOptionValue {
   id       String @id @default(cuid())
   optionId String
 
-  value        String  // e.g., "Small", "Medium", "Large"
+  value        String // e.g., "Small", "Medium", "Large"
   displayValue String?
   colorCode    String? // Hex for color swatches
   imageUrl     String? // Image for visual options
@@ -4129,7 +4190,7 @@ model Bundle {
 
   // Bundle Settings
   type     BundleType @default(FIXED)
-  minItems Int?       // For MIX_AND_MATCH
+  minItems Int? // For MIX_AND_MATCH
   maxItems Int?
 
   // Pricing
@@ -4222,9 +4283,9 @@ model InventoryLevel {
 
   updatedAt DateTime @updatedAt
 
-  location    InventoryLocation       @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  product     Product?                @relation(fields: [productId], references: [id])
-  variant     ProductVariant?         @relation(fields: [variantId], references: [id])
+  location    InventoryLocation     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product     Product?              @relation(fields: [productId], references: [id])
+  variant     ProductVariant?       @relation(fields: [variantId], references: [id])
   adjustments InventoryAdjustment[]
 
   @@unique([locationId, productId, variantId])
@@ -4299,11 +4360,11 @@ model MarketingVideo {
   updatedAt   DateTime @updatedAt
   createdById String
 
-  company   Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  product   Product?                  @relation(fields: [productId], references: [id])
-  template  MarketingVideoTemplate?   @relation(fields: [templateId], references: [id])
-  customer  Customer?                 @relation(fields: [customerId], references: [id])
-  createdBy User                      @relation(fields: [createdById], references: [id])
+  company   Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product   Product?                @relation(fields: [productId], references: [id])
+  template  MarketingVideoTemplate? @relation(fields: [templateId], references: [id])
+  customer  Customer?               @relation(fields: [customerId], references: [id])
+  createdBy User                    @relation(fields: [createdById], references: [id])
   scenes    MarketingVideoScene[]
   variants  MarketingVideoVariant[]
 
@@ -4373,7 +4434,7 @@ model MarketingVideoTemplate {
 
   // Template Structure
   sceneCount      Int
-  defaultDuration Int  // Total seconds
+  defaultDuration Int // Total seconds
   structure       Json // Scene definitions
 
   // Style Defaults
@@ -4407,33 +4468,33 @@ enum MediaType {
 }
 
 enum PriceRuleType {
-  QUANTITY_BREAK  // Buy more, save more
-  CUSTOMER_GROUP  // Special pricing for group
-  TIME_BASED      // Sale pricing
-  SUBSCRIPTION    // Recurring order discount
+  QUANTITY_BREAK // Buy more, save more
+  CUSTOMER_GROUP // Special pricing for group
+  TIME_BASED // Sale pricing
+  SUBSCRIPTION // Recurring order discount
 }
 
 enum AdjustmentType {
   FIXED_AMOUNT // -$5.00
-  PERCENTAGE   // -10%
-  FIXED_PRICE  // Set to $19.99
+  PERCENTAGE // -10%
+  FIXED_PRICE // Set to $19.99
 }
 
 enum CollectionType {
-  MANUAL    // Manually curated
+  MANUAL // Manually curated
   AUTOMATIC // Rules-based auto-population
 }
 
 enum BundleType {
-  FIXED            // Specific products, fixed quantities
-  MIX_AND_MATCH    // Customer chooses from allowed products
+  FIXED // Specific products, fixed quantities
+  MIX_AND_MATCH // Customer chooses from allowed products
   SUBSCRIPTION_BOX // Curated monthly box
 }
 
 enum BundlePricing {
-  FIXED      // Set bundle price
+  FIXED // Set bundle price
   CALCULATED // Sum of items with optional discount
-  TIERED     // Price varies by selection
+  TIERED // Price varies by selection
 }
 
 enum LocationType {
@@ -4444,28 +4505,28 @@ enum LocationType {
 }
 
 enum AdjustmentReason {
-  RECEIVED         // Stock received
-  SOLD             // Sold to customer
-  RETURNED         // Customer return
-  DAMAGED          // Damaged/written off
-  LOST             // Lost/shrinkage
-  FOUND            // Found during count
-  TRANSFERRED      // Moved between locations
+  RECEIVED // Stock received
+  SOLD // Sold to customer
+  RETURNED // Customer return
+  DAMAGED // Damaged/written off
+  LOST // Lost/shrinkage
+  FOUND // Found during count
+  TRANSFERRED // Moved between locations
   COUNT_ADJUSTMENT // Physical count correction
   OTHER
 }
 
 enum MarketingVideoType {
-  PRODUCT_SHOWCASE      // Standard product video
-  PRODUCT_LAUNCH        // New product announcement
-  SALE_PROMO            // Sale/discount promotion
-  TESTIMONIAL           // Customer testimonial style
-  TUTORIAL              // How-to/explainer
-  BRAND_STORY           // Brand narrative
-  RETENTION_WINBACK     // Personalized win-back
+  PRODUCT_SHOWCASE // Standard product video
+  PRODUCT_LAUNCH // New product announcement
+  SALE_PROMO // Sale/discount promotion
+  TESTIMONIAL // Customer testimonial style
+  TUTORIAL // How-to/explainer
+  BRAND_STORY // Brand narrative
+  RETENTION_WINBACK // Personalized win-back
   RETENTION_ANNIVERSARY // Customer milestone
-  RETENTION_REMINDER    // Subscription reminder
-  SOCIAL_AD             // Generic social ad
+  RETENTION_REMINDER // Subscription reminder
+  SOCIAL_AD // Generic social ad
 }
 
 enum VideoGenerationStatus {
@@ -4506,50 +4567,50 @@ enum VideoPlatform {
 // =============================================================================
 
 model Permission {
-  id          String   @id @default(cuid())
-  code        String   @unique  // e.g., "transactions:read", "users:write"
-  name        String             // Human-readable name
+  id          String  @id @default(cuid())
+  code        String  @unique // e.g., "transactions:read", "users:write"
+  name        String // Human-readable name
   description String?
-  category    String             // Grouping: "transactions", "users", "settings"
+  category    String // Grouping: "transactions", "users", "settings"
 
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  rolePermissions    RolePermission[]
-  permissionGrants   PermissionGrant[]
+  rolePermissions  RolePermission[]
+  permissionGrants PermissionGrant[]
 
   @@index([category])
   @@map("permissions")
 }
 
 model Role {
-  id           String    @id @default(cuid())
-  name         String              // e.g., "Company Admin", "Billing Manager"
-  slug         String              // e.g., "company_admin", "billing_manager"
-  description  String?
-  color        String?             // For UI display
+  id          String  @id @default(cuid())
+  name        String // e.g., "Company Admin", "Billing Manager"
+  slug        String // e.g., "company_admin", "billing_manager"
+  description String?
+  color       String? // For UI display
 
   // Scope - where this role can be assigned
-  scopeType    ScopeType           // ORGANIZATION, CLIENT, COMPANY, etc.
-  scopeId      String?             // Optional: limit to specific org/client/company
+  scopeType ScopeType // ORGANIZATION, CLIENT, COMPANY, etc.
+  scopeId   String? // Optional: limit to specific org/client/company
 
   // Role properties
-  isSystem     Boolean  @default(false)  // Built-in roles (cannot be deleted)
-  isDefault    Boolean  @default(false)  // Auto-assigned to new users at this scope
-  priority     Int      @default(100)    // Lower = more important (for display)
+  isSystem  Boolean @default(false) // Built-in roles (cannot be deleted)
+  isDefault Boolean @default(false) // Auto-assigned to new users at this scope
+  priority  Int     @default(100) // Lower = more important (for display)
 
   // Timestamps
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Soft delete
-  deletedAt    DateTime?
-  deletedBy    String?
+  deletedAt DateTime?
+  deletedBy String?
 
   // Relations
-  permissions    RolePermission[]
+  permissions         RolePermission[]
   userRoleAssignments UserRoleAssignment[]
 
   @@unique([scopeType, scopeId, slug])
@@ -4559,28 +4620,28 @@ model Role {
 }
 
 model RolePermission {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   roleId       String
   permissionId String
 
   // Constraints
-  constraints  Json?    // Optional: limit permission scope (e.g., {"resourceId": "..."})
+  constraints Json? // Optional: limit permission scope (e.g., {"resourceId": "..."})
 
   // Timestamps
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
 }
 
 model UserRoleAssignment {
-  id        String   @id @default(cuid())
-  userId    String
-  roleId    String
+  id     String @id @default(cuid())
+  userId String
+  roleId String
 
   // Scope where this role applies
   scopeType ScopeType
@@ -4588,12 +4649,12 @@ model UserRoleAssignment {
 
   // Assignment metadata
   assignedBy String?
-  assignedAt DateTime @default(now())
-  expiresAt  DateTime?  // Optional: temporary role assignment
+  assignedAt DateTime  @default(now())
+  expiresAt  DateTime? // Optional: temporary role assignment
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, scopeType, scopeId])
   @@index([userId])
@@ -4603,29 +4664,29 @@ model UserRoleAssignment {
 }
 
 model PermissionGrant {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   userId       String
   permissionId String
 
   // Scope where this permission applies
-  scopeType    ScopeType
-  scopeId      String
+  scopeType ScopeType
+  scopeId   String
 
   // Grant type
-  grantType    PermissionGrantType @default(ALLOW)  // ALLOW or DENY
+  grantType PermissionGrantType @default(ALLOW) // ALLOW or DENY
 
   // Grant metadata
-  grantedBy    String?
-  grantedAt    DateTime @default(now())
-  expiresAt    DateTime?
-  reason       String?   // Why was this granted/denied
+  grantedBy String?
+  grantedAt DateTime  @default(now())
+  expiresAt DateTime?
+  reason    String? // Why was this granted/denied
 
   // Constraints
-  constraints  Json?     // Optional scope limitations
+  constraints Json? // Optional scope limitations
 
   // Relations
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, permissionId, scopeType, scopeId])
   @@index([userId])
@@ -4634,32 +4695,32 @@ model PermissionGrant {
 }
 
 model UserSession {
-  id           String   @id @default(cuid())
-  userId       String
+  id     String @id @default(cuid())
+  userId String
 
   // Session info
-  sessionToken String   @unique
+  sessionToken String  @unique
   userAgent    String?
   ipAddress    String?
   deviceInfo   Json?
 
   // Location
-  city         String?
-  country      String?
+  city    String?
+  country String?
 
   // Status
   isActive     Boolean  @default(true)
   lastActiveAt DateTime @default(now())
 
   // Timestamps
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   expiresAt    DateTime
   revokedAt    DateTime?
   revokedBy    String?
   revokeReason String?
 
   // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([sessionToken])
@@ -4698,6 +4759,7 @@ enum VendorType {
   DROPSHIPPER
   WHITE_LABEL
   AFFILIATE
+  CUSTOMER_SERVICE_CENTER
 }
 
 enum ConnectionStatus {
@@ -4722,53 +4784,53 @@ enum ProductSyncStatus {
 
 // Vendor - Parallel to Client under Organization
 model Vendor {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   slug           String
-  code           String?  @unique  // 4-char alphanumeric code (e.g., "ACFL")
+  code           String? @unique // 4-char alphanumeric code (e.g., "ACFL")
 
   // Contact
-  contactName    String?
-  contactEmail   String?
-  contactPhone   String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
 
   // Business Info
-  businessName   String?
-  taxId          String?
-  website        String?
-  logo           String?
-  description    String?  @db.Text
+  businessName String?
+  taxId        String?
+  website      String?
+  logo         String?
+  description  String? @db.Text
 
   // Status & Classification
-  status         VendorStatus @default(PENDING_VERIFICATION)
-  tier           VendorTier   @default(BRONZE)
-  vendorType     VendorType   @default(SUPPLIER)
-  isVerified     Boolean      @default(false)
-  verifiedAt     DateTime?
+  status     VendorStatus @default(PENDING_VERIFICATION)
+  tier       VendorTier   @default(BRONZE)
+  vendorType VendorType   @default(SUPPLIER)
+  isVerified Boolean      @default(false)
+  verifiedAt DateTime?
 
   // Performance Metrics (denormalized for quick access)
-  averageRating       Float?   @default(0)
-  totalOrders         Int      @default(0)
-  completionRate      Float?   @default(100)
-  averageShipDays     Float?
+  averageRating   Float? @default(0)
+  totalOrders     Int    @default(0)
+  completionRate  Float? @default(100)
+  averageShipDays Float?
 
   // Settings
-  settings       Json     @default("{}")
+  settings Json @default("{}")
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  vendorCompanies    VendorCompany[]
-  clientConnections  VendorClientConnection[]
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendorCompanies   VendorCompany[]
+  clientConnections VendorClientConnection[]
 
   // Soft delete fields
-  deletedAt    DateTime?
-  deletedBy    String?
-  cascadeId    String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([organizationId, slug])
   @@index([status])
@@ -4780,34 +4842,34 @@ model Vendor {
 
 // VendorCompany - Parallel to Company under Client
 model VendorCompany {
-  id           String   @id @default(cuid())
-  vendorId     String
-  name         String
-  slug         String
-  code         String?  @unique  // 4-char alphanumeric code (e.g., "ACOF")
+  id       String  @id @default(cuid())
+  vendorId String
+  name     String
+  slug     String
+  code     String? @unique // 4-char alphanumeric code (e.g., "ACOF")
 
   // Business Info
-  domain       String?
-  logo         String?
-  timezone     String   @default("UTC")
-  currency     String   @default("USD")
+  domain   String?
+  logo     String?
+  timezone String  @default("UTC")
+  currency String  @default("USD")
 
   // Location
-  address      String?
-  city         String?
-  state        String?
-  country      String   @default("US")
-  postalCode   String?
+  address    String?
+  city       String?
+  state      String?
+  country    String  @default("US")
+  postalCode String?
 
   // Capabilities
-  capabilities String[] // e.g., ["white_label", "dropship", "wholesale"]
+  capabilities      String[] // e.g., ["white_label", "dropship", "wholesale"]
   productCategories String[] // Categories this vendor company specializes in
 
   // Status
-  status       EntityStatus @default(ACTIVE)
+  status EntityStatus @default(ACTIVE)
 
   // Settings
-  settings     Json     @default("{}")
+  settings Json @default("{}")
 
   // Lead times
   defaultLeadTimeDays Int @default(3)
@@ -4817,15 +4879,15 @@ model VendorCompany {
   updatedAt DateTime @updatedAt
 
   // Relations
-  vendor              Vendor                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  clientConnections   VendorClientConnection[]
-  products            VendorProduct[]
-  orders              VendorOrder[]
+  vendor            Vendor                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  clientConnections VendorClientConnection[]
+  products          VendorProduct[]
+  orders            VendorOrder[]
 
   // Soft delete fields
-  deletedAt    DateTime?
-  deletedBy    String?
-  cascadeId    String?
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
 
   @@unique([vendorId, slug])
   @@index([status])
@@ -4835,41 +4897,41 @@ model VendorCompany {
 
 // VendorClientConnection - Bridge between Company and VendorCompany
 model VendorClientConnection {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   vendorId        String
   vendorCompanyId String
-  companyId       String   // The client's company that is connected
+  companyId       String // The client's company that is connected
 
   // Status
-  status          ConnectionStatus @default(PENDING)
+  status ConnectionStatus @default(PENDING)
 
   // Connection settings
-  customPricing   Json?    // Company-specific pricing overrides
-  terms           Json?    // Agreement terms
-  creditLimit     Float?
-  paymentTerms    String?  // e.g., "NET30", "NET60"
+  customPricing Json? // Company-specific pricing overrides
+  terms         Json? // Agreement terms
+  creditLimit   Float?
+  paymentTerms  String? // e.g., "NET30", "NET60"
 
   // Product sync settings
   syncMode        ProductSyncMode @default(MANUAL)
   lastSyncAt      DateTime?
-  autoSyncEnabled Boolean  @default(false)
+  autoSyncEnabled Boolean         @default(false)
 
   // Performance tracking per connection
-  totalOrders     Int      @default(0)
-  totalRevenue    Float    @default(0)
+  totalOrders  Int   @default(0)
+  totalRevenue Float @default(0)
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   approvedAt DateTime?
   approvedBy String?
 
   // Relations
-  vendor        Vendor        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vendorCompany VendorCompany @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
-  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  vendor         Vendor              @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorCompany  VendorCompany       @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
   syncedProducts VendorProductSync[]
-  orders        VendorOrder[]
+  orders         VendorOrder[]
 
   @@unique([vendorCompanyId, companyId])
   @@index([status])
@@ -4881,43 +4943,43 @@ model VendorClientConnection {
 
 // VendorProduct - Products offered by vendor companies
 model VendorProduct {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   vendorCompanyId String
 
   // Product info
-  sku             String
-  name            String
-  description     String?  @db.Text
+  sku         String
+  name        String
+  description String? @db.Text
 
   // Pricing
-  wholesalePrice  Float    // Price to clients
-  retailPrice     Float?   // Suggested retail price
-  currency        String   @default("USD")
+  wholesalePrice Float // Price to clients
+  retailPrice    Float? // Suggested retail price
+  currency       String @default("USD")
 
   // Inventory
-  stockQuantity   Int      @default(0)
-  lowStockThreshold Int    @default(10)
+  stockQuantity     Int @default(0)
+  lowStockThreshold Int @default(10)
 
   // Product details
-  weight          Float?
-  dimensions      Json?    // { length, width, height, unit }
-  images          String[]
-  categories      String[]
+  weight     Float?
+  dimensions Json? // { length, width, height, unit }
+  images     String[]
+  categories String[]
 
   // Lead time
-  leadTimeDays    Int?
+  leadTimeDays Int?
 
   // Status
-  isActive        Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  vendorCompany   VendorCompany       @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
-  syncedProducts  VendorProductSync[]
-  orderItems      VendorOrderItem[]
+  vendorCompany  VendorCompany       @relation(fields: [vendorCompanyId], references: [id], onDelete: Cascade)
+  syncedProducts VendorProductSync[]
+  orderItems     VendorOrderItem[]
 
   @@unique([vendorCompanyId, sku])
   @@index([isActive])
@@ -4926,27 +4988,27 @@ model VendorProduct {
 
 // VendorProductSync - Tracks which vendor products are synced to which company
 model VendorProductSync {
-  id           String   @id @default(cuid())
-  connectionId String
-  vendorProductId String
+  id               String  @id @default(cuid())
+  connectionId     String
+  vendorProductId  String
   companyProductId String? // Link to the company's product if synced
 
   // Sync status
-  status       ProductSyncStatus @default(PENDING)
-  lastSyncAt   DateTime?
-  syncError    String?
+  status     ProductSyncStatus @default(PENDING)
+  lastSyncAt DateTime?
+  syncError  String?
 
   // Price override for this connection
-  customPrice  Float?
+  customPrice Float?
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  connection    VendorClientConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  vendorProduct VendorProduct          @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
-  companyProduct Product?              @relation(fields: [companyProductId], references: [id], onDelete: SetNull)
+  connection     VendorClientConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  vendorProduct  VendorProduct          @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+  companyProduct Product?               @relation(fields: [companyProductId], references: [id], onDelete: SetNull)
 
   @@unique([connectionId, vendorProductId])
   @@index([status])
@@ -4955,23 +5017,23 @@ model VendorProductSync {
 
 // VendorOrder - Orders placed with vendors
 model VendorOrder {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   connectionId    String
   vendorCompanyId String
-  orderNumber     String   @unique
+  orderNumber     String @unique
 
   // Source order (if created from a customer order)
-  sourceOrderId   String?
+  sourceOrderId String?
 
   // Status
-  status          OrderStatus @default(PENDING)
+  status OrderStatus @default(PENDING)
 
   // Totals
-  subtotal        Float
-  shippingCost    Float    @default(0)
-  tax             Float    @default(0)
-  total           Float
-  currency        String   @default("USD")
+  subtotal     Float
+  shippingCost Float  @default(0)
+  tax          Float  @default(0)
+  total        Float
+  currency     String @default("USD")
 
   // Shipping
   shippingAddress Json?
@@ -4981,12 +5043,12 @@ model VendorOrder {
 
   // Dates
   expectedDeliveryAt DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
 
   // Notes
-  notes           String?  @db.Text
-  vendorNotes     String?  @db.Text
+  notes       String? @db.Text
+  vendorNotes String? @db.Text
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -5006,16 +5068,16 @@ model VendorOrder {
 
 // VendorOrderItem - Line items in vendor orders
 model VendorOrderItem {
-  id             String   @id @default(cuid())
-  vendorOrderId  String
+  id              String @id @default(cuid())
+  vendorOrderId   String
   vendorProductId String
 
   // Item details
-  sku            String
-  name           String
-  quantity       Int
-  unitPrice      Float
-  totalPrice     Float
+  sku        String
+  name       String
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
 
   // Fulfillment
   quantityFulfilled Int @default(0)
@@ -5034,31 +5096,31 @@ model VendorOrderItem {
 
 // MarketplaceReview - Reviews for vendor products in the marketplace
 model MarketplaceReview {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   vendorId        String
   vendorCompanyId String
-  companyId       String   // The Company (client's company) writing the review
+  companyId       String // The Company (client's company) writing the review
 
   // Review content
-  rating          Int      // 1-5 stars
-  title           String?
-  content         String?  @db.Text
+  rating  Int // 1-5 stars
+  title   String?
+  content String? @db.Text
 
   // Verification
-  isVerified      Boolean  @default(false)
+  isVerified       Boolean @default(false)
   verifiedPurchase Boolean @default(false)
 
   // Moderation
-  isApproved      Boolean  @default(true)
-  moderatedAt     DateTime?
-  moderatedBy     String?
+  isApproved  Boolean   @default(true)
+  moderatedAt DateTime?
+  moderatedBy String?
 
   // Helpful votes
-  helpfulCount    Int      @default(0)
+  helpfulCount Int @default(0)
 
   // Response from vendor
-  vendorResponse  String?  @db.Text
-  respondedAt     DateTime?
+  vendorResponse String?   @db.Text
+  respondedAt    DateTime?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -5069,4 +5131,75 @@ model MarketplaceReview {
   @@index([companyId])
   @@index([rating])
   @@map("marketplace_reviews")
+}
+
+// =============================================================================
+// CUSTOMER NOTES & TAGS
+// =============================================================================
+
+enum NoteType {
+  INTERNAL
+  CUSTOMER_SERVICE
+  SYSTEM
+}
+
+model CustomerNote {
+  id         String   @id @default(cuid())
+  customerId String
+  userId     String?
+  content    String   @db.Text
+  type       NoteType @default(INTERNAL)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@map("customer_notes")
+}
+
+model CustomerTag {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  color       String   @default("#3B82F6")
+  description String?
+  createdAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, name])
+  @@map("customer_tags")
+}
+
+// =============================================================================
+// REFUND SETTINGS (per company/client)
+// =============================================================================
+
+model RefundSettings {
+  id        String @id @default(cuid())
+  companyId String @unique
+
+  // Auto-approval settings
+  autoApprovalEnabled   Boolean @default(false)
+  autoApprovalMaxAmount Decimal @default(100.00) @db.Decimal(10, 2)
+  autoApprovalMaxDays   Int     @default(30) // Days since order
+
+  // Restrictions
+  requireReason       Boolean @default(true)
+  requireApproval     Boolean @default(true)
+  allowPartialRefunds Boolean @default(true)
+
+  // Notifications
+  notifyOnRequest    Boolean @default(true)
+  notifyOnApproval   Boolean @default(true)
+  notifyOnCompletion Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("refund_settings")
 }

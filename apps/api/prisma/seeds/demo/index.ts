@@ -1,0 +1,14 @@
+/**
+ * Demo Seeds Index
+ * Exports all demo seeding functions for development/demo environments
+ */
+
+export { seedDemoClients } from './seed-clients';
+export { seedDemoCustomers } from './seed-customers';
+export { seedDemoTransactions } from './seed-transactions';
+export {
+  seedDemoMerchantAccounts,
+  seedDemoAccountPools,
+  seedDemoRoutingRules,
+} from './seed-merchant-accounts';
+export { seedDemoClientSubscription } from './seed-subscription';

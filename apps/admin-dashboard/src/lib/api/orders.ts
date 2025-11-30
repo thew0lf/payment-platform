@@ -46,6 +46,34 @@ export interface Order {
   paymentStatus: string;
   paidAt?: string;
   paymentMethod?: string;
+  paymentVaultId?: string;   // Reference to vault for sensitive data
+
+  // Display-only payment snapshot (NO SENSITIVE DATA stored here)
+  paymentSnapshot?: {
+    // Common fields
+    type: 'CARD' | 'CHECK' | 'ACH' | 'WIRE' | 'CASH' | 'INVOICE' | 'PAYPAL' | 'WALLET_APPLE' | 'WALLET_GOOGLE';
+    last4?: string;          // Last 4 digits of card/account
+
+    // Card-specific
+    brand?: string;          // VISA, MASTERCARD, AMEX, DISCOVER
+    bin?: string;            // First 6 digits (BIN) - for search/fraud detection
+    expMonth?: number;       // Expiry month
+    expYear?: number;        // Expiry year
+    cardholderName?: string;
+    funding?: string;        // credit, debit, prepaid
+
+    // Check-specific (display only - sensitive data in vault)
+    checkNumberLast4?: string; // Last 4 of check number
+    bankName?: string;         // Bank name
+    accountType?: string;      // checking, savings
+
+    // ACH/Wire-specific
+    routingLast4?: string;     // Last 4 of routing number
+
+    // Invoice-specific
+    invoiceNumber?: string;
+    invoiceDueDate?: string;
+  };
   fulfillmentStatus: string;
   fulfilledAt?: string;
   customerNotes?: string;
@@ -71,8 +99,22 @@ export interface Shipment {
   trackingUrl?: string;
   shippingMethod: string;
   status: string;
+  weight?: number;
+  weightUnit?: string;
+  length?: number;
+  width?: number;
+  height?: number;
+  dimensionUnit?: string;
+  shippingCost?: number;
+  insuranceAmount?: number;
+  shippingLabelUrl?: string;
+  returnLabelUrl?: string;
+  estimatedShipDate?: string;
+  estimatedDeliveryDate?: string;
   shippedAt?: string;
   deliveredAt?: string;
+  signatureRequired?: boolean;
+  signedBy?: string;
   events?: ShipmentEvent[];
 }
 

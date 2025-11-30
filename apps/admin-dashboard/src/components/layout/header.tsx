@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Bell, Settings, ChevronRight, Menu } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Bell, Settings, ChevronRight, Menu, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import { useMobileMenu } from '@/contexts/mobile-menu-context';
@@ -11,9 +12,11 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  badge?: React.ReactNode;
+  backLink?: { href: string; label: string };
 }
 
-export function Header({ title, subtitle, actions }: HeaderProps) {
+export function Header({ title, subtitle, actions, badge, backLink }: HeaderProps) {
   const { user } = useAuth();
   const { selectedClient, selectedCompany } = useHierarchy();
   const { openMenu } = useMobileMenu();
@@ -79,8 +82,18 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
       <div className="px-4 md:px-6 py-4 md:py-6 border-b border-zinc-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            {/* Breadcrumbs */}
-            {breadcrumbs.length > 0 && (
+            {/* Back Link */}
+            {backLink && (
+              <Link
+                href={backLink.href}
+                className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-white transition-colors mb-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to {backLink.label}
+              </Link>
+            )}
+            {/* Breadcrumbs - only show if no backLink */}
+            {!backLink && breadcrumbs.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-zinc-500 mb-1">
                 {breadcrumbs.map((crumb, index) => (
                   <React.Fragment key={index}>
@@ -92,7 +105,10 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
                 ))}
               </div>
             )}
-            <h1 className="text-xl md:text-2xl font-semibold text-white">{title}</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-semibold text-white">{title}</h1>
+              {badge}
+            </div>
             {subtitle && <p className="text-sm text-zinc-400 mt-1">{subtitle}</p>}
           </div>
           {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}

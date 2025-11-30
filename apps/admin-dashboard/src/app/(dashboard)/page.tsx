@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { TrendingUp, Receipt, Users, AlertCircle, Plus, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { TrendingUp, Receipt, Users, AlertCircle, Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { ProviderStatus } from '@/components/dashboard/provider-status';
@@ -9,133 +9,83 @@ import { RoutingSavings } from '@/components/dashboard/routing-savings';
 import { TransactionTable } from '@/components/dashboard/transaction-table';
 import { TransactionChart } from '@/components/dashboard/transaction-chart';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
 import { useHierarchy } from '@/contexts/hierarchy-context';
+import { dashboardApi, DashboardMetrics, ProviderMetrics } from '@/lib/api/dashboard';
 import { Transaction } from '@/types/transactions';
 
-// Mock data - replace with API calls
-const mockMetrics = {
-  revenue: { total: 127832, change: 12.5 },
-  transactions: { total: 4234, change: 8.2 },
-  subscriptions: { active: 1423, change: 3.1 },
-  failed: { count: 34, change: -2.3 },
-};
-
-const mockProviders = [
-  { id: 'pp1', name: 'PayPal Payflow', type: 'PAYFLOW', status: 'healthy' as const, volume: 47832, successRate: 99.2 },
-  { id: 'pp2', name: 'Stripe', type: 'STRIPE', status: 'healthy' as const, volume: 62450, successRate: 99.5 },
-  { id: 'pp3', name: 'NMI', type: 'NMI', status: 'degraded' as const, volume: 17550, successRate: 97.8 },
-];
-
-const mockTransactions: Transaction[] = [
-  {
-    id: 'txn_1',
-    companyId: 'company_1',
-    transactionNumber: 'txn_1N2k3L',
-    type: 'CHARGE',
-    amount: 26.95,
-    currency: 'USD',
-    status: 'COMPLETED',
-    riskFlags: [],
-    createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'c1', email: 'sarah@example.com', firstName: 'Sarah', lastName: 'Chen' },
-    company: { id: 'company_1', name: 'CoffeeCo', slug: 'coffeeco' },
-    paymentProvider: { id: 'pp1', name: 'PayPal Payflow', type: 'PAYFLOW' },
-  },
-  {
-    id: 'txn_2',
-    companyId: 'company_2',
-    transactionNumber: 'txn_1N2k3M',
-    type: 'CHARGE',
-    amount: 49.99,
-    currency: 'USD',
-    status: 'COMPLETED',
-    riskFlags: [],
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'c2', email: 'mike@example.com', firstName: 'Mike', lastName: 'Torres' },
-    company: { id: 'company_2', name: 'FitBox', slug: 'fitbox' },
-    paymentProvider: { id: 'pp2', name: 'Stripe', type: 'STRIPE' },
-  },
-  {
-    id: 'txn_3',
-    companyId: 'company_3',
-    transactionNumber: 'txn_1N2k3N',
-    type: 'CHARGE',
-    amount: 34.95,
-    currency: 'USD',
-    status: 'PENDING',
-    riskFlags: [],
-    createdAt: new Date(Date.now() - 8 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'c3', email: 'jen@example.com', firstName: 'Jen', lastName: 'Lee' },
-    company: { id: 'company_3', name: 'PetPals', slug: 'petpals' },
-    paymentProvider: { id: 'pp3', name: 'NMI', type: 'NMI' },
-  },
-  {
-    id: 'txn_4',
-    companyId: 'company_1',
-    transactionNumber: 'txn_1N2k3O',
-    type: 'CHARGE',
-    amount: 26.95,
-    currency: 'USD',
-    status: 'COMPLETED',
-    riskFlags: [],
-    createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'c4', email: 'alex@example.com', firstName: 'Alex', lastName: 'Kim' },
-    company: { id: 'company_1', name: 'CoffeeCo', slug: 'coffeeco' },
-    paymentProvider: { id: 'pp1', name: 'PayPal Payflow', type: 'PAYFLOW' },
-  },
-  {
-    id: 'txn_5',
-    companyId: 'company_2',
-    transactionNumber: 'txn_1N2k3P',
-    type: 'CHARGE',
-    amount: 99.99,
-    currency: 'USD',
-    status: 'FAILED',
-    failureReason: 'Card declined',
-    riskFlags: [],
-    createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'c5', email: 'chris@example.com', firstName: 'Chris', lastName: 'Wong' },
-    company: { id: 'company_2', name: 'FitBox', slug: 'fitbox' },
-    paymentProvider: { id: 'pp2', name: 'Stripe', type: 'STRIPE' },
-  },
-];
-
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const { selectedCompanyId, selectedClientId, availableCompanies } = useHierarchy();
+  const { selectedCompanyId, selectedClientId } = useHierarchy();
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [providers, setProviders] = useState<ProviderMetrics[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Filter transactions based on hierarchy selection
-  const filteredTransactions = React.useMemo(() => {
-    let result = [...mockTransactions];
-
-    if (selectedCompanyId) {
-      result = result.filter(t => t.companyId === selectedCompanyId);
-    } else if (selectedClientId) {
-      const clientCompanyIds = availableCompanies
-        .filter(c => c.clientId === selectedClientId)
-        .map(c => c.id);
-      result = result.filter(t => clientCompanyIds.includes(t.companyId));
+  const loadData = async () => {
+    try {
+      const [metricsData, providersData, transactionsData] = await Promise.all([
+        dashboardApi.getMetrics({ companyId: selectedCompanyId || undefined, clientId: selectedClientId || undefined }),
+        dashboardApi.getProviders(selectedCompanyId || undefined),
+        dashboardApi.getRecentTransactions({ companyId: selectedCompanyId || undefined, limit: 5 }),
+      ]);
+      setMetrics(metricsData);
+      setProviders(providersData);
+      setTransactions(transactionsData);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
 
-    return result;
-  }, [selectedCompanyId, selectedClientId, availableCompanies]);
-
-  // Adjust metrics based on selection (mock calculation)
-  const adjustedMetrics = React.useMemo(() => {
-    const factor = selectedCompanyId ? 0.33 : selectedClientId ? 0.6 : 1;
-    return {
-      revenue: { total: Math.floor(mockMetrics.revenue.total * factor), change: mockMetrics.revenue.change },
-      transactions: { total: Math.floor(mockMetrics.transactions.total * factor), change: mockMetrics.transactions.change },
-      subscriptions: { active: Math.floor(mockMetrics.subscriptions.active * factor), change: mockMetrics.subscriptions.change },
-      failed: { count: Math.floor(mockMetrics.failed.count * factor), change: mockMetrics.failed.change },
-    };
+  useEffect(() => {
+    setLoading(true);
+    loadData();
   }, [selectedCompanyId, selectedClientId]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  // Transform providers to the format expected by ProviderStatus component
+  const providerStatusData = providers.map(p => ({
+    id: p.providerId,
+    name: p.providerName,
+    type: p.providerType,
+    status: p.status,
+    volume: p.volume,
+    successRate: p.successRate,
+  }));
+
+  if (loading) {
+    return (
+      <>
+        <Header
+          title="Dashboard"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sync
+              </Button>
+              <Button size="sm" disabled>
+                <Plus className="w-4 h-4 mr-2" />
+                New Transaction
+              </Button>
+            </div>
+          }
+        />
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-3 text-zinc-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Loading dashboard...</span>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -143,8 +93,8 @@ export default function DashboardPage() {
         title="Dashboard"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Sync
             </Button>
             <Button size="sm">
@@ -160,36 +110,36 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Total Revenue"
-            value={adjustedMetrics.revenue.total}
+            value={metrics?.revenue.total || 0}
             format="currency"
-            change={adjustedMetrics.revenue.change}
+            change={metrics?.revenue.change || 0}
             icon={TrendingUp}
             subtitle="This month"
           />
           <MetricCard
             title="Transactions"
-            value={adjustedMetrics.transactions.total}
+            value={metrics?.transactions.total || 0}
             format="number"
-            change={adjustedMetrics.transactions.change}
+            change={metrics?.transactions.change || 0}
             icon={Receipt}
             subtitle="This month"
           />
           <MetricCard
             title="Active Subscriptions"
-            value={adjustedMetrics.subscriptions.active}
+            value={metrics?.subscriptions.active || 0}
             format="number"
-            change={adjustedMetrics.subscriptions.change}
+            change={metrics?.subscriptions.change || 0}
             icon={Users}
             subtitle="Current"
           />
           <MetricCard
             title="Failed Payments"
-            value={adjustedMetrics.failed.count}
+            value={metrics?.transactions.failed || 0}
             format="number"
-            change={adjustedMetrics.failed.change}
-            trend={adjustedMetrics.failed.change < 0 ? 'down' : 'up'}
+            change={0}
+            trend={metrics?.transactions.failed ? (metrics.transactions.failed > 0 ? 'up' : 'down') : undefined}
             icon={AlertCircle}
-            subtitle="Needs attention"
+            subtitle="This month"
           />
         </div>
 
@@ -197,7 +147,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <ProviderStatus
-              providers={mockProviders}
+              providers={providerStatusData}
               onManageClick={() => console.log('Manage providers')}
             />
           </div>
@@ -218,7 +168,7 @@ export default function DashboardPage() {
 
         {/* Transactions */}
         <TransactionTable
-          transactions={filteredTransactions}
+          transactions={transactions}
           showCompany={!selectedCompanyId}
           onFilterClick={() => console.log('Filter')}
           onExportClick={() => console.log('Export')}

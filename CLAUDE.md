@@ -21,7 +21,7 @@ Comprehensive code/architecture review. Use: `/review [description or file path]
 
 **Verdict:** Approve | Approve with suggestions | Request changes
 
-### `/feature` - Feature File Review (Senior Developer Review)
+### `/feature` - Feature File Review
 Senior developer review of a product ticket before implementation. Use: `/feature [ticket description]`
 
 **Checklist:**
@@ -42,26 +42,6 @@ Senior developer review of a product ticket before implementation. Use: `/featur
 
 ---
 
-## Development Workflow
-
-### Feature Documentation Rule
-**IMPORTANT:** Before creating a git commit for any feature, ensure the feature is documented in this file. Update CLAUDE.md as the final step before committing.
-
-### Git Workflow
-1. Create feature branch: `git checkout -b feature/XX-feature-name`
-2. Implement the feature
-3. **Document in CLAUDE.md** (if applicable)
-4. Commit with conventional format: `feat: description`
-5. Create PR and merge
-
-### Commit Message Format
-```
-feat: add new feature description
-fix: resolve bug description
-docs: update documentation
-refactor: code improvement without behavior change
-```
-
 ## Project Structure
 
 ```
@@ -69,117 +49,68 @@ payment-platform/
 ├── apps/
 │   ├── api/                 # NestJS backend (port 3001)
 │   └── admin-dashboard/     # Next.js 14 frontend (port 3000)
+├── packages/
+│   └── shared/              # Shared types and utilities
 ├── docs/roadmap/            # Development plans and specs
 └── prisma/                  # Database schema (in apps/api)
 ```
 
-## Development Commands
+---
 
-```bash
-# Start API server
-cd apps/api && npm run dev
+## Current Status (November 30, 2025)
 
-# Start Dashboard
-cd apps/admin-dashboard && npm run dev
+| Feature | Backend | Frontend | Notes |
+|---------|---------|----------|-------|
+| Feature 01: Integrations Framework | ✅ Complete | ✅ Complete | UI-configurable credentials |
+| Feature 02: Dynamic RBAC | ✅ Spec Complete | 🔲 Pending | Hierarchical permissions |
+| Feature 03: Vendor System | ✅ Spec Complete | 🔲 Pending | Two-tier Vendor/VendorCompany |
+| Auth & Auth0 SSO | ✅ Complete | ✅ Complete | JWT-based |
+| Multi-Account Providers | 🔲 Pending | 🔲 Pending | Phase 2 |
+| Gateway Rule Engine | 🔲 Pending | 🔲 Pending | Phase 3 |
 
-# Database
-cd apps/api && npx prisma migrate dev
-cd apps/api && npx prisma db seed
+---
+
+## Platform Hierarchy
+
+```
+ORGANIZATION (avnz.io platform)
+│
+├── CLIENTS (code: ACME)                  ├── VENDORS (code: ACFL)
+│   ├── Roles                             │   ├── Roles
+│   ├── Departments                       │   ├── Departments
+│   ├── Teams                             │   ├── Teams
+│   ├── Users                             │   ├── Users
+│   │                                     │   │
+│   └── COMPANIES (code: BREW)            │   └── VENDOR COMPANIES (code: ACOF)
+│       ├── Roles                         │       ├── Roles
+│       ├── Departments                   │       ├── Departments
+│       ├── Teams                         │       ├── Teams
+│       ├── Users                         │       ├── Users
+│       └── Orders                        │       ├── Locations
+│                                         │       ├── Services
+│                                         │       ├── Products
+│                                         │       └── Inventory
+│
+└── MARKETPLACE
+    └── Connections (Company ↔ VendorCompany)
 ```
 
-## API Configuration
+---
 
-**IMPORTANT: All API routes require the `/api` prefix.**
+## Entity Codes
 
-The NestJS API uses a global prefix. When creating frontend API calls:
+All entities use 4-character alphanumeric codes that are **globally unique** across the platform.
 
-| Backend Controller | Frontend API Call |
-|-------------------|-------------------|
-| `@Controller('auth')` | `/api/auth/...` |
-| `@Controller('admin/integrations')` | `/api/admin/integrations/...` |
-| `@Controller('integrations')` | `/api/integrations/...` |
-| `@Controller('dashboard')` | `/api/dashboard/...` |
-
-### Environment Variables
-
-```bash
-# Frontend (apps/admin-dashboard/.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:3001
-
-# Backend (apps/api/.env.local)
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="your-secret"
-```
-
-## Authentication
-
-- JWT-based authentication
-- Token stored in localStorage: `avnz_token`
-- Header format: `Authorization: Bearer <token>`
-
-## Key Patterns
-
-### Frontend API Client
-API clients are in `apps/admin-dashboard/src/lib/api/`. Each module exports typed functions that call the backend.
-
-### Backend Module Structure
-```
-apps/api/src/<module>/
-├── <module>.module.ts       # NestJS module
-├── <module>.controller.ts   # Route handlers
-├── services/                # Business logic
-└── types/                   # TypeScript types
-```
-
-## Responsive Design Requirements
-
-The application must be responsive across all device sizes:
-
-| Breakpoint | Width | Target Devices |
-|------------|-------|----------------|
-| Mobile | < 640px (sm) | Phones |
-| Tablet | 640px - 1024px (md/lg) | Tablets, small laptops |
-| Desktop | > 1024px (xl) | Laptops, monitors |
-| Large | > 1280px (2xl) | Presentations, large displays |
-
-### Mobile Navigation Pattern
-- **Sidebar**: Hidden on mobile (`hidden md:block`), uses drawer component
-- **Mobile Menu**: Context-based (`MobileMenuProvider` in layout)
-- **Hamburger**: Visible only on mobile (`md:hidden`)
-- **Header**: Uses `useMobileMenu()` hook to trigger drawer
-
-### Responsive Guidelines
-1. **Touch targets**: Minimum 44px for interactive elements on mobile
-2. **Padding**: Use `px-4 md:px-6` pattern for consistent spacing
-3. **Typography**: Scale down headings on mobile (`text-xl md:text-2xl`)
-4. **Grids**: Use responsive columns (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)
-5. **Actions**: Stack buttons on mobile (`flex-col sm:flex-row`)
-
-### Key Layout Components
-- `apps/admin-dashboard/src/components/layout/sidebar.tsx` - Desktop sidebar
-- `apps/admin-dashboard/src/components/layout/mobile-sidebar.tsx` - Mobile drawer
-- `apps/admin-dashboard/src/components/layout/header.tsx` - Responsive header
-- `apps/admin-dashboard/src/contexts/mobile-menu-context.tsx` - Mobile menu state
-
-## Integration Icons
-
-Integration provider icons are stored in `apps/admin-dashboard/public/integrations/` as SVG files with brand colors. The `providerConfig` mapping in integration components provides:
-- `iconUrl`: Path to SVG icon
-- `bgColor`: Tailwind background class
-- `gradient`: Gradient classes for fallback
-
-## Entity Codes (Client & Company)
-
-Clients and Companies have 4-character alphanumeric codes used in order/shipment numbers.
-
-| Entity | Code Format | Uniqueness | Example |
-|--------|-------------|------------|---------|
-| Client | 4 uppercase alphanumeric | Globally unique | `VELO` |
-| Company | 4 uppercase alphanumeric | Globally unique | `COFF` |
+| Entity | Format | Example | Description |
+|--------|--------|---------|-------------|
+| Client | 4-char alphanumeric | `ACME` | Agency |
+| Company | 4-char alphanumeric | `BREW` | Client's customer |
+| Vendor | 4-char alphanumeric | `ACFL` | Service provider org |
+| VendorCompany | 4-char alphanumeric | `ACOF` | Vendor business unit |
 
 **Key files:**
-- `apps/api/src/common/services/code-generator.service.ts` - Auto-generates codes
-- `apps/api/prisma/seeds/seed-entity-codes.ts` - Backfill script
+- `apps/api/src/common/services/code-generator.service.ts`
+- `apps/api/prisma/seeds/seed-entity-codes.ts`
 
 **Code generation rules:**
 1. Extract first 4 chars from name (uppercase, alphanumeric only)
@@ -187,102 +118,379 @@ Clients and Companies have 4-character alphanumeric codes used in order/shipment
 3. Fallback to random 4-char code
 4. Reserved codes blocked: `TEST`, `DEMO`, `NULL`, etc.
 
+---
+
+## Feature 01: Integrations Framework (Complete)
+
+All service credentials are UI-configurable, not hardcoded in `.env` files.
+
+### Architecture
+
+| Level | Services | Examples |
+|-------|----------|----------|
+| **Organization** | Platform services (org-only) | Auth0, AWS SES/SNS/Bedrock, Datadog, Sentry |
+| **Client** | Client-configurable | Payment Gateways (own or platform) |
+
+### Integration Categories
+
+```typescript
+enum IntegrationCategory {
+  PAYMENT_GATEWAY      // PayPal, Stripe, NMI, Authorize.Net
+  AUTHENTICATION       // Auth0, Okta, Cognito
+  COMMUNICATION        // Twilio, SendGrid
+  EMAIL_TRANSACTIONAL  // AWS SES
+  SMS                  // AWS SNS, Twilio
+  AI_ML                // AWS Bedrock, OpenAI, LanguageTool
+  STORAGE              // AWS S3
+  IMAGE_PROCESSING     // Cloudinary
+  VIDEO_GENERATION     // Runway
+  ANALYTICS            // Datadog, Sentry
+  OAUTH                // Google, Microsoft, Slack, HubSpot, Salesforce, QuickBooks
+}
+```
+
+### Integration Providers
+
+```typescript
+enum IntegrationProvider {
+  // Payment Gateways
+  PAYPAL_PAYFLOW, PAYPAL_REST, NMI, AUTHORIZE_NET, STRIPE,
+  // Authentication
+  AUTH0, OKTA, COGNITO,
+  // Communication
+  TWILIO, SENDGRID, AWS_SES, AWS_SNS, KLAVIYO,
+  // AI
+  AWS_BEDROCK, OPENAI, LANGUAGETOOL,
+  // Storage & Media
+  AWS_S3, CLOUDINARY, RUNWAY,
+  // Monitoring
+  DATADOG, SENTRY, CLOUDWATCH,
+  // Feature Flags
+  LAUNCHDARKLY, AWS_APPCONFIG,
+  // OAuth
+  GOOGLE, MICROSOFT, SLACK, HUBSPOT, SALESFORCE, QUICKBOOKS,
+}
+```
+
+### Key Models
+
+```prisma
+model PlatformIntegration {
+  // Organization-level integrations
+  provider            IntegrationProvider
+  category            IntegrationCategory
+  credentials         Json      // Encrypted AES-256-GCM
+  environment         String    // 'SANDBOX' | 'PRODUCTION'
+  isSharedWithClients Boolean
+  clientPricing       Json?     // { type, percentageFee, flatFee }
+  status              IntegrationStatus
+}
+
+model ClientIntegration {
+  // Client-level integrations
+  provider            IntegrationProvider
+  mode                IntegrationMode  // 'OWN' | 'PLATFORM'
+  credentials         Json?            // Encrypted (null if using platform)
+  platformIntegrationId String?
+  isDefault           Boolean
+  priority            Int
+}
+```
+
+### API Endpoints
+
+```
+# Platform Integrations (Org Admin)
+GET    /api/admin/integrations/definitions
+GET    /api/admin/integrations/platform
+POST   /api/admin/integrations/platform
+PATCH  /api/admin/integrations/platform/:id
+POST   /api/admin/integrations/platform/:id/test
+DELETE /api/admin/integrations/platform/:id
+
+# Client Integrations
+GET    /api/integrations/available
+GET    /api/integrations
+POST   /api/integrations
+PATCH  /api/integrations/:id
+POST   /api/integrations/:id/test
+DELETE /api/integrations/:id
+```
+
+### Dashboard Pages
+
+| Page | Purpose | Components |
+|------|---------|------------|
+| `/integrations` | Platform integrations (org admin) | IntegrationCard, AddIntegrationModal, ConfigureSharingModal |
+| `/settings/integrations` | Client integrations | IntegrationCard, AddIntegrationModal |
+
+### Key Frontend Files
+
+```
+apps/admin-dashboard/src/
+├── app/(dashboard)/integrations/page.tsx          # Platform integrations
+├── app/(dashboard)/settings/integrations/page.tsx # Client integrations
+├── components/integrations/
+│   ├── index.ts
+│   ├── integration-card.tsx
+│   ├── integration-status-badge.tsx
+│   ├── add-integration-modal.tsx         # Multi-step: select → configure → credentials
+│   └── configure-sharing-modal.tsx
+└── lib/api/integrations.ts                # API client with types
+```
+
+### Key Backend Files
+
+```
+apps/api/src/integrations/
+├── integrations.module.ts
+├── controllers/
+│   ├── platform-integration.controller.ts
+│   └── client-integration.controller.ts
+├── services/
+│   ├── platform-integration.service.ts
+│   ├── client-integration.service.ts
+│   ├── encryption.service.ts             # AES-256-GCM
+│   └── integration-definitions.ts        # Provider definitions
+└── types/
+    └── integration.types.ts
+```
+
+### Provider Icon Configuration
+
+Icons stored in `apps/admin-dashboard/public/integrations/` as SVG files.
+
+```typescript
+// In add-integration-modal.tsx
+const providerConfig: Record<IntegrationProvider, { iconUrl, bgColor, gradient }> = {
+  [IntegrationProvider.PAYPAL_PAYFLOW]: {
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
+  },
+  [IntegrationProvider.STRIPE]: {
+    iconUrl: '/integrations/stripe.svg',
+    bgColor: 'bg-[#635BFF]',
+    gradient: 'from-[#635BFF] to-[#8B85FF]',
+  },
+  // ... etc
+};
+```
+
+---
+
+## Feature 02: Dynamic RBAC System (Spec Complete)
+
+Hierarchical permission system with custom roles at each level.
+
+### Permission Inheritance Model
+
+```
+Organization (defines permission superset)
+    ↓ PermissionGrant (ceiling)
+Client (receives constrained permissions)
+    ↓ PermissionGrant (ceiling)
+Company (receives further constrained permissions)
+```
+
+**Core Principle:** No entity can grant permissions it doesn't have.
+
+### Key Models
+
+```prisma
+model Permission {
+  code        String    @unique  // 'transactions:read'
+  category    String              // 'transactions'
+  isSystemOnly Boolean            // Org-only permissions
+}
+
+model Role {
+  // Scope - exactly one set
+  organizationId  String?
+  clientId        String?
+  companyId       String?
+  vendorId        String?         // Feature 03
+  vendorCompanyId String?         // Feature 03
+  
+  isSystem    Boolean   // Cannot delete
+  isDefault   Boolean   // Auto-assign new users
+  permissions RolePermission[]
+}
+
+model UserRole {
+  userId      String
+  roleId      String
+  expiresAt   DateTime?  // Time-limited access
+  assignedBy  String
+}
+```
+
+### Permission Categories (33 permissions)
+
+| Category | Permissions |
+|----------|-------------|
+| transactions | read, export, void, refund |
+| customers | read, write, delete, export |
+| billing | read, manage |
+| merchant_accounts | read, write, test |
+| routing | read, write, deploy |
+| users | read, invite, manage, delete |
+| roles | read, manage |
+| integrations | read, manage |
+| save_flow | read, configure |
+| churn | read, configure |
+| audit | read, export |
+| system | clients, billing, config (org-only) |
+
+### User Status Flow
+
+```
+PENDING_VERIFICATION → (verify email) → ACTIVE
+                                      → SUSPENDED → ACTIVE
+                                      → DEACTIVATED
+```
+
+### Soft Delete Pattern
+
+All RBAC entities use: `deletedAt`, `deletedBy`, `cascadeId`
+
+**Key files:**
+- Spec: `Feature_02_Dynamic_RBAC_System.docx`
+- Implementation: `Feature_02_Dynamic_RBAC_Implementation.md`
+
+---
+
+## Feature 03: Vendor System (Spec Complete)
+
+Two-tier Vendor/VendorCompany structure mirroring Client/Company.
+
+### Use Cases
+
+- Fulfillment providers (3PL)
+- Dropship suppliers
+- Print-on-demand services
+- Warehousing
+
+### Vendor Business Types
+
+```prisma
+enum VendorBusinessType {
+  FULFILLMENT, DROPSHIP, PRINT_ON_DEMAND, WAREHOUSING,
+  MANUFACTURING, DIGITAL_SERVICES, CONSULTING, HYBRID
+}
+```
+
+### Key Models (17 new)
+
+| Category | Models |
+|----------|--------|
+| Core | Vendor, VendorCompany |
+| Organization | VendorDepartment, VendorTeam, VendorCompanyDepartment, VendorCompanyTeam |
+| Users | VendorUser, VendorCompanyUser, VendorTeamMember, VendorCompanyTeamMember |
+| Operations | VendorLocation, VendorService, VendorProduct, VendorInventory |
+| Connections | VendorClientConnection |
+| Marketplace | MarketplaceListing, MarketplaceReview |
+
+### Vendor Permissions (40+)
+
+```
+vendor_orders, vendor_inventory, vendor_shipping, vendor_locations,
+vendor_services, vendor_products, vendor_clients, vendor_billing,
+vendor_users, vendor_roles, vendor_marketplace, vendor_settings
+```
+
+**Key files:**
+- Spec: `Feature_03_Vendor_System.docx`
+- Implementation: `Feature_03_Vendor_System_Implementation.md`
+
+---
+
+## Development Commands
+
+```bash
+# Start servers
+cd apps/api && npm run dev              # API on :3001
+cd apps/admin-dashboard && npm run dev  # Dashboard on :3000
+
+# Database
+cd apps/api && npx prisma migrate dev --name description
+cd apps/api && npx prisma generate
+cd apps/api && npx prisma db seed
+
+# Docker
+docker-compose up -d                    # Start services
+docker-compose down -v                  # Reset
+docker-compose logs -f api              # View logs
+```
+
+---
+
+## API Configuration
+
+**CRITICAL: All API routes require the `/api` prefix.**
+
+| Backend Controller | Frontend API Call |
+|-------------------|-------------------|
+| `@Controller('auth')` | `/api/auth/...` |
+| `@Controller('admin/integrations')` | `/api/admin/integrations/...` |
+| `@Controller('integrations')` | `/api/integrations/...` |
+| `@Controller('vendors')` | `/api/vendors/...` |
+
+### Environment Variables
+
+```bash
+# Frontend (apps/admin-dashboard/.env.local)
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Backend (apps/api/.env)
+DATABASE_URL=postgresql://postgres:password@localhost:5432/payment_platform
+REDIS_URL=redis://localhost:6379
+AUTH0_DOMAIN=your-domain.auth0.com
+AUTH0_CLIENT_ID=xxx
+AUTH0_CLIENT_SECRET=xxx
+JWT_SECRET=your_jwt_secret
+```
+
+---
+
+## Authentication
+
+- **Method:** JWT-based with Auth0 SSO
+- **Token Storage:** localStorage (`avnz_token`)
+- **Header:** `Authorization: Bearer <token>`
+
+**Key files:**
+- `apps/api/src/auth/strategies/auth0.strategy.ts`
+- `apps/admin-dashboard/src/lib/auth0.ts`
+- `apps/admin-dashboard/src/contexts/auth-context.tsx`
+
+---
+
 ## Order & Shipment Numbers
 
-Order numbers are designed for phone/AI readability with global uniqueness.
-
-### Format
+Phone/AI-readable format with global uniqueness.
 
 | Context | Format | Example |
 |---------|--------|---------|
-| Database (internal) | `CLNT-COMP-X-NNNNNNNNN` | `VELO-COFF-A-000000003` |
-| API/URLs (compact) | `X-NNNNNNNNN` | `A-000000003` |
-| Customer display | `X-NNN-NNN-NNN` | `A-000-000-003` |
+| Internal | `CLNT-COMP-X-NNNNNNNNN` | `VELO-COFF-A-000000003` |
+| API/URLs | `X-NNNNNNNNN` | `A-000000003` |
+| Customer | `X-NNN-NNN-NNN` | `A-000-000-003` |
 
-### Design Decisions
-- **Global sequence**: Order numbers are unique across ALL companies
-- **Numbers only** (after prefix): Phone/AI friendly, no letter confusion
-- **Prefix letter rollover**: A→C→E→F... when hitting 1 billion orders
-- **Capacity**: 20 billion total (20 letters × 1B each)
-- **Internal prefix**: `VELO-COFF-` enables routing/filtering by company
-
-### Helper Methods (`OrderNumberService`)
-```typescript
-getCustomerNumber(orderNumber)  // VELO-COFF-A-000000003 → A-000000003
-formatForDisplay(orderNumber)   // VELO-COFF-A-000000003 → A-000-000-003
-parseForSearch(input)           // Accepts any format for lookup
-validateOrderNumber(number)     // Validates format
-```
-
-### Shipment Numbers
-Same pattern with `S` prefix: `VELO-COFF-SA-000000001` → `SA-000-000-001`
+**Capacity:** 20 billion (20 prefix letters × 1B each)
 
 **Key file:** `apps/api/src/orders/services/order-number.service.ts`
 
-## Orders, Products & Fulfillment
+---
 
-### Module Structure
-```
-apps/api/src/
-├── orders/           # Order management
-├── products/         # Product catalog
-└── fulfillment/      # Shipments & tracking
-```
+## Multi-Tenant Access Control
 
-### Orders Module
-- **Controller**: `orders.controller.ts` - CRUD operations
-- **Service**: `orders.service.ts` - Business logic
-- **Order Number**: Auto-generated (see Order Numbers section above)
+### Backend Pattern
 
-### Products Module
-- **Controller**: `products.controller.ts` - Product CRUD
-- **Fields**: SKU, name, category, price, roastLevel, origin, flavorNotes, stockQuantity
-- **Sub-controllers**: `CategoryController`, `TagController`, `CollectionController`
-
-### Product Catalog Organization
-```
-apps/api/src/products/
-├── products.controller.ts       # Main product CRUD
-├── controllers/
-│   ├── category.controller.ts   # /api/products/categories
-│   ├── tag.controller.ts        # /api/products/tags
-│   └── collection.controller.ts # /api/products/collections
-└── services/
-    ├── products.service.ts
-    ├── category.service.ts
-    ├── tag.service.ts
-    └── collection.service.ts
-```
-
-**Route Ordering Note:** In `products.module.ts`, specific controllers (Category, Tag, Collection) must be registered BEFORE ProductsController to prevent the `:id` param from catching routes like `/products/tags`.
-
-| Entity | Purpose | Key Features |
-|--------|---------|--------------|
-| Category | Hierarchical product organization | Parent/child tree structure, `level`, `path` |
-| Tag | Flexible product labeling | Color-coded, many-to-many with products |
-| Collection | Product groupings | Manual or automatic (rule-based) |
-
-### Fulfillment Module
-- **Shipments**: Track shipments with carrier, tracking number, status
-- **Statuses**: `PENDING`, `PROCESSING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED`, `RETURNED`
-
-### Multi-Tenant Access Control
-All modules use `CompanyAuthGuard` to ensure:
-- Users only see data for their company/client scope
-- `companyId` is automatically injected from JWT token
-- Cross-company access is blocked
-
-### Company Selection for Org/Client Users
-
-Organization and Client scope users can manage multiple companies. The pattern for handling this:
-
-**Backend Pattern:**
 ```typescript
-// In controllers, use getCompanyIdForQuery() for read/write operations
 @Get(':id')
 async findById(
   @Param('id') id: string,
-  @Query('companyId') queryCompanyId: string,  // Accept from query
+  @Query('companyId') queryCompanyId: string,
   @CurrentUser() user: AuthenticatedUser,
 ): Promise<Product> {
   const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
@@ -290,118 +498,275 @@ async findById(
 }
 ```
 
-**Frontend Pattern:**
+### Frontend Pattern
+
 ```typescript
-// Use useHierarchy() context to get selected company
 const { accessLevel, selectedCompanyId } = useHierarchy();
 
-// Check if company selection is needed
 const needsCompanySelection =
   (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
 
-// Pass companyId to API calls
 await productsApi.update(id, data, selectedCompanyId || undefined);
 ```
 
-**UI Pattern:** Show "Select a Company" message when `needsCompanySelection` is true, with disabled action buttons.
+---
 
-## Integrations System
+## Responsive Design
 
-### Platform Integrations
-Third-party service connections managed per-company.
+| Breakpoint | Width | Target |
+|------------|-------|--------|
+| Mobile | < 640px | Phones |
+| Tablet | 640px - 1024px | Tablets |
+| Desktop | > 1024px | Laptops |
+| Large | > 1280px | Monitors |
+
+### Key Patterns
+
+- **Touch targets:** Min 44px
+- **Padding:** `px-4 md:px-6`
+- **Typography:** `text-xl md:text-2xl`
+- **Grids:** `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
+- **Mobile nav:** `MobileMenuProvider` in layout, `useMobileMenu()` hook
 
 **Key files:**
-- `apps/api/src/integrations/` - Backend module
-- `apps/admin-dashboard/src/app/(dashboard)/integrations/` - Frontend pages
+- `apps/admin-dashboard/src/components/layout/sidebar.tsx`
+- `apps/admin-dashboard/src/components/layout/mobile-sidebar.tsx`
+- `apps/admin-dashboard/src/contexts/mobile-menu-context.tsx`
 
-### Integration Types
-| Category | Providers |
-|----------|-----------|
-| Payment | Stripe, PayPal, Square |
-| Shipping | ShipStation, EasyPost, ShipEngine |
-| Accounting | QuickBooks, Xero |
-| Identity | Auth0, Okta |
-| AI & ML | AWS Bedrock, OpenAI, LanguageTool |
-| Storage | AWS S3 |
-| Image Processing | Cloudinary |
+---
 
-### Product Integration Services
-Services for AI-powered product management:
+## Backend Module Structure
+
+```
+apps/api/src/<module>/
+├── <module>.module.ts       # NestJS module
+├── <module>.controller.ts   # Route handlers
+├── controllers/             # Additional controllers
+├── services/                # Business logic
+├── dto/                     # Data transfer objects
+├── guards/                  # Auth guards
+└── types/                   # TypeScript types
+```
+
+---
+
+## Soft Delete & Deleted Items
+
+### Overview
+All major entities support soft delete with cascade tracking and a dedicated UI for viewing/restoring deleted items.
+
+### Soft Delete Fields
+```prisma
+deletedAt    DateTime?  // When deleted
+deletedBy    String?    // User who deleted
+cascadeId    String?    // Groups related deletes together
+```
+
+### Deleted Items Page
+- **Route:** `/deleted`
+- **Features:** View soft-deleted items by type, restore, permanent delete
+- **Filters:** Entity type, date range, deleted by
+
+### Key Files
+- `apps/api/src/soft-delete/` - Backend soft delete module
+- `apps/admin-dashboard/src/app/(dashboard)/deleted/` - Deleted items UI
+
+---
+
+## Team Management (Users Module)
+
+### Overview
+User management within organizational hierarchy with card/table views.
+
+### Features
+- Card view (default) and Table view with toggle
+- Search across name and email
+- Filter by role and status
+- Invite new users (creates with pending status)
+- Role assignment inline + modal
+- Status management (activate, deactivate, suspend)
+
+### API Endpoints
+```
+GET    /api/admin/users          # List users with filters
+GET    /api/admin/users/stats    # User statistics
+GET    /api/admin/users/:id      # Get user by ID
+POST   /api/admin/users/invite   # Invite new user
+PATCH  /api/admin/users/:id      # Update user
+PATCH  /api/admin/users/:id/status  # Update status
+POST   /api/admin/users/:id/roles   # Assign RBAC role
+DELETE /api/admin/users/:id/roles/:roleId  # Remove role
+```
+
+### Key Files
+- `apps/api/src/users/` - Backend users module
+- `apps/admin-dashboard/src/app/(dashboard)/settings/team/` - Team page
+- `apps/admin-dashboard/src/components/team/` - Team components
+- `apps/admin-dashboard/src/lib/api/users.ts` - API client
+
+---
+
+## Orders & Fulfillment
+
+### Orders Module
+- **Route:** `/orders`
+- **Features:** Order list, detail view, status updates
+- **Order Numbers:** Phone/AI-readable format (see Order & Shipment Numbers section)
+
+### Shipments Module
+- **Route:** `/shipments`
+- **Features:** Shipment tracking, carrier integration, status updates
+- **Statuses:** `PENDING`, `PROCESSING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED`, `RETURNED`
+
+### Key Files
+- `apps/api/src/orders/` - Orders backend
+- `apps/api/src/fulfillment/` - Fulfillment/shipments backend
+- `apps/admin-dashboard/src/app/(dashboard)/orders/` - Orders UI
+- `apps/admin-dashboard/src/app/(dashboard)/shipments/` - Shipments UI
+
+---
+
+## Products & Inventory
+
+### Products Module
+- **Route:** `/products`
+- **Features:** Product catalog, categories, tags, collections, variants
+- **Sub-routes:** `/products/categories`, `/products/tags`, `/products/collections`
+
+### Inventory Module
+- **Features:** Stock tracking, location management, adjustments
+- **Key file:** `apps/api/src/inventory/`
+
+### Key Files
+- `apps/api/src/products/` - Products backend
+- `apps/admin-dashboard/src/app/(dashboard)/products/` - Products UI
+
+---
+
+## Dashboard
+
+### Stats & Metrics
+- **Endpoint:** `GET /api/dashboard/stats`
+- **Metrics:** Total transactions, revenue, active customers, pending orders
+
+### Chart Data
+- **Endpoint:** `GET /api/dashboard/stats/chart?days=30`
+- **Data:** Daily transaction counts and amounts
+
+### Badges
+- **Endpoint:** `GET /api/dashboard/badges`
+- **Data:** Notification counts for sidebar badges
+
+### Key Files
+- `apps/api/src/dashboard/` - Dashboard backend
+- `apps/admin-dashboard/src/app/(dashboard)/page.tsx` - Dashboard page
+- `apps/admin-dashboard/src/components/dashboard/` - Dashboard components
+
+---
+
+## Product Integration Services
+
+AI-powered product management services:
 
 | Service | Purpose | Key Methods |
 |---------|---------|-------------|
 | `BedrockService` | AI content generation | `generateProductDescription()`, `generateAltText()`, `suggestCategorization()` |
 | `S3StorageService` | Image storage & CDN | `uploadFile()`, `generateThumbnails()`, `getSignedDownloadUrl()` |
-| `LanguageToolService` | Grammar checking | `checkGrammar()`, `checkAndCorrect()`, `checkMultipleFields()` |
-| `CloudinaryService` | Image processing (no storage) | `removeBackground()`, `smartCrop()`, `enhance()`, `upscale()` |
+| `LanguageToolService` | Grammar checking | `checkGrammar()`, `checkAndCorrect()` |
+| `CloudinaryService` | Image processing | `removeBackground()`, `smartCrop()`, `enhance()` |
 
 **Architecture Note:** Cloudinary uses "fetch" mode to process S3 URLs on-demand. S3 is the ONLY storage layer.
 
 **Key files:** `apps/api/src/integrations/services/providers/`
 
-### Adding New Integrations
-1. Add provider to `IntegrationProvider` enum in Prisma schema
-2. Add definition in `integration-definitions.ts`
-3. Create service in `services/providers/`
-4. Add icon to `public/integrations/`
+---
 
-## Merchant Accounts
+## Key Project Documents
 
-### Overview
-Bank account configurations for payment processing, tied to companies.
+| Document | Purpose |
+|----------|---------|
+| `INTEGRATIONS_FRAMEWORK_SPECIFICATION.md` | Feature 01 spec |
+| `Feature_02_Dynamic_RBAC_System.docx` | Feature 02 spec |
+| `Feature_03_Vendor_System.docx` | Feature 03 spec |
+| `Gateway_Rule_Engine_Complete_Specification.md` | GRE routing rules |
+| `COMPLETE_DEVELOPMENT_PLAN.md` | 24-week roadmap |
+| `MASTER_DEVELOPMENT_CHECKLIST.md` | Task tracker |
 
-**Key files:**
-- `apps/api/src/merchant-accounts/` - Backend module
-- `apps/admin-dashboard/src/app/(dashboard)/settings/merchant-accounts/` - Frontend
+---
 
-### Fields
-- `accountName`, `bankName`, `accountType`
-- `routingNumber`, `accountNumberLast4` (masked)
-- `status`: `PENDING`, `VERIFIED`, `ACTIVE`, `SUSPENDED`
+## 24-Week Development Roadmap
 
-## Dashboard & Analytics
+| Phase | Weeks | Features |
+|-------|-------|----------|
+| Phase 1: Foundation | 1-4 | Auth, RBAC, Integrations Framework, Dashboard |
+| Phase 2: Payment Core | 5-7 | Multi-account, Pools, Load balancing |
+| Phase 3: Gateway Rule Engine | 8-10 | Rules, Conditions, Actions |
+| Phase 4: Billing | 11-12 | Usage, Plans, Invoicing |
+| Phase 5: Momentum Core | 13-15 | Churn, Save flow, Triggers |
+| Phase 6: CS AI | 16-17 | Voice AI, RMA, Refunds |
+| Phase 7: Communications | 18-19 | Content gen, Delivery |
+| Phase 8: Revenue & Analytics | 20-21 | Upsell, Analytics |
+| Phase 9: Alpha Deployment | 22-24 | AWS, CI/CD, Launch |
 
-### Transaction Chart
-- **Endpoint**: `GET /api/dashboard/stats/chart?days=30`
-- **Data**: Daily transaction counts and amounts
-- **Component**: `apps/admin-dashboard/src/components/dashboard/transaction-chart.tsx`
+---
 
-### Stats Overview
-- **Endpoint**: `GET /api/dashboard/stats`
-- **Metrics**: Total transactions, revenue, active customers, pending orders
+## Git Workflow
 
-## Auth0 SSO Integration
+1. Create feature branch: `git checkout -b feature/XX-feature-name`
+2. Implement the feature
+3. **Document in CLAUDE.md** (if applicable)
+4. Commit with conventional format: `feat: description`
+5. Create PR and merge
 
-### Configuration
-```bash
-# apps/api/.env
-AUTH0_DOMAIN=your-tenant.auth0.com
-AUTH0_CLIENT_ID=xxx
-AUTH0_CLIENT_SECRET=xxx
-AUTH0_AUDIENCE=https://your-api
+### Commit Message Format
+
+```
+feat: add new feature description
+fix: resolve bug description
+docs: update documentation
+refactor: code improvement without behavior change
 ```
 
-### Flow
-1. Frontend redirects to Auth0 login
-2. Auth0 returns JWT token
-3. Backend validates token via JWKS
-4. User is created/matched in local database
-
-**Key files:**
-- `apps/api/src/auth/strategies/auth0.strategy.ts`
-- `apps/admin-dashboard/src/lib/auth0.ts`
+---
 
 ## Settings Navigation
 
-### Submenu Structure
-Settings page uses a sidebar submenu pattern:
 ```
 /settings
-├── /profile          # User profile
-├── /security         # Password, 2FA
-├── /merchant-accounts # Bank accounts
-├── /integrations     # Third-party connections
-└── /notifications    # Preferences
+├── /profile            # User profile
+├── /security           # Password, 2FA
+├── /team               # Team/User management
+├── /roles              # RBAC role management
+├── /merchant-accounts  # Bank accounts
+├── /integrations       # Client integrations (Feature 01)
+├── /api-keys           # API key management
+└── /notifications      # Preferences
 ```
 
-**Component**: `apps/admin-dashboard/src/app/(dashboard)/settings/layout.tsx`
+---
+
+## Troubleshooting
+
+### API Returns 404
+- Check route has `/api` prefix in frontend call
+- Verify controller decorator matches expected path
+- Check NestJS module imports the controller
+
+### Prisma Client Issues
+```bash
+cd apps/api && npx prisma generate
+cd apps/api && npx prisma migrate dev
+```
+
+### Docker Issues
+```bash
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+---
+
+*Last Updated: November 30, 2025*
+*Feature 01: Complete | Feature 02-03: Spec Complete*
+

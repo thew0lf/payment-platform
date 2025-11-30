@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService, UserContext } from '../hierarchy/hierarchy.service';
 
@@ -9,6 +9,26 @@ export interface CustomerFilters {
   search?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface CreateAddressInput {
+  type: 'SHIPPING' | 'BILLING' | 'BOTH';
+  isDefault?: boolean;
+  firstName: string;
+  lastName: string;
+  company?: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+}
+
+export interface CreateNoteInput {
+  content: string;
+  type?: 'INTERNAL' | 'CUSTOMER_SERVICE';
 }
 
 @Injectable()
@@ -201,5 +221,264 @@ export class CustomersService {
       newThisMonth,
       growthRate: Math.round(growthRate * 10) / 10,
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ADDRESSES
+  // ═══════════════════════════════════════════════════════════════
+
+  async getAddresses(user: UserContext, customerId: string) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const addresses = await this.prisma.address.findMany({
+      where: { customerId },
+      orderBy: { isDefault: 'desc' },
+    });
+
+    return addresses.map((addr) => ({
+      id: addr.id,
+      type: addr.type,
+      isDefault: addr.isDefault,
+      firstName: addr.firstName,
+      lastName: addr.lastName,
+      company: addr.company,
+      address1: addr.street1,
+      address2: addr.street2,
+      city: addr.city,
+      state: addr.state,
+      postalCode: addr.postalCode,
+      country: addr.country,
+      phone: addr.phone,
+    }));
+  }
+
+  async addAddress(user: UserContext, customerId: string, data: CreateAddressInput) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    // If this is the default, unset other defaults of the same type
+    if (data.isDefault) {
+      await this.prisma.address.updateMany({
+        where: { customerId, type: data.type as any },
+        data: { isDefault: false },
+      });
+    }
+
+    const address = await this.prisma.address.create({
+      data: {
+        customerId,
+        type: data.type as any,
+        isDefault: data.isDefault || false,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        company: data.company,
+        street1: data.address1,
+        street2: data.address2,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        country: data.country,
+        phone: data.phone,
+      },
+    });
+
+    return {
+      id: address.id,
+      type: address.type,
+      isDefault: address.isDefault,
+      firstName: address.firstName,
+      lastName: address.lastName,
+      company: address.company,
+      address1: address.street1,
+      address2: address.street2,
+      city: address.city,
+      state: address.state,
+      postalCode: address.postalCode,
+      country: address.country,
+      phone: address.phone,
+    };
+  }
+
+  async updateAddress(user: UserContext, customerId: string, addressId: string, data: Partial<CreateAddressInput>) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const existing = await this.prisma.address.findFirst({
+      where: { id: addressId, customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Address not found');
+    }
+
+    // If this is becoming the default, unset other defaults
+    if (data.isDefault && !existing.isDefault) {
+      await this.prisma.address.updateMany({
+        where: { customerId, type: (data.type || existing.type) as any },
+        data: { isDefault: false },
+      });
+    }
+
+    const updated = await this.prisma.address.update({
+      where: { id: addressId },
+      data: {
+        type: data.type as any,
+        isDefault: data.isDefault,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        company: data.company,
+        street1: data.address1,
+        street2: data.address2,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        country: data.country,
+        phone: data.phone,
+      },
+    });
+
+    return {
+      id: updated.id,
+      type: updated.type,
+      isDefault: updated.isDefault,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      company: updated.company,
+      address1: updated.street1,
+      address2: updated.street2,
+      city: updated.city,
+      state: updated.state,
+      postalCode: updated.postalCode,
+      country: updated.country,
+      phone: updated.phone,
+    };
+  }
+
+  async deleteAddress(user: UserContext, customerId: string, addressId: string) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const existing = await this.prisma.address.findFirst({
+      where: { id: addressId, customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Address not found');
+    }
+
+    await this.prisma.address.delete({
+      where: { id: addressId },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // NOTES
+  // ═══════════════════════════════════════════════════════════════
+
+  async getNotes(user: UserContext, customerId: string) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const notes = await this.prisma.customerNote.findMany({
+      where: { customerId },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return notes.map((note) => ({
+      id: note.id,
+      customerId: note.customerId,
+      userId: note.userId,
+      content: note.content,
+      type: note.type,
+      createdAt: note.createdAt.toISOString(),
+      updatedAt: note.updatedAt.toISOString(),
+      user: note.user
+        ? {
+            id: note.user.id,
+            name: `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email,
+            email: note.user.email,
+          }
+        : null,
+    }));
+  }
+
+  async addNote(user: UserContext, customerId: string, userId: string, data: CreateNoteInput) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const note = await this.prisma.customerNote.create({
+      data: {
+        customerId,
+        userId,
+        content: data.content,
+        type: (data.type || 'INTERNAL') as any,
+      },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
+
+    return {
+      id: note.id,
+      customerId: note.customerId,
+      userId: note.userId,
+      content: note.content,
+      type: note.type,
+      createdAt: note.createdAt.toISOString(),
+      updatedAt: note.updatedAt.toISOString(),
+      user: note.user
+        ? {
+            id: note.user.id,
+            name: `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email,
+            email: note.user.email,
+          }
+        : null,
+    };
+  }
+
+  async deleteNote(user: UserContext, customerId: string, noteId: string) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const existing = await this.prisma.customerNote.findFirst({
+      where: { id: noteId, customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Note not found');
+    }
+
+    await this.prisma.customerNote.delete({
+      where: { id: noteId },
+    });
   }
 }

@@ -23,6 +23,9 @@ import { InventoryModule } from './inventory/inventory.module';
 import { RbacModule } from './rbac/rbac.module';
 import { UsersModule } from './users/users.module';
 import { VendorsModule } from './vendors/vendors.module';
+import { RefundsModule } from './refunds/refunds.module';
+import { CustomersModule } from './customers/customers.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -48,6 +51,9 @@ import { VendorsModule } from './vendors/vendors.module';
     RbacModule,
     UsersModule,
     VendorsModule,
+    RefundsModule,
+    CustomersModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

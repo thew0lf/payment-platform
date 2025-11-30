@@ -308,6 +308,7 @@ export class VendorService {
         DROPSHIPPER: 0,
         WHITE_LABEL: 0,
         AFFILIATE: 0,
+        CUSTOMER_SERVICE_CENTER: 0,
       },
     };
 

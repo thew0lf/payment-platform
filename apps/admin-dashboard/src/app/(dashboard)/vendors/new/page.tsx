@@ -1,0 +1,310 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Save,
+  Building2,
+  Mail,
+  Phone,
+  Globe,
+  FileText,
+  User,
+  Loader2,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  vendorsApi,
+  CreateVendorInput,
+  VendorType,
+} from '@/lib/api/vendors';
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const VENDOR_TYPES: { value: VendorType; label: string; description: string }[] = [
+  { value: 'SUPPLIER', label: 'Supplier', description: 'Provides products or raw materials' },
+  { value: 'DROPSHIPPER', label: 'Dropshipper', description: 'Ships directly to customers' },
+  { value: 'WHITE_LABEL', label: 'White Label', description: 'Provides products for rebranding' },
+  { value: 'AFFILIATE', label: 'Affiliate', description: 'Promotes products for commission' },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════
+
+export default function NewVendorPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState<CreateVendorInput>({
+    name: '',
+    slug: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    businessName: '',
+    taxId: '',
+    website: '',
+    description: '',
+    vendorType: 'SUPPLIER',
+  });
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData({
+      ...formData,
+      name,
+      slug: generateSlug(name),
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const vendor = await vendorsApi.create(formData);
+      router.push(`/vendors/${vendor.id}`);
+    } catch (err: unknown) {
+      console.error('Failed to create vendor:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create vendor. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClasses = 'w-full px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors';
+  const labelClasses = 'block text-sm font-medium text-zinc-400 mb-1.5';
+
+  return (
+    <div className="p-6 max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          href="/vendors"
+          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Add New Vendor</h1>
+          <p className="text-sm text-zinc-500 mt-1">Create a new vendor in your network</p>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-cyan-400" />
+            Basic Information
+          </h2>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClasses}>
+                  Vendor Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g., Premium Suppliers Inc."
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>
+                  Slug <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="e.g., premium-suppliers-inc"
+                  className={inputClasses}
+                />
+                <p className="text-xs text-zinc-500 mt-1">URL-friendly identifier</p>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClasses}>Business Name</label>
+              <input
+                type="text"
+                value={formData.businessName || ''}
+                onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                placeholder="Legal business name"
+                className={inputClasses}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasses}>Tax ID</label>
+              <input
+                type="text"
+                value={formData.taxId || ''}
+                onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                placeholder="e.g., 12-3456789"
+                className={inputClasses}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasses}>Website</label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="url"
+                  value={formData.website || ''}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://example.com"
+                  className={cn(inputClasses, 'pl-10')}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClasses}>Description</label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief description of the vendor..."
+                rows={3}
+                className={cn(inputClasses, 'resize-none')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-cyan-400" />
+            Contact Information
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className={labelClasses}>Contact Name</label>
+              <input
+                type="text"
+                value={formData.contactName || ''}
+                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                placeholder="Primary contact person"
+                className={inputClasses}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClasses}>Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    type="email"
+                    value={formData.contactEmail || ''}
+                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                    placeholder="contact@vendor.com"
+                    className={cn(inputClasses, 'pl-10')}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelClasses}>Phone</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    type="tel"
+                    value={formData.contactPhone || ''}
+                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                    placeholder="+1 (555) 123-4567"
+                    className={cn(inputClasses, 'pl-10')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Vendor Type */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-cyan-400" />
+            Vendor Type
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {VENDOR_TYPES.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => setFormData({ ...formData, vendorType: type.value })}
+                className={cn(
+                  'p-4 rounded-lg border text-left transition-colors',
+                  formData.vendorType === type.value
+                    ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                )}
+              >
+                <p className="font-medium">{type.label}</p>
+                <p className="text-xs mt-1 opacity-70">{type.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href="/vendors"
+            className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={loading || !formData.name || !formData.slug}
+            className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Create Vendor
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

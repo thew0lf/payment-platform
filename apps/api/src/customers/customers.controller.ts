@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Query, UseGuards, Request, NotFoundException } from '@nestjs/common';
-import { CustomersService } from './customers.service';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, Request, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
+import { CustomersService, CreateAddressInput, CreateNoteInput } from './customers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('customers')
@@ -43,5 +43,71 @@ export class CustomersController {
       throw new NotFoundException('Customer not found');
     }
     return customer;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ADDRESSES
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get(':id/addresses')
+  async getAddresses(@Request() req, @Param('id') customerId: string) {
+    return this.customersService.getAddresses(req.user, customerId);
+  }
+
+  @Post(':id/addresses')
+  async addAddress(
+    @Request() req,
+    @Param('id') customerId: string,
+    @Body() data: CreateAddressInput,
+  ) {
+    return this.customersService.addAddress(req.user, customerId, data);
+  }
+
+  @Patch(':id/addresses/:addressId')
+  async updateAddress(
+    @Request() req,
+    @Param('id') customerId: string,
+    @Param('addressId') addressId: string,
+    @Body() data: Partial<CreateAddressInput>,
+  ) {
+    return this.customersService.updateAddress(req.user, customerId, addressId, data);
+  }
+
+  @Delete(':id/addresses/:addressId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAddress(
+    @Request() req,
+    @Param('id') customerId: string,
+    @Param('addressId') addressId: string,
+  ) {
+    return this.customersService.deleteAddress(req.user, customerId, addressId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // NOTES
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get(':id/notes')
+  async getNotes(@Request() req, @Param('id') customerId: string) {
+    return this.customersService.getNotes(req.user, customerId);
+  }
+
+  @Post(':id/notes')
+  async addNote(
+    @Request() req,
+    @Param('id') customerId: string,
+    @Body() data: CreateNoteInput,
+  ) {
+    return this.customersService.addNote(req.user, customerId, req.user.sub, data);
+  }
+
+  @Delete(':id/notes/:noteId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteNote(
+    @Request() req,
+    @Param('id') customerId: string,
+    @Param('noteId') noteId: string,
+  ) {
+    return this.customersService.deleteNote(req.user, customerId, noteId);
   }
 }

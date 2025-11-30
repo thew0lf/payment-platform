@@ -279,37 +279,37 @@ export const vendorsApi = {
         query.set(key, String(value));
       }
     });
-    return apiRequest.get<{ items: Vendor[]; total: number }>(`/api/vendors?${query}`);
+    return apiRequest.get<{ items: Vendor[]; total: number }>(`/api/admin/vendors?${query}`);
   },
 
   // Get vendor by ID
   get: async (id: string): Promise<Vendor> => {
-    return apiRequest.get<Vendor>(`/api/vendors/${id}`);
+    return apiRequest.get<Vendor>(`/api/admin/vendors/${id}`);
   },
 
   // Get vendor stats
   getStats: async (): Promise<VendorStats> => {
-    return apiRequest.get<VendorStats>('/api/vendors/stats');
+    return apiRequest.get<VendorStats>('/api/admin/vendors/stats');
   },
 
   // Create vendor
   create: async (data: CreateVendorInput): Promise<Vendor> => {
-    return apiRequest.post<Vendor>('/api/vendors', data);
+    return apiRequest.post<Vendor>('/api/admin/vendors', data);
   },
 
   // Update vendor
   update: async (id: string, data: UpdateVendorInput): Promise<Vendor> => {
-    return apiRequest.patch<Vendor>(`/api/vendors/${id}`, data);
+    return apiRequest.patch<Vendor>(`/api/admin/vendors/${id}`, data);
   },
 
   // Verify vendor
   verify: async (id: string, isVerified: boolean): Promise<Vendor> => {
-    return apiRequest.post<Vendor>(`/api/vendors/${id}/verify`, { isVerified });
+    return apiRequest.post<Vendor>(`/api/admin/vendors/${id}/verify`, { isVerified });
   },
 
   // Delete vendor (soft delete)
   delete: async (id: string): Promise<void> => {
-    return apiRequest.delete(`/api/vendors/${id}`);
+    return apiRequest.delete(`/api/admin/vendors/${id}`);
   },
 };
 
@@ -326,32 +326,32 @@ export const vendorCompaniesApi = {
         query.set(key, String(value));
       }
     });
-    return apiRequest.get<{ items: VendorCompany[]; total: number }>(`/api/vendor-companies?${query}`);
+    return apiRequest.get<{ items: VendorCompany[]; total: number }>(`/api/admin/vendor-companies?${query}`);
   },
 
   // Get by vendor
   listByVendor: async (vendorId: string): Promise<VendorCompany[]> => {
-    return apiRequest.get<VendorCompany[]>(`/api/vendor-companies/vendor/${vendorId}`);
+    return apiRequest.get<VendorCompany[]>(`/api/admin/vendor-companies/vendor/${vendorId}`);
   },
 
   // Get vendor company by ID
   get: async (id: string): Promise<VendorCompany> => {
-    return apiRequest.get<VendorCompany>(`/api/vendor-companies/${id}`);
+    return apiRequest.get<VendorCompany>(`/api/admin/vendor-companies/${id}`);
   },
 
   // Create vendor company
   create: async (data: CreateVendorCompanyInput): Promise<VendorCompany> => {
-    return apiRequest.post<VendorCompany>('/api/vendor-companies', data);
+    return apiRequest.post<VendorCompany>('/api/admin/vendor-companies', data);
   },
 
   // Update vendor company
   update: async (id: string, data: UpdateVendorCompanyInput): Promise<VendorCompany> => {
-    return apiRequest.patch<VendorCompany>(`/api/vendor-companies/${id}`, data);
+    return apiRequest.patch<VendorCompany>(`/api/admin/vendor-companies/${id}`, data);
   },
 
   // Delete vendor company (soft delete)
   delete: async (id: string): Promise<void> => {
-    return apiRequest.delete(`/api/vendor-companies/${id}`);
+    return apiRequest.delete(`/api/admin/vendor-companies/${id}`);
   },
 };
 
@@ -368,37 +368,37 @@ export const vendorConnectionsApi = {
         query.set(key, String(value));
       }
     });
-    return apiRequest.get<{ items: VendorConnection[]; total: number }>(`/api/vendor-connections?${query}`);
+    return apiRequest.get<{ items: VendorConnection[]; total: number }>(`/api/admin/vendor-connections?${query}`);
   },
 
   // Get connections by company
   listByCompany: async (companyId: string): Promise<VendorConnection[]> => {
-    return apiRequest.get<VendorConnection[]>(`/api/vendor-connections/company/${companyId}`);
+    return apiRequest.get<VendorConnection[]>(`/api/admin/vendor-connections/company/${companyId}`);
   },
 
   // Get connection by ID
   get: async (id: string): Promise<VendorConnection> => {
-    return apiRequest.get<VendorConnection>(`/api/vendor-connections/${id}`);
+    return apiRequest.get<VendorConnection>(`/api/admin/vendor-connections/${id}`);
   },
 
   // Create connection
   create: async (data: CreateConnectionInput): Promise<VendorConnection> => {
-    return apiRequest.post<VendorConnection>('/api/vendor-connections', data);
+    return apiRequest.post<VendorConnection>('/api/admin/vendor-connections', data);
   },
 
   // Update connection
   update: async (id: string, data: UpdateConnectionInput): Promise<VendorConnection> => {
-    return apiRequest.patch<VendorConnection>(`/api/vendor-connections/${id}`, data);
+    return apiRequest.patch<VendorConnection>(`/api/admin/vendor-connections/${id}`, data);
   },
 
   // Approve/reject connection
   approve: async (id: string, approved: boolean): Promise<VendorConnection> => {
-    return apiRequest.post<VendorConnection>(`/api/vendor-connections/${id}/approve`, { approved });
+    return apiRequest.post<VendorConnection>(`/api/admin/vendor-connections/${id}/approve`, { approved });
   },
 
   // Delete connection
   delete: async (id: string): Promise<void> => {
-    return apiRequest.delete(`/api/vendor-connections/${id}`);
+    return apiRequest.delete(`/api/admin/vendor-connections/${id}`);
   },
 };
 
@@ -419,31 +419,31 @@ export const vendorProductsApi = {
         }
       }
     });
-    return apiRequest.get<{ items: VendorProduct[]; total: number }>(`/api/vendor-products?${query}`);
+    return apiRequest.get<{ items: VendorProduct[]; total: number }>(`/api/admin/vendor-products?${query}`);
   },
 
   // Get product by ID
   get: async (id: string): Promise<VendorProduct> => {
-    return apiRequest.get<VendorProduct>(`/api/vendor-products/${id}`);
+    return apiRequest.get<VendorProduct>(`/api/admin/vendor-products/${id}`);
   },
 
   // Create product
   create: async (data: Partial<VendorProduct>): Promise<VendorProduct> => {
-    return apiRequest.post<VendorProduct>('/api/vendor-products', data);
+    return apiRequest.post<VendorProduct>('/api/admin/vendor-products', data);
   },
 
   // Update product
   update: async (id: string, data: Partial<VendorProduct>): Promise<VendorProduct> => {
-    return apiRequest.patch<VendorProduct>(`/api/vendor-products/${id}`, data);
+    return apiRequest.patch<VendorProduct>(`/api/admin/vendor-products/${id}`, data);
   },
 
   // Update stock
   updateStock: async (id: string, quantity: number): Promise<VendorProduct> => {
-    return apiRequest.patch<VendorProduct>(`/api/vendor-products/${id}/stock`, { quantity });
+    return apiRequest.patch<VendorProduct>(`/api/admin/vendor-products/${id}/stock`, { quantity });
   },
 
   // Delete product
   delete: async (id: string): Promise<void> => {
-    return apiRequest.delete(`/api/vendor-products/${id}`);
+    return apiRequest.delete(`/api/admin/vendor-products/${id}`);
   },
 };
