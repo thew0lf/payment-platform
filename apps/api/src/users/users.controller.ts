@@ -216,15 +216,32 @@ export class UsersController {
   ): Promise<void> {
     // Organization admins have access to everything in their org
     if (user.scopeType === 'ORGANIZATION') {
-      // TODO: Verify scopeId is within their organization
-      return;
+      // Verify the entity exists and is within the organization's scope
+      const isValid = await this.hierarchyService.verifyEntityInOrganization(
+        user.scopeId,
+        scopeType,
+        scopeId,
+      );
+      if (isValid) return;
+      throw new ForbiddenException('Entity is not within your organization');
     }
 
     // Client admins have access to their client and companies within
     if (user.scopeType === 'CLIENT') {
+      // Same client = access granted
       if (scopeType === 'CLIENT' && scopeId === user.scopeId) return;
-      // TODO: Verify company belongs to their client
+
+      // For COMPANY scope, verify company belongs to their client
       if (scopeType === 'COMPANY') {
+        const hasAccess = await this.hierarchyService.verifyCompanyInClient(
+          user.scopeId,
+          scopeId,
+        );
+        if (hasAccess) return;
+      }
+
+      // For DEPARTMENT scope, verify department is in a company belonging to their client
+      if (scopeType === 'DEPARTMENT') {
         const hasAccess = await this.hierarchyService.canAccessCompany(
           { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
           scopeId,
@@ -233,9 +250,10 @@ export class UsersController {
       }
     }
 
-    // Company scope users can only access their company
-    if (user.scopeType === 'COMPANY' && scopeType === 'COMPANY' && scopeId === user.scopeId) {
-      return;
+    // Company scope users can only access their company and below
+    if (user.scopeType === 'COMPANY') {
+      if (scopeType === 'COMPANY' && scopeId === user.scopeId) return;
+      // For DEPARTMENT or TEAM within their company, would need additional validation
     }
 
     throw new ForbiddenException('You do not have access to this scope');

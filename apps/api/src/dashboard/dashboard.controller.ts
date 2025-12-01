@@ -58,4 +58,13 @@ export class DashboardController {
   ) {
     return this.dashboardService.getBadgeCounts(req.user, { companyId, clientId });
   }
+
+  @Get('routing/stats')
+  async getRoutingStats(
+    @Request() req,
+    @Query('companyId') companyId?: string,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.dashboardService.getRoutingStats(req.user, { companyId, clientId });
+  }
 }

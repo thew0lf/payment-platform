@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { PaymentProvider } from '@/types/hierarchy';
 
@@ -13,10 +14,10 @@ interface ProviderStatusProps {
     volume: number;
     successRate?: number;
   }>;
-  onManageClick?: () => void;
+  manageHref?: string;
 }
 
-export function ProviderStatus({ providers, onManageClick }: ProviderStatusProps) {
+export function ProviderStatus({ providers, manageHref = '/integrations' }: ProviderStatusProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy': return 'bg-emerald-400';
@@ -36,14 +37,12 @@ export function ProviderStatus({ providers, onManageClick }: ProviderStatusProps
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-medium text-white">Payment Providers</h2>
-        {onManageClick && (
-          <button
-            onClick={onManageClick}
-            className="text-sm text-cyan-400 hover:text-cyan-300"
-          >
-            Manage
-          </button>
-        )}
+        <Link
+          href={manageHref}
+          className="text-sm text-cyan-400 hover:text-cyan-300"
+        >
+          Manage
+        </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {providers.map(provider => (

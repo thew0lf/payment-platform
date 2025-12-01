@@ -20,8 +20,12 @@ import {
   UpdateOrderDto,
   OrderQueryDto,
 } from '../dto/order.dto';
-
-const MAX_PAGE_SIZE = 100;
+import {
+  PaginationService,
+  CursorPaginatedResponse,
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE,
+} from '../../common/pagination';
 
 @Injectable()
 export class OrdersService {
@@ -31,6 +35,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly orderNumberService: OrderNumberService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════
@@ -142,7 +147,7 @@ export class OrdersService {
   async findAll(
     companyId: string | undefined,
     query: OrderQueryDto,
-  ): Promise<{ orders: Order[]; total: number }> {
+  ): Promise<{ orders: Order[]; total: number } | CursorPaginatedResponse<Order>> {
     const where: Prisma.OrderWhereInput = {};
 
     // Only filter by companyId if provided (undefined = all orders for org/client admins)
@@ -169,7 +174,13 @@ export class OrdersService {
       ];
     }
 
-    const limit = Math.min(query.limit || 50, MAX_PAGE_SIZE);
+    // Use cursor pagination if cursor is provided, otherwise fall back to offset
+    if (query.cursor) {
+      return this.findAllWithCursor(where, query);
+    }
+
+    // Legacy offset pagination (for backwards compatibility)
+    const limit = Math.min(query.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const offset = query.offset || 0;
 
     const [orders, total] = await Promise.all([
@@ -187,6 +198,46 @@ export class OrdersService {
       orders: orders.map(this.mapToOrder.bind(this)),
       total,
     };
+  }
+
+  /**
+   * Get orders with cursor-based pagination (scalable for millions of rows)
+   */
+  private async findAllWithCursor(
+    baseWhere: Prisma.OrderWhereInput,
+    query: OrderQueryDto,
+  ): Promise<CursorPaginatedResponse<Order>> {
+    const { limit, cursorWhere, orderBy } = this.paginationService.parseCursor(
+      { cursor: query.cursor, limit: query.limit },
+      'orderedAt',
+      'desc',
+    );
+
+    // Merge base where with cursor where
+    const where = cursorWhere.OR
+      ? { AND: [baseWhere, cursorWhere] }
+      : { ...baseWhere, ...cursorWhere };
+
+    // Fetch one extra to determine if there are more pages
+    const orders = await this.prisma.order.findMany({
+      where,
+      include: { items: true, shipments: { include: { events: true } } },
+      orderBy,
+      take: limit + 1,
+    });
+
+    // Map orders to the Order type and add orderedAt for cursor generation
+    const mappedOrders = orders.map((order) => ({
+      ...this.mapToOrder(order),
+      orderedAt: order.orderedAt, // Ensure orderedAt is available for cursor
+    }));
+
+    return this.paginationService.createResponse(
+      mappedOrders,
+      limit,
+      { cursor: query.cursor, limit: query.limit },
+      'orderedAt',
+    );
   }
 
   async findById(id: string, companyId: string): Promise<Order> {
@@ -425,8 +476,13 @@ export class OrdersService {
   // STATS
   // ═══════════════════════════════════════════════════════════════
 
-  async getStats(companyId: string, startDate?: Date, endDate?: Date): Promise<OrderStats> {
-    const where: Prisma.OrderWhereInput = { companyId };
+  async getStats(companyId: string | undefined, startDate?: Date, endDate?: Date): Promise<OrderStats> {
+    const where: Prisma.OrderWhereInput = {};
+
+    // Only filter by companyId if provided (undefined = all orders for org/client admins)
+    if (companyId) {
+      where.companyId = companyId;
+    }
 
     if (startDate || endDate) {
       where.orderedAt = {};

@@ -14,16 +14,22 @@ export class CustomersController {
     @Query('clientId') clientId?: string,
     @Query('status') status?: string,
     @Query('search') search?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('cursor') cursor?: string,
   ) {
     return this.customersService.getCustomers(req.user, {
       companyId,
       clientId,
       status,
       search,
+      startDate,
+      endDate,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
+      cursor,
     });
   }
 

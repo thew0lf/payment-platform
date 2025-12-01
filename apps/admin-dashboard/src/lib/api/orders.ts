@@ -201,6 +201,18 @@ export interface OrderQueryParams {
   endDate?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
+}
+
+export interface OrderCursorPaginatedResponse {
+  items: Order[];
+  pagination: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    count: number;
+    estimatedTotal?: number;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -208,7 +220,7 @@ export interface OrderQueryParams {
 // ═══════════════════════════════════════════════════════════════
 
 export const ordersApi = {
-  // List orders
+  // List orders (legacy offset pagination)
   list: async (params: OrderQueryParams = {}): Promise<{ orders: Order[]; total: number }> => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -217,6 +229,17 @@ export const ordersApi = {
       }
     });
     return apiRequest.get<{ orders: Order[]; total: number }>(`/api/orders?${query}`);
+  },
+
+  // List orders with cursor-based pagination (scalable for millions of rows)
+  listWithCursor: async (params: OrderQueryParams = {}): Promise<OrderCursorPaginatedResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query.set(key, String(value));
+      }
+    });
+    return apiRequest.get<OrderCursorPaginatedResponse>(`/api/orders?${query}`);
   },
 
   // Get order by ID

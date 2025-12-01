@@ -74,10 +74,24 @@ export interface CustomerQueryParams {
   search?: string;
   status?: CustomerStatus;
   tags?: string[];
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface CustomerCursorPaginatedResponse {
+  items: Customer[];
+  pagination: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    count: number;
+    estimatedTotal?: number;
+  };
 }
 
 export interface CreateCustomerInput {
@@ -123,7 +137,7 @@ export interface CustomerStats {
 // ═══════════════════════════════════════════════════════════════
 
 export const customersApi = {
-  // List customers
+  // List customers (legacy offset pagination)
   list: async (params: CustomerQueryParams = {}): Promise<{ items: Customer[]; total: number }> => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -136,6 +150,21 @@ export const customersApi = {
       }
     });
     return apiRequest.get<{ items: Customer[]; total: number }>(`/api/customers?${query}`);
+  },
+
+  // List customers with cursor-based pagination (scalable for millions of rows)
+  listWithCursor: async (params: CustomerQueryParams = {}): Promise<CustomerCursorPaginatedResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => query.append(key, v));
+        } else {
+          query.set(key, String(value));
+        }
+      }
+    });
+    return apiRequest.get<CustomerCursorPaginatedResponse>(`/api/customers?${query}`);
   },
 
   // Get customer by ID

@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Plug, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
+import { Plus, Plug, RefreshCw, AlertCircle, Search, LayoutGrid, List, Filter, X, MoreVertical, TestTube, Share2, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { cn } from '@/lib/utils';
 import {
   integrationsApi,
   PlatformIntegration,
@@ -30,6 +32,30 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
 };
 
+const statusOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'ERROR', label: 'Error' },
+];
+
+// Provider icon configuration for table view
+const providerConfig: Record<string, { iconUrl?: string; bgColor: string; gradient: string }> = {
+  [IntegrationProvider.STRIPE]: { iconUrl: '/integrations/stripe.svg', bgColor: 'bg-[#635BFF]', gradient: 'from-[#635BFF] to-[#8B85FF]' },
+  [IntegrationProvider.PAYPAL_REST]: { iconUrl: '/integrations/paypal.svg', bgColor: 'bg-[#003087]', gradient: 'from-[#003087] to-[#009cde]' },
+  [IntegrationProvider.PAYPAL_PAYFLOW]: { iconUrl: '/integrations/paypal.svg', bgColor: 'bg-[#003087]', gradient: 'from-[#003087] to-[#009cde]' },
+  [IntegrationProvider.AUTHORIZE_NET]: { iconUrl: '/integrations/authorize-net.svg', bgColor: 'bg-[#F26722]', gradient: 'from-[#F26722] to-[#FF8B4D]' },
+  [IntegrationProvider.AUTH0]: { iconUrl: '/integrations/auth0.svg', bgColor: 'bg-[#EB5424]', gradient: 'from-[#EB5424] to-[#FF7A4D]' },
+  [IntegrationProvider.AWS_BEDROCK]: { iconUrl: '/integrations/aws-bedrock.svg', bgColor: 'bg-[#232F3E]', gradient: 'from-[#232F3E] to-[#FF9900]' },
+  [IntegrationProvider.AWS_S3]: { iconUrl: '/integrations/aws-s3.svg', bgColor: 'bg-[#232F3E]', gradient: 'from-[#232F3E] to-[#569A31]' },
+  [IntegrationProvider.CLOUDINARY]: { iconUrl: '/integrations/cloudinary.svg', bgColor: 'bg-[#3448C5]', gradient: 'from-[#3448C5] to-[#F5BD51]' },
+  [IntegrationProvider.OPENAI]: { iconUrl: '/integrations/openai.svg', bgColor: 'bg-[#10A37F]', gradient: 'from-[#10A37F] to-[#1ED9A4]' },
+  [IntegrationProvider.TWILIO]: { iconUrl: '/integrations/twilio.svg', bgColor: 'bg-[#F22F46]', gradient: 'from-[#F22F46] to-[#FF5A6E]' },
+  [IntegrationProvider.SENDGRID]: { iconUrl: '/integrations/sendgrid.svg', bgColor: 'bg-[#1A82E2]', gradient: 'from-[#1A82E2] to-[#4DA3FF]' },
+};
+
+type ViewMode = 'card' | 'table';
+
 export default function PlatformIntegrationsPage() {
   const { user } = useAuth();
   const [integrations, setIntegrations] = useState<PlatformIntegration[]>([]);
@@ -38,6 +64,12 @@ export default function PlatformIntegrationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [sharingModalIntegration, setSharingModalIntegration] = useState<PlatformIntegration | null>(null);
+
+  // Search, filter, and view state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
 
   const loadData = async () => {
     setIsLoading(true);
@@ -48,7 +80,6 @@ export default function PlatformIntegrationsPage() {
         integrationsApi.listDefinitions(),
       ]);
       setIntegrations(integrationsRes.data);
-      // Platform admin can configure any integration, no filtering needed
       setDefinitions(definitionsRes.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load integrations');
@@ -60,6 +91,52 @@ export default function PlatformIntegrationsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Filter integrations based on search and filters
+  const filteredIntegrations = useMemo(() => {
+    return integrations.filter((integration) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = integration.name.toLowerCase().includes(query);
+        const matchesProvider = integration.provider.toLowerCase().includes(query);
+        const matchesDescription = integration.description?.toLowerCase().includes(query);
+        if (!matchesName && !matchesProvider && !matchesDescription) {
+          return false;
+        }
+      }
+
+      // Category filter
+      if (selectedCategory !== 'all' && integration.category !== selectedCategory) {
+        return false;
+      }
+
+      // Status filter
+      if (selectedStatus !== 'all' && integration.status !== selectedStatus) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [integrations, searchQuery, selectedCategory, selectedStatus]);
+
+  // Group filtered integrations by category for card view
+  const groupedIntegrations = useMemo(() => {
+    return filteredIntegrations.reduce(
+      (acc, integration) => {
+        if (!acc[integration.category]) acc[integration.category] = [];
+        acc[integration.category].push(integration);
+        return acc;
+      },
+      {} as Record<IntegrationCategory, PlatformIntegration[]>
+    );
+  }, [filteredIntegrations]);
+
+  // Get available categories from current integrations
+  const availableCategories = useMemo(() => {
+    const categories = new Set(integrations.map((i) => i.category));
+    return Array.from(categories);
+  }, [integrations]);
 
   const handleCreateIntegration = async (data: {
     provider: IntegrationProvider;
@@ -106,14 +183,60 @@ export default function PlatformIntegrationsPage() {
     await loadData();
   };
 
-  const groupedIntegrations = integrations.reduce(
-    (acc, integration) => {
-      if (!acc[integration.category]) acc[integration.category] = [];
-      acc[integration.category].push(integration);
-      return acc;
-    },
-    {} as Record<IntegrationCategory, PlatformIntegration[]>
-  );
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedStatus('all');
+  };
+
+  const hasActiveFilters = searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all';
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs rounded-full">
+            <CheckCircle className="w-3 h-3" />
+            Active
+          </span>
+        );
+      case 'INACTIVE':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-500/10 text-zinc-400 text-xs rounded-full">
+            <Clock className="w-3 h-3" />
+            Inactive
+          </span>
+        );
+      case 'ERROR':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-400 text-xs rounded-full">
+            <XCircle className="w-3 h-3" />
+            Error
+          </span>
+        );
+      default:
+        return <span className="text-xs text-zinc-500">{status}</span>;
+    }
+  };
+
+  const getProviderIcon = (provider: string) => {
+    const config = providerConfig[provider];
+    const initials = provider.split('_').map(word => word.charAt(0)).join('').substring(0, 2);
+
+    if (config?.iconUrl) {
+      return (
+        <div className={cn('w-8 h-8 rounded-md flex items-center justify-center', config.bgColor)}>
+          <Image src={config.iconUrl} alt={provider} width={20} height={20} className="w-5 h-5 object-contain" />
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn('w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br', config?.gradient || 'from-zinc-600 to-zinc-700')}>
+        <span className="text-white text-xs font-bold">{initials}</span>
+      </div>
+    );
+  };
 
   if (!user || user.scopeType !== 'ORGANIZATION') {
     return (
@@ -154,6 +277,91 @@ export default function PlatformIntegrationsPage() {
         </div>
       </div>
 
+      {/* Search, Filter, and View Toggle Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search integrations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Category Filter */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        >
+          <option value="all">All Categories</option>
+          {availableCategories.map((category) => (
+            <option key={category} value={category}>
+              {categoryLabels[category] || category}
+            </option>
+          ))}
+        </select>
+
+        {/* Status Filter */}
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        >
+          {statusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors text-sm"
+          >
+            <X className="w-4 h-4" />
+            Clear
+          </button>
+        )}
+
+        {/* View Toggle */}
+        <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setViewMode('card')}
+            className={cn(
+              'p-2 transition-colors',
+              viewMode === 'card' ? 'bg-cyan-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+            )}
+            title="Card view"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={cn(
+              'p-2 transition-colors',
+              viewMode === 'table' ? 'bg-cyan-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+            )}
+            title="Table view"
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Results count */}
+      {!isLoading && (
+        <div className="text-sm text-zinc-500">
+          Showing {filteredIntegrations.length} of {integrations.length} integrations
+          {hasActiveFilters && ' (filtered)'}
+        </div>
+      )}
+
       {/* Error message */}
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
@@ -166,22 +374,38 @@ export default function PlatformIntegrationsPage() {
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
         </div>
-      ) : integrations.length === 0 ? (
+      ) : filteredIntegrations.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center h-64 bg-zinc-900/50 border border-zinc-800 rounded-xl">
           <Plug className="w-12 h-12 text-zinc-600 mb-4" />
-          <p className="text-lg font-medium text-zinc-400 mb-2">No integrations configured</p>
-          <p className="text-sm text-zinc-500 mb-4">Add your first integration to get started</p>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Integration
-          </button>
+          {integrations.length === 0 ? (
+            <>
+              <p className="text-lg font-medium text-zinc-400 mb-2">No integrations configured</p>
+              <p className="text-sm text-zinc-500 mb-4">Add your first integration to get started</p>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Integration
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-zinc-400 mb-2">No integrations match your filters</p>
+              <p className="text-sm text-zinc-500 mb-4">Try adjusting your search or filters</p>
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white font-medium rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Clear Filters
+              </button>
+            </>
+          )}
         </div>
-      ) : (
-        /* Integration cards grouped by category */
+      ) : viewMode === 'card' ? (
+        /* Card View - grouped by category */
         <div className="space-y-8">
           {Object.entries(categoryLabels).map(([category, label]) => {
             const categoryIntegrations = groupedIntegrations[category as IntegrationCategory];
@@ -190,7 +414,7 @@ export default function PlatformIntegrationsPage() {
             return (
               <div key={category}>
                 <h2 className="text-lg font-semibold text-white mb-4">{label}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {categoryIntegrations.map((integration) => (
                     <IntegrationCard
                       key={integration.id}
@@ -205,6 +429,99 @@ export default function PlatformIntegrationsPage() {
               </div>
             );
           })}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-zinc-800">
+                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Integration
+                </th>
+                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Category
+                </th>
+                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Status
+                </th>
+                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Sharing
+                </th>
+                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Last Tested
+                </th>
+                <th className="text-right text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {filteredIntegrations.map((integration) => (
+                <tr key={integration.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {getProviderIcon(integration.provider)}
+                      <div>
+                        <p className="text-sm font-medium text-white">{integration.name}</p>
+                        <p className="text-xs text-zinc-500">{integration.provider.replace(/_/g, ' ')}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-zinc-400">
+                      {categoryLabels[integration.category] || integration.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {getStatusBadge(integration.status)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {integration.isSharedWithClients ? (
+                      <span className="inline-flex items-center gap-1 text-sm text-emerald-400">
+                        <Share2 className="w-3.5 h-3.5" />
+                        Enabled
+                      </span>
+                    ) : (
+                      <span className="text-sm text-zinc-500">Disabled</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-zinc-500">
+                      {integration.lastTestedAt
+                        ? new Date(integration.lastTestedAt).toLocaleDateString()
+                        : 'Never'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleTestIntegration(integration.id)}
+                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        title="Test connection"
+                      >
+                        <TestTube className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setSharingModalIntegration(integration)}
+                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        title="Configure sharing"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteIntegration(integration.id)}
+                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-red-400 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

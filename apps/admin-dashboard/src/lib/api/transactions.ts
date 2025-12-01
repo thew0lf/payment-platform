@@ -15,6 +15,18 @@ export interface TransactionQueryParams {
   endDate?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
+}
+
+export interface TransactionCursorPaginatedResponse {
+  items: Transaction[];
+  pagination: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    count: number;
+    estimatedTotal?: number;
+  };
 }
 
 export interface TransactionListResponse {
@@ -40,7 +52,7 @@ export interface TransactionStats {
 // ═══════════════════════════════════════════════════════════════
 
 export const transactionsApi = {
-  // List transactions
+  // List transactions (legacy offset pagination)
   list: async (params: TransactionQueryParams = {}): Promise<TransactionListResponse> => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -49,6 +61,17 @@ export const transactionsApi = {
       }
     });
     return apiRequest.get<TransactionListResponse>(`/api/transactions?${query}`);
+  },
+
+  // List transactions with cursor-based pagination (scalable for millions of rows)
+  listWithCursor: async (params: TransactionQueryParams = {}): Promise<TransactionCursorPaginatedResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query.set(key, String(value));
+      }
+    });
+    return apiRequest.get<TransactionCursorPaginatedResponse>(`/api/transactions?${query}`);
   },
 
   // Get transaction by ID

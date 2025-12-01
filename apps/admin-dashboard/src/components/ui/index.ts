@@ -4,3 +4,4 @@ export * from './badge';
 export * from './input';
 export * from './table';
 export * from './dropdown-menu';
+export * from './cursor-pagination';

@@ -1,14 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService, UserContext } from '../hierarchy/hierarchy.service';
+import {
+  PaginationService,
+  CursorPaginatedResponse,
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE,
+} from '../common/pagination';
 
 export interface CustomerFilters {
   companyId?: string;
   clientId?: string;
   status?: string;
   search?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
 }
 
 export interface CreateAddressInput {
@@ -36,6 +45,7 @@ export class CustomersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hierarchyService: HierarchyService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async getCustomers(user: UserContext, filters: CustomerFilters = {}) {
@@ -72,6 +82,25 @@ export class CustomersService {
       ];
     }
 
+    // Date range filter (based on customer creation date)
+    if (filters.startDate || filters.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) {
+        where.createdAt.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        where.createdAt.lte = new Date(filters.endDate);
+      }
+    }
+
+    // Use cursor pagination if cursor is provided, otherwise fall back to offset
+    if (filters.cursor) {
+      return this.getCustomersWithCursor(where, filters);
+    }
+
+    // Legacy offset pagination (for backwards compatibility)
+    const limit = Math.min(filters.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+
     const [customers, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
@@ -92,7 +121,7 @@ export class CustomersService {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: filters.limit || 50,
+        take: limit,
         skip: filters.offset || 0,
       }),
       this.prisma.customer.count({ where }),
@@ -101,9 +130,58 @@ export class CustomersService {
     return {
       customers,
       total,
-      limit: filters.limit || 50,
+      limit,
       offset: filters.offset || 0,
     };
+  }
+
+  /**
+   * Get customers with cursor-based pagination (scalable for millions of rows)
+   */
+  private async getCustomersWithCursor(
+    baseWhere: any,
+    filters: CustomerFilters,
+  ): Promise<CursorPaginatedResponse<any>> {
+    const { limit, cursorWhere, orderBy } = this.paginationService.parseCursor(
+      { cursor: filters.cursor, limit: filters.limit },
+      'createdAt',
+      'desc',
+    );
+
+    // Merge base where with cursor where
+    const where = cursorWhere.OR
+      ? { AND: [baseWhere, cursorWhere] }
+      : { ...baseWhere, ...cursorWhere };
+
+    // Fetch one extra to determine if there are more pages
+    const customers = await this.prisma.customer.findMany({
+      where,
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        _count: {
+          select: {
+            transactions: true,
+            subscriptions: true,
+            paymentVaults: true,
+          },
+        },
+      },
+      orderBy,
+      take: limit + 1,
+    });
+
+    return this.paginationService.createResponse(
+      customers,
+      limit,
+      { cursor: filters.cursor, limit: filters.limit },
+      'createdAt',
+    );
   }
 
   async getCustomer(user: UserContext, customerId: string) {

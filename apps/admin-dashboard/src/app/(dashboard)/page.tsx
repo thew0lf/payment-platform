@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, Receipt, Users, AlertCircle, Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { TrendingUp, Receipt, Users, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { ProviderStatus } from '@/components/dashboard/provider-status';
-import { RoutingSavings } from '@/components/dashboard/routing-savings';
 import { TransactionTable } from '@/components/dashboard/transaction-table';
 import { TransactionChart } from '@/components/dashboard/transaction-chart';
+import { RoutingSavings } from '@/components/dashboard/routing-savings';
 import { Button } from '@/components/ui/button';
 import { useHierarchy } from '@/contexts/hierarchy-context';
-import { dashboardApi, DashboardMetrics, ProviderMetrics } from '@/lib/api/dashboard';
+import { dashboardApi, DashboardMetrics, ProviderMetrics, RoutingStats } from '@/lib/api/dashboard';
 import { Transaction } from '@/types/transactions';
 
 export default function DashboardPage() {
@@ -18,19 +18,22 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [providers, setProviders] = useState<ProviderMetrics[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [routingStats, setRoutingStats] = useState<RoutingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     try {
-      const [metricsData, providersData, transactionsData] = await Promise.all([
+      const [metricsData, providersData, transactionsData, routingData] = await Promise.all([
         dashboardApi.getMetrics({ companyId: selectedCompanyId || undefined, clientId: selectedClientId || undefined }),
         dashboardApi.getProviders(selectedCompanyId || undefined),
         dashboardApi.getRecentTransactions({ companyId: selectedCompanyId || undefined, limit: 5 }),
+        dashboardApi.getRoutingStats({ companyId: selectedCompanyId || undefined, clientId: selectedClientId || undefined }),
       ]);
       setMetrics(metricsData);
       setProviders(providersData);
       setTransactions(transactionsData);
+      setRoutingStats(routingData);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -65,16 +68,10 @@ export default function DashboardPage() {
         <Header
           title="Dashboard"
           actions={
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Sync
-              </Button>
-              <Button size="sm" disabled>
-                <Plus className="w-4 h-4 mr-2" />
-                New Transaction
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" disabled>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sync
+            </Button>
           }
         />
         <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -92,16 +89,10 @@ export default function DashboardPage() {
       <Header
         title="Dashboard"
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Sync
-            </Button>
-            <Button size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              New Transaction
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Sync
+          </Button>
         }
       />
 
@@ -143,22 +134,17 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Providers & Routing */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <ProviderStatus
-              providers={providerStatusData}
-              onManageClick={() => console.log('Manage providers')}
-            />
-          </div>
+        {/* Payment Providers */}
+        <ProviderStatus providers={providerStatusData} />
+
+        {/* Smart Routing */}
+        {routingStats && (routingStats.totalSaved > 0 || routingStats.rules.length > 0) && (
           <RoutingSavings
-            totalSaved={234}
-            rules={[
-              { name: 'high-value', description: 'High-value → NMI', saved: 156 },
-              { name: 'intl', description: 'Intl → PayPal', saved: 78 },
-            ]}
+            totalSaved={routingStats.totalSaved}
+            period={routingStats.period}
+            rules={routingStats.rules}
           />
-        </div>
+        )}
 
         {/* Transaction Chart */}
         <TransactionChart

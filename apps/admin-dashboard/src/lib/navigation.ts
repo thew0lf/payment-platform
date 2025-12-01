@@ -129,6 +129,7 @@ export const navigationSections: NavSection[] = [
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
       { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
+      { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: Package },
     ],
   },
 

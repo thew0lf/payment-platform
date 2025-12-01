@@ -72,6 +72,16 @@ export interface BadgeCounts {
   lowStock: number;
 }
 
+export interface RoutingStats {
+  totalSaved: number;
+  period: string;
+  rules: Array<{
+    name: string;
+    description: string;
+    saved: number;
+  }>;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // API CLIENT
 // ═══════════════════════════════════════════════════════════════
@@ -114,5 +124,13 @@ export const dashboardApi = {
     if (params?.companyId) query.set('companyId', params.companyId);
     if (params?.clientId) query.set('clientId', params.clientId);
     return apiRequest.get<BadgeCounts>(`/api/dashboard/badges?${query}`);
+  },
+
+  // Get routing stats
+  getRoutingStats: async (params?: { companyId?: string; clientId?: string }): Promise<RoutingStats> => {
+    const query = new URLSearchParams();
+    if (params?.companyId) query.set('companyId', params.companyId);
+    if (params?.clientId) query.set('clientId', params.clientId);
+    return apiRequest.get<RoutingStats>(`/api/dashboard/routing/stats?${query}`);
   },
 };

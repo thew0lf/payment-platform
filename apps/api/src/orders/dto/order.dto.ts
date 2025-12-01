@@ -294,4 +294,8 @@ export class OrderQueryDto {
   @IsNumber()
   @Min(0)
   offset?: number;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 }

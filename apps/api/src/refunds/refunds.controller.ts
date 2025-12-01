@@ -31,6 +31,7 @@ import {
   ApproveRefundDto,
   RejectRefundDto,
 } from './types/refund.types';
+import { CursorPaginatedResponse } from '../common/pagination';
 
 @Controller('refunds')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -58,7 +59,7 @@ export class RefundsController {
   async list(
     @Query() query: RefundQueryParams,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ refunds: Refund[]; total: number }> {
+  ): Promise<{ refunds: Refund[]; total: number } | CursorPaginatedResponse<Refund>> {
     const companyId = await this.getCompanyIdForQuery(user, query.companyId);
     return this.refundsService.list(companyId, query);
   }
@@ -67,9 +68,10 @@ export class RefundsController {
   async getStats(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('companyId') queryCompanyId?: string,
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<RefundStatsResult> {
-    const companyId = this.getCompanyId(user!);
+    const companyId = await this.getCompanyIdForQuery(user!, queryCompanyId);
     return this.refundsService.getStats(
       companyId,
       startDate ? new Date(startDate) : undefined,

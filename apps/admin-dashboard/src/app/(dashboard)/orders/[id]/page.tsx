@@ -26,6 +26,7 @@ import {
   Check,
   MapPin,
   Phone,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ordersApi, Order } from '@/lib/api/orders';
@@ -679,6 +680,13 @@ export default function OrderDetailPage() {
                     <Mail className="w-4 h-4" />
                     Email Customer
                   </button>
+                  <Link
+                    href={`/rmas/new?orderId=${order.id}&customerId=${order.customerId}`}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 rounded-md"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Issue RMA
+                  </Link>
                 </div>
                 {availableActions.length > 0 && (
                   <>

@@ -22,6 +22,26 @@ export interface PaginationParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+// Cursor-based pagination types
+export interface CursorPaginationParams {
+  cursor?: string;
+  limit?: number;
+  direction?: 'forward' | 'backward';
+}
+
+export interface CursorPaginationMeta {
+  nextCursor: string | null;
+  prevCursor: string | null;
+  hasMore: boolean;
+  count: number;
+  estimatedTotal?: number;
+}
+
+export interface CursorPaginatedResponse<T> {
+  items: T[];
+  pagination: CursorPaginationMeta;
+}
+
 export interface DashboardMetrics {
   revenue: {
     total: number;

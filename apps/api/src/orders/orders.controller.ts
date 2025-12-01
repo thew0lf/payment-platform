@@ -24,6 +24,7 @@ import {
   CancelOrderDto,
   MarkPaidDto,
 } from './dto/order.dto';
+import { CursorPaginatedResponse } from '../common/pagination';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -52,7 +53,7 @@ export class OrdersController {
   async findAll(
     @Query() query: OrderQueryDto,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ orders: Order[]; total: number }> {
+  ): Promise<{ orders: Order[]; total: number } | CursorPaginatedResponse<Order>> {
     const companyId = await this.getCompanyIdForQuery(user, query.companyId);
     return this.ordersService.findAll(companyId, query);
   }
@@ -61,9 +62,10 @@ export class OrdersController {
   async getStats(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('companyId') queryCompanyId?: string,
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<OrderStats> {
-    const companyId = this.getCompanyId(user!);
+    const companyId = await this.getCompanyIdForQuery(user!, queryCompanyId);
     return this.ordersService.getStats(
       companyId,
       startDate ? new Date(startDate) : undefined,

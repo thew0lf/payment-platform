@@ -19,6 +19,7 @@ export class TransactionsController {
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('cursor') cursor?: string,
   ) {
     return this.transactionsService.getTransactions(req.user, {
       companyId,
@@ -30,6 +31,7 @@ export class TransactionsController {
       endDate: endDate ? new Date(endDate) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
+      cursor,
     });
   }
 

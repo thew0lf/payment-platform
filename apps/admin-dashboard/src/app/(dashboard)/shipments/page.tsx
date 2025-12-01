@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatShipmentNumber, formatOrderNumber } from '@/lib/order-utils';
+import { apiRequest } from '@/lib/api';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES (since we don't have a dedicated fulfillment API client yet)
@@ -116,20 +117,18 @@ export default function ShipmentsPage() {
       if (statusFilter) params.set('status', statusFilter);
       if (carrierFilter) params.set('carrier', carrierFilter);
 
-      const token = localStorage.getItem('avnz_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fulfillment/shipments?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await apiRequest.get<Shipment[] | { shipments: Shipment[]; total: number }>(
+        `/api/fulfillment/shipments?${params}`
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch shipments');
+      // Handle both array response and paginated response
+      if (Array.isArray(data)) {
+        setShipments(data);
+        setTotal(data.length);
+      } else {
+        setShipments(data.shipments || []);
+        setTotal(data.total || 0);
       }
-
-      const data = await response.json();
-      setShipments(data.shipments || data);
-      setTotal(data.total || data.length || 0);
     } catch (err) {
       console.error('Failed to fetch shipments:', err);
       setError('Failed to load shipments. Please try again.');

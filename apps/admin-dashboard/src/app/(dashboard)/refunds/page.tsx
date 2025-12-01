@@ -46,6 +46,7 @@ const STATUS_FILTERS: { value: RefundStatus | 'ALL'; label: string; icon: React.
   { value: 'REJECTED', label: 'Rejected', icon: XCircle },
   { value: 'PROCESSING', label: 'Processing', icon: RefreshCw },
   { value: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
+  { value: 'CANCELLED', label: 'Cancelled', icon: XCircle },
   { value: 'FAILED', label: 'Failed', icon: AlertCircle },
 ];
 
@@ -55,8 +56,51 @@ const STATUS_CONFIG: Record<RefundStatus, { label: string; icon: React.Component
   REJECTED: { label: 'Rejected', icon: XCircle },
   PROCESSING: { label: 'Processing', icon: RefreshCw },
   COMPLETED: { label: 'Completed', icon: CheckCircle2 },
+  CANCELLED: { label: 'Cancelled', icon: XCircle },
   FAILED: { label: 'Failed', icon: AlertCircle },
 };
+
+type TimeFilter = 'hour' | 'day' | 'week' | 'month' | 'custom' | 'all';
+
+const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
+  { value: 'hour', label: 'Last Hour' },
+  { value: 'day', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'custom', label: 'Custom' },
+  { value: 'all', label: 'All Time' },
+];
+
+function getDateRangeForFilter(filter: TimeFilter): { startDate: string; endDate: string } | null {
+  if (filter === 'all') return null;
+  if (filter === 'custom') return null;
+
+  const now = new Date();
+  const endDate = now.toISOString();
+  let startDate: Date;
+
+  switch (filter) {
+    case 'hour':
+      startDate = new Date(now.getTime() - 60 * 60 * 1000);
+      break;
+    case 'day':
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - now.getDay());
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    default:
+      return null;
+  }
+
+  return { startDate: startDate.toISOString(), endDate };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTS
@@ -108,6 +152,12 @@ export default function RefundsPage() {
   const [selectedRefunds, setSelectedRefunds] = useState<Set<string>>(new Set());
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
+  // Time filter
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+
   // Pagination
   const [total, setTotal] = useState(0);
   const [limit] = useState(20);
@@ -127,7 +177,7 @@ export default function RefundsPage() {
   useEffect(() => {
     fetchRefunds();
     fetchStats();
-  }, [selectedStatus, searchQuery, offset]);
+  }, [selectedStatus, searchQuery, offset, timeFilter, customStartDate, customEndDate]);
 
   const fetchRefunds = async () => {
     setLoading(true);
@@ -149,6 +199,18 @@ export default function RefundsPage() {
         params.search = searchQuery;
       }
 
+      // Add date range from time filter
+      if (timeFilter === 'custom' && customStartDate && customEndDate) {
+        params.startDate = new Date(customStartDate).toISOString();
+        params.endDate = new Date(customEndDate + 'T23:59:59').toISOString();
+      } else {
+        const dateRange = getDateRangeForFilter(timeFilter);
+        if (dateRange) {
+          params.startDate = dateRange.startDate;
+          params.endDate = dateRange.endDate;
+        }
+      }
+
       const data = await refundsApi.list(params);
       setRefunds(data.items);
       setTotal(data.total);
@@ -165,7 +227,21 @@ export default function RefundsPage() {
 
   const fetchStats = async () => {
     try {
-      const data = await refundsApi.getStats();
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+
+      if (timeFilter === 'custom' && customStartDate && customEndDate) {
+        startDate = new Date(customStartDate).toISOString();
+        endDate = new Date(customEndDate + 'T23:59:59').toISOString();
+      } else {
+        const dateRange = getDateRangeForFilter(timeFilter);
+        if (dateRange) {
+          startDate = dateRange.startDate;
+          endDate = dateRange.endDate;
+        }
+      }
+
+      const data = await refundsApi.getStats(startDate, endDate);
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
@@ -314,45 +390,96 @@ export default function RefundsPage() {
         />
       </div>
 
-      {/* Filters & Search */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Search by refund number, order, or customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
+      {/* Time Filter */}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-2">
+          {TIME_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => {
+                setTimeFilter(option.value);
+                if (option.value === 'custom') {
+                  setShowCustomDatePicker(true);
+                } else {
+                  setShowCustomDatePicker(false);
+                }
+                setOffset(0);
+              }}
+              className={cn(
+                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                timeFilter === option.value
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Date Picker */}
+        {showCustomDatePicker && (
+          <div className="mt-4 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="block text-sm text-zinc-400 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm text-zinc-400 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
-            {STATUS_FILTERS.map((filter) => {
-              const Icon = filter.icon;
-              const isActive = selectedStatus === filter.value;
-              return (
-                <button
-                  key={filter.value}
-                  onClick={() => setSelectedStatus(filter.value)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
-                    isActive
-                      ? 'bg-cyan-600 text-white'
-                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search by refund number, order, or customer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+        </div>
+      </div>
+
+      {/* Status Filter */}
+      <div className="mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {STATUS_FILTERS.map((filter) => {
+            const Icon = filter.icon;
+            const isActive = selectedStatus === filter.value;
+            return (
+              <button
+                key={filter.value}
+                onClick={() => setSelectedStatus(filter.value)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+                  isActive
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {filter.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -388,7 +515,7 @@ export default function RefundsPage() {
       {/* Refunds List */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
         {/* Table Header */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 bg-zinc-800/50 border-b border-zinc-700 text-sm font-medium text-zinc-400">
+        <div className="hidden lg:grid lg:grid-cols-12 gap-3 p-4 bg-zinc-800/50 border-b border-zinc-700 text-sm font-medium text-zinc-400">
           <div className="col-span-1 flex items-center">
             <input
               type="checkbox"
@@ -399,11 +526,10 @@ export default function RefundsPage() {
           </div>
           <div className="col-span-2">Refund #</div>
           <div className="col-span-2">Order</div>
-          <div className="col-span-2">Customer</div>
-          <div className="col-span-1">Amount</div>
-          <div className="col-span-2">Reason</div>
-          <div className="col-span-1">Status</div>
-          <div className="col-span-1">Actions</div>
+          <div className="col-span-2">Amount</div>
+          <div className="col-span-1">Reason</div>
+          <div className="col-span-2">Status</div>
+          <div className="col-span-2 text-right">Actions</div>
         </div>
 
         {/* Table Body */}
@@ -416,7 +542,7 @@ export default function RefundsPage() {
             refunds.map((refund) => (
               <div
                 key={refund.id}
-                className="lg:grid lg:grid-cols-12 gap-4 p-4 hover:bg-zinc-800/30 transition-colors"
+                className="lg:grid lg:grid-cols-12 gap-3 p-4 hover:bg-zinc-800/30 transition-colors"
               >
                 {/* Mobile Layout */}
                 <div className="lg:hidden space-y-3">
@@ -430,7 +556,7 @@ export default function RefundsPage() {
                       />
                       <div>
                         <p className="text-sm font-medium text-white font-mono">
-                          {formatRefundNumber(refund.refundNumber)}
+                          {formatRefundNumber(refund.refundNumber || refund.id)}
                         </p>
                         <p className="text-xs text-zinc-500 mt-0.5">
                           {formatDate(refund.createdAt)}
@@ -453,7 +579,7 @@ export default function RefundsPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-500">Amount:</span>
                       <span className="text-white font-medium">
-                        {formatCurrency(refund.refundAmount, refund.currency)}
+                        {formatCurrency(refund.refundAmount || 0, refund.currency)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -496,63 +622,53 @@ export default function RefundsPage() {
                       className="w-4 h-4 bg-zinc-700 border-zinc-600 rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
                     />
                   </div>
-                  <div className="col-span-2 flex flex-col justify-center">
-                    <p className="text-sm font-medium text-white font-mono">
-                      {formatRefundNumber(refund.refundNumber)}
+                  <div className="col-span-2 flex flex-col justify-center min-w-0">
+                    <p className="text-sm font-medium text-white font-mono truncate">
+                      {formatRefundNumber(refund.refundNumber || refund.id)}
                     </p>
                     <p className="text-xs text-zinc-500">{formatDate(refund.createdAt)}</p>
                   </div>
-                  <div className="col-span-2 flex items-center">
+                  <div className="col-span-2 flex items-center min-w-0">
                     <Link
                       href={`/orders/${refund.orderId}`}
-                      className="text-sm text-cyan-400 hover:text-cyan-300 font-mono"
+                      className="text-sm text-cyan-400 hover:text-cyan-300 truncate"
                     >
-                      {refund.order ? formatOrderNumber(refund.order.orderNumber) : refund.orderId}
+                      {refund.order?.orderNumber ? formatOrderNumber(refund.order.orderNumber) : 'View Order'}
                     </Link>
                   </div>
-                  <div className="col-span-2 flex flex-col justify-center">
-                    {refund.customer ? (
-                      <>
-                        <p className="text-sm text-white">
-                          {refund.customer.firstName} {refund.customer.lastName}
-                        </p>
-                        <p className="text-xs text-zinc-500">{refund.customer.email}</p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-zinc-500">{refund.customerId}</p>
-                    )}
-                  </div>
-                  <div className="col-span-1 flex items-center">
+                  <div className="col-span-2 flex items-center">
                     <p className="text-sm font-medium text-white">
-                      {formatCurrency(refund.refundAmount, refund.currency)}
+                      {formatCurrency(refund.refundAmount || 0, refund.currency)}
                     </p>
                   </div>
-                  <div className="col-span-2 flex items-center">
-                    <p className="text-sm text-zinc-300">{getRefundReasonLabel(refund.reason)}</p>
+                  <div className="col-span-1 flex items-center min-w-0">
+                    <p className="text-xs text-zinc-300 truncate" title={getRefundReasonLabel(refund.reason)}>{getRefundReasonLabel(refund.reason)}</p>
                   </div>
-                  <div className="col-span-1 flex items-center">
+                  <div className="col-span-2 flex items-center">
                     <StatusBadge status={refund.status} />
                   </div>
-                  <div className="col-span-1 flex items-center gap-2">
-                    {canApproveRefund(refund) && (
+                  <div className="col-span-2 flex items-center justify-end gap-2">
+                    {canApproveRefund(refund) ? (
                       <>
                         <button
                           onClick={() => handleApprove(refund.id)}
                           disabled={processingAction === refund.id}
-                          className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs font-medium"
                           title="Approve"
                         >
-                          <Check className="w-4 h-4" />
+                          Approve
                         </button>
                         <button
                           onClick={() => handleReject(refund.id, 'Rejected')}
                           disabled={processingAction === refund.id}
-                          className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs font-medium"
                           title="Reject"
                         >
-                          <X className="w-4 h-4" />
+                          Reject
                         </button>
                       </>
+                    ) : (
+                      <span className="text-xs text-zinc-500">—</span>
                     )}
                   </div>
                 </div>

@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService, UserContext } from '../hierarchy/hierarchy.service';
+import {
+  PaginationService,
+  CursorPaginationParams,
+  CursorPaginatedResponse,
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE,
+} from '../common/pagination';
 
 export interface TransactionFilters {
   companyId?: string;
@@ -12,6 +19,8 @@ export interface TransactionFilters {
   endDate?: Date;
   limit?: number;
   offset?: number;
+  // Cursor pagination
+  cursor?: string;
 }
 
 @Injectable()
@@ -19,6 +28,7 @@ export class TransactionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hierarchyService: HierarchyService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async getTransactions(user: UserContext, filters: TransactionFilters = {}) {
@@ -69,6 +79,13 @@ export class TransactionsService {
       ];
     }
 
+    // Use cursor pagination if cursor is provided, otherwise fall back to offset
+    if (filters.cursor) {
+      return this.getTransactionsWithCursor(where, filters);
+    }
+
+    // Legacy offset pagination (for backwards compatibility)
+    const limit = Math.min(filters.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const [transactions, total] = await Promise.all([
       this.prisma.transaction.findMany({
         where,
@@ -97,7 +114,7 @@ export class TransactionsService {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: filters.limit || 50,
+        take: limit,
         skip: filters.offset || 0,
       }),
       this.prisma.transaction.count({ where }),
@@ -106,9 +123,66 @@ export class TransactionsService {
     return {
       transactions,
       total,
-      limit: filters.limit || 50,
+      limit,
       offset: filters.offset || 0,
     };
+  }
+
+  /**
+   * Get transactions with cursor-based pagination (scalable for millions of rows)
+   */
+  private async getTransactionsWithCursor(
+    baseWhere: any,
+    filters: TransactionFilters,
+  ): Promise<CursorPaginatedResponse<any>> {
+    const { limit, cursorWhere, orderBy } = this.paginationService.parseCursor(
+      { cursor: filters.cursor, limit: filters.limit },
+      'createdAt',
+      'desc',
+    );
+
+    // Merge base where with cursor where
+    const where = cursorWhere.OR
+      ? { AND: [baseWhere, cursorWhere] }
+      : { ...baseWhere, ...cursorWhere };
+
+    // Fetch one extra to determine if there are more pages
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        paymentProvider: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+          },
+        },
+      },
+      orderBy,
+      take: limit + 1, // Fetch one extra to check hasMore
+    });
+
+    return this.paginationService.createResponse(
+      transactions,
+      limit,
+      { cursor: filters.cursor, limit: filters.limit },
+      'createdAt',
+    );
   }
 
   async getTransaction(user: UserContext, transactionId: string) {

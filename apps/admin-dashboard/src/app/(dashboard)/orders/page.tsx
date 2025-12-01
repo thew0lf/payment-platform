@@ -203,18 +203,33 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Fetch stats on mount
+  // Fetch stats when filters change
   useEffect(() => {
     async function fetchStats() {
       try {
-        const data = await ordersApi.getStats();
+        let startDate: string | undefined;
+        let endDate: string | undefined;
+
+        // Use date range from time filter
+        if (timeFilter === 'custom' && customStartDate && customEndDate) {
+          startDate = new Date(customStartDate).toISOString();
+          endDate = new Date(customEndDate + 'T23:59:59').toISOString();
+        } else {
+          const dateRange = getDateRangeForFilter(timeFilter);
+          if (dateRange) {
+            startDate = dateRange.startDate;
+            endDate = dateRange.endDate;
+          }
+        }
+
+        const data = await ordersApi.getStats(startDate, endDate);
         setStats(data);
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       }
     }
     fetchStats();
-  }, []);
+  }, [timeFilter, customStartDate, customEndDate]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);

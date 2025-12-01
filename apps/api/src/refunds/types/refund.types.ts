@@ -191,6 +191,18 @@ export class RefundQueryParams {
   @IsNumber()
   @Min(0)
   offset?: number;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc';
 }
 
 // ═══════════════════════════════════════════════════════════════

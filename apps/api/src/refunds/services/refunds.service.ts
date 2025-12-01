@@ -18,14 +18,21 @@ import {
   ApproveRefundDto,
   RejectRefundDto,
 } from '../types/refund.types';
-
-const MAX_PAGE_SIZE = 100;
+import {
+  PaginationService,
+  CursorPaginatedResponse,
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE,
+} from '../../common/pagination';
 
 @Injectable()
 export class RefundsService {
   private readonly logger = new Logger(RefundsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paginationService: PaginationService,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════════
   // REFUND NUMBER GENERATION
@@ -134,7 +141,7 @@ export class RefundsService {
   async list(
     companyId: string | undefined,
     query: RefundQueryParams,
-  ): Promise<{ refunds: Refund[]; total: number }> {
+  ): Promise<{ refunds: Refund[]; total: number } | CursorPaginatedResponse<Refund>> {
     const where: Prisma.RefundWhereInput = {};
 
     // Only filter by companyId if provided (undefined = all refunds for org/client admins)
@@ -163,7 +170,13 @@ export class RefundsService {
       ];
     }
 
-    const limit = Math.min(query.limit || 50, MAX_PAGE_SIZE);
+    // Use cursor pagination if cursor is provided, otherwise fall back to offset
+    if (query.cursor) {
+      return this.listWithCursor(where, query);
+    }
+
+    // Legacy offset pagination (for backwards compatibility)
+    const limit = Math.min(query.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const offset = query.offset || 0;
 
     const [refunds, total] = await Promise.all([
@@ -180,6 +193,41 @@ export class RefundsService {
       refunds: refunds.map(this.mapToRefund.bind(this)),
       total,
     };
+  }
+
+  /**
+   * Get refunds with cursor-based pagination (scalable for millions of rows)
+   */
+  private async listWithCursor(
+    baseWhere: Prisma.RefundWhereInput,
+    query: RefundQueryParams,
+  ): Promise<CursorPaginatedResponse<Refund>> {
+    const { limit, cursorWhere, orderBy } = this.paginationService.parseCursor(
+      { cursor: query.cursor, limit: query.limit },
+      'createdAt',
+      'desc',
+    );
+
+    // Merge base where with cursor where
+    const where = cursorWhere.OR
+      ? { AND: [baseWhere, cursorWhere] }
+      : { ...baseWhere, ...cursorWhere };
+
+    // Fetch one extra to determine if there are more pages
+    const refunds = await this.prisma.refund.findMany({
+      where,
+      orderBy,
+      take: limit + 1,
+    });
+
+    const mappedRefunds = refunds.map(this.mapToRefund.bind(this)) as (Refund & { id: string })[];
+
+    return this.paginationService.createResponse(
+      mappedRefunds,
+      limit,
+      { cursor: query.cursor, limit: query.limit },
+      'createdAt',
+    );
   }
 
   async get(id: string, companyId: string): Promise<Refund> {
@@ -209,16 +257,34 @@ export class RefundsService {
   // ═══════════════════════════════════════════════════════════════
 
   async getStats(
-    companyId: string,
+    companyId: string | undefined,
     startDate?: Date,
     endDate?: Date,
   ): Promise<RefundStatsResult> {
-    const where: Prisma.RefundWhereInput = { companyId };
+    const where: Prisma.RefundWhereInput = {};
+
+    // Only filter by companyId if provided (undefined = all refunds for org/client admins)
+    if (companyId) {
+      where.companyId = companyId;
+    }
 
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = startDate;
       if (endDate) where.createdAt.lte = endDate;
+    }
+
+    // Build completed refunds where clause carefully to avoid overwriting createdAt
+    const completedWhere: Prisma.RefundWhereInput = {
+      ...where,
+      status: 'COMPLETED',
+      completedAt: { not: null },
+    };
+    // If we have date filters, merge them with AND
+    if (where.createdAt) {
+      completedWhere.AND = [
+        { createdAt: where.createdAt },
+      ];
     }
 
     const [statusCounts, amountData, completedRefunds] = await Promise.all([
@@ -233,12 +299,7 @@ export class RefundsService {
         _count: true,
       }),
       this.prisma.refund.findMany({
-        where: {
-          ...where,
-          status: 'COMPLETED',
-          createdAt: { not: null },
-          completedAt: { not: null },
-        },
+        where: completedWhere,
         select: {
           createdAt: true,
           completedAt: true,

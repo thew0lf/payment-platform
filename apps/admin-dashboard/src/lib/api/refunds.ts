@@ -4,7 +4,7 @@ import { apiRequest } from '../api';
 // TYPES
 // ═══════════════════════════════════════════════════════════════
 
-export type RefundStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type RefundStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 export type RefundType = 'FULL' | 'PARTIAL';
 export type RefundReason =
   | 'CUSTOMER_REQUEST'
@@ -33,15 +33,17 @@ export interface Refund {
   requestedBy: string | null;
 
   // Refund details
-  refundNumber: string;
+  refundNumber?: string; // May be undefined for legacy records
   type: RefundType;
   status: RefundStatus;
   reason: RefundReason;
   reasonDetails?: string;
 
-  // Amounts
-  originalAmount: number;
-  refundAmount: number;
+  // Amounts (backend uses requestedAmount/approvedAmount, frontend shows as refundAmount)
+  originalAmount?: number;
+  requestedAmount?: number; // From backend
+  approvedAmount?: number; // From backend
+  refundAmount?: number; // For display (populated from requestedAmount)
   currency: string;
 
   // Line items for partial refunds
@@ -144,8 +146,20 @@ export interface RefundQueryParams {
   search?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface RefundCursorPaginatedResponse {
+  items: Refund[];
+  pagination: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    count: number;
+    estimatedTotal?: number;
+  };
 }
 
 export interface RefundStats {
@@ -176,7 +190,7 @@ export interface UpdateRefundSettingsInput {
 // ═══════════════════════════════════════════════════════════════
 
 export const refundsApi = {
-  // List refunds
+  // List refunds (legacy offset pagination)
   list: async (params: RefundQueryParams = {}): Promise<{ items: Refund[]; total: number }> => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -184,7 +198,26 @@ export const refundsApi = {
         query.set(key, String(value));
       }
     });
-    return apiRequest.get<{ items: Refund[]; total: number }>(`/api/refunds?${query}`);
+    // Backend returns { refunds: [...], total: N }, map to { items: [...], total: N }
+    const response = await apiRequest.get<{ refunds: Refund[]; total: number }>(`/api/refunds?${query}`);
+    // Map requestedAmount to refundAmount for frontend display
+    const items = response.refunds.map(refund => ({
+      ...refund,
+      refundAmount: refund.requestedAmount || refund.refundAmount || 0,
+      refundNumber: refund.refundNumber || refund.id.substring(0, 8), // Fallback for display
+    }));
+    return { items, total: response.total };
+  },
+
+  // List refunds with cursor-based pagination (scalable for millions of rows)
+  listWithCursor: async (params: RefundQueryParams = {}): Promise<RefundCursorPaginatedResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query.set(key, String(value));
+      }
+    });
+    return apiRequest.get<RefundCursorPaginatedResponse>(`/api/refunds?${query}`);
   },
 
   // Get refund by ID
@@ -202,7 +235,22 @@ export const refundsApi = {
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
-    return apiRequest.get<RefundStats>(`/api/refunds/stats?${params}`);
+    // Map backend field names to frontend expected names
+    const response = await apiRequest.get<{
+      totalRefunds: number;
+      pendingRefunds: number;
+      approvedRefunds: number;
+      rejectedRefunds: number;
+      completedRefunds: number;
+      totalRefundedAmount: number;
+      averageRefundAmount: number;
+      autoApprovalRate?: number;
+    }>(`/api/refunds/stats?${params}`);
+    return {
+      ...response,
+      totalRefundAmount: response.totalRefundedAmount,
+      autoApprovalRate: response.autoApprovalRate ?? 0,
+    };
   },
 
   // Create refund request
@@ -302,6 +350,7 @@ export function getRefundStatusColor(status: RefundStatus): string {
     PROCESSING: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     COMPLETED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     FAILED: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    CANCELLED: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
   };
   return colors[status] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
 }
