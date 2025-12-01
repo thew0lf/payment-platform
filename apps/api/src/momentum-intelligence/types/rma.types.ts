@@ -511,7 +511,8 @@ export interface ProcessResolutionDto {
 }
 
 export interface GetRMAsDto {
-  companyId: string;
+  companyId?: string;
+  companyIds?: string[]; // For multi-company scoping (e.g., org-level users)
   status?: RMAStatus;
   type?: RMAType;
   customerId?: string;

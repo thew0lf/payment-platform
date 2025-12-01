@@ -487,26 +487,172 @@ export class RMAService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // QUERIES
+  // QUERIES - WITH TENANT FILTERING
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Get a single RMA by ID
+   * Note: Caller (controller) must verify companyId access after fetching
+   */
   async getRMA(rmaId: string): Promise<RMA | null> {
-    // In production, fetch from database
-    return null;
+    const rma = await this.prisma.rMA.findUnique({
+      where: { id: rmaId },
+    });
+
+    if (!rma) {
+      return null;
+    }
+
+    return this.mapPrismaRMAToRMA(rma);
   }
 
+  /**
+   * Get RMA by number
+   * Note: Caller (controller) must verify companyId access after fetching
+   */
   async getRMAByNumber(rmaNumber: string): Promise<RMA | null> {
-    // In production, fetch from database
-    return null;
+    const rma = await this.prisma.rMA.findUnique({
+      where: { rmaNumber },
+    });
+
+    if (!rma) {
+      return null;
+    }
+
+    return this.mapPrismaRMAToRMA(rma);
   }
 
+  /**
+   * Get RMAs with filters
+   * IMPORTANT: dto.companyIds should be pre-filtered by the controller
+   * to include only companies the user has access to
+   */
   async getRMAs(dto: GetRMAsDto): Promise<{ rmas: RMA[]; total: number }> {
-    // In production, fetch from database with filters
-    return { rmas: [], total: 0 };
+    // Build where clause with tenant filtering
+    const where: any = {};
+
+    // CRITICAL: Tenant isolation - filter by accessible companies
+    if (dto.companyId) {
+      where.companyId = dto.companyId;
+    } else if (dto.companyIds && dto.companyIds.length > 0) {
+      where.companyId = { in: dto.companyIds };
+    }
+
+    // Additional filters
+    if (dto.status) {
+      where.status = dto.status;
+    }
+    if (dto.type) {
+      where.type = dto.type;
+    }
+    if (dto.customerId) {
+      where.customerId = dto.customerId;
+    }
+    if (dto.orderId) {
+      where.orderId = dto.orderId;
+    }
+    if (dto.startDate || dto.endDate) {
+      where.createdAt = {};
+      if (dto.startDate) {
+        where.createdAt.gte = new Date(dto.startDate);
+      }
+      if (dto.endDate) {
+        where.createdAt.lte = new Date(dto.endDate);
+      }
+    }
+
+    // Execute queries in parallel
+    const [rmas, total] = await Promise.all([
+      this.prisma.rMA.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: dto.offset || 0,
+        take: dto.limit || 50,
+      }),
+      this.prisma.rMA.count({ where }),
+    ]);
+
+    return {
+      rmas: rmas.map(rma => this.mapPrismaRMAToRMA(rma)),
+      total,
+    };
   }
 
+  /**
+   * Map Prisma RMA model to RMA interface
+   */
+  private mapPrismaRMAToRMA(prismaRma: any): RMA {
+    return {
+      id: prismaRma.id,
+      rmaNumber: prismaRma.rmaNumber,
+      companyId: prismaRma.companyId,
+      customerId: prismaRma.customerId,
+      orderId: prismaRma.orderId,
+      csSessionId: prismaRma.csSessionId,
+      type: prismaRma.type as RMAType,
+      status: prismaRma.status as RMAStatus,
+      reason: prismaRma.reason as ReturnReason,
+      reasonDetails: prismaRma.reasonDetails,
+      items: prismaRma.items as RMAItem[],
+      shipping: {
+        labelType: prismaRma.labelType,
+        carrier: prismaRma.carrier,
+        trackingNumber: prismaRma.trackingNumber,
+        trackingUrl: prismaRma.trackingUrl,
+        labelUrl: prismaRma.labelUrl,
+        labelSentAt: prismaRma.labelSentAt,
+        shippedAt: prismaRma.shippedAt,
+        deliveredAt: prismaRma.deliveredAt,
+        returnAddress: prismaRma.returnAddress,
+      },
+      inspection: prismaRma.inspectionStatus ? {
+        status: prismaRma.inspectionStatus,
+        overallResult: prismaRma.inspectionResult as InspectionResult,
+        notes: prismaRma.inspectionNotes,
+      } : undefined,
+      resolution: {
+        type: prismaRma.resolutionType,
+        status: prismaRma.resolutionStatus,
+        ...(prismaRma.resolutionData || {}),
+      },
+      timeline: prismaRma.timeline as any[],
+      metadata: {
+        initiatedBy: prismaRma.initiatedBy,
+        channel: prismaRma.channel,
+        priority: prismaRma.priority,
+        tags: prismaRma.tags,
+      },
+      createdAt: prismaRma.createdAt,
+      updatedAt: prismaRma.updatedAt,
+      expiresAt: prismaRma.expiresAt,
+      completedAt: prismaRma.completedAt,
+    };
+  }
+
+  /**
+   * Get RMA policy for a company
+   * Fetches from database or returns default policy
+   */
   async getRMAPolicy(companyId: string): Promise<RMAPolicy> {
-    // In production, fetch from database
+    const policy = await this.prisma.rMAPolicy.findUnique({
+      where: { companyId },
+    });
+
+    if (policy) {
+      return {
+        companyId: policy.companyId,
+        enabled: policy.enabled,
+        generalRules: policy.generalRules as any,
+        returnReasons: policy.returnReasons as any[],
+        shippingConfig: policy.shippingConfig as any,
+        inspectionConfig: policy.inspectionConfig as any,
+        resolutionConfig: policy.resolutionConfig as any,
+        notifications: policy.notifications as any,
+        automation: policy.automation as any,
+      };
+    }
+
+    // Return default policy if none exists
     return {
       companyId,
       enabled: true,
