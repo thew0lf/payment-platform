@@ -733,6 +733,7 @@ refactor: code improvement without behavior change
 
 ```
 /settings
+├── /general            # Company settings (timezone, currency, etc.)
 ├── /profile            # User profile
 ├── /security           # Password, 2FA
 ├── /team               # Team/User management
@@ -740,7 +741,198 @@ refactor: code improvement without behavior change
 ├── /merchant-accounts  # Bank accounts
 ├── /integrations       # Client integrations (Feature 01)
 ├── /api-keys           # API key management
+├── /refunds            # Refund policies and settings
+├── /audit-logs         # Compliance audit trail
 └── /notifications      # Preferences
+```
+
+---
+
+## Audit Logs (Compliance System)
+
+### Overview
+Comprehensive compliance audit trail supporting SOC2, ISO 27001, GDPR, CNIL (French), and PCI-DSS requirements.
+
+### Data Classifications
+```typescript
+enum DataClassification {
+  PUBLIC,       // No restrictions
+  INTERNAL,     // Internal use only
+  CONFIDENTIAL, // Sensitive business data
+  PII,          // Personal Identifiable Information (GDPR)
+  PCI,          // Payment Card Industry data
+  PHI,          // Protected Health Information
+}
+```
+
+### Audit Action Categories (150+ actions)
+
+| Category | Compliance | Example Actions |
+|----------|------------|-----------------|
+| Authentication | SOC2 CC6.1, PCI 10.2.4 | `LOGIN`, `LOGOUT`, `LOGIN_FAILED`, `LOGIN_BLOCKED`, `SESSION_TERMINATED` |
+| Credentials | PCI 8.2, ISO A.9.4.3 | `PASSWORD_CHANGED`, `MFA_ENABLED`, `MFA_CHALLENGE_FAILED` |
+| CRUD | SOC2 CC6.1, PCI 10.2.7 | `CREATE`, `UPDATE`, `DELETE`, `SOFT_DELETE`, `RESTORE` |
+| Payments | PCI-DSS 10.2.1 | `PAYMENT_AUTHORIZED`, `PAYMENT_COMPLETED`, `REFUND_*`, `CHARGEBACK_*` |
+| Sensitive Data | PCI-DSS 3.x | `SENSITIVE_DATA_ACCESSED`, `ENCRYPTION_KEY_ROTATED` |
+| GDPR Privacy | GDPR Art. 15-22 | `DATA_ACCESS_REQUEST`, `DATA_ERASURE_REQUEST`, `CONSENT_*` |
+| Access Control | SOC2 CC6.2-3 | `ROLE_ASSIGNED`, `PERMISSION_GRANTED`, `ACCESS_DENIED` |
+| Security | PCI 10.2.2, SOC2 CC6.6 | `API_KEY_CREATED`, `SUSPICIOUS_ACTIVITY`, `IP_BLOCKED` |
+| AI/Automation | GDPR Art. 22 | `AI_DECISION_MADE`, `AUTOMATION_TRIGGERED` |
+
+### API Endpoints
+```
+GET    /api/audit-logs              # List with search, filters, pagination
+GET    /api/audit-logs/stats        # Stats by action, entity, classification
+GET    /api/audit-logs/filters      # Available filter options
+GET    /api/audit-logs/:id          # Single log detail
+GET    /api/audit-logs/entity/:entity/:entityId  # Entity audit trail
+```
+
+### Key Files
+- `apps/api/src/audit-logs/` - Backend module (global)
+- `apps/api/src/audit-logs/types/audit-log.types.ts` - 150+ action constants
+- `apps/admin-dashboard/src/app/(dashboard)/settings/audit-logs/page.tsx` - UI
+- `apps/admin-dashboard/src/lib/api/audit-logs.ts` - API client
+
+---
+
+## Refunds Module
+
+### Overview
+Comprehensive refund management with approval workflows and configurable policies.
+
+### Refund Statuses
+```typescript
+enum RefundStatus {
+  PENDING,    // Awaiting approval
+  APPROVED,   // Approved, not yet processed
+  PROCESSING, // Being processed
+  COMPLETED,  // Successfully refunded
+  REJECTED,   // Denied
+  FAILED,     // Processing failed
+}
+```
+
+### API Endpoints
+```
+GET    /api/refunds                 # List refunds
+GET    /api/refunds/stats           # Refund statistics
+GET    /api/refunds/:id             # Get refund by ID
+POST   /api/refunds                 # Create refund request
+PATCH  /api/refunds/:id/approve     # Approve refund
+PATCH  /api/refunds/:id/reject      # Reject refund
+GET    /api/refunds/settings/current # Current refund settings
+POST   /api/refunds/settings        # Update settings
+```
+
+### Key Files
+- `apps/api/src/refunds/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/refunds/page.tsx` - Refunds list
+- `apps/admin-dashboard/src/app/(dashboard)/settings/refunds/page.tsx` - Settings
+- `apps/admin-dashboard/src/lib/api/refunds.ts` - API client
+
+---
+
+## Routing Module
+
+### Overview
+Payment routing with rules and account pools for transaction management.
+
+### Pages
+- `/routing` - Routing rules list with conditions and priorities
+- `/routing/pools` - Account pools for load balancing
+
+### API Endpoints
+```
+GET    /api/routing-rules           # List routing rules
+POST   /api/routing-rules           # Create rule
+PATCH  /api/routing-rules/:id       # Update rule
+DELETE /api/routing-rules/:id       # Delete rule
+GET    /api/account-pools           # List account pools
+POST   /api/account-pools           # Create pool
+```
+
+### Key Files
+- `apps/api/src/routing/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/routing/page.tsx` - Rules UI
+- `apps/admin-dashboard/src/app/(dashboard)/routing/pools/page.tsx` - Pools UI
+- `apps/admin-dashboard/src/lib/api/routing.ts` - API client
+
+---
+
+## Customers Module
+
+### Overview
+Customer management with detail views, notes, tags, and order history.
+
+### Pages
+- `/customers` - Customer list with search and filters
+- `/customers/[id]` - Customer detail with tabs (Overview, Orders, Notes)
+
+### API Endpoints
+```
+GET    /api/customers               # List customers
+GET    /api/customers/:id           # Get customer detail
+POST   /api/customers               # Create customer
+PATCH  /api/customers/:id           # Update customer
+GET    /api/customers/stats         # Customer statistics
+```
+
+### Key Files
+- `apps/api/src/customers/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/customers/page.tsx` - List
+- `apps/admin-dashboard/src/app/(dashboard)/customers/[id]/page.tsx` - Detail
+- `apps/admin-dashboard/src/lib/api/customers.ts` - API client
+
+---
+
+## Transactions Module
+
+### Overview
+Transaction monitoring with real-time status, filtering, and search.
+
+### API Endpoints
+```
+GET    /api/transactions            # List transactions
+GET    /api/transactions/:id        # Get transaction detail
+GET    /api/transactions/stats      # Transaction statistics
+```
+
+### Key Files
+- `apps/api/src/transactions/` - Backend module
+- `apps/admin-dashboard/src/app/(dashboard)/transactions/page.tsx` - UI
+- `apps/admin-dashboard/src/lib/api/transactions.ts` - API client
+
+---
+
+## Seed Data Structure
+
+### Directory Organization
+```
+apps/api/prisma/seeds/
+├── core/                   # Core/required data
+│   ├── index.ts
+│   ├── seed-organization.ts
+│   └── seed-pricing.ts
+├── demo/                   # Demo/sample data
+│   ├── index.ts
+│   ├── seed-audit-logs.ts
+│   ├── seed-clients.ts
+│   ├── seed-customers.ts
+│   ├── seed-merchant-accounts.ts
+│   ├── seed-subscription.ts
+│   ├── seed-transactions.ts
+│   └── momentum-intelligence.seed.ts
+├── utils/                  # Utility scripts
+│   ├── index.ts
+│   ├── reset-demo.ts
+│   └── seed-entity-codes.ts
+└── seed-rbac.ts           # RBAC permissions & roles
+```
+
+### Running Seeds
+```bash
+cd apps/api && npx prisma db seed  # Run all seeds
 ```
 
 ---
