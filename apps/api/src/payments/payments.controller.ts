@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Request, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request, HttpCode, HttpStatus, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { PaymentProcessingService, ProcessPaymentOptions, PaymentResult } from './services/payment-processing.service';
 import { TransactionLoggingService, TransactionLog, TransactionLogQuery } from './services/transaction-logging.service';
 import { TransactionRequest, CardData, BillingAddress, TransactionStatus } from './types/payment.types';
@@ -18,7 +20,43 @@ class TransactionQueryDto { status?: TransactionStatus[]; transactionType?: stri
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
 export class PaymentsController {
-  constructor(private readonly paymentService: PaymentProcessingService, private readonly loggingService: TransactionLoggingService) {}
+  constructor(
+    private readonly paymentService: PaymentProcessingService,
+    private readonly loggingService: TransactionLoggingService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  /**
+   * Verify user has access to a specific company
+   */
+  private async verifyCompanyAccess(user: AuthenticatedUser, companyId: string): Promise<void> {
+    const hasAccess = await this.hierarchyService.canAccessCompany(
+      {
+        sub: user.id,
+        scopeType: user.scopeType as any,
+        scopeId: user.scopeId,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+      },
+      companyId,
+    );
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this company');
+    }
+  }
+
+  /**
+   * Verify transaction belongs to user's accessible companies
+   */
+  private async verifyTransactionAccess(user: AuthenticatedUser, transactionId: string): Promise<TransactionLog> {
+    const transaction = await this.loggingService.getTransaction(transactionId);
+    if (!transaction) {
+      throw new BadRequestException('Transaction not found');
+    }
+    await this.verifyCompanyAccess(user, transaction.companyId);
+    return transaction;
+  }
 
   @Post('charge') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Process a sale (authorize + capture)' })
   async charge(@Request() req, @Body() dto: CreateTransactionDto): Promise<PaymentResult> {
@@ -35,20 +73,23 @@ export class PaymentsController {
   }
 
   @Post(':transactionId/capture') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Capture authorized transaction' })
-  async capture(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: CaptureDto): Promise<PaymentResult> {
+  async capture(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: CaptureDto, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
+    await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.capture(transactionId, providerId, dto.amount);
   }
 
   @Post(':transactionId/void') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Void transaction' })
-  async void(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string): Promise<PaymentResult> {
+  async void(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
+    await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.void(transactionId, providerId);
   }
 
   @Post(':transactionId/refund') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Refund transaction' })
-  async refund(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: RefundDto): Promise<PaymentResult> {
+  async refund(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: RefundDto, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
+    await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.refund(transactionId, providerId, dto.amount);
   }
 
@@ -79,10 +120,18 @@ export class PaymentsController {
   }
 
   @Get('transactions/:id') @ApiOperation({ summary: 'Get transaction by ID' })
-  async getTransaction(@Param('id') id: string): Promise<TransactionLog | null> { return this.loggingService.getTransaction(id); }
+  async getTransaction(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<TransactionLog> {
+    return this.verifyTransactionAccess(user, id);
+  }
 
   @Get('transactions/reference/:referenceId') @ApiOperation({ summary: 'Get by reference' })
-  async getTransactionByReference(@Param('referenceId') referenceId: string): Promise<TransactionLog | null> { return this.loggingService.getTransactionByReference(referenceId); }
+  async getTransactionByReference(@Param('referenceId') referenceId: string, @CurrentUser() user: AuthenticatedUser): Promise<TransactionLog | null> {
+    const transaction = await this.loggingService.getTransactionByReference(referenceId);
+    if (transaction) {
+      await this.verifyCompanyAccess(user, transaction.companyId);
+    }
+    return transaction;
+  }
 
   @Get('stats') @ApiOperation({ summary: 'Get stats' })
   async getStats(@Request() req, @Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {

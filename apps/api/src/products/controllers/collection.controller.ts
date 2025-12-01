@@ -100,7 +100,10 @@ export class CollectionController {
     @Param('id') id: string,
     @Query('limit') limit: string,
     @Query('offset') offset: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Verify user has company context - getCompanyId throws if user doesn't have company access
+    this.getCompanyId(user);
     return this.collectionService.getProducts(
       id,
       limit ? parseInt(limit) : 50,

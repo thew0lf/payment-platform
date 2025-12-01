@@ -18,16 +18,20 @@ import { DeliveryController } from './delivery/delivery.controller';
 import { EmailProvider } from './delivery/providers/email.provider';
 import { SmsProvider } from './delivery/providers/sms.provider';
 import { PushProvider } from './delivery/providers/push.provider';
+import { RMAModule } from './rma/rma.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { HierarchyModule } from '../hierarchy/hierarchy.module';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
+    HierarchyModule,
     ConfigModule,
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    RMAModule,
   ],
   controllers: [MomentumIntelligenceController, UpsellController, DeliveryController, AnalyticsController],
   providers: [

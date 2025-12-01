@@ -9,8 +9,13 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { AnalyticsService } from './analytics.service';
 import {
   MetricCategory,
@@ -98,9 +103,35 @@ class ExportDataDto {
 }
 
 @ApiTags('Analytics')
+@ApiBearerAuth()
 @Controller('momentum/analytics')
+@UseGuards(JwtAuthGuard)
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(
+    private readonly analyticsService: AnalyticsService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  /**
+   * Verify user has access to a specific company
+   */
+  private async verifyCompanyAccess(user: AuthenticatedUser, companyId: string): Promise<void> {
+    const hasAccess = await this.hierarchyService.canAccessCompany(
+      {
+        sub: user.id,
+        scopeType: user.scopeType as any,
+        scopeId: user.scopeId,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+      },
+      companyId,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this company');
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // DASHBOARD
@@ -117,7 +148,9 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('compareWithPrevious') compareWithPrevious?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getDashboardOverview({
       companyId,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -129,7 +162,11 @@ export class AnalyticsController {
   @Get('realtime/:companyId')
   @ApiOperation({ summary: 'Get real-time metrics' })
   @ApiResponse({ status: 200, description: 'Real-time metrics returned' })
-  async getRealTimeMetrics(@Param('companyId') companyId: string) {
+  async getRealTimeMetrics(
+    @Param('companyId') companyId: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getRealTimeMetrics(companyId);
   }
 
@@ -150,7 +187,9 @@ export class AnalyticsController {
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
     @Query('segments') segments?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getChurnAnalytics({
       companyId,
       category: MetricCategory.CHURN,
@@ -176,7 +215,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getSaveFlowAnalytics({
       companyId,
       category: MetricCategory.SAVE_FLOW,
@@ -201,7 +242,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getCustomerServiceAnalytics({
       companyId,
       category: MetricCategory.CUSTOMER_SERVICE,
@@ -226,7 +269,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getContentAnalytics({
       companyId,
       category: MetricCategory.CONTENT,
@@ -251,7 +296,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getDeliveryAnalytics({
       companyId,
       category: MetricCategory.DELIVERY,
@@ -276,7 +323,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getUpsellAnalytics({
       companyId,
       category: MetricCategory.UPSELL,
@@ -301,7 +350,9 @@ export class AnalyticsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity?: TimeGranularity,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getRevenueAnalytics({
       companyId,
       category: MetricCategory.REVENUE,
@@ -318,7 +369,11 @@ export class AnalyticsController {
   @Get('benchmarks/:companyId')
   @ApiOperation({ summary: 'Get company benchmarks against industry' })
   @ApiResponse({ status: 200, description: 'Company benchmarks returned' })
-  async getCompanyBenchmarks(@Param('companyId') companyId: string) {
+  async getCompanyBenchmarks(
+    @Param('companyId') companyId: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getCompanyBenchmarks(companyId);
   }
 
@@ -329,7 +384,11 @@ export class AnalyticsController {
   @Post('reports')
   @ApiOperation({ summary: 'Create a new report configuration' })
   @ApiResponse({ status: 201, description: 'Report configuration created' })
-  async createReportConfig(@Body() dto: CreateReportConfigDto) {
+  async createReportConfig(
+    @Body() dto: CreateReportConfigDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.analyticsService.createReportConfig({
       companyId: dto.companyId,
       name: dto.name,
@@ -352,14 +411,22 @@ export class AnalyticsController {
   @Get('reports/:companyId')
   @ApiOperation({ summary: 'List report configurations for a company' })
   @ApiResponse({ status: 200, description: 'Report configurations returned' })
-  async getReportConfigs(@Param('companyId') companyId: string) {
+  async getReportConfigs(
+    @Param('companyId') companyId: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getReportConfigs(companyId);
   }
 
   @Post('reports/generate')
   @ApiOperation({ summary: 'Generate a report' })
   @ApiResponse({ status: 201, description: 'Report generated' })
-  async generateReport(@Body() dto: GenerateReportDto) {
+  async generateReport(
+    @Body() dto: GenerateReportDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.analyticsService.generateReport({
       configId: dto.configId,
       companyId: dto.companyId,
@@ -386,7 +453,9 @@ export class AnalyticsController {
     @Query('dateRange') dateRange?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getOverview(companyId, {
       dateRange,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -407,7 +476,9 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('groupBy') groupBy?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getSavePerformance(companyId, {
       dateRange,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -429,7 +500,9 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('direction') direction?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getVoicePerformance(companyId, {
       dateRange,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -451,7 +524,9 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('type') type?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getContentPerformance(companyId, {
       dateRange,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -471,7 +546,9 @@ export class AnalyticsController {
     @Query('dateRange') dateRange?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.analyticsService.getRevenueAttribution(companyId, {
       dateRange,
       startDate: startDate ? new Date(startDate) : undefined,

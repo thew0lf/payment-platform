@@ -7,8 +7,13 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { UpsellService } from './upsell.service';
 import { UpsellMoment, UpsellType } from '../types/momentum.types';
 
@@ -52,9 +57,35 @@ class CheckoutUpsellDto {
 }
 
 @ApiTags('Upsell')
+@ApiBearerAuth()
 @Controller('momentum/upsell')
+@UseGuards(JwtAuthGuard)
 export class UpsellController {
-  constructor(private readonly upsellService: UpsellService) {}
+  constructor(
+    private readonly upsellService: UpsellService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  /**
+   * Verify user has access to a specific company
+   */
+  private async verifyCompanyAccess(user: AuthenticatedUser, companyId: string): Promise<void> {
+    const hasAccess = await this.hierarchyService.canAccessCompany(
+      {
+        sub: user.id,
+        scopeType: user.scopeType as any,
+        scopeId: user.scopeId,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+      },
+      companyId,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this company');
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // RECOMMENDATIONS
@@ -63,7 +94,11 @@ export class UpsellController {
   @Post('recommendations')
   @ApiOperation({ summary: 'Get AI-powered upsell recommendations for a customer' })
   @ApiResponse({ status: 200, description: 'Recommendations generated successfully' })
-  async getRecommendations(@Body() dto: GetRecommendationsDto) {
+  async getRecommendations(
+    @Body() dto: GetRecommendationsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.upsellService.getRecommendations(
       dto.companyId,
       dto.customerId,
@@ -79,7 +114,11 @@ export class UpsellController {
   @Post('checkout')
   @ApiOperation({ summary: 'Get checkout-specific upsell recommendations' })
   @ApiResponse({ status: 200, description: 'Checkout upsells returned' })
-  async getCheckoutUpsells(@Body() dto: CheckoutUpsellDto) {
+  async getCheckoutUpsells(
+    @Body() dto: CheckoutUpsellDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.upsellService.handleCheckoutUpsell(
       dto.companyId,
       dto.customerId,
@@ -95,7 +134,9 @@ export class UpsellController {
     @Param('companyId') companyId: string,
     @Param('customerId') customerId: string,
     @Param('orderId') orderId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.verifyCompanyAccess(user, companyId);
     return this.upsellService.handlePostPurchaseUpsell(
       companyId,
       customerId,
@@ -110,7 +151,9 @@ export class UpsellController {
     @Param('companyId') companyId: string,
     @Param('customerId') customerId: string,
     @Query('intervention') interventionAccepted?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.upsellService.handleSaveFlowUpsell(
       companyId,
       customerId,
@@ -124,7 +167,9 @@ export class UpsellController {
   async getWinbackUpsells(
     @Param('companyId') companyId: string,
     @Param('customerId') customerId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.verifyCompanyAccess(user, companyId);
     return this.upsellService.handleWinbackUpsell(companyId, customerId);
   }
 
@@ -135,7 +180,11 @@ export class UpsellController {
   @Post('offers')
   @ApiOperation({ summary: 'Create a new upsell offer' })
   @ApiResponse({ status: 201, description: 'Offer created successfully' })
-  async createOffer(@Body() dto: CreateOfferDto) {
+  async createOffer(
+    @Body() dto: CreateOfferDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.upsellService.createOffer(dto);
   }
 
@@ -144,6 +193,7 @@ export class UpsellController {
   @ApiOperation({ summary: 'Record that an offer was presented to customer' })
   @ApiResponse({ status: 200, description: 'Presentation recorded' })
   async recordPresentation(@Param('offerId') offerId: string) {
+    // Note: Service should validate offer belongs to user's accessible companies
     return this.upsellService.recordPresentation(offerId);
   }
 
@@ -155,6 +205,7 @@ export class UpsellController {
     @Param('offerId') offerId: string,
     @Body() dto: RecordAcceptanceDto,
   ) {
+    // Note: Service should validate offer belongs to user's accessible companies
     return this.upsellService.recordAcceptance(offerId, dto.revenue);
   }
 
@@ -166,6 +217,7 @@ export class UpsellController {
     @Param('offerId') offerId: string,
     @Body() dto: RecordDeclineDto,
   ) {
+    // Note: Service should validate offer belongs to user's accessible companies
     return this.upsellService.recordDecline(offerId, dto.reason);
   }
 
@@ -182,7 +234,9 @@ export class UpsellController {
     @Param('companyId') companyId: string,
     @Query('moment') moment?: UpsellMoment,
     @Query('dateRange') dateRange?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.upsellService.getPerformanceMetrics(companyId, {
       moment,
       dateRange,
@@ -195,7 +249,9 @@ export class UpsellController {
   async getCustomerHistory(
     @Param('companyId') companyId: string,
     @Param('customerId') customerId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.verifyCompanyAccess(user, companyId);
     return this.upsellService.getCustomerUpsellHistory(companyId, customerId);
   }
 }

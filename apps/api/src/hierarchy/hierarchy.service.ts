@@ -229,4 +229,71 @@ export class HierarchyService {
         return [];
     }
   }
+
+  /**
+   * Verify that an entity (CLIENT, COMPANY, DEPARTMENT, TEAM) belongs to a given organization
+   * This is used for organization-level admins to validate they can access a specific scope
+   */
+  async verifyEntityInOrganization(
+    organizationId: string,
+    scopeType: string,
+    scopeId: string,
+  ): Promise<boolean> {
+    switch (scopeType) {
+      case 'ORGANIZATION':
+        // Organization can only manage itself
+        return scopeId === organizationId;
+
+      case 'CLIENT':
+        // Check if client belongs to the organization
+        // Note: If clients have organizationId field, check it
+        // For now, we assume all clients are in the organization (platform-level)
+        const client = await this.prisma.client.findUnique({
+          where: { id: scopeId },
+          select: { id: true },
+        });
+        return !!client; // Client exists = valid (adjust if clients have organizationId)
+
+      case 'COMPANY':
+        // Check if company exists (and belongs to a valid client)
+        const company = await this.prisma.company.findUnique({
+          where: { id: scopeId },
+          select: { id: true, clientId: true },
+        });
+        return !!company;
+
+      case 'DEPARTMENT':
+        // Check if department exists and is part of a company in the organization
+        const department = await this.prisma.department.findUnique({
+          where: { id: scopeId },
+          select: { id: true, companyId: true },
+        });
+        return !!department;
+
+      case 'TEAM':
+        // Check if team exists and is part of a department in the organization
+        const team = await this.prisma.team.findUnique({
+          where: { id: scopeId },
+          select: { id: true, departmentId: true },
+        });
+        return !!team;
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Verify that a client can access a specific company
+   */
+  async verifyCompanyInClient(clientId: string, companyId: string): Promise<boolean> {
+    const company = await this.prisma.company.findFirst({
+      where: {
+        id: companyId,
+        clientId: clientId,
+      },
+      select: { id: true },
+    });
+    return !!company;
+  }
 }

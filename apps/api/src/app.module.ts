@@ -26,6 +26,7 @@ import { VendorsModule } from './vendors/vendors.module';
 import { RefundsModule } from './refunds/refunds.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     RefundsModule,
     CustomersModule,
     AuditLogsModule,
+    TransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

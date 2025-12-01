@@ -9,8 +9,13 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { DeliveryService } from './delivery.service';
 import { AutomationService } from './automation.service';
 import {
@@ -132,12 +137,36 @@ class UpdateConfigDto {
 }
 
 @ApiTags('Delivery')
+@ApiBearerAuth()
 @Controller('momentum/delivery')
+@UseGuards(JwtAuthGuard)
 export class DeliveryController {
   constructor(
     private readonly deliveryService: DeliveryService,
     private readonly automationService: AutomationService,
+    private readonly hierarchyService: HierarchyService,
   ) {}
+
+  /**
+   * Verify user has access to a specific company
+   */
+  private async verifyCompanyAccess(user: AuthenticatedUser, companyId: string): Promise<void> {
+    const hasAccess = await this.hierarchyService.canAccessCompany(
+      {
+        sub: user.id,
+        scopeType: user.scopeType as any,
+        scopeId: user.scopeId,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+      },
+      companyId,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this company');
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // MESSAGE SENDING
@@ -146,14 +175,26 @@ export class DeliveryController {
   @Post('messages')
   @ApiOperation({ summary: 'Send a message to a customer' })
   @ApiResponse({ status: 201, description: 'Message sent/queued successfully' })
-  async sendMessage(@Body() dto: SendMessageDto) {
+  async sendMessage(
+    @Body() dto: SendMessageDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.deliveryService.sendMessage(dto);
   }
 
   @Post('messages/bulk')
   @ApiOperation({ summary: 'Send multiple messages in bulk' })
   @ApiResponse({ status: 201, description: 'Bulk messages processed' })
-  async sendBulkMessages(@Body() dto: SendBulkMessagesDto) {
+  async sendBulkMessages(
+    @Body() dto: SendBulkMessagesDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Verify access to all companies in the bulk request
+    const companyIds = [...new Set(dto.messages.map((m) => m.companyId))];
+    for (const companyId of companyIds) {
+      await this.verifyCompanyAccess(user, companyId);
+    }
     return this.deliveryService.sendBulkMessages(dto.messages);
   }
 
@@ -178,7 +219,9 @@ export class DeliveryController {
     @Query('status') status?: DeliveryStatus,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.getMessagesByCustomer(companyId, customerId, {
       channel,
       status,
@@ -199,7 +242,9 @@ export class DeliveryController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.getMessagesByCategory(companyId, category, {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
@@ -276,7 +321,9 @@ export class DeliveryController {
     @Query('category') category?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.getDeliveryMetrics(companyId, {
       channel,
       category,
@@ -294,7 +341,9 @@ export class DeliveryController {
     @Param('companyId') companyId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.getChannelPerformance(
       companyId,
       startDate ? new Date(startDate) : undefined,
@@ -309,7 +358,11 @@ export class DeliveryController {
   @Post('automations')
   @ApiOperation({ summary: 'Create a new automation' })
   @ApiResponse({ status: 201, description: 'Automation created' })
-  async createAutomation(@Body() dto: CreateAutomationDto) {
+  async createAutomation(
+    @Body() dto: CreateAutomationDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.verifyCompanyAccess(user, dto.companyId);
     return this.automationService.createAutomation(dto as any);
   }
 
@@ -322,7 +375,9 @@ export class DeliveryController {
     @Param('companyId') companyId: string,
     @Query('status') status?: string,
     @Query('category') category?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.automationService.getAutomations(companyId, { status, category });
   }
 
@@ -418,7 +473,11 @@ export class DeliveryController {
   @Get('config/:companyId')
   @ApiOperation({ summary: 'Get delivery configuration' })
   @ApiResponse({ status: 200, description: 'Configuration returned' })
-  async getConfig(@Param('companyId') companyId: string) {
+  async getConfig(
+    @Param('companyId') companyId: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    if (user) await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.getConfig(companyId);
   }
 
@@ -428,7 +487,9 @@ export class DeliveryController {
   async updateConfig(
     @Param('companyId') companyId: string,
     @Body() dto: UpdateConfigDto,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.verifyCompanyAccess(user, companyId);
     return this.deliveryService.updateConfig(companyId, dto as any);
   }
 

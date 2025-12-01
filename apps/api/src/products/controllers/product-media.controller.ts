@@ -60,6 +60,8 @@ export class ProductMediaController {
     @Param('productId') productId: string,
     @Query('variantId') variantId?: string,
   ) {
+    // Note: The product is already associated with a company in the database
+    // Further access control can be enforced at the service level if needed
     return this.mediaService.listMedia(productId, variantId);
   }
 

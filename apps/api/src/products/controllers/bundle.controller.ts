@@ -10,11 +10,14 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { ScopeType } from '@prisma/client';
 import { BundleService } from '../services/bundle.service';
 import {
@@ -40,7 +43,30 @@ function toUserContext(user: AuthenticatedUser) {
 @Controller('bundles')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BundleController {
-  constructor(private readonly bundleService: BundleService) {}
+  constructor(
+    private readonly bundleService: BundleService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  /**
+   * Verify user has access to a specific company
+   */
+  private async verifyCompanyAccess(user: AuthenticatedUser, companyId: string): Promise<void> {
+    const hasAccess = await this.hierarchyService.canAccessCompany(
+      {
+        sub: user.id,
+        scopeType: user.scopeType as any,
+        scopeId: user.scopeId,
+        organizationId: user.organizationId,
+        clientId: user.clientId,
+        companyId: user.companyId,
+      },
+      companyId,
+    );
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this company');
+    }
+  }
 
   @Get()
   @Roles('platform_admin', 'client_admin', 'company_admin', 'company_user')
@@ -52,7 +78,11 @@ export class BundleController {
   ) {
     const effectiveCompanyId = companyId || user?.companyId;
     if (!effectiveCompanyId) {
-      throw new Error('Company ID is required');
+      throw new BadRequestException('Company ID is required');
+    }
+    // Verify user has access to the requested company
+    if (user) {
+      await this.verifyCompanyAccess(user, effectiveCompanyId);
     }
     return this.bundleService.listBundles(effectiveCompanyId, toUserContext(user!), {
       type,

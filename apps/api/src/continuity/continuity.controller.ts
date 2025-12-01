@@ -9,13 +9,16 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ContinuityService } from './continuity.service';
 import { TrustSignalService } from './trust-signal.service';
 import {
@@ -30,7 +33,9 @@ import {
 } from './dto/continuity.dto';
 
 @ApiTags('Continuity')
+@ApiBearerAuth()
 @Controller('continuity')
+@UseGuards(JwtAuthGuard)
 export class ContinuityController {
   constructor(
     private readonly continuityService: ContinuityService,
