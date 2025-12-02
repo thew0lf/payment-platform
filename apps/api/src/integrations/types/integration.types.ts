@@ -19,6 +19,8 @@ export enum IntegrationCategory {
   STORAGE = 'STORAGE',
   IMAGE_PROCESSING = 'IMAGE_PROCESSING',
   VIDEO_GENERATION = 'VIDEO_GENERATION',
+  CDN = 'CDN',
+  DNS = 'DNS',
   MONITORING = 'MONITORING',
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
@@ -54,6 +56,12 @@ export enum IntegrationProvider {
 
   // Storage
   AWS_S3 = 'AWS_S3',
+
+  // CDN
+  AWS_CLOUDFRONT = 'AWS_CLOUDFRONT',
+
+  // DNS
+  AWS_ROUTE53 = 'AWS_ROUTE53',
 
   // Image Processing
   CLOUDINARY = 'CLOUDINARY',

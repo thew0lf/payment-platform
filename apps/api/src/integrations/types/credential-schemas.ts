@@ -144,6 +144,43 @@ export const RUNWAY_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// AWS CloudFront Credential Schema
+export const AWS_CLOUDFRONT_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region (CloudFront is global but uses us-east-1 for API calls). Always use us-east-1.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with CloudFront permissions (cloudfront:CreateDistribution, cloudfront:UpdateDistribution, etc.).' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created.' },
+    originAccessIdentity: { type: 'string', title: 'Origin Access Identity (Optional)', description: 'OAI for restricting S3 bucket access to CloudFront. Created in CloudFront → Origin Access → Create.' },
+    priceClass: { type: 'string', title: 'Price Class', default: 'PriceClass_100', description: 'Distribution price class: PriceClass_100 (US/Europe), PriceClass_200 (+ Asia), PriceClass_All (global).' },
+    acmCertificateArn: { type: 'string', title: 'ACM Certificate ARN (Optional)', description: 'ACM certificate ARN for custom domains. Must be in us-east-1 region.' },
+  },
+};
+
+// AWS Route53 Credential Schema
+export const AWS_ROUTE53_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['accessKeyId', 'secretAccessKey'],
+  properties: {
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with Route53 permissions (route53:ChangeResourceRecordSets, route53:ListHostedZones, etc.).' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created.' },
+    hostedZoneId: { type: 'string', title: 'Hosted Zone ID (Optional)', description: 'Default hosted zone ID for the platform domain. Found in Route53 → Hosted Zones → Zone ID column.' },
+    platformDomain: { type: 'string', title: 'Platform Domain (Optional)', default: 'avnz.io', description: 'Platform domain for subdomain landing pages (e.g., client.avnz.io).' },
+  },
+};
+
+// AWS ACM (Certificate Manager) Credential Schema
+export const AWS_ACM_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region for ACM. For CloudFront, certificates MUST be in us-east-1.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with ACM permissions (acm:RequestCertificate, acm:DescribeCertificate, etc.).' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created.' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -168,6 +205,10 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   [IntegrationProvider.LANGUAGETOOL]: LANGUAGETOOL_CREDENTIAL_SCHEMA,
   // Storage providers
   [IntegrationProvider.AWS_S3]: AWS_S3_CREDENTIAL_SCHEMA,
+  // CDN providers
+  [IntegrationProvider.AWS_CLOUDFRONT]: AWS_CLOUDFRONT_CREDENTIAL_SCHEMA,
+  // DNS providers
+  [IntegrationProvider.AWS_ROUTE53]: AWS_ROUTE53_CREDENTIAL_SCHEMA,
   // Image Processing providers
   [IntegrationProvider.CLOUDINARY]: CLOUDINARY_CREDENTIAL_SCHEMA,
   // Video Generation providers

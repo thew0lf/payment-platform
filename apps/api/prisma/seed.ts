@@ -29,6 +29,7 @@ import {
   seedDemoAccountPools,
   seedDemoRoutingRules,
   seedDemoClientSubscription,
+  seedCoffeeExplorer,
 } from './seeds/demo';
 
 const prisma = new PrismaClient();
@@ -100,6 +101,9 @@ async function main() {
 
     // Seed client subscription
     await seedDemoClientSubscription(prisma, client1.id);
+
+    // Seed Coffee Explorer demo client (for landing page)
+    await seedCoffeeExplorer(prisma, org.id);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -113,7 +117,11 @@ async function main() {
     console.log('📋 Test Accounts:');
     console.log('   Organization: admin@avnz.io / demo123');
     console.log('   Client:       owner@velocityagency.com / demo123');
-    console.log('   Company:      manager@coffee-co.com / demo123\n');
+    console.log('   Company:      manager@coffee-co.com / demo123');
+    console.log('');
+    console.log('☕ Coffee Explorer Demo:');
+    console.log('   Admin:        admin@coffeeexplorer.com / demo123');
+    console.log('   Manager:      manager@coffeeexplorer.com / demo123\n');
   } else {
     console.log('📋 Production Account:');
     console.log('   admin@avnz.io / demo123 (change password immediately!)\n');

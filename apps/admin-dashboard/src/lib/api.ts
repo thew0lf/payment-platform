@@ -1,14 +1,11 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.dev.avnz.io:3001';
 
-let authToken: string | null = null;
-
-// Get token from memory or localStorage
+// Get token directly from localStorage to avoid stale cache issues
 function getToken(): string | null {
-  if (authToken) return authToken;
   if (typeof window !== 'undefined') {
-    authToken = localStorage.getItem('avnz_token');
+    return localStorage.getItem('avnz_token');
   }
-  return authToken;
+  return null;
 }
 
 async function request<T>(
@@ -40,38 +37,32 @@ async function request<T>(
 }
 
 export const api = {
-  setToken: (token: string) => {
-    authToken = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('avnz_token', token);
-    }
-  },
-
-  clearToken: () => {
-    authToken = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('avnz_token');
-    }
-  },
-
-  initToken: () => {
-    if (typeof window !== 'undefined') {
-      authToken = localStorage.getItem('avnz_token');
-    }
-  },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTHENTICATION FLOW
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Token management is handled by auth-context.tsx which supports:
+  //   1. Auth0 (Primary) - Enterprise SSO via @auth0/auth0-react
+  //   2. Local Auth (Backup) - Email/password fallback
+  //
+  // Both providers store tokens in localStorage under 'avnz_token' key.
+  // The getToken() function reads directly from localStorage to ensure
+  // fresh tokens are used on every API request.
+  //
+  // DO NOT modify token storage without reviewing auth-context.tsx
+  // ═══════════════════════════════════════════════════════════════════════════
 
   // Auth
   login: (email: string, password: string) =>
-    request<{ user: any; token: string }>('/auth/login', {
+    request<{ user: any; token: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
 
   logout: () =>
-    request('/auth/logout', { method: 'POST' }),
+    request('/api/auth/logout', { method: 'POST' }),
 
   getCurrentUser: () =>
-    request<{ user: any }>('/auth/me'),
+    request<{ user: any }>('/api/auth/me'),
 
   // Hierarchy
   getAccessibleHierarchy: () =>
@@ -81,31 +72,31 @@ export const api = {
   getTransactions: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
     return request<{ transactions: any[]; total: number; page: number; limit: number }>(
-      `/transactions${query ? `?${query}` : ''}`
+      `/api/transactions${query ? `?${query}` : ''}`
     );
   },
 
   getTransaction: (id: string) =>
-    request<{ transaction: any }>(`/transactions/${id}`),
+    request<{ transaction: any }>(`/api/transactions/${id}`),
 
   // Customers
   getCustomers: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
-    return request<{ customers: any[]; total: number }>(`/customers${query ? `?${query}` : ''}`);
+    return request<{ customers: any[]; total: number }>(`/api/customers${query ? `?${query}` : ''}`);
   },
 
   getCustomer: (id: string) =>
-    request<{ customer: any }>(`/customers/${id}`),
+    request<{ customer: any }>(`/api/customers/${id}`),
 
   // Dashboard
   getDashboardMetrics: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
-    return request<any>(`/dashboard/metrics${query ? `?${query}` : ''}`);
+    return request<any>(`/api/dashboard/metrics${query ? `?${query}` : ''}`);
   },
 
   getRecentTransactions: (params: Record<string, string> = {}) => {
     const query = new URLSearchParams(params).toString();
-    return request<{ transactions: any[] }>(`/dashboard/recent${query ? `?${query}` : ''}`);
+    return request<{ transactions: any[] }>(`/api/dashboard/recent${query ? `?${query}` : ''}`);
   },
 
   // Dashboard Chart Data
@@ -149,14 +140,25 @@ export interface ChartResponse {
 }
 
 // Export raw request function for use in other API modules
-export const apiRequest = {
-  get: <T>(endpoint: string) => request<T>(endpoint).then(r => r.data),
-  post: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
-  put: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
-  patch: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
-  delete: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
-};
+// apiRequest can be called directly (defaults to GET), or with options for other methods
+export async function apiRequest<T>(
+  endpoint: string,
+  options?: { method?: string; body?: unknown }
+): Promise<T> {
+  const opts: RequestInit = {};
+  if (options?.method) opts.method = options.method;
+  if (options?.body) opts.body = JSON.stringify(options.body);
+  const { data } = await request<T>(endpoint, opts);
+  return data;
+}
+
+// Also export object-style API for files using apiRequest.get(), apiRequest.post(), etc.
+apiRequest.get = <T>(endpoint: string) => request<T>(endpoint).then(r => r.data);
+apiRequest.post = <T>(endpoint: string, body?: unknown) =>
+  request<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
+apiRequest.put = <T>(endpoint: string, body?: unknown) =>
+  request<T>(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
+apiRequest.patch = <T>(endpoint: string, body?: unknown) =>
+  request<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
+apiRequest.delete = <T>(endpoint: string, body?: unknown) =>
+  request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);

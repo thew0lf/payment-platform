@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TwilioService } from '../../integrations/services/providers/twilio.service';
 import {
   CallDirection,
   VoiceCallStatus,
@@ -22,6 +23,7 @@ export class VoiceAIService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly twilioService: TwilioService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════
@@ -58,17 +60,44 @@ export class VoiceAIService {
       throw new BadRequestException('Twilio is not configured for this company');
     }
 
-    // Create voice call record
+    // Generate TwiML for the initial greeting using script
+    const opening = script.opening as any;
+    const greeting = opening?.greeting || 'Hello, thank you for taking our call.';
+    const twiml = this.twilioService.generateGatherTwiML(
+      greeting,
+      {
+        action: `${process.env.API_URL || ''}/api/momentum/voice/speech`,
+        speechTimeout: 3,
+        speechModel: 'phone_call',
+      },
+      { voice: 'Polly.Joanna' },
+    );
+
+    // Initiate real Twilio call
+    const twilioCall = await this.twilioService.makeCall(companyId, {
+      to: customer.phone,
+      twiml,
+      statusCallback: `${process.env.API_URL || ''}/api/momentum/voice/status`,
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      timeout: 30,
+      machineDetection: 'Enable',
+    });
+
+    if (!twilioCall) {
+      throw new BadRequestException('Failed to initiate Twilio call');
+    }
+
+    // Create voice call record with real Twilio SID
     const voiceCall = await this.prisma.voiceCall.create({
       data: {
         companyId,
         customerId,
         direction: CallDirection.OUTBOUND,
-        fromNumber: twilioConfig.phoneNumber,
-        toNumber: customer.phone,
+        fromNumber: twilioCall.from,
+        toNumber: twilioCall.to,
         scriptId,
         status: VoiceCallStatus.INITIATED,
-        twilioCallSid: `MOCK_${Date.now()}`, // Would be from Twilio API
+        twilioCallSid: twilioCall.sid,
         detectedIntents: [],
       },
     });
@@ -84,17 +113,15 @@ export class VoiceAIService {
       },
     });
 
-    // In production, would call Twilio API here
-    // const call = await this.twilioClient.calls.create({...})
-
     this.eventEmitter.emit('voice.call.initiated', {
       companyId,
       customerId,
       callId: voiceCall.id,
+      twilioCallSid: twilioCall.sid,
       direction: CallDirection.OUTBOUND,
     });
 
-    this.logger.log(`Initiated outbound call to customer ${customerId}`);
+    this.logger.log(`Initiated outbound call ${twilioCall.sid} to customer ${customerId}`);
 
     return voiceCall;
   }
@@ -614,32 +641,99 @@ export class VoiceAIService {
       action?: string;
     } = {},
   ): string {
-    const voice = 'Polly.Joanna';
-    let twiml = '<?xml version="1.0" encoding="UTF-8"?><Response>';
+    if (options.action === 'escalate') {
+      // Generate TwiML for escalation with message before redirect
+      const response = this.twilioService.createVoiceResponse();
+      response.say({ voice: 'Polly.Joanna', language: 'en-US' }, text);
+      response.redirect('/api/momentum/voice/escalate');
+      return response.toString();
+    }
 
     if (options.gather) {
-      twiml += `<Gather input="speech" speechTimeout="${options.speechTimeout || 3}" language="en-US">`;
-      twiml += `<Say voice="${voice}">${this.escapeXml(text)}</Say>`;
-      twiml += '</Gather>';
-    } else {
-      twiml += `<Say voice="${voice}">${this.escapeXml(text)}</Say>`;
+      return this.twilioService.generateGatherTwiML(
+        text,
+        {
+          speechTimeout: options.speechTimeout || 3,
+          action: `${process.env.API_URL || ''}/api/momentum/voice/speech`,
+          speechModel: 'phone_call',
+        },
+        { voice: 'Polly.Joanna' },
+      );
     }
 
-    if (options.action === 'escalate') {
-      // Would add transfer logic here
-      twiml += '<Redirect>/api/momentum/voice/escalate</Redirect>';
-    }
-
-    twiml += '</Response>';
-    return twiml;
+    return this.twilioService.generateSayTwiML(text, { voice: 'Polly.Joanna' });
   }
 
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+  // ═══════════════════════════════════════════════════════════════
+  // ADDITIONAL TWILIO HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Transfer call to a human agent
+   */
+  async transferToHuman(companyId: string, callSid: string, agentNumber: string): Promise<boolean> {
+    try {
+      const twiml = this.twilioService.generateTransferTwiML(agentNumber, {
+        message: "I'll connect you with a team member right away. Please hold.",
+        timeout: 30,
+        record: true,
+      });
+
+      await this.twilioService.updateCall(companyId, callSid, { twiml });
+
+      // Update call record
+      await this.prisma.voiceCall.update({
+        where: { twilioCallSid: callSid },
+        data: { escalatedToHuman: true },
+      });
+
+      return true;
+    } catch (error) {
+      this.logger.error(`Error transferring call ${callSid}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * End a call with a message
+   */
+  async endCall(companyId: string, callSid: string, message?: string): Promise<boolean> {
+    try {
+      const twiml = this.twilioService.generateHangupTwiML(message);
+      await this.twilioService.updateCall(companyId, callSid, { twiml });
+      return true;
+    } catch (error) {
+      this.logger.error(`Error ending call ${callSid}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get call recordings
+   */
+  async getCallRecordings(companyId: string, callSid: string): Promise<any[]> {
+    return this.twilioService.getRecordings(companyId, callSid);
+  }
+
+  /**
+   * Send SMS notification to customer
+   */
+  async sendSmsNotification(
+    companyId: string,
+    phoneNumber: string,
+    message: string,
+  ): Promise<any> {
+    return this.twilioService.sendSms(companyId, {
+      to: phoneNumber,
+      body: message,
+    });
+  }
+
+  /**
+   * Check if Twilio is configured for a company
+   */
+  async isTwilioConfigured(companyId: string): Promise<boolean> {
+    const result = await this.twilioService.testConnection(companyId);
+    return result.success;
   }
 }

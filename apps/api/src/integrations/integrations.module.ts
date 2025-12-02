@@ -16,6 +16,9 @@ import { S3StorageService } from './services/providers/s3-storage.service';
 import { LanguageToolService } from './services/providers/languagetool.service';
 import { CloudinaryService } from './services/providers/cloudinary.service';
 import { RunwayService } from './services/providers/runway.service';
+import { TwilioService } from './services/providers/twilio.service';
+import { CloudFrontService } from './services/providers/cloudfront.service';
+import { Route53Service } from './services/providers/route53.service';
 
 @Global()
 @Module({
@@ -35,6 +38,9 @@ import { RunwayService } from './services/providers/runway.service';
     LanguageToolService,
     CloudinaryService,
     RunwayService,
+    TwilioService,
+    CloudFrontService,
+    Route53Service,
   ],
   exports: [
     CredentialEncryptionService,
@@ -49,6 +55,9 @@ import { RunwayService } from './services/providers/runway.service';
     LanguageToolService,
     CloudinaryService,
     RunwayService,
+    TwilioService,
+    CloudFrontService,
+    Route53Service,
   ],
 })
 export class IntegrationsModule {}

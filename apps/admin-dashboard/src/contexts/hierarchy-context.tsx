@@ -72,10 +72,7 @@ export function HierarchyProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     try {
-      // Initialize API token from localStorage
-      api.initToken();
-
-      // Call the real hierarchy API
+      // Call the real hierarchy API (token is read from localStorage automatically)
       const response = await api.getAccessibleHierarchy();
       setAvailableClients(response.data.clients || []);
       setAvailableCompanies(response.data.companies || []);

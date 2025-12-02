@@ -29,6 +29,10 @@ import {
   Link2,
   RotateCcw,
   ClipboardList,
+  Repeat,
+  Star,
+  Megaphone,
+  FileText,
   LucideIcon,
 } from 'lucide-react';
 
@@ -100,6 +104,10 @@ export const iconMap: Record<string, LucideIcon> = {
   Link2,
   RotateCcw,
   ClipboardList,
+  Repeat,
+  Star,
+  Megaphone,
+  FileText,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -126,6 +134,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: true,
     items: [
       { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
+      { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
       { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
@@ -144,6 +153,18 @@ export const navigationSections: NavSection[] = [
       { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
       { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
       { id: 'collections', label: 'Collections', href: '/products/collections', icon: Layers },
+      { id: 'reviews', label: 'Reviews', href: '/reviews', icon: Star },
+    ],
+  },
+
+  // Marketing
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    defaultExpanded: false,
+    items: [
+      { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
     ],
   },
 

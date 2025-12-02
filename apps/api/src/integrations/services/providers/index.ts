@@ -3,6 +3,9 @@ export { S3StorageService } from './s3-storage.service';
 export { LanguageToolService } from './languagetool.service';
 export { CloudinaryService } from './cloudinary.service';
 export { RunwayService } from './runway.service';
+export { TwilioService } from './twilio.service';
+export { CloudFrontService } from './cloudfront.service';
+export { Route53Service } from './route53.service';
 
 // Re-export types
 export type {
@@ -54,3 +57,29 @@ export {
 } from './runway-prompts';
 
 export type { RunwayPromptKey } from './runway-prompts';
+
+export type {
+  TwilioCredentials,
+  TwilioCallOptions,
+  TwilioSmsOptions,
+  TwilioCallResult,
+  TwilioSmsResult,
+  TwiMLGatherOptions,
+  TwiMLSayOptions,
+} from './twilio.service';
+
+export type {
+  CloudFrontCredentials,
+  CloudFrontSettings,
+  CreateDistributionOptions,
+  DistributionResult,
+  CertificateResult,
+} from './cloudfront.service';
+
+export type {
+  Route53Credentials,
+  Route53Settings,
+  DnsRecord,
+  HostedZone,
+  RecordSetResult,
+} from './route53.service';

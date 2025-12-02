@@ -141,6 +141,18 @@ model Company {
   refundSettings RefundSettings?
   customerTags   CustomerTag[]
 
+  // Product Reviews
+  productReviews     ProductReview[]
+  productReviewStats ProductReviewStats[]
+  reviewConfig       ReviewConfig?
+
+  // Landing Pages
+  landingPages     LandingPage[]
+  abTests          ABTest[]
+  landingPopups    LandingPagePopup[]
+  dynamicTextRules DynamicTextRule[]
+  conversionGoals  ConversionGoal[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -353,6 +365,10 @@ model Customer {
   notes   CustomerNote[]
   refunds Refund[]
 
+  // Product Reviews
+  productReviews ProductReview[]
+  reviewVotes    ReviewVote[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -493,6 +509,7 @@ model PaymentVault {
   customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   billingAccounts BillingAccount[]
   transactions    Transaction[]
+  subscriptions   Subscription[]
 
   @@index([customerId, isActive])
   @@index([fingerprint])
@@ -621,6 +638,10 @@ model Product {
   // Feature 03: Vendor System
   vendorProductSyncs VendorProductSync[]
 
+  // Product Reviews
+  reviews     ProductReview[]
+  reviewStats ProductReviewStats?
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -741,6 +762,9 @@ model Order {
 
   // Refunds
   refunds Refund[]
+
+  // Product Reviews (for verified purchase tracking)
+  productReviews ProductReview[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -920,8 +944,9 @@ model PaymentProvider {
   updatedAt DateTime @updatedAt
 
   // Relations
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  subscriptions Subscription[]
 
   @@map("payment_providers")
 }
@@ -950,6 +975,10 @@ model Subscription {
   shippingAddressId   String?
   shippingPreferences Json    @default("{}")
 
+  // Payment method for recurring billing (token-based providers only)
+  paymentVaultId    String?
+  paymentProviderId String? // Which provider to charge
+
   // Status
   status       SubscriptionStatus @default(ACTIVE)
   canceledAt   DateTime?
@@ -967,19 +996,70 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   // Relations
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  orders       Order[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  paymentVault    PaymentVault?    @relation(fields: [paymentVaultId], references: [id])
+  paymentProvider PaymentProvider? @relation(fields: [paymentProviderId], references: [id])
+  transactions    Transaction[]
+  orders          Order[]
+  rebillAttempts  SubscriptionRebill[]
 
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
   cascadeId String?
 
+  // Indexes for query performance with large datasets
   @@index([companyId, status])
+  @@index([companyId, interval])
+  @@index([companyId, nextBillingDate])
+  @@index([customerId])
+  @@index([createdAt(sort: Desc), id])  // For cursor-based pagination
   @@index([deletedAt])
   @@map("subscriptions")
+}
+
+// Tracks rebill attempts for subscriptions with stored payment methods
+model SubscriptionRebill {
+  id             String @id @default(cuid())
+  subscriptionId String
+  transactionId  String? // Links to successful transaction
+
+  // Billing period this rebill covers
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+
+  // Amount charged
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("USD")
+
+  // Attempt tracking
+  attemptNumber Int      @default(1) // 1st, 2nd, 3rd retry, etc.
+  status        RebillStatus @default(PENDING)
+
+  // Results
+  failureReason   String?
+  failureCode     String?
+  providerResponse Json?
+
+  // Dunning schedule
+  nextRetryAt     DateTime? // When to retry if failed
+  retriesRemaining Int       @default(3)
+
+  // Timestamps
+  scheduledAt DateTime  // When rebill was scheduled
+  processedAt DateTime? // When processing completed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  transaction  Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([subscriptionId, status])
+  @@index([status, scheduledAt])
+  @@index([nextRetryAt])
+  @@map("subscription_rebills")
 }
 
 model Transaction {
@@ -1038,6 +1118,7 @@ model Transaction {
   order           Order?           @relation(fields: [orderId], references: [id])
   paymentProvider PaymentProvider? @relation(fields: [paymentProviderId], references: [id])
   paymentVault    PaymentVault?    @relation(fields: [paymentVaultId], references: [id])
+  rebillAttempts  SubscriptionRebill[]
 
   @@index([companyId, createdAt])
   @@index([companyId, status, createdAt])
@@ -1789,6 +1870,15 @@ enum SubscriptionStatus {
   PAST_DUE
   TRIALING
   EXPIRED
+}
+
+enum RebillStatus {
+  PENDING    // Scheduled but not yet processed
+  PROCESSING // Currently being processed
+  SUCCESS    // Payment succeeded
+  FAILED     // Payment failed, may retry
+  EXHAUSTED  // All retries exhausted
+  SKIPPED    // Skipped (e.g., subscription paused)
 }
 
 // Product
@@ -5202,4 +5292,977 @@ model RefundSettings {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("refund_settings")
+}
+
+// =============================================================================
+// PRODUCT REVIEWS & RATINGS (Customer Review Plugin - Yotpo-style)
+// =============================================================================
+
+enum ReviewStatus {
+  PENDING     // Awaiting moderation
+  APPROVED    // Published and visible
+  REJECTED    // Rejected by moderator
+  FLAGGED     // Flagged for review
+}
+
+enum ReviewSource {
+  WEBSITE     // Submitted via website widget
+  EMAIL       // Submitted via email request
+  API         // Submitted via API
+  IMPORT      // Imported from external source
+}
+
+model ProductReview {
+  id         String @id @default(cuid())
+  companyId  String
+  productId  String
+  customerId String?
+  orderId    String? // Link to verified purchase
+
+  // Review Content
+  rating      Int // 1-5 stars
+  title       String?
+  content     String?  @db.Text
+  pros        String[] // What they liked
+  cons        String[] // What they didn't like
+
+  // Reviewer Info (for non-logged-in reviews)
+  reviewerName  String?
+  reviewerEmail String?
+
+  // Verification
+  isVerifiedPurchase Boolean @default(false)
+  purchaseDate       DateTime?
+
+  // Moderation
+  status       ReviewStatus @default(PENDING)
+  moderatedAt  DateTime?
+  moderatedBy  String?
+  moderationNotes String?
+  rejectReason String?
+
+  // AI Analysis
+  sentimentScore Float?  // -1 to 1
+  keyPhrases     String[]
+  aiSummary      String?
+
+  // Engagement
+  helpfulCount   Int @default(0)
+  unhelpfulCount Int @default(0)
+  reportCount    Int @default(0)
+
+  // Merchant Response
+  merchantResponse   String?   @db.Text
+  merchantRespondedAt DateTime?
+  merchantRespondedBy String?
+
+  // Source Tracking
+  source    ReviewSource @default(WEBSITE)
+  sourceId  String?      // External review ID if imported
+  ipAddress String?
+  userAgent String?
+
+  // Featured/Pinned
+  isFeatured Boolean @default(false)
+  isPinned   Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Soft delete
+  deletedAt DateTime?
+  deletedBy String?
+
+  // Relations
+  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product  Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  order    Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  media    ReviewMedia[]
+  votes    ReviewVote[]
+
+  @@unique([orderId, productId]) // One review per product per order
+  @@index([companyId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([status])
+  @@index([rating])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("product_reviews")
+}
+
+model ReviewMedia {
+  id       String @id @default(cuid())
+  reviewId String
+
+  // Media Details
+  type     String // image, video
+  url      String
+  filename String?
+  mimeType String?
+  size     Int?   // bytes
+
+  // Processing
+  thumbnailUrl String?
+  isProcessed  Boolean @default(false)
+  processedAt  DateTime?
+
+  // Moderation
+  isApproved Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  review ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_media")
+}
+
+model ReviewVote {
+  id         String @id @default(cuid())
+  reviewId   String
+  customerId String?
+  ipAddress  String?
+
+  // Vote
+  isHelpful Boolean // true = helpful, false = not helpful
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  review   ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  customer Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([reviewId, customerId])
+  @@unique([reviewId, ipAddress])
+  @@index([reviewId])
+  @@map("review_votes")
+}
+
+model ReviewConfig {
+  id        String @id @default(cuid())
+  companyId String @unique
+
+  enabled Boolean @default(true)
+
+  // Moderation Settings
+  autoApprove           Boolean @default(false) // Auto-approve reviews
+  requireVerifiedPurchase Boolean @default(false)
+  minRatingForAutoApprove Int?   // Only auto-approve if rating >= this
+  moderationKeywords    String[] // Keywords that trigger manual review
+
+  // Display Settings
+  showVerifiedBadge     Boolean @default(true)
+  showReviewerName      Boolean @default(true)
+  showReviewDate        Boolean @default(true)
+  allowAnonymous        Boolean @default(true)
+  sortDefault           String  @default("newest") // newest, oldest, highest, lowest, helpful
+
+  // Content Settings
+  minReviewLength       Int     @default(0)
+  maxReviewLength       Int     @default(5000)
+  allowMedia            Boolean @default(true)
+  maxMediaPerReview     Int     @default(5)
+  allowProsAndCons      Boolean @default(true)
+
+  // Email Settings
+  sendReviewRequest     Boolean @default(true)
+  reviewRequestDelay    Int     @default(7) // Days after delivery
+  sendResponseNotification Boolean @default(true)
+
+  // Widget Settings
+  widgetTheme           String  @default("light") // light, dark, auto
+  widgetPosition        String  @default("bottom") // bottom, side, modal
+  widgetPrimaryColor    String  @default("#3B82F6")
+  widgetCustomCss       String? @db.Text
+
+  // SEO Settings
+  enableRichSnippets    Boolean @default(true)
+  schemaType            String  @default("Product") // Product, LocalBusiness
+
+  // Incentive Settings
+  incentiveEnabled      Boolean @default(false)
+  incentiveType         String? // discount, points, entry
+  incentiveValue        String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("review_configs")
+}
+
+// Product Review Statistics (Denormalized for performance)
+model ProductReviewStats {
+  id        String @id @default(cuid())
+  companyId String
+  productId String @unique
+
+  // Aggregate Stats
+  totalReviews     Int   @default(0)
+  approvedReviews  Int   @default(0)
+  averageRating    Float @default(0)
+
+  // Rating Distribution
+  rating1Count Int @default(0)
+  rating2Count Int @default(0)
+  rating3Count Int @default(0)
+  rating4Count Int @default(0)
+  rating5Count Int @default(0)
+
+  // Verified Stats
+  verifiedReviews  Int   @default(0)
+  verifiedAvgRating Float @default(0)
+
+  // Top Keywords (JSON array)
+  topKeywords Json @default("[]")
+
+  // Timestamps
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("product_review_stats")
+}
+
+// =============================================================================
+// LANDING PAGE BUILDER
+// =============================================================================
+
+model LandingPage {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Identity & Routing
+  name      String // "Main Site", "Holiday Promo 2024"
+  slug      String // Internal reference
+  subdomain String? @unique // "coffee-explorer" → coffee-explorer.avnz.io
+
+  // Theme & Design
+  theme       LandingPageTheme @default(STARTER)
+  colorScheme Json             @default("{}") // { primary, secondary, accent, background, text }
+  typography  Json             @default("{}") // { headingFont, bodyFont, scale }
+
+  // Global Settings
+  favicon   String?
+  ogImage   String?
+  customCss String? @db.Text
+  customJs  String? @db.Text
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  keywords        String[]
+
+  // Analytics
+  googleAnalyticsId String?
+  facebookPixelId   String?
+
+  // Hosting Configuration
+  hostingType LandingPageHosting @default(PLATFORM) // PLATFORM = our AWS, CLIENT = their AWS
+
+  // Platform-hosted settings (when hostingType = PLATFORM)
+  platformDistributionId String? // CloudFront distribution ID
+  platformUrl            String? // https://coffee-explorer.avnz.io
+  platformS3Path         String? // landing-pages/company-id/page-slug/
+
+  // Client-hosted settings (when hostingType = CLIENT)
+  clientBucketName    String?
+  clientDistributionId String?
+  clientUrl           String?
+
+  // Status & Publishing
+  status      LandingPageStatus @default(DRAFT)
+  publishedAt DateTime?
+  publishedBy String?
+  lastDeployedAt DateTime?
+
+  // Versioning
+  version Int @default(1)
+
+  // Billing & Usage Tracking
+  billingEnabled Boolean @default(true)
+  monthlyFee     Int     @default(0) // Base fee in cents (e.g., 999 = $9.99/mo)
+
+  // Usage Metrics (updated on each request/deploy)
+  totalPageViews   BigInt   @default(0)
+  totalBandwidthMb BigInt   @default(0) // MB transferred
+  totalDeploys     Int      @default(0)
+  lastPageViewAt   DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company  Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sections LandingPageSection[]
+  domains  LandingPageDomain[]
+  usage    LandingPageUsage[]
+  abTests  ABTest[]
+  popups   LandingPagePopup[]
+  dynamicTextRules DynamicTextRule[]
+  conversionGoals  ConversionGoal[]
+
+  @@unique([companyId, slug])
+  @@index([subdomain])
+  @@index([status])
+  @@map("landing_pages")
+}
+
+model LandingPageSection {
+  id            String @id @default(cuid())
+  landingPageId String
+
+  // Section Identity
+  type SectionType
+  name String? // Custom override name: "Our Story"
+
+  // Positioning
+  order   Int
+  enabled Boolean @default(true)
+
+  // Content (type-specific JSON - see SectionContent types)
+  content Json
+
+  // Styling Overrides
+  styles Json? // { backgroundColor, textColor, padding, animation }
+
+  // Responsive Visibility
+  hideOnMobile  Boolean @default(false)
+  hideOnDesktop Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@index([landingPageId, order])
+  @@map("landing_page_sections")
+}
+
+model LandingPageDomain {
+  id            String @id @default(cuid())
+  landingPageId String
+
+  domain    String  @unique // "www.coffeeexplorer.com"
+  isPrimary Boolean @default(false)
+
+  // SSL Status (ACM certificate)
+  sslStatus    DomainSslStatus @default(PENDING)
+  sslCertArn   String? // ACM certificate ARN
+  sslExpiresAt DateTime?
+
+  // DNS Verification
+  verificationToken  String?
+  verificationRecord String? // CNAME record value
+  verifiedAt         DateTime?
+
+  // CloudFront Distribution (if using custom domain)
+  distributionId String?
+  distributionArn String?
+
+  // Billing for custom domains
+  monthlyFee Int @default(0) // Additional fee for custom domain hosting (cents)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@map("landing_page_domains")
+}
+
+// Usage tracking for billing - records monthly usage per landing page
+model LandingPageUsage {
+  id            String @id @default(cuid())
+  landingPageId String
+  companyId     String
+
+  // Billing Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Usage Metrics
+  pageViews      BigInt @default(0)
+  uniqueVisitors BigInt @default(0)
+  bandwidthMb    BigInt @default(0) // MB transferred
+  deployCount    Int    @default(0)
+
+  // Calculated Costs (in cents)
+  baseFee        Int @default(0) // Monthly base fee
+  bandwidthFee   Int @default(0) // Overage charges
+  customDomainFee Int @default(0) // Custom domain fee
+  totalFee       Int @default(0) // Total for period
+
+  // Status
+  invoiced   Boolean   @default(false)
+  invoicedAt DateTime?
+  invoiceId  String? // Link to billing invoice
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@unique([landingPageId, periodStart])
+  @@index([companyId, periodStart])
+  @@map("landing_page_usage")
+}
+
+// Service fee configuration (organization-level pricing)
+model LandingPagePricing {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  // Base Pricing (in cents)
+  monthlyBaseFee       Int @default(999)  // $9.99/mo per page
+  customDomainFee      Int @default(499)  // $4.99/mo per custom domain
+
+  // Included Allowances
+  includedPageViews    Int @default(10000)  // Views per month
+  includedBandwidthMb  Int @default(1000)   // MB per month
+  includedDeploys      Int @default(50)     // Deploys per month
+
+  // Overage Pricing (in cents per unit)
+  overageViewsPer1000  Int @default(50)   // $0.50 per 1000 views over limit
+  overageBandwidthPerGb Int @default(100) // $1.00 per GB over limit
+
+  // Free Tier
+  freePagesAllowed     Int @default(1)  // First page free
+  freeTrialDays        Int @default(14) // Trial period
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("landing_page_pricing")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI USAGE TRACKING - For billing AI content generation
+// ═══════════════════════════════════════════════════════════════
+
+model AIUsage {
+  id        String @id @default(cuid())
+  companyId String
+  userId    String
+
+  // Request Details
+  feature      AIFeature // What feature was used
+  operation    String    // Specific operation (generate_headline, rewrite_section, etc.)
+  modelId      String    // AI model used (e.g., anthropic.claude-3-sonnet)
+
+  // Token Usage (for billing)
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+
+  // Cost Calculation (in cents)
+  inputCost    Int      // Cost for input tokens
+  outputCost   Int      // Cost for output tokens
+  totalCost    Int      // Total cost in cents
+
+  // Request Context
+  landingPageId String?
+  metadata      Json?   // Additional context (section type, prompt length, etc.)
+
+  // Status
+  status    AIUsageStatus @default(SUCCESS)
+  errorMsg  String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+  @@index([userId, createdAt])
+  @@index([feature, createdAt])
+  @@map("ai_usage")
+}
+
+// Monthly AI usage summary for billing
+model AIUsageSummary {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Billing Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Aggregated Usage
+  totalRequests    Int @default(0)
+  totalInputTokens  Int @default(0)
+  totalOutputTokens Int @default(0)
+  totalTokens      Int @default(0)
+
+  // Costs (in cents)
+  totalCost Int @default(0)
+
+  // Usage by Feature
+  usageByFeature Json @default("{}") // { LANDING_PAGE_CONTENT: { requests: 10, tokens: 5000, cost: 100 } }
+
+  // Billing Status
+  invoiced   Boolean   @default(false)
+  invoicedAt DateTime?
+  invoiceId  String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, periodStart])
+  @@index([companyId, periodStart])
+  @@map("ai_usage_summary")
+}
+
+// AI pricing configuration (organization-level)
+model AIPricing {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  // Token pricing (per 1000 tokens, in cents)
+  inputTokenPrice  Int @default(3)   // $0.03 per 1K input tokens
+  outputTokenPrice Int @default(15)  // $0.15 per 1K output tokens
+
+  // Monthly allowances (included in base plan)
+  monthlyTokenAllowance Int @default(100000) // 100K tokens/month included
+
+  // Overage pricing (per 1000 tokens, in cents)
+  overageInputPrice  Int @default(4)  // $0.04 per 1K input tokens after allowance
+  overageOutputPrice Int @default(20) // $0.20 per 1K output tokens after allowance
+
+  // Feature flags
+  aiEnabled Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_pricing")
+}
+
+enum AIFeature {
+  LANDING_PAGE_CONTENT    // Generate/rewrite landing page text
+  LANDING_PAGE_SECTION    // Generate entire section content
+  AB_TEST_VARIANTS        // Generate A/B test copy variants
+  PRODUCT_DESCRIPTION     // Product descriptions
+  SEO_OPTIMIZATION        // Meta tags, keywords
+  IMAGE_ALT_TEXT          // Alt text generation
+}
+
+enum AIUsageStatus {
+  SUCCESS
+  FAILED
+  RATE_LIMITED
+}
+
+enum LandingPageTheme {
+  STARTER       // Clean minimal (default)
+  ARTISAN       // Warm, handcrafted (coffee, bakery)
+  VELOCITY      // Modern tech (SaaS)
+  LUXE          // Elegant premium (fashion, jewelry)
+  WELLNESS      // Calm, clean (health, spa)
+  FOODIE        // Vibrant (restaurant, delivery)
+  PROFESSIONAL  // Corporate (agency, B2B)
+  CREATOR       // Personal brand (courses)
+  MARKETPLACE   // E-commerce focused
+}
+
+enum SectionType {
+  // Navigation
+  HEADER
+  FOOTER
+
+  // Hero Variants
+  HERO_CENTERED
+  HERO_SPLIT
+  HERO_VIDEO
+  HERO_CAROUSEL
+
+  // Content
+  FEATURES_GRID
+  FEATURES_LIST
+  FEATURES_ICONS
+  ABOUT_STORY
+  ABOUT_TEAM
+  ABOUT_TIMELINE
+
+  // Social Proof
+  TESTIMONIALS_CARDS
+  TESTIMONIALS_CAROUSEL
+  TESTIMONIALS_WALL
+  LOGOS_STRIP
+  STATS_COUNTER
+
+  // Commerce
+  PRICING_TABLE
+  PRICING_COMPARISON
+  PRODUCTS_GRID
+  PRODUCTS_CAROUSEL
+
+  // Engagement
+  CTA_BANNER
+  CTA_SPLIT
+  NEWSLETTER
+  CONTACT_FORM
+  FAQ_ACCORDION
+  FAQ_GRID
+
+  // Media
+  GALLERY_GRID
+  GALLERY_MASONRY
+  VIDEO_EMBED
+
+  // Custom
+  HTML_BLOCK
+  SPACER
+  DIVIDER
+}
+
+enum LandingPageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LandingPageHosting {
+  PLATFORM // Hosted on our AWS (subdomain.avnz.io)
+  CLIENT   // Hosted on client's AWS
+}
+
+enum DomainSslStatus {
+  PENDING     // Certificate requested
+  VALIDATING  // DNS validation in progress
+  ACTIVE      // Certificate active
+  FAILED      // Validation failed
+  EXPIRED     // Certificate expired
+}
+
+// ═══════════════════════════════════════════════════════════════
+// A/B TESTING - Variant Management & Traffic Splitting
+// ═══════════════════════════════════════════════════════════════
+
+enum ABTestStatus {
+  DRAFT     // Not yet running
+  RUNNING   // Actively splitting traffic
+  PAUSED    // Temporarily stopped
+  COMPLETED // Test finished, winner declared
+  ARCHIVED  // Historical record
+}
+
+model ABTest {
+  id            String @id @default(cuid())
+  landingPageId String
+  companyId     String
+
+  // Test Configuration
+  name        String // "Summer CTA Test"
+  description String?
+  status      ABTestStatus @default(DRAFT)
+
+  // Traffic Allocation
+  trafficPercentage Int @default(100) // % of total traffic to include in test (0-100)
+
+  // Scheduling
+  startedAt   DateTime?
+  endedAt     DateTime?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+
+  // Statistical Settings
+  confidenceLevel   Int @default(95)      // 90, 95, 99
+  minimumSampleSize Int @default(100)     // Minimum visitors per variant
+  primaryMetric     String @default("conversions") // What to optimize
+
+  // Results
+  winnerId            String? // Variant ID that won
+  winnerDeclaredAt    DateTime?
+  statisticalSignificance Float? // 0.0 - 1.0
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  variants    ABTestVariant[]
+
+  @@index([landingPageId])
+  @@index([companyId])
+  @@index([status])
+  @@map("ab_tests")
+}
+
+model ABTestVariant {
+  id       String @id @default(cuid())
+  testId   String
+
+  // Variant Identity
+  name     String    // "Control", "Variant A", "Variant B"
+  isControl Boolean  @default(false)
+
+  // Traffic Weight
+  weight   Int @default(50) // % traffic allocation (all variants must sum to 100)
+
+  // Content Changes (JSON patches to apply to base page)
+  changes Json // { sectionId: string, field: string, value: any }[]
+
+  // Metrics (updated in real-time)
+  visitors    BigInt @default(0)
+  conversions BigInt @default(0)
+  conversionRate Float @default(0)
+  bounceRate     Float @default(0)
+  avgTimeOnPage  Float @default(0) // seconds
+
+  // Revenue tracking (optional)
+  totalRevenue   BigInt @default(0) // cents
+  avgOrderValue  Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  test ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@map("ab_test_variants")
+}
+
+// Visitor assignment tracking (which variant did they see?)
+model ABTestAssignment {
+  id        String @id @default(cuid())
+  testId    String
+  variantId String
+  visitorId String // Anonymous visitor cookie/fingerprint
+
+  // Assignment details
+  assignedAt DateTime @default(now())
+  converted  Boolean  @default(false)
+  convertedAt DateTime?
+
+  // Attribution
+  revenue    BigInt? // If conversion had revenue (cents)
+
+  @@unique([testId, visitorId])
+  @@index([variantId])
+  @@map("ab_test_assignments")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POPUPS & STICKY BARS - Engagement Overlays
+// ═══════════════════════════════════════════════════════════════
+
+enum PopupType {
+  MODAL        // Center overlay
+  SLIDE_IN     // Corner slide-in
+  FULLSCREEN   // Full page takeover
+  STICKY_BAR   // Top/bottom persistent bar
+  BANNER       // Dismissable notification bar
+}
+
+enum PopupTrigger {
+  IMMEDIATE       // Show on page load
+  TIME_DELAY      // After X seconds
+  SCROLL_PERCENT  // After scrolling X%
+  EXIT_INTENT     // Mouse leaves viewport
+  CLICK           // Click on element
+  INACTIVITY      // No activity for X seconds
+}
+
+enum PopupStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  SCHEDULED
+  ARCHIVED
+}
+
+model LandingPagePopup {
+  id            String @id @default(cuid())
+  landingPageId String
+  companyId     String
+
+  // Identity
+  name   String
+  type   PopupType @default(MODAL)
+  status PopupStatus @default(DRAFT)
+
+  // Trigger Configuration
+  trigger       PopupTrigger @default(TIME_DELAY)
+  triggerValue  Int?         // Seconds for TIME_DELAY, % for SCROLL_PERCENT
+  triggerSelector String?    // CSS selector for CLICK trigger
+
+  // Display Settings
+  position  String @default("center") // center, top, bottom, top-left, top-right, bottom-left, bottom-right
+  animation String @default("fade")   // fade, slide, bounce, zoom
+  overlay   Boolean @default(true)    // Show dark overlay behind
+  overlayClose Boolean @default(true) // Click overlay to close
+
+  // Content (similar to section content)
+  content Json // { headline, body, ctaText, ctaUrl, image, formFields }
+  styles  Json? // { backgroundColor, textColor, width, borderRadius }
+
+  // Scheduling
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Frequency & Targeting
+  showOnce      Boolean @default(false)  // Only show once per visitor
+  showEveryDays Int?                      // Re-show after X days
+  showOnMobile  Boolean @default(true)
+  showOnDesktop Boolean @default(true)
+
+  // Page targeting
+  showOnAllPages Boolean @default(true)
+  targetPages    String[] // Specific page paths if not all
+
+  // Metrics
+  impressions BigInt @default(0)
+  closes      BigInt @default(0)
+  conversions BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([landingPageId])
+  @@index([companyId])
+  @@index([status])
+  @@map("landing_page_popups")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DYNAMIC TEXT REPLACEMENT - URL Parameter-based Content Swapping
+// ═══════════════════════════════════════════════════════════════
+
+model DynamicTextRule {
+  id            String @id @default(cuid())
+  landingPageId String
+  companyId     String
+
+  // Rule Configuration
+  name        String  // "City Personalization"
+  enabled     Boolean @default(true)
+
+  // URL Parameter to watch
+  parameterName String // e.g., "city", "utm_campaign", "keyword"
+
+  // Default value if parameter not present
+  defaultValue String
+
+  // Replacement targets (CSS selectors or section IDs)
+  targets Json // [{ selector: ".hero-headline", field: "text" }, { sectionId: "xxx", field: "headline" }]
+
+  // Optional: Predefined mappings for specific values
+  valueMappings Json? // { "new-york": "New York City", "la": "Los Angeles" }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([landingPageId])
+  @@index([companyId])
+  @@map("dynamic_text_rules")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONVERSION TRACKING - Goal & Event Management
+// ═══════════════════════════════════════════════════════════════
+
+enum ConversionGoalType {
+  FORM_SUBMIT   // Form submission
+  BUTTON_CLICK  // CTA button click
+  LINK_CLICK    // External link click
+  PAGE_VISIT    // Visit to thank you page
+  SCROLL_DEPTH  // Scroll to specific %
+  TIME_ON_PAGE  // Time threshold reached
+  CUSTOM        // Custom JS event
+}
+
+model ConversionGoal {
+  id            String @id @default(cuid())
+  landingPageId String
+  companyId     String
+
+  // Goal Configuration
+  name        String
+  type        ConversionGoalType
+  isPrimary   Boolean @default(false) // Main goal for A/B test winner selection
+
+  // Type-specific config
+  selector    String?  // CSS selector for clicks
+  targetUrl   String?  // URL for PAGE_VISIT
+  threshold   Int?     // % for SCROLL_DEPTH, seconds for TIME_ON_PAGE
+  eventName   String?  // Custom event name
+
+  // Optional: Revenue value (for ROI calculations)
+  revenueValue Int? // Fixed value in cents (e.g., lead worth $50)
+
+  // Metrics
+  totalConversions BigInt @default(0)
+  totalRevenue     BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  events      ConversionEvent[]
+
+  @@index([landingPageId])
+  @@index([companyId])
+  @@map("conversion_goals")
+}
+
+model ConversionEvent {
+  id        String @id @default(cuid())
+  goalId    String
+  visitorId String
+
+  // Event details
+  occurredAt DateTime @default(now())
+  pageUrl    String?
+  referrer   String?
+
+  // Attribution
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  // Optional: Revenue
+  revenue Int?
+
+  // Relations
+  goal ConversionGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@index([visitorId])
+  @@index([occurredAt])
+  @@map("conversion_events")
 }

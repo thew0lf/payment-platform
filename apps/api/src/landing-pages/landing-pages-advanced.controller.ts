@@ -1,0 +1,656 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { ABTestingService } from './services/ab-testing.service';
+import { PopupsService } from './services/popups.service';
+import { DynamicTextService } from './services/dynamic-text.service';
+import { ConversionTrackingService } from './services/conversion-tracking.service';
+import { StockImagesService } from './services/stock-images.service';
+import { AIUsageService } from './services/ai-usage.service';
+import { AIContentService, GeneratePageBriefRequest, RewriteSectionRequest, GenerateABVariantsRequest, GenerateSectionRequest } from './services/ai-content.service';
+import { TemplateGalleryService } from './services/template-gallery.service';
+import { SectionType, AIFeature } from '@prisma/client';
+import {
+  CreateABTestDto,
+  UpdateABTestDto,
+  CreateVariantDto,
+  UpdateVariantDto,
+  ABTestSummary,
+  ABTestDetail,
+  ABTestStats,
+  CreatePopupDto,
+  UpdatePopupDto,
+  PopupSummary,
+  PopupDetail,
+  CreateDTRDto,
+  UpdateDTRDto,
+  DTRSummary,
+  DTRDetail,
+  CreateConversionGoalDto,
+  UpdateConversionGoalDto,
+  ConversionGoalSummary,
+  ConversionGoalDetail,
+  TrackConversionDto,
+} from './types/ab-testing.types';
+
+@Controller('landing-pages')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class LandingPagesAdvancedController {
+  constructor(
+    private readonly abTestingService: ABTestingService,
+    private readonly popupsService: PopupsService,
+    private readonly dynamicTextService: DynamicTextService,
+    private readonly conversionTrackingService: ConversionTrackingService,
+    private readonly stockImagesService: StockImagesService,
+    private readonly aiUsageService: AIUsageService,
+    private readonly aiContentService: AIContentService,
+    private readonly templateGalleryService: TemplateGalleryService,
+  ) {}
+
+  private getCompanyId(user: AuthenticatedUser): string {
+    if (!user.companyId) {
+      throw new ForbiddenException('User must be associated with a company');
+    }
+    return user.companyId;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // A/B TESTING
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('ab-tests')
+  async listABTests(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('pageId') pageId?: string,
+  ): Promise<ABTestSummary[]> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.findAll(companyId, pageId);
+  }
+
+  @Get('ab-tests/:testId')
+  async getABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.findOne(companyId, testId);
+  }
+
+  @Post(':pageId/ab-tests')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async createABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('pageId') pageId: string,
+    @Body() dto: CreateABTestDto,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.create(companyId, pageId, dto, user.id);
+  }
+
+  @Put('ab-tests/:testId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async updateABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+    @Body() dto: UpdateABTestDto,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.update(companyId, testId, dto);
+  }
+
+  @Delete('ab-tests/:testId')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async deleteABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+  ): Promise<{ success: boolean }> {
+    const companyId = this.getCompanyId(user);
+    await this.abTestingService.delete(companyId, testId);
+    return { success: true };
+  }
+
+  @Post('ab-tests/:testId/start')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async startABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.update(companyId, testId, { status: 'RUNNING' as any });
+  }
+
+  @Post('ab-tests/:testId/pause')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async pauseABTest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.update(companyId, testId, { status: 'PAUSED' as any });
+  }
+
+  @Get('ab-tests/:testId/stats')
+  async getABTestStats(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+  ): Promise<ABTestStats[]> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.getStats(companyId, testId);
+  }
+
+  @Post('ab-tests/:testId/declare-winner/:variantId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async declareWinner(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+    @Param('variantId') variantId: string,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.declareWinner(companyId, testId, variantId);
+  }
+
+  // Variant Management
+  @Post('ab-tests/:testId/variants')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async addVariant(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+    @Body() dto: CreateVariantDto,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.addVariant(companyId, testId, dto);
+  }
+
+  @Put('ab-tests/:testId/variants/:variantId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async updateVariant(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+    @Param('variantId') variantId: string,
+    @Body() dto: UpdateVariantDto,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.updateVariant(companyId, testId, variantId, dto);
+  }
+
+  @Delete('ab-tests/:testId/variants/:variantId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async deleteVariant(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('testId') testId: string,
+    @Param('variantId') variantId: string,
+  ): Promise<ABTestDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.abTestingService.deleteVariant(companyId, testId, variantId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // POPUPS & STICKY BARS
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('popups')
+  async listPopups(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('pageId') pageId?: string,
+  ): Promise<PopupSummary[]> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.findAll(companyId, pageId);
+  }
+
+  @Get('popups/:popupId')
+  async getPopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('popupId') popupId: string,
+  ): Promise<PopupDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.findOne(companyId, popupId);
+  }
+
+  @Post(':pageId/popups')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async createPopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('pageId') pageId: string,
+    @Body() dto: CreatePopupDto,
+  ): Promise<PopupDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.create(companyId, pageId, dto, user.id);
+  }
+
+  @Put('popups/:popupId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async updatePopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('popupId') popupId: string,
+    @Body() dto: UpdatePopupDto,
+  ): Promise<PopupDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.update(companyId, popupId, dto);
+  }
+
+  @Delete('popups/:popupId')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async deletePopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('popupId') popupId: string,
+  ): Promise<{ success: boolean }> {
+    const companyId = this.getCompanyId(user);
+    await this.popupsService.delete(companyId, popupId);
+    return { success: true };
+  }
+
+  @Post('popups/:popupId/activate')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async activatePopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('popupId') popupId: string,
+  ): Promise<PopupDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.activate(companyId, popupId);
+  }
+
+  @Post('popups/:popupId/pause')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async pausePopup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('popupId') popupId: string,
+  ): Promise<PopupDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.popupsService.pause(companyId, popupId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DYNAMIC TEXT REPLACEMENT
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('dynamic-text-rules')
+  async listDTRRules(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('pageId') pageId?: string,
+  ): Promise<DTRSummary[]> {
+    const companyId = this.getCompanyId(user);
+    return this.dynamicTextService.findAll(companyId, pageId);
+  }
+
+  @Get('dynamic-text-rules/:ruleId')
+  async getDTRRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('ruleId') ruleId: string,
+  ): Promise<DTRDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.dynamicTextService.findOne(companyId, ruleId);
+  }
+
+  @Post(':pageId/dynamic-text-rules')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async createDTRRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('pageId') pageId: string,
+    @Body() dto: CreateDTRDto,
+  ): Promise<DTRDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.dynamicTextService.create(companyId, pageId, dto);
+  }
+
+  @Put('dynamic-text-rules/:ruleId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async updateDTRRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('ruleId') ruleId: string,
+    @Body() dto: UpdateDTRDto,
+  ): Promise<DTRDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.dynamicTextService.update(companyId, ruleId, dto);
+  }
+
+  @Delete('dynamic-text-rules/:ruleId')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async deleteDTRRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('ruleId') ruleId: string,
+  ): Promise<{ success: boolean }> {
+    const companyId = this.getCompanyId(user);
+    await this.dynamicTextService.delete(companyId, ruleId);
+    return { success: true };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CONVERSION TRACKING
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('conversion-goals')
+  async listConversionGoals(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('pageId') pageId?: string,
+  ): Promise<ConversionGoalSummary[]> {
+    const companyId = this.getCompanyId(user);
+    return this.conversionTrackingService.findAll(companyId, pageId);
+  }
+
+  @Get('conversion-goals/:goalId')
+  async getConversionGoal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('goalId') goalId: string,
+  ): Promise<ConversionGoalDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.conversionTrackingService.findOne(companyId, goalId);
+  }
+
+  @Post(':pageId/conversion-goals')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async createConversionGoal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('pageId') pageId: string,
+    @Body() dto: CreateConversionGoalDto,
+  ): Promise<ConversionGoalDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.conversionTrackingService.create(companyId, pageId, dto);
+  }
+
+  @Put('conversion-goals/:goalId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async updateConversionGoal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('goalId') goalId: string,
+    @Body() dto: UpdateConversionGoalDto,
+  ): Promise<ConversionGoalDetail> {
+    const companyId = this.getCompanyId(user);
+    return this.conversionTrackingService.update(companyId, goalId, dto);
+  }
+
+  @Delete('conversion-goals/:goalId')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  async deleteConversionGoal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('goalId') goalId: string,
+  ): Promise<{ success: boolean }> {
+    const companyId = this.getCompanyId(user);
+    await this.conversionTrackingService.delete(companyId, goalId);
+    return { success: true };
+  }
+
+  @Get('conversion-goals/:goalId/events')
+  async getConversionEvents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('goalId') goalId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.conversionTrackingService.getEvents(
+      companyId,
+      goalId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+      limit ? parseInt(limit, 10) : 100,
+    );
+  }
+
+  // Public tracking endpoint (no auth required)
+  @Post('track/conversion')
+  async trackConversion(@Body() dto: TrackConversionDto): Promise<{ success: boolean }> {
+    const result = await this.conversionTrackingService.trackConversion(dto);
+    return { success: result };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // STOCK IMAGES (UNSPLASH)
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('stock-images/search')
+  async searchStockImages(
+    @Query('query') query: string,
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+    @Query('orientation') orientation?: 'landscape' | 'portrait' | 'squarish',
+    @Query('color') color?: string,
+  ) {
+    return this.stockImagesService.searchPhotos(
+      query,
+      page ? parseInt(page, 10) : 1,
+      perPage ? parseInt(perPage, 10) : 20,
+      orientation,
+      color,
+    );
+  }
+
+  @Get('stock-images/curated')
+  async getCuratedImages(
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+  ) {
+    return this.stockImagesService.getCuratedPhotos(
+      page ? parseInt(page, 10) : 1,
+      perPage ? parseInt(perPage, 10) : 20,
+    );
+  }
+
+  @Get('stock-images/categories')
+  getImageCategories() {
+    return this.stockImagesService.getLandingPageCategories();
+  }
+
+  @Get('stock-images/categories/:categoryId')
+  async getImagesByCategory(
+    @Param('categoryId') categoryId: string,
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+    @Query('orientation') orientation?: 'landscape' | 'portrait' | 'squarish',
+  ) {
+    return this.stockImagesService.getPhotosByCategory(
+      categoryId,
+      page ? parseInt(page, 10) : 1,
+      perPage ? parseInt(perPage, 10) : 20,
+      orientation,
+    );
+  }
+
+  @Get('stock-images/collections')
+  async getCollections(
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+  ) {
+    return this.stockImagesService.getFeaturedCollections(
+      page ? parseInt(page, 10) : 1,
+      perPage ? parseInt(perPage, 10) : 10,
+    );
+  }
+
+  @Get('stock-images/collections/:collectionId')
+  async getCollectionPhotos(
+    @Param('collectionId') collectionId: string,
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+  ) {
+    return this.stockImagesService.getCollectionPhotos(
+      collectionId,
+      page ? parseInt(page, 10) : 1,
+      perPage ? parseInt(perPage, 10) : 20,
+    );
+  }
+
+  @Get('stock-images/:photoId')
+  async getPhoto(@Param('photoId') photoId: string) {
+    return this.stockImagesService.getPhoto(photoId);
+  }
+
+  @Post('stock-images/:photoId/download')
+  async trackPhotoDownload(@Param('photoId') photoId: string) {
+    await this.stockImagesService.trackDownload(photoId);
+    return { success: true };
+  }
+
+  @Get('stock-images/random')
+  async getRandomPhoto(@Query('query') query?: string) {
+    return this.stockImagesService.getRandomPhoto(query);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // TEMPLATE GALLERY
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('gallery/templates')
+  getTemplateGallery(
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('tags') tags?: string,
+    @Query('sortBy') sortBy?: 'popularity' | 'name' | 'newest',
+  ) {
+    return this.templateGalleryService.getGallery({
+      category,
+      search,
+      tags: tags?.split(','),
+      sortBy,
+    });
+  }
+
+  @Get('gallery/templates/popular')
+  getPopularTemplates(@Query('limit') limit?: string) {
+    return this.templateGalleryService.getPopularTemplates(
+      limit ? parseInt(limit, 10) : 4
+    );
+  }
+
+  @Get('gallery/templates/new')
+  getNewTemplates() {
+    return this.templateGalleryService.getNewTemplates();
+  }
+
+  @Get('gallery/templates/tags')
+  getTemplateTags() {
+    return { tags: this.templateGalleryService.getAllTags() };
+  }
+
+  @Get('gallery/templates/:templateId')
+  getTemplateDetail(@Param('templateId') templateId: string) {
+    const template = this.templateGalleryService.getTemplateDetail(templateId);
+    if (!template) {
+      throw new ForbiddenException('Template not found');
+    }
+    return template;
+  }
+
+  @Get('gallery/templates/:templateId/sections')
+  getTemplateSections(@Param('templateId') templateId: string) {
+    const sections = this.templateGalleryService.getTemplateSections(templateId);
+    if (!sections) {
+      throw new ForbiddenException('Template not found');
+    }
+    return { sections };
+  }
+
+  @Get('gallery/templates/:templateId/similar')
+  getSimilarTemplates(
+    @Param('templateId') templateId: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.templateGalleryService.getSimilarTemplates(
+      templateId,
+      limit ? parseInt(limit, 10) : 3
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // AI CONTENT GENERATION
+  // ═══════════════════════════════════════════════════════════════
+
+  @Post('ai/generate-page')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async generatePageFromBrief(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GeneratePageBriefRequest,
+    @Query('pageId') pageId?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.aiContentService.generatePageFromBrief(companyId, user.id, dto, pageId);
+  }
+
+  @Post('ai/rewrite-section')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async rewriteSection(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RewriteSectionRequest,
+    @Query('pageId') pageId?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.aiContentService.rewriteSection(companyId, user.id, dto, pageId);
+  }
+
+  @Post('ai/generate-variants')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async generateABVariants(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GenerateABVariantsRequest,
+    @Query('pageId') pageId?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    const variants = await this.aiContentService.generateABVariants(companyId, user.id, dto, pageId);
+    return { variants };
+  }
+
+  @Post('ai/generate-section')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async generateSection(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GenerateSectionRequest,
+    @Query('pageId') pageId?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.aiContentService.generateSection(companyId, user.id, dto, pageId);
+  }
+
+  @Post('ai/generate-seo')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async generateSEO(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: { headline: string; subheadline?: string; businessName: string },
+    @Query('pageId') pageId?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.aiContentService.generateSEO(companyId, user.id, dto, pageId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // AI USAGE TRACKING (For billing dashboard)
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('ai/usage')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async getAIUsage(@CurrentUser() user: AuthenticatedUser) {
+    const companyId = this.getCompanyId(user);
+    return this.aiUsageService.getMonthlyUsage(companyId);
+  }
+
+  @Get('ai/usage/history')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
+  async getAIUsageHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('feature') feature?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const companyId = this.getCompanyId(user);
+    return this.aiUsageService.getUsageHistory(companyId, {
+      feature: feature as AIFeature | undefined,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
+    });
+  }
+}

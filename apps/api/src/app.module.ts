@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -27,10 +28,14 @@ import { RefundsModule } from './refunds/refunds.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { LandingPagesModule } from './landing-pages/landing-pages.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.local', '.env'] }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     CommonModule,
     AuthModule,
@@ -56,6 +61,9 @@ import { TransactionsModule } from './transactions/transactions.module';
     CustomersModule,
     AuditLogsModule,
     TransactionsModule,
+    SubscriptionsModule,
+    ReviewsModule,
+    LandingPagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

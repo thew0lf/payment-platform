@@ -12,3 +12,4 @@ export {
   seedDemoRoutingRules,
 } from './seed-merchant-accounts';
 export { seedDemoClientSubscription } from './seed-subscription';
+export { seedCoffeeExplorer } from './seed-coffee-explorer';

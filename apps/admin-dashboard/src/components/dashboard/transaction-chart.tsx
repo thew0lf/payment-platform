@@ -39,7 +39,6 @@ export function TransactionChart({
     setError(null);
 
     try {
-      api.initToken();
       const response = await api.getChartData({
         days: selectedDays,
         companyId,
