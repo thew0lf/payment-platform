@@ -33,6 +33,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { LandingPagesModule } from './landing-pages/landing-pages.module';
 import { PaymentPagesModule } from './payment-pages/payment-pages.module';
 import { FunnelsModule } from './funnels/funnels.module';
+import { FeaturesModule } from './features/features.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { FunnelsModule } from './funnels/funnels.module';
     LandingPagesModule,
     PaymentPagesModule,
     FunnelsModule,
+    FeaturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

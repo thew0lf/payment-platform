@@ -37,6 +37,8 @@ import {
   Globe,
   Palette,
   Workflow,
+  Bug,
+  FileCheck2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -116,6 +118,8 @@ export const iconMap: Record<string, LucideIcon> = {
   Globe,
   Palette,
   Workflow,
+  Bug,
+  FileCheck2,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -202,6 +206,20 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'all-vendors', label: 'All Vendors', href: '/vendors', icon: Store },
       { id: 'connections', label: 'Connections', href: '/vendors/connections', icon: Link2 },
+    ],
+  },
+
+  // Feature Development - Organization level only
+  {
+    id: 'features',
+    label: 'Development',
+    icon: GitBranch,
+    defaultExpanded: false,
+    requiredScopes: ['ORGANIZATION'],
+    items: [
+      { id: 'feature-pipeline', label: 'Feature Pipeline', href: '/features', icon: GitBranch },
+      { id: 'code-review-checklist', label: 'Code Review', href: '/features/code-review', icon: FileCheck2 },
+      { id: 'qa-checklist', label: 'QA Checklist', href: '/features/checklist', icon: Bug },
     ],
   },
 

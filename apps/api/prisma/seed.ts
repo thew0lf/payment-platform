@@ -19,6 +19,8 @@ import { PrismaClient } from '@prisma/client';
 import { seedOrganization } from './seeds/core/seed-organization';
 import { seedPricingPlans } from './seeds/core/seed-pricing';
 import { seedRbac } from './seeds/seed-rbac';
+import { seedCodeReviewChecklist } from './seeds/seed-code-review-checklist';
+import { seedQAChecklist } from './seeds/seed-qa-checklist';
 
 // Demo seeds
 import {
@@ -65,6 +67,10 @@ async function main() {
 
   // Seed RBAC permissions and roles
   await seedRbac();
+
+  // Seed Code Review and QA Checklists
+  await seedCodeReviewChecklist();
+  await seedQAChecklist();
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 2: DEMO DATA (demo & development only)

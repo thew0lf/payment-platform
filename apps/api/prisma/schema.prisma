@@ -44,6 +44,9 @@ model Organization {
   subscriptionPlans    SubscriptionPlan[]
   subscriptionSettings SubscriptionSettings?
 
+  // Feature Development
+  features             Feature[]
+
   @@map("organizations")
 }
 
@@ -7855,4 +7858,409 @@ model FunnelTemplate {
   @@index([category])
   @@index([templateType])
   @@map("funnel_templates")
+}
+
+// =============================================================================
+// FEATURE DEVELOPMENT TRACKING
+// Organization-level feature development pipeline with QA workflow
+// =============================================================================
+
+model Feature {
+  id              String        @id @default(cuid())
+  organizationId  String
+
+  // Identification
+  code            String        @unique // "01-funnels", "02-subscriptions"
+  name            String
+  description     String?
+  branch          String        // "feature/01-funnels"
+
+  // Status
+  status          FeatureStatus @default(DEVELOPMENT)
+  priority        Int           @default(0) // Higher = more urgent
+
+  // Ownership
+  developerId     String?       // User who developed
+  developerName   String?       // For display
+  qaAssigneeId    String?       // User/AI doing QA
+  qaAssigneeName  String?
+  reviewerId      String?       // Sr Dev reviewing
+  reviewerName    String?
+
+  // Documentation (JSON for flexibility)
+  specDocument    Json?         // Feature specification
+  qaChecklist     Json?         // Generated test cases
+  qaReport        Json?         // QA findings
+  reviewQuestions Json?         // Questions from Sr Dev → Human
+  humanAnswers    Json?         // Human responses to questions
+
+  // Files changed
+  filesAdded      String[]      @default([])
+  filesModified   String[]      @default([])
+  filesDeleted    String[]      @default([])
+
+  // Permissions added
+  permissionsAdded String[]     @default([])
+
+  // Metrics
+  qaRounds        Int           @default(0)
+  issuesFound     Int           @default(0)
+  issuesResolved  Int           @default(0)
+
+  // Timestamps
+  startedAt       DateTime      @default(now())
+  qaStartedAt     DateTime?
+  reviewStartedAt DateTime?
+  questionsReadyAt DateTime?
+  answeredAt      DateTime?
+  approvedAt      DateTime?
+  mergedAt        DateTime?
+
+  // Relations
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  issues          FeatureIssue[]
+  activities      FeatureActivity[]
+  testAccounts    FeatureTestAccount[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+  @@map("features")
+}
+
+enum FeatureStatus {
+  DEVELOPMENT       // Active development
+  // Code Review Phase (before QA)
+  READY_FOR_REVIEW  // Dev complete, waiting for code review
+  CODE_REVIEW       // Sr Dev reviewing code
+  REVIEW_FIXING     // Developer fixing review issues
+  // QA Phase (after code review passes)
+  READY_FOR_QA      // Code review passed, waiting for QA
+  QA_IN_PROGRESS    // QA actively testing
+  QA_COMPLETE       // Issues documented
+  SR_REVIEW         // Sr Dev reviewing QA report
+  QUESTIONS_READY   // Questions waiting for human
+  AWAITING_ANSWERS  // Human notified, waiting
+  SR_FIXING         // Sr Dev fixing issues
+  READY_FOR_RETEST  // Fixes done, back to QA
+  APPROVED          // Ready to merge
+  MERGED            // Done
+  CANCELLED         // Abandoned
+}
+
+model FeatureIssue {
+  id              String        @id @default(cuid())
+  featureId       String
+
+  // Identification
+  code            String        // "QA-001", "QA-002"
+
+  // Classification
+  severity        IssueSeverity
+  category        IssueCategory
+
+  // Details
+  title           String
+  description     String        @db.Text
+  stepsToReproduce String?      @db.Text
+  expectedBehavior String?      @db.Text
+  actualBehavior  String?       @db.Text
+
+  // Location
+  filePath        String?
+  lineNumber      Int?
+  pageUrl         String?       // For UI issues
+  apiEndpoint     String?       // For API issues
+
+  // Evidence
+  screenshots     String[]      @default([])
+  errorLogs       String?       @db.Text
+
+  // Resolution
+  status          IssueStatus   @default(OPEN)
+  resolution      String?       @db.Text
+  resolvedBy      String?
+  resolvedAt      DateTime?
+
+  // QA verification after fix
+  retestStatus    RetestStatus?
+  retestNotes     String?
+  retestedAt      DateTime?
+  retestedBy      String?
+
+  // Relations
+  feature         Feature       @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([featureId])
+  @@index([status])
+  @@index([severity])
+  @@map("feature_issues")
+}
+
+enum IssueSeverity {
+  CRITICAL      // Blocks release, security issue
+  HIGH          // Major functionality broken
+  MEDIUM        // Functionality impaired but workaround exists
+  LOW           // Minor/cosmetic issue
+  SUGGESTION    // Enhancement idea for future
+}
+
+enum IssueCategory {
+  BUG              // Code defect
+  SECURITY         // Security vulnerability
+  PERFORMANCE      // Slow, inefficient
+  UX               // User experience issue
+  ACCESSIBILITY    // A11y issue
+  CODE_QUALITY     // Code smell, maintainability
+  TESTING          // Missing tests
+  DOCUMENTATION    // Missing/wrong docs
+  PERMISSIONS      // RBAC/auth issue
+  DATA_INTEGRITY   // Data validation issue
+  INTEGRATION      // Third-party integration issue
+}
+
+enum IssueStatus {
+  OPEN            // New issue
+  IN_PROGRESS     // Being fixed
+  RESOLVED        // Fix applied
+  WONT_FIX        // Intentional, not a bug
+  DUPLICATE       // Already reported
+  CANNOT_REPRODUCE // Unable to reproduce
+}
+
+enum RetestStatus {
+  PENDING   // Waiting for retest
+  PASSED    // Fix verified
+  FAILED    // Fix didn't work
+}
+
+model FeatureActivity {
+  id              String        @id @default(cuid())
+  featureId       String
+
+  // Activity info
+  action          String        // "STATUS_CHANGED", "ISSUE_CREATED", etc.
+  fromStatus      FeatureStatus?
+  toStatus        FeatureStatus?
+  details         Json?
+
+  // Actor
+  performedBy     String        // User ID or "AI_QA", "AI_SR_DEV"
+  performedByName String?
+
+  // Timestamp
+  performedAt     DateTime      @default(now())
+
+  // Relations
+  feature         Feature       @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId])
+  @@index([performedAt])
+  @@map("feature_activities")
+}
+
+// Test accounts for QA to use when testing features
+model FeatureTestAccount {
+  id              String        @id @default(cuid())
+  featureId       String
+
+  // Account info
+  role            String        // "org_admin", "client_admin", "company_user"
+  email           String
+  password        String        // Stored encrypted or as temp password
+  userId          String?       // Reference to actual user
+
+  // Context
+  organizationId  String?
+  clientId        String?
+  companyId       String?
+
+  // Notes
+  purpose         String        // "Test as company user without permissions"
+
+  // Relations
+  feature         Feature       @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([featureId])
+  @@map("feature_test_accounts")
+}
+
+// =============================================================================
+// QA CHECKLIST TEMPLATES
+// Standard checks that QA should perform for every feature
+// =============================================================================
+
+model QAChecklistTemplate {
+  id              String              @id @default(cuid())
+
+  // Identification
+  name            String              // "Security Checks", "Permission Checks"
+  description     String?
+  category        QACheckCategory
+
+  // Checks
+  checks          QAChecklistItem[]
+
+  // Applicability
+  applicableTo    String[]            @default([]) // ["api", "frontend", "both"]
+  isRequired      Boolean             @default(true)
+
+  // Order
+  displayOrder    Int                 @default(0)
+
+  isActive        Boolean             @default(true)
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@map("qa_checklist_templates")
+}
+
+model QAChecklistItem {
+  id              String              @id @default(cuid())
+  templateId      String
+
+  // Check details
+  title           String
+  description     String              @db.Text
+  howToTest       String?             @db.Text // Instructions for QA
+
+  // Tools/commands
+  testCommand     String?             // CLI command to run
+  testEndpoint    String?             // API endpoint to test
+
+  // Expected result
+  expectedResult  String              @db.Text
+
+  // Severity if fails
+  failureSeverity IssueSeverity       @default(MEDIUM)
+
+  // Order
+  displayOrder    Int                 @default(0)
+
+  isActive        Boolean             @default(true)
+
+  // Relations
+  template        QAChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([templateId])
+  @@map("qa_checklist_items")
+}
+
+enum QACheckCategory {
+  SECURITY            // Auth, permissions, input validation
+  PERMISSIONS         // RBAC, tenant isolation
+  FUNCTIONALITY       // Core feature works
+  ERROR_HANDLING      // Error states handled
+  EDGE_CASES          // Boundary conditions
+  PERFORMANCE         // Load times, efficiency
+  ACCESSIBILITY       // A11y compliance
+  RESPONSIVE          // Mobile/tablet
+  DATA_INTEGRITY      // Data saved correctly
+  INTEGRATION         // Third-party services
+  DOCUMENTATION       // API docs, help text
+}
+
+// =============================================================================
+// CODE REVIEW CHECKLIST TEMPLATES
+// Senior developer review checks before QA (compliance, security, code quality)
+// =============================================================================
+
+model CodeReviewChecklistTemplate {
+  id              String                    @id @default(cuid())
+
+  // Identification
+  name            String                    // "SOC2 Compliance", "Security Checks"
+  description     String?
+  category        CodeReviewCategory
+
+  // Checks
+  checks          CodeReviewChecklistItem[]
+
+  // Compliance reference
+  complianceRef   String?                   // "SOC2 CC6.1", "PCI-DSS 3.4", "GDPR Art 17"
+
+  // Applicability
+  applicableTo    String[]                  @default([]) // ["api", "frontend", "both"]
+  isRequired      Boolean                   @default(true)
+
+  // Order
+  displayOrder    Int                       @default(0)
+
+  isActive        Boolean                   @default(true)
+
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@map("code_review_checklist_templates")
+}
+
+model CodeReviewChecklistItem {
+  id              String                       @id @default(cuid())
+  templateId      String
+
+  // Check details
+  code            String                       // "SEC_001", "SOC2_003"
+  title           String
+  description     String                       @db.Text
+  checkSteps      String[]                     @default([]) // Steps to verify
+
+  // Compliance
+  complianceRef   String?                      // "SOC2 CC6.1", "PCI-DSS 3.4"
+  failureImpact   String?                      @db.Text // What happens if this fails
+
+  // Severity if fails
+  severity        IssueSeverity                @default(MEDIUM)
+
+  // Order
+  displayOrder    Int                          @default(0)
+
+  isActive        Boolean                      @default(true)
+
+  // Relations
+  template        CodeReviewChecklistTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  @@index([templateId])
+  @@map("code_review_checklist_items")
+}
+
+enum CodeReviewCategory {
+  // Code Quality
+  CODE_QUALITY        // Conventions, readability, maintainability
+  ARCHITECTURE        // Design patterns, separation of concerns
+  TYPE_SAFETY         // TypeScript types, DTOs
+  ERROR_HANDLING      // Exception handling, logging
+  MAINTAINABILITY     // Self-documenting code, dependencies
+  TESTING             // Unit tests, integration tests
+  // Security (OWASP)
+  SECURITY            // OWASP Top 10 vulnerabilities
+  AUTHENTICATION      // JWT, sessions, MFA
+  AUTHORIZATION       // RBAC, IDOR prevention
+  INPUT_VALIDATION    // Whitelist validation, sanitization
+  OUTPUT_ENCODING     // XSS prevention, encoding
+  CRYPTOGRAPHY        // Encryption, key management
+  // Compliance
+  SOC2                // Service Organization Control 2
+  ISO27001            // ISO 27001 information security
+  PCI_DSS             // Payment Card Industry Data Security Standard
+  GDPR                // General Data Protection Regulation
+  // Performance & Best Practices
+  PERFORMANCE         // N+1 queries, caching, optimization
+  DATABASE            // Migrations, transactions, integrity
+  API_DESIGN          // RESTful conventions, versioning
+  LOGGING             // Log levels, sensitive data protection
 }

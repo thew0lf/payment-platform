@@ -96,3 +96,7 @@ pnpm-lock.yaml
 # Misc
 *.pem
 .npmrc
+
+# Integration defaults (contains credentials)
+apps/api/prisma/seeds/data/integration-defaults.json
+!apps/api/prisma/seeds/data/integration-defaults.template.json

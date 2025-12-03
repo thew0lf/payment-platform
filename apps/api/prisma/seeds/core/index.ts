@@ -6,3 +6,4 @@
 export { seedOrganization } from './seed-organization';
 export { seedPricingPlans } from './seed-pricing';
 export { seedRbac, DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '../seed-rbac';
+export { seedIntegrations, exportIntegrations } from './seed-integrations';

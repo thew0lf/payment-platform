@@ -71,7 +71,7 @@ export class FunnelsService {
         shortId,
         description: dto.description,
         type: dto.type,
-        settings: { ...defaultSettings, ...dto.settings } as Prisma.InputJsonValue,
+        settings: { ...defaultSettings, ...dto.settings } as object,
         createdBy: userId,
         stages: {
           create: this.getDefaultStagesForType(dto.type),

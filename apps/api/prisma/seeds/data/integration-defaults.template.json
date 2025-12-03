@@ -1,0 +1,123 @@
+{
+  "organizationId": "YOUR_ORGANIZATION_ID",
+  "platformIntegrations": [
+    {
+      "provider": "AUTH0",
+      "name": "Auth0 Authentication",
+      "description": "Primary authentication provider",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "domain": "your-tenant.auth0.com",
+        "clientId": "YOUR_CLIENT_ID",
+        "clientSecret": "YOUR_CLIENT_SECRET",
+        "audience": "https://api.yourdomain.com"
+      }
+    },
+    {
+      "provider": "AWS_S3",
+      "name": "AWS S3 Storage",
+      "description": "Primary file storage",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
+        "secretAccessKey": "YOUR_AWS_SECRET_KEY",
+        "bucketName": "your-bucket-name"
+      }
+    },
+    {
+      "provider": "AWS_SES",
+      "name": "AWS SES Email",
+      "description": "Transactional email service",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
+        "secretAccessKey": "YOUR_AWS_SECRET_KEY",
+        "fromEmail": "noreply@yourdomain.com"
+      }
+    },
+    {
+      "provider": "AWS_BEDROCK",
+      "name": "AWS Bedrock AI",
+      "description": "AI/ML services for content generation",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
+        "secretAccessKey": "YOUR_AWS_SECRET_KEY"
+      }
+    },
+    {
+      "provider": "CLOUDINARY",
+      "name": "Cloudinary Image Processing",
+      "description": "Image transformation and optimization",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "cloudName": "your-cloud-name",
+        "apiKey": "YOUR_API_KEY",
+        "apiSecret": "YOUR_API_SECRET"
+      }
+    },
+    {
+      "provider": "STRIPE",
+      "name": "Stripe Payments",
+      "description": "Payment gateway for card processing",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee on top of Stripe fees"
+      },
+      "credentials": {
+        "secretKey": "sk_test_YOUR_SECRET_KEY",
+        "publishableKey": "pk_test_YOUR_PUBLISHABLE_KEY",
+        "webhookSecret": "whsec_YOUR_WEBHOOK_SECRET"
+      }
+    },
+    {
+      "provider": "TWILIO",
+      "name": "Twilio SMS",
+      "description": "SMS messaging service",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "accountSid": "YOUR_ACCOUNT_SID",
+        "authToken": "YOUR_AUTH_TOKEN",
+        "fromNumber": "+1234567890"
+      }
+    },
+    {
+      "provider": "SENTRY",
+      "name": "Sentry Error Tracking",
+      "description": "Application monitoring and error tracking",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "dsn": "https://YOUR_DSN@sentry.io/PROJECT_ID",
+        "organization": "your-org",
+        "project": "your-project",
+        "authToken": "YOUR_AUTH_TOKEN"
+      }
+    },
+    {
+      "provider": "DATADOG",
+      "name": "Datadog Monitoring",
+      "description": "Infrastructure and APM monitoring",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "apiKey": "YOUR_API_KEY",
+        "appKey": "YOUR_APP_KEY",
+        "site": "datadoghq.com"
+      }
+    }
+  ]
+}
