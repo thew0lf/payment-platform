@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #000000;
+  --background-color: #ffffff;
+  --text-color: #111827;
+}
+
+body {
+  color: var(--text-color);
+  background: var(--background-color);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Stage transition animations */
+.stage-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.stage-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.stage-exit {
+  opacity: 1;
+}
+
+.stage-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 300ms, transform 300ms;
+}

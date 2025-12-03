@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Search,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   getTemplateGallery,
   createFromTemplate,
@@ -96,8 +98,8 @@ function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
           <span className="text-sm text-zinc-400">{template.sectionCount} sections</span>
         </div>
 
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity duration-300">
+        {/* Overlay on hover - z-20 to be above badges (z-10) */}
+        <div className="absolute inset-0 z-20 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity duration-300">
           <button
             onClick={onSelect}
             className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -166,6 +168,7 @@ interface UseTemplateModalProps {
 
 function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProps) {
   const router = useRouter();
+  const { selectedCompanyId, accessLevel } = useHierarchy();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -190,6 +193,12 @@ function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProp
     e.preventDefault();
     if (!formData.name || !formData.slug) return;
 
+    // Check if org/client-level user has selected a company
+    if ((accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId) {
+      toast.error('Please select a company before creating a landing page');
+      return;
+    }
+
     setLoading(true);
     try {
       const page = await createFromTemplate({
@@ -197,12 +206,14 @@ function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProp
         name: formData.name,
         slug: formData.slug,
         theme: template.theme,
+        companyId: selectedCompanyId || undefined,
       });
+      toast.success('Landing page created successfully');
       onCreated();
       router.push(`/landing-pages/${page.id}/edit`);
     } catch (err: any) {
       console.error('Failed to create page:', err);
-      alert(err.message || 'Failed to create page');
+      toast.error(err.message || 'Failed to create page');
     } finally {
       setLoading(false);
     }

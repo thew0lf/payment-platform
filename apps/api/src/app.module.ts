@@ -31,6 +31,8 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { LandingPagesModule } from './landing-pages/landing-pages.module';
+import { PaymentPagesModule } from './payment-pages/payment-pages.module';
+import { FunnelsModule } from './funnels/funnels.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { LandingPagesModule } from './landing-pages/landing-pages.module';
     SubscriptionsModule,
     ReviewsModule,
     LandingPagesModule,
+    PaymentPagesModule,
+    FunnelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

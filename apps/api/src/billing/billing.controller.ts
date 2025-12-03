@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -19,6 +20,7 @@ import { UsageTrackingService } from './services/usage-tracking.service';
 import { InvoiceService } from './services/invoice.service';
 import {
   CreateSubscriptionDto,
+  CreatePricingPlanDto,
   RecordUsageEventDto,
   PricingPlan,
   ClientSubscription,
@@ -73,6 +75,45 @@ export class BillingController {
   async getPlan(@Param('id') id: string): Promise<PricingPlan> {
     // Plans are public information, no tenant validation needed
     return this.planService.findById(id);
+  }
+
+  @Post('plans')
+  @Roles('SUPER_ADMIN')
+  async createPlan(
+    @Body() dto: CreatePricingPlanDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<PricingPlan> {
+    // Only super admins at organization level can create plans
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('Only organization admins can manage pricing plans');
+    }
+    return this.planService.create(dto);
+  }
+
+  @Patch('plans/:id')
+  @Roles('SUPER_ADMIN')
+  async updatePlan(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreatePricingPlanDto> & { status?: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<PricingPlan> {
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('Only organization admins can manage pricing plans');
+    }
+    return this.planService.update(id, dto);
+  }
+
+  @Delete('plans/:id')
+  @Roles('SUPER_ADMIN')
+  async deletePlan(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ success: boolean }> {
+    if (user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('Only organization admins can manage pricing plans');
+    }
+    await this.planService.delete(id);
+    return { success: true };
   }
 
   // ═══════════════════════════════════════════════════════════════

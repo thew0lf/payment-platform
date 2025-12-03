@@ -33,6 +33,10 @@ import {
   Star,
   Megaphone,
   FileText,
+  Wallet,
+  Globe,
+  Palette,
+  Workflow,
   LucideIcon,
 } from 'lucide-react';
 
@@ -108,6 +112,10 @@ export const iconMap: Record<string, LucideIcon> = {
   Star,
   Megaphone,
   FileText,
+  Wallet,
+  Globe,
+  Palette,
+  Workflow,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -115,7 +123,7 @@ export const iconMap: Record<string, LucideIcon> = {
 // ═══════════════════════════════════════════════════════════════
 
 export const navigationSections: NavSection[] = [
-  // Insights (Dashboard)
+  // Insights (Dashboard & Analytics)
   {
     id: 'insights',
     label: 'Insights',
@@ -123,6 +131,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: true,
     items: [
       { id: 'main', label: 'Main', href: '/', icon: LayoutDashboard },
+      { id: 'subscription-analytics', label: 'Subscriptions', href: '/insights/subscriptions', icon: Repeat },
     ],
   },
 
@@ -150,6 +159,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'products', label: 'Products', href: '/products', icon: ShoppingBag, badgeKey: 'lowStock' },
+      { id: 'subscription-plans', label: 'Subscription Plans', href: '/subscription-plans', icon: Repeat },
       { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
       { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
       { id: 'collections', label: 'Collections', href: '/products/collections', icon: Layers },
@@ -164,6 +174,9 @@ export const navigationSections: NavSection[] = [
     icon: Megaphone,
     defaultExpanded: false,
     items: [
+      { id: 'funnels', label: 'Funnels', href: '/funnels', icon: Workflow },
+      { id: 'payment-pages', label: 'Payment Pages', href: '/payment-pages', icon: Globe },
+      { id: 'themes', label: 'Themes', href: '/payment-pages/themes', icon: Palette },
       { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
     ],
   },
@@ -225,6 +238,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
+      { id: 'billing', label: 'Billing', href: '/settings/billing', icon: Wallet },
       { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
       { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },

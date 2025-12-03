@@ -330,12 +330,14 @@ export async function createLandingPage(data: CreateLandingPageInput): Promise<L
 /**
  * Create a landing page from a template
  * @param data.templateId - Template ID: 'blank', 'starter', 'artisan', 'velocity', 'luxe', etc.
+ * @param data.companyId - Optional company ID for org/client-level users
  */
 export async function createFromTemplate(data: {
   templateId: string;
   name: string;
   slug: string;
   theme?: LandingPageTheme;
+  companyId?: string;
 }): Promise<LandingPageDetail> {
   return apiRequest<LandingPageDetail>('/api/landing-pages/from-template', {
     method: 'POST',
@@ -357,10 +359,13 @@ export async function updateLandingPage(
 }
 
 /**
- * Delete a landing page
+ * Delete a landing page (soft delete by default, permanent if specified)
  */
-export async function deleteLandingPage(id: string): Promise<{ success: boolean }> {
-  return apiRequest<{ success: boolean }>(`/api/landing-pages/${id}`, {
+export async function deleteLandingPage(id: string, permanent: boolean = false): Promise<{ success: boolean }> {
+  const url = permanent
+    ? `/api/landing-pages/${id}?permanent=true`
+    : `/api/landing-pages/${id}`;
+  return apiRequest<{ success: boolean }>(url, {
     method: 'DELETE',
   });
 }

@@ -181,6 +181,9 @@ export default function SubscriptionsPage() {
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
+  // Create subscription modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   // Pagination
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -291,7 +294,7 @@ export default function SubscriptionsPage() {
         title="Subscriptions"
         subtitle={loading ? 'Loading...' : `${total} subscriptions`}
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Create Subscription
           </Button>
@@ -617,6 +620,43 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </div>
+
+      {/* Create Subscription Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <h2 className="text-lg font-semibold text-white">Create Subscription</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 text-zinc-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-zinc-400">
+                To create a new subscription, please navigate to a customer&apos;s profile and add a subscription from there.
+              </p>
+              <p className="text-sm text-zinc-500">
+                This ensures the subscription is properly linked to the customer and their payment methods.
+              </p>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

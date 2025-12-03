@@ -40,6 +40,10 @@ model Organization {
   platformIntegrations PlatformIntegration[]
   vendors              Vendor[]
 
+  // Subscription Plans
+  subscriptionPlans    SubscriptionPlan[]
+  subscriptionSettings SubscriptionSettings?
+
   @@map("organizations")
 }
 
@@ -67,6 +71,10 @@ model Client {
   companies    Company[]
   users        User[]              @relation("ClientUsers")
   integrations ClientIntegration[]
+
+  // Subscription Plans
+  subscriptionPlans    SubscriptionPlan[]
+  subscriptionSettings SubscriptionSettings?
 
   // Soft delete fields
   deletedAt DateTime?
@@ -152,6 +160,19 @@ model Company {
   landingPopups    LandingPagePopup[]
   dynamicTextRules DynamicTextRule[]
   conversionGoals  ConversionGoal[]
+
+  // Subscription Plans
+  subscriptionPlans    SubscriptionPlan[]
+  subscriptionSettings SubscriptionSettings?
+
+  // Fulfillment Providers
+  fulfillmentProviders FulfillmentProvider[]
+
+  // Hosted Payment Pages
+  paymentPages PaymentPage[]
+
+  // Funnel Builder
+  funnels Funnel[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -348,6 +369,7 @@ model Customer {
   billingAccounts BillingAccount[]
   paymentVaults   PaymentVault[]
   subscriptions   Subscription[]
+  giftPurchases   Subscription[]   @relation("GiftPurchases")
   transactions    Transaction[]
   orders          Order[]
 
@@ -368,6 +390,9 @@ model Customer {
   // Product Reviews
   productReviews ProductReview[]
   reviewVotes    ReviewVote[]
+
+  // Payment Pages
+  paymentPageSessions PaymentPageSession[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -590,6 +615,12 @@ model Product {
   isSubscribable       Boolean  @default(true)
   subscriptionDiscount Decimal? @db.Decimal(5, 2) // Percentage
 
+  // Fulfillment type (for subscription billing awareness)
+  fulfillmentType           ProductFulfillmentType @default(PHYSICAL)
+  electronicDeliveryMethod  ElectronicDeliveryMethod?
+  electronicDeliveryUrl     String?  // Download URL, access link, etc.
+  electronicDeliveryDays    Int?     // Days until access expires (null = forever)
+
   // Inventory
   trackInventory    Boolean @default(true)
   stockQuantity     Int     @default(0)
@@ -641,6 +672,13 @@ model Product {
   // Product Reviews
   reviews     ProductReview[]
   reviewStats ProductReviewStats?
+
+  // Subscription Plans
+  subscriptionPlans ProductSubscriptionPlan[]
+  subscriptionItems SubscriptionItem[]
+
+  // Fulfillment Providers
+  fulfillmentAssignments ProductFulfillmentAssignment[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -828,6 +866,9 @@ model Shipment {
   id      String @id @default(cuid())
   orderId String
 
+  // Fulfillment Provider (for subscription billing awareness)
+  fulfillmentProviderId String?
+
   // Shipment identification
   shipmentNumber String @unique
 
@@ -879,11 +920,13 @@ model Shipment {
   updatedAt DateTime @updatedAt
 
   // Relations
-  order  Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  events ShipmentEvent[]
+  order               Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  events              ShipmentEvent[]
+  fulfillmentProvider FulfillmentProvider? @relation(fields: [fulfillmentProviderId], references: [id])
 
   @@index([orderId])
   @@index([trackingNumber])
+  @@index([fulfillmentProviderId])
   @@map("shipments")
 }
 
@@ -956,53 +999,165 @@ model Subscription {
   companyId  String
   customerId String
 
-  // Plan details
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PLAN REFERENCE
+  // ─────────────────────────────────────────────────────────────────────────────
+  subscriptionPlanId String? // Links to SubscriptionPlan template
+
+  // Plan details (snapshot at subscription creation)
   planName   String
   planAmount Decimal         @db.Decimal(10, 2)
   currency   String          @default("USD")
   interval   BillingInterval
 
-  // Billing cycle
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BILLING CYCLE
+  // ─────────────────────────────────────────────────────────────────────────────
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   nextBillingDate    DateTime?
+  cycleCount         Int      @default(0) // How many billing cycles completed
 
-  // Trial
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TRIAL SYSTEM (Phase 3)
+  // ─────────────────────────────────────────────────────────────────────────────
   trialStart DateTime?
   trialEnd   DateTime?
+  trialStatus TrialStatus @default(NONE)
 
-  // Shipping preference for subscription orders
-  shippingAddressId   String?
-  shippingPreferences Json    @default("{}")
+  // Trial start trigger tracking
+  trialStartTrigger       TrialStartTrigger?
+  trialStartedByShipment  String?   // shipmentId that triggered trial start
+  trialStartedByDelivery  String?   // shipmentId that triggered on delivery
+  trialFallbackUsed       Boolean   @default(false) // True if started via fallback days
 
-  // Payment method for recurring billing (token-based providers only)
+  // Trial conversion tracking
+  trialConversionTrigger   TrialStartTrigger?
+  trialConvertedAt         DateTime?
+  trialConvertedByShipment String?
+  trialConvertedByDelivery String?
+
+  // Trial return handling
+  trialReturnReceived    Boolean   @default(false)
+  trialReturnAt          DateTime?
+  trialReturnAction      TrialReturnAction?
+  trialExtensionDays     Int?      // Additional days granted due to return
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SHIPPING-AWARE BILLING (Phase 3/12)
+  // ─────────────────────────────────────────────────────────────────────────────
+  shippingAddressId       String?
+  shippingPreferences     Json    @default("{}")
+  lastShipmentId          String? // Most recent shipment
+  lastShipmentStatus      String? // Track delivery status
+  lastDeliveryAt          DateTime?
+  awaitingDeliveryForBilling Boolean @default(false) // True if waiting for delivery to proceed
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PAYMENT (Phase 4)
+  // ─────────────────────────────────────────────────────────────────────────────
   paymentVaultId    String?
-  paymentProviderId String? // Which provider to charge
+  paymentProviderId String?
+  paymentFailed     Boolean   @default(false)
+  paymentFailedAt   DateTime?
+  paymentFailCount  Int       @default(0)
+  paymentLastError  String?
 
-  // Status
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STATUS & LIFECYCLE (Phase 5)
+  // ─────────────────────────────────────────────────────────────────────────────
   status       SubscriptionStatus @default(ACTIVE)
   canceledAt   DateTime?
   cancelReason String?
+  cancelSource String?  // 'customer', 'admin', 'system', 'ai_churn'
 
   // Pause functionality
-  pausedAt      DateTime?
-  pauseResumeAt DateTime?
+  pausedAt       DateTime?
+  pauseResumeAt  DateTime?
+  pauseReason    String?
+  pauseCount     Int      @default(0)
 
-  // Metadata
-  metadata Json @default("{}")
+  // Skip functionality
+  skipNextBilling  Boolean   @default(false)
+  skipCount        Int       @default(0)
+  lastSkipAt       DateTime?
 
-  // Timestamps
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LOYALTY & PRICING (Phase 6)
+  // ─────────────────────────────────────────────────────────────────────────────
+  loyaltyTier        Int?      // Current loyalty tier index
+  loyaltyDiscountPct Decimal?  @db.Decimal(5, 2) // Current loyalty discount
+  loyaltyLockedAt    DateTime? // When loyalty rate was locked
+
+  // Price lock
+  priceLocked        Boolean   @default(false)
+  priceLockedAmount  Decimal?  @db.Decimal(10, 2)
+  priceLockedUntil   DateTime?
+  priceLockCycles    Int?
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // QUANTITY (Phase 6)
+  // ─────────────────────────────────────────────────────────────────────────────
+  quantity           Int      @default(1)
+  quantityPending    Int?     // Pending quantity change for next cycle
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GIFTING (Phase 8)
+  // ─────────────────────────────────────────────────────────────────────────────
+  isGift              Boolean   @default(false)
+  giftPurchaserId     String?   // Customer who purchased the gift
+  giftRecipientEmail  String?
+  giftMessage         String?
+  giftDurationType    GiftDurationType?
+  giftCyclesRemaining Int?
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MULTI-PRODUCT (Phase 9)
+  // ─────────────────────────────────────────────────────────────────────────────
+  bundleType      SubscriptionBundleType?
+  parentSubId     String?  // For bundle child subscriptions
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // AI TRACKING (Phase 10-11)
+  // ─────────────────────────────────────────────────────────────────────────────
+  churnRiskScore   Decimal?  @db.Decimal(5, 2) // 0-100
+  churnRiskUpdatedAt DateTime?
+  aiPredictions    Json?     // AI model outputs
+  aiActions        Json?     // Actions AI has recommended/taken
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RETENTION (Phase 7)
+  // ─────────────────────────────────────────────────────────────────────────────
+  retentionOfferCount Int       @default(0)
+  lastRetentionOffer  DateTime?
+  downselledFrom      String?   // Previous plan ID if downgraded
+  winbackEligible     Boolean   @default(false)
+  winbackOfferedAt    DateTime?
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // METADATA & TIMESTAMPS
+  // ─────────────────────────────────────────────────────────────────────────────
+  metadata  Json     @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  paymentVault    PaymentVault?    @relation(fields: [paymentVaultId], references: [id])
-  paymentProvider PaymentProvider? @relation(fields: [paymentProviderId], references: [id])
-  transactions    Transaction[]
-  orders          Order[]
-  rebillAttempts  SubscriptionRebill[]
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RELATIONS
+  // ─────────────────────────────────────────────────────────────────────────────
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer         Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  paymentVault     PaymentVault?     @relation(fields: [paymentVaultId], references: [id])
+  paymentProvider  PaymentProvider?  @relation(fields: [paymentProviderId], references: [id])
+  giftPurchaser    Customer?         @relation("GiftPurchases", fields: [giftPurchaserId], references: [id])
+  parentSub        Subscription?     @relation("BundleChildren", fields: [parentSubId], references: [id])
+
+  // Reverse relations
+  childSubs        Subscription[]    @relation("BundleChildren")
+  transactions     Transaction[]
+  orders           Order[]
+  rebillAttempts   SubscriptionRebill[]
+  items            SubscriptionItem[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -1014,9 +1169,52 @@ model Subscription {
   @@index([companyId, interval])
   @@index([companyId, nextBillingDate])
   @@index([customerId])
+  @@index([subscriptionPlanId])
+  @@index([trialStatus])
+  @@index([churnRiskScore])
   @@index([createdAt(sort: Desc), id])  // For cursor-based pagination
   @@index([deletedAt])
   @@map("subscriptions")
+}
+
+// Subscription Items - Products in a subscription (for multi-product)
+model SubscriptionItem {
+  id             String @id @default(cuid())
+  subscriptionId String
+  productId      String
+
+  // Quantity
+  quantity       Int    @default(1)
+
+  // Pricing override (null = use plan price)
+  priceOverride  Decimal? @db.Decimal(10, 2)
+
+  // Item status
+  isActive       Boolean @default(true)
+  addedAt        DateTime @default(now())
+  removedAt      DateTime?
+
+  // For customization
+  options        Json    @default("{}")
+
+  // Relations
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id])
+
+  @@unique([subscriptionId, productId])
+  @@index([productId])
+  @@map("subscription_items")
+}
+
+// Trial Status Enum
+enum TrialStatus {
+  NONE           // No trial
+  AWAITING_TRIGGER // Trial purchased but waiting for trigger (shipment/delivery)
+  ACTIVE         // Trial is running
+  CONVERTED      // Trial successfully converted to paid
+  EXPIRED        // Trial ended without conversion
+  CANCELLED      // Trial was cancelled
+  RETURNED       // Product was returned during trial
 }
 
 // Tracks rebill attempts for subscriptions with stored payment methods
@@ -1060,6 +1258,366 @@ model SubscriptionRebill {
   @@index([status, scheduledAt])
   @@index([nextRetryAt])
   @@map("subscription_rebills")
+}
+
+// =============================================================================
+// SUBSCRIPTION PLANS - Multi-Level Reusable Plans (Phase 1)
+// =============================================================================
+
+model SubscriptionPlan {
+  id String @id @default(cuid())
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // OWNERSHIP (exactly one set based on scope)
+  // ─────────────────────────────────────────────────────────────────────────
+  scope          SubscriptionPlanScope
+  organizationId String?
+  clientId       String?
+  companyId      String?
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PLAN IDENTIFICATION
+  // ─────────────────────────────────────────────────────────────────────────
+  name             String  // Internal name (unique within scope)
+  displayName      String  // Customer-facing name
+  description      String?
+  shortDescription String? // One-liner for cards
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PRICING
+  // ─────────────────────────────────────────────────────────────────────────
+  basePriceMonthly  Decimal  @db.Decimal(10, 2) // Monthly price
+  basePriceAnnual   Decimal? @db.Decimal(10, 2) // Annual price (optional)
+  annualDiscountPct Decimal? @db.Decimal(5, 2)  // e.g., 10.00 = 10% off
+  currency          String   @default("USD")
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BILLING CYCLE
+  // ─────────────────────────────────────────────────────────────────────────
+  availableIntervals BillingInterval[]
+  defaultInterval    BillingInterval @default(MONTHLY)
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TRIAL CONFIGURATION
+  // ─────────────────────────────────────────────────────────────────────────
+  trialEnabled             Boolean           @default(false)
+  trialDays                Int?              // X days trial
+  trialIncludesShipment    Boolean           @default(false)
+  trialStartTrigger        TrialStartTrigger @default(ON_PURCHASE)
+  trialConversionTrigger   TrialStartTrigger @default(ON_PURCHASE)
+  trialWaitForDelivery     Boolean           @default(false)
+  trialExtendDaysPostDelivery Int?           @default(0)
+  trialNoTrackingFallbackDays Int?           // Start trial after X days if no tracking
+  trialReturnAction        TrialReturnAction @default(PAUSE_ALERT)
+  trialReturnExtendDays    Int?              // Days to extend if EXTEND_TRIAL action
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RECURRING CONFIGURATION
+  // ─────────────────────────────────────────────────────────────────────────
+  recurringEnabled               Boolean           @default(true)
+  recurringIntervalDays          Int?              // Override: every X days
+  recurringIncludesShipment      Boolean           @default(true)
+  recurringTrigger               TrialStartTrigger @default(ON_PURCHASE)
+  recurringWaitForDelivery       Boolean           @default(false)
+  recurringExtendDaysPostDelivery Int?             @default(0)
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SHIPMENT-AWARE BILLING OPTIONS
+  // ─────────────────────────────────────────────────────────────────────────
+  partialShipmentAction    PartialShipmentAction @default(PROCEED)
+  backorderAction          BackorderAction       @default(DELAY_CHARGE)
+  shippingCostAction       ShippingCostAction    @default(ABSORB_COST)
+  gracePeriodDays          Int?                  // Days before alerting on stuck shipment
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PAUSE & SKIP CONFIGURATION
+  // ─────────────────────────────────────────────────────────────────────────
+  pauseEnabled     Boolean @default(true)
+  pauseMaxDuration Int?    // Max pause days (null = unlimited)
+  skipEnabled      Boolean @default(true)
+  skipMaxPerYear   Int?    // Max skips per year (null = unlimited)
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // QUANTITY CONFIGURATION
+  // ─────────────────────────────────────────────────────────────────────────
+  includedQuantity     Int     @default(1) // Units per billing cycle
+  maxQuantity          Int?    // Max units allowed (null = unlimited)
+  quantityChangeProrate Boolean @default(true) // Prorate or next cycle
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LOYALTY PRICING
+  // ─────────────────────────────────────────────────────────────────────────
+  loyaltyEnabled       Boolean @default(false)
+  loyaltyTiers         Json?   // [{ afterRebills: 6, discountPct: 5 }, { afterRebills: 12, discountPct: 10 }]
+  loyaltyStackable     Boolean @default(false) // Stack with other discounts?
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PRICE LOCK & EARLY RENEWAL
+  // ─────────────────────────────────────────────────────────────────────────
+  priceLockEnabled     Boolean @default(false)
+  priceLockCycles      Int?    // Lock for X cycles (null = forever)
+  earlyRenewalEnabled  Boolean @default(false)
+  earlyRenewalProrate  Boolean @default(true)
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RETENTION SETTINGS
+  // ─────────────────────────────────────────────────────────────────────────
+  downsellPlanId       String? // Plan to offer on cancel
+  winbackEnabled       Boolean @default(false)
+  winbackDiscountPct   Decimal? @db.Decimal(5, 2)
+  winbackTrialDays     Int?
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GIFTING
+  // ─────────────────────────────────────────────────────────────────────────
+  giftingEnabled       Boolean @default(false)
+  giftDurationDefault  GiftDurationType @default(ONGOING)
+  giftFixedCycles      Int?    // If FIXED, how many cycles
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MULTI-PRODUCT BUNDLE (for bundle subscriptions)
+  // ─────────────────────────────────────────────────────────────────────────
+  bundleType           SubscriptionBundleType?
+  bundleMinProducts    Int?
+  bundleMaxProducts    Int?
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // NOTIFICATIONS
+  // ─────────────────────────────────────────────────────────────────────────
+  notifyRenewalEnabled   Boolean @default(false)
+  notifyRenewalDaysBefore Int?   @default(3)
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DISPLAY & MARKETING
+  // ─────────────────────────────────────────────────────────────────────────
+  sortOrder    Int     @default(0)
+  isPublic     Boolean @default(true)  // Show on storefront
+  isFeatured   Boolean @default(false) // Highlight this plan
+  badgeText    String?                 // "Most Popular", "Best Value"
+  features     Json    @default("[]")  // Array of feature strings
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // METADATA
+  // ─────────────────────────────────────────────────────────────────────────
+  metadata Json @default("{}")
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STATUS & TIMESTAMPS
+  // ─────────────────────────────────────────────────────────────────────────
+  status      SubscriptionPlanStatus @default(DRAFT)
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  // Soft delete
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RELATIONS
+  // ─────────────────────────────────────────────────────────────────────────
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  client       Client?       @relation(fields: [clientId], references: [id])
+  company      Company?      @relation(fields: [companyId], references: [id])
+  downsellPlan SubscriptionPlan? @relation("PlanDownsell", fields: [downsellPlanId], references: [id])
+
+  // Reverse relations
+  downsellFrom  SubscriptionPlan[] @relation("PlanDownsell")
+  productPlans  ProductSubscriptionPlan[]
+  subscriptions Subscription[]
+
+  @@unique([scope, organizationId, name])
+  @@unique([scope, clientId, name])
+  @@unique([scope, companyId, name])
+  @@index([scope, status])
+  @@index([companyId, status])
+  @@index([clientId, status])
+  @@index([organizationId, status])
+  @@index([deletedAt])
+  @@map("subscription_plans")
+}
+
+// Junction table: Product ↔ SubscriptionPlan
+model ProductSubscriptionPlan {
+  id        String @id @default(cuid())
+  productId String
+  planId    String
+
+  // Override pricing for this specific product
+  overridePriceMonthly Decimal? @db.Decimal(10, 2)
+  overridePriceAnnual  Decimal? @db.Decimal(10, 2)
+
+  // Override trial settings
+  overrideTrialDays Int?
+
+  // Selection
+  isDefault Boolean @default(false) // Default plan for this product
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, planId])
+  @@index([planId])
+  @@map("product_subscription_plans")
+}
+
+// Subscription Settings at different hierarchy levels
+model SubscriptionSettings {
+  id String @id @default(cuid())
+
+  // Ownership - exactly one set
+  organizationId String? @unique
+  clientId       String? @unique
+  companyId      String? @unique
+
+  // Enable/Disable subscriptions at this level
+  subscriptionsEnabled Boolean @default(true)
+
+  // Payment method fallback settings
+  paymentFallbackEnabled    Boolean @default(true)
+  paymentFallbackMaxRetries Int     @default(3)
+
+  // AI settings
+  aiCostControlEnabled  Boolean  @default(false)
+  aiCostControlDisclaimer String?
+  aiMaxDiscountPct      Decimal? @db.Decimal(5, 2) @default(30)
+  aiAutoApproveEnabled  Boolean  @default(false)
+  aiABTestingEnabled    Boolean  @default(false)
+  aiABTestingDisclaimer String?
+
+  // Shipping savings tracking
+  shippingSavingsEnabled Boolean @default(true)
+
+  // Notification defaults
+  defaultNotifyRenewal    Boolean @default(false)
+  defaultNotifyFailed     Boolean @default(true)
+  defaultNotifyPaused     Boolean @default(true)
+  defaultNotifyCancelled  Boolean @default(true)
+  defaultNotifyShipped    Boolean @default(true)
+  defaultNotifyDelivered  Boolean @default(false)
+  defaultNotifyPriceChange Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  client       Client?       @relation(fields: [clientId], references: [id])
+  company      Company?      @relation(fields: [companyId], references: [id])
+
+  @@map("subscription_settings")
+}
+
+// =============================================================================
+// FULFILLMENT PROVIDERS - Track shipment & delivery for subscription billing
+// =============================================================================
+
+enum FulfillmentProviderType {
+  INTERNAL        // Company handles fulfillment internally
+  THIRD_PARTY     // 3PL provider
+  DROPSHIP        // Drop shipping vendor
+  DIGITAL         // Digital/electronic delivery
+  PRINT_ON_DEMAND // POD service
+  MARKETPLACE     // VendorCompany from marketplace
+}
+
+enum FulfillmentProviderStatus {
+  ACTIVE
+  PAUSED
+  INACTIVE
+}
+
+model FulfillmentProvider {
+  id        String @id @default(cuid())
+  companyId String
+
+  name        String
+  code        String   // Short code for reference (e.g., "SHIP-EASY")
+  description String?
+  type        FulfillmentProviderType
+  status      FulfillmentProviderStatus @default(ACTIVE)
+
+  // Contact
+  contactEmail   String?
+  contactPhone   String?
+  contactName    String?
+  webhookUrl     String?  // For receiving updates
+
+  // Integration
+  integrationId  String?  // Links to ClientIntegration if API-based
+  apiCredentials Json?    // Encrypted credentials if not using ClientIntegration
+
+  // Vendor Company (if marketplace fulfillment)
+  vendorCompanyId String?
+
+  // Capabilities
+  supportsTracking       Boolean @default(true)
+  supportsPartialShip    Boolean @default(false)
+  supportsHoldForGroup   Boolean @default(false)  // Can hold until full order ready
+  avgProcessingDays      Int?                     // Expected days to ship
+  avgDeliveryDays        Int?                     // Expected transit time
+
+  // For subscription billing
+  trackingUpdatesEnabled Boolean @default(true)   // Subscribe to tracking updates
+  deliveryConfirmEnabled Boolean @default(true)   // Subscribe to delivery confirmations
+
+  // Display
+  sortOrder Int     @default(0)
+  isDefault Boolean @default(false)
+
+  // Metadata
+  metadata Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Soft delete
+  deletedAt DateTime?
+  deletedBy String?
+
+  // Relations
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  vendorCompany VendorCompany?     @relation(fields: [vendorCompanyId], references: [id])
+  shipments     Shipment[]
+  assignments   ProductFulfillmentAssignment[]
+
+  @@unique([companyId, code, deletedAt])
+  @@index([companyId, status])
+  @@index([companyId, type])
+  @@map("fulfillment_providers")
+}
+
+// Junction: Product ↔ FulfillmentProvider (products can have multiple providers)
+model ProductFulfillmentAssignment {
+  id         String @id @default(cuid())
+  productId  String
+  providerId String
+
+  priority   Int     @default(0)    // Lower = preferred
+  isDefault  Boolean @default(false)
+
+  // Override settings per product
+  overrideProcessingDays Int?
+  overrideDeliveryDays   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product  Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  provider FulfillmentProvider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, providerId])
+  @@index([providerId])
+  @@map("product_fulfillment_assignments")
 }
 
 model Transaction {
@@ -1879,6 +2437,81 @@ enum RebillStatus {
   FAILED     // Payment failed, may retry
   EXHAUSTED  // All retries exhausted
   SKIPPED    // Skipped (e.g., subscription paused)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBSCRIPTION PLANS - Multi-Level Reusable Plans
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum SubscriptionPlanScope {
+  ORGANIZATION // Platform-wide templates
+  CLIENT       // Client-level plans
+  COMPANY      // Company-level plans
+}
+
+enum SubscriptionPlanStatus {
+  DRAFT      // Not yet published
+  ACTIVE     // Available for use
+  ARCHIVED   // Hidden but existing subscriptions continue
+  DEPRECATED // Sunset - no new subscriptions
+}
+
+enum TrialStartTrigger {
+  ON_PURCHASE // Trial starts immediately at checkout
+  ON_SHIPMENT // Trial starts when tracking added
+  ON_DELIVERY // Trial starts when delivered
+  MANUAL      // Trial starts when marked by staff
+}
+
+enum TrialReturnAction {
+  EXTEND_TRIAL   // Give customer more time
+  CANCEL         // End subscription
+  CONVERT_ANYWAY // Proceed to paid despite return
+  PAUSE_ALERT    // Pause and notify staff
+}
+
+enum PartialShipmentAction {
+  PROCEED       // Bill now, ship what's available
+  WAIT_ALL      // Wait for all items before billing
+  PRORATE       // Bill proportionally to shipped items
+}
+
+enum BackorderAction {
+  DELAY_CHARGE  // Wait until in stock
+  CHARGE_SHIP_LATER // Charge now, ship when available
+  SKIP_CYCLE    // Skip this billing cycle
+}
+
+enum ShippingCostAction {
+  ABSORB_COST   // Company absorbs shipping cost changes
+  PASS_TO_CUSTOMER // Pass cost to customer
+  FREE_SHIPPING // Always free shipping
+}
+
+enum ProductFulfillmentType {
+  PHYSICAL   // Tangible goods - requires shipping
+  VIRTUAL    // Intangible - no fulfillment (insurance, warranty)
+  ELECTRONIC // Digital goods - delivered via email/SMS
+}
+
+enum ElectronicDeliveryMethod {
+  EMAIL         // Send via email
+  SMS           // Send via SMS
+  EMAIL_AND_SMS // Send via both
+  DOWNLOAD_LINK // Provide download URL
+}
+
+enum GiftDurationType {
+  ONE_TIME // Single shipment/delivery only
+  FIXED    // X months/cycles
+  ONGOING  // Until cancelled
+}
+
+enum SubscriptionBundleType {
+  FIXED         // Same products every cycle
+  ROTATING      // Different products each cycle (curated)
+  BUILD_YOUR_OWN // Customer picks X items
+  MIX_AND_MATCH  // Customer modifies each cycle
 }
 
 // Product
@@ -4974,6 +5607,9 @@ model VendorCompany {
   products          VendorProduct[]
   orders            VendorOrder[]
 
+  // Fulfillment providers using this vendor company
+  fulfillmentProviders FulfillmentProvider[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -5605,6 +6241,10 @@ model LandingPage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Soft Delete
+  deletedAt DateTime?
+  deletedBy String?
+
   // Relations
   company  Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sections LandingPageSection[]
@@ -5615,9 +6255,10 @@ model LandingPage {
   dynamicTextRules DynamicTextRule[]
   conversionGoals  ConversionGoal[]
 
-  @@unique([companyId, slug])
+  @@unique([companyId, slug, deletedAt])
   @@index([subdomain])
   @@index([status])
+  @@index([deletedAt])
   @@map("landing_pages")
 }
 
@@ -6265,4 +6906,953 @@ model ConversionEvent {
   @@index([visitorId])
   @@index([occurredAt])
   @@map("conversion_events")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOSTED PAYMENT PAGES - Stripe-style checkout with multi-gateway support
+// PCI DSS 4.0, ISO 27001, SOC2 Compliant
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum PaymentPageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PaymentPageType {
+  CHECKOUT      // One-time payment for products/services
+  SUBSCRIPTION  // Recurring billing with trial support
+  DONATION      // Pay-what-you-want with suggested amounts
+  INVOICE       // Pay specific invoice
+  PRODUCT       // Single product purchase
+  CUSTOM        // Fully custom checkout flow
+}
+
+enum CheckoutPageThemeCategory {
+  MINIMAL       // Clean, simple - Stripe-inspired
+  MODERN        // Contemporary design
+  ENTERPRISE    // Professional, corporate
+  LUXURY        // Premium, high-end
+  FRIENDLY      // Warm, approachable
+  DARK          // Dark mode first
+  SPEED         // One-click focused
+  TRUST         // Security-focused for finance
+}
+
+enum PaymentSessionStatus {
+  PENDING       // Session created, awaiting payment
+  PROCESSING    // Payment in progress
+  REQUIRES_ACTION // 3DS or additional auth needed
+  COMPLETED     // Payment successful
+  FAILED        // Payment failed
+  EXPIRED       // Session expired
+  ABANDONED     // Customer left without completing
+  CANCELLED     // Customer cancelled
+}
+
+enum PaymentGatewayType {
+  STRIPE        // Stripe Elements
+  PAYPAL        // PayPal Smart Buttons
+  PAYPAL_REST   // PayPal REST API (own hosted)
+  NMI           // NMI Hosted Fields
+  AUTHORIZE_NET // Authorize.net Accept.js
+  SQUARE        // Square Web Payments SDK
+  OWN_HOSTED    // Direct card input (your tokenization)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT PAGE THEMES - Pre-built and custom themes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model CheckoutPageTheme {
+  id          String @id @default(cuid())
+
+  // Identity
+  name        String
+  description String?
+  category    CheckoutPageThemeCategory
+
+  // Preview
+  previewImageUrl   String?
+  previewImageDark  String?
+
+  // Availability
+  isSystem          Boolean @default(false)  // Platform-provided, cannot be deleted
+  isPublic          Boolean @default(false)  // Available in marketplace
+  organizationId    String?                  // If org-specific
+  companyId         String?                  // If company-specific
+
+  // Style Configuration (JSON for flexibility)
+  styles            Json    // ThemeStyles type - colors, fonts, spacing
+  layout            Json    // ThemeLayout type - single-page, split-screen, etc.
+  components        Json    // ComponentStyles - button, input, card styles
+
+  // Dark Mode Support
+  darkModeStyles    Json?   // Optional dark mode overrides
+
+  // Metrics (for marketplace)
+  usageCount        Int     @default(0)
+  averageConversion Decimal? @db.Decimal(5, 2)
+  rating            Decimal? @db.Decimal(3, 2)
+  reviewCount       Int     @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  // Relations
+  paymentPages PaymentPage[]
+
+  @@index([category])
+  @@index([isPublic])
+  @@index([isSystem])
+  @@map("checkout_page_themes")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT PAGES - Main checkout page configuration
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PaymentPage {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Identity & URL
+  name        String
+  slug        String          // URL slug: pay.avnz.io/{company}/{slug}
+  customDomain String?        // Optional: checkout.clientsite.com
+
+  // Type & Status
+  type        PaymentPageType
+  status      PaymentPageStatus @default(DRAFT)
+
+  // Theme & Branding
+  themeId       String?
+  customStyles  Json?          // Override theme styles
+
+  // Branding
+  logoUrl       String?
+  faviconUrl    String?
+  brandColor    String?        // Primary brand color
+
+  // Content
+  title         String?        // Page title
+  description   String?        // Description shown to customer
+  headline      String?        // Main headline on page
+  subheadline   String?        // Supporting text
+
+  // Payment Configuration
+  paymentConfig Json           // PaymentPageConfig - amounts, currencies, methods
+
+  // Accepted Payment Methods (ordered by preference)
+  acceptedGateways Json        // Array of PaymentGatewayType with priority
+
+  // Product/Line Items Configuration
+  lineItemsConfig Json?        // For CHECKOUT type - product definitions
+
+  // Subscription Configuration
+  subscriptionConfig Json?     // For SUBSCRIPTION type - plans, trials
+
+  // Donation Configuration
+  donationConfig Json?         // For DONATION type - suggested amounts, min/max
+
+  // Customer Fields Configuration
+  customerFieldsConfig Json    // Which fields to collect (email, name, phone, address)
+
+  // Shipping Configuration
+  shippingEnabled Boolean @default(false)
+  shippingConfig  Json?        // Shipping methods and rates
+
+  // Tax Configuration
+  taxEnabled      Boolean @default(false)
+  taxConfig       Json?        // Tax calculation settings
+
+  // Discount/Coupon Configuration
+  discountsEnabled Boolean @default(false)
+  discountsConfig  Json?       // Coupon settings
+
+  // Terms & Policies
+  termsUrl          String?
+  privacyUrl        String?
+  refundPolicyUrl   String?
+  customTermsText   String?    @db.Text
+  requireTermsAccept Boolean   @default(false)
+
+  // Success/Cancel Configuration
+  successUrl        String?    // Redirect after success
+  cancelUrl         String?    // Redirect on cancel
+  successMessage    String?    // Message shown on success
+
+  // Webhook Configuration
+  webhookUrl        String?    // Notify on payment events
+  webhookSecret     String?    // HMAC secret for webhook verification
+
+  // AI & Analytics
+  aiInsightsEnabled    Boolean @default(true)
+  conversionTracking   Boolean @default(true)
+
+  // A/B Testing
+  isVariant         Boolean @default(false)
+  parentPageId      String?    // Original page if this is a variant
+  variantName       String?    // A, B, C, etc.
+  variantWeight     Int?       // Traffic percentage (0-100)
+
+  // SEO
+  metaTitle         String?
+  metaDescription   String?
+  ogImage           String?
+  noIndex           Boolean @default(false)
+
+  // Security
+  allowedDomains    Json?      // Domains that can embed this page
+  rateLimit         Int?       // Sessions per IP per hour
+
+  // PCI Compliance
+  scriptInventory   Json?      // Authorized scripts for PCI 6.4.3
+  cspPolicy         Json?      // Content Security Policy
+
+  // Publishing
+  publishedAt       DateTime?
+  publishedBy       String?
+
+  // Soft delete
+  deletedAt         DateTime?
+  deletedBy         String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
+  // Relations
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  theme     CheckoutPageTheme? @relation(fields: [themeId], references: [id])
+  sessions  PaymentPageSession[]
+  analytics PaymentPageAnalytics[]
+  variants  PaymentPage[]      @relation("PageVariants")
+  parent    PaymentPage?       @relation("PageVariants", fields: [parentPageId], references: [id])
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([status])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("payment_pages")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT SESSIONS - Individual checkout sessions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PaymentPageSession {
+  id        String @id @default(cuid())
+  pageId    String
+
+  // Session Identity
+  sessionToken    String   @unique  // Public token for URL
+  expiresAt       DateTime
+
+  // Customer Information
+  customerId      String?           // If existing customer
+  customerEmail   String?
+  customerName    String?
+  customerPhone   String?
+
+  // Billing Address
+  billingAddress  Json?
+
+  // Shipping Address (if different)
+  shippingAddress Json?
+
+  // Payment Details
+  currency        String   @default("USD")
+  subtotal        Decimal  @db.Decimal(15, 2)
+  discountAmount  Decimal  @default(0) @db.Decimal(15, 2)
+  taxAmount       Decimal  @default(0) @db.Decimal(15, 2)
+  shippingAmount  Decimal  @default(0) @db.Decimal(15, 2)
+  total           Decimal  @db.Decimal(15, 2)
+
+  // Line Items
+  lineItems       Json?    // Array of items with prices
+
+  // Subscription Details (if applicable)
+  subscriptionPlanId String?
+  trialDays         Int?
+
+  // Discount Applied
+  discountCode      String?
+  discountId        String?
+
+  // Status & Completion
+  status            PaymentSessionStatus @default(PENDING)
+  completedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+
+  // Gateway Information
+  selectedGateway   PaymentGatewayType?
+  gatewaySessionId  String?            // External session ID (Stripe PaymentIntent, etc.)
+  gatewayCustomerId String?            // External customer ID
+
+  // Transaction Reference
+  transactionId     String?            // Our internal transaction ID
+  orderId           String?            // Our internal order ID
+  subscriptionId    String?            // Our internal subscription ID
+
+  // AI Risk Assessment
+  riskScore         Int?               // 0-100
+  riskLevel         String?            // LOW, MEDIUM, HIGH, CRITICAL
+  riskFactors       Json?              // Explanation of risk factors
+
+  // Device & Analytics
+  deviceType        String?            // desktop, mobile, tablet
+  browserType       String?
+  browserVersion    String?
+  osType            String?
+  ipAddress         String?
+  country           String?
+  region            String?
+  city              String?
+
+  // Attribution
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  utmTerm           String?
+  utmContent        String?
+  referrer          String?
+
+  // Journey Tracking (for funnel analysis)
+  journeyEvents     Json?              // Array of timestamped events
+
+  // A/B Test Tracking
+  variantId         String?            // Which variant was shown
+
+  // Custom Metadata
+  metadata          Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  page      PaymentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  customer  Customer?   @relation(fields: [customerId], references: [id])
+
+  @@index([pageId])
+  @@index([sessionToken])
+  @@index([status])
+  @@index([customerId])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("payment_page_sessions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT PAGE ANALYTICS - Aggregated metrics
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PaymentPageAnalytics {
+  id        String @id @default(cuid())
+  pageId    String
+
+  // Time Period
+  date      DateTime @db.Date
+  hour      Int?     // 0-23 for hourly breakdown, null for daily
+
+  // Traffic Metrics
+  pageViews         Int @default(0)
+  uniqueVisitors    Int @default(0)
+
+  // Conversion Funnel
+  sessionsStarted      Int @default(0)
+  emailEntered         Int @default(0)
+  paymentMethodSelected Int @default(0)
+  paymentAttempted     Int @default(0)
+  paymentCompleted     Int @default(0)
+
+  // Outcomes
+  successfulPayments   Int @default(0)
+  failedPayments       Int @default(0)
+  abandonedSessions    Int @default(0)
+  expiredSessions      Int @default(0)
+
+  // Revenue
+  totalRevenue         Decimal @default(0) @db.Decimal(15, 2)
+  averageOrderValue    Decimal? @db.Decimal(15, 2)
+
+  // Rates (calculated)
+  conversionRate       Decimal? @db.Decimal(5, 4)  // 0.0000 to 1.0000
+  abandonmentRate      Decimal? @db.Decimal(5, 4)
+  failureRate          Decimal? @db.Decimal(5, 4)
+
+  // Gateway Breakdown
+  gatewayBreakdown     Json?    // { stripe: { attempts: 10, success: 8 }, paypal: {...} }
+
+  // Device Breakdown
+  deviceBreakdown      Json?    // { desktop: 60, mobile: 35, tablet: 5 }
+
+  // Geographic Breakdown
+  countryBreakdown     Json?    // { US: 70, CA: 15, UK: 10, ... }
+
+  // AI Insights (generated periodically)
+  aiInsights           Json?    // AI-generated insights and recommendations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  page PaymentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, date, hour])
+  @@index([pageId])
+  @@index([date])
+  @@map("payment_page_analytics")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENT PAGE GATEWAY CONFIG - Per-page gateway settings
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PaymentPageGatewayConfig {
+  id        String @id @default(cuid())
+  pageId    String
+
+  // Gateway
+  gateway           PaymentGatewayType
+  integrationId     String?            // Reference to ClientIntegration
+
+  // Priority & Status
+  priority          Int @default(0)    // Lower = higher priority
+  isEnabled         Boolean @default(true)
+
+  // Gateway-specific settings
+  settings          Json?              // Gateway-specific configuration
+
+  // Display Configuration
+  displayName       String?            // Custom name shown to customer
+  iconUrl           String?            // Custom icon
+
+  // Restrictions
+  minAmount         Decimal? @db.Decimal(15, 2)
+  maxAmount         Decimal? @db.Decimal(15, 2)
+  allowedCurrencies Json?              // Array of currency codes
+  allowedCountries  Json?              // Array of country codes
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pageId, gateway])
+  @@index([pageId])
+  @@map("payment_page_gateway_configs")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CUSTOM DOMAINS - Domain configuration for payment pages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model PaymentPageDomain {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Domain Configuration
+  domain            String   @unique   // checkout.example.com
+  isVerified        Boolean  @default(false)
+  verificationToken String?            // DNS TXT record value
+  verifiedAt        DateTime?
+
+  // SSL Configuration
+  sslStatus         String   @default("PENDING") // PENDING, PROVISIONING, ACTIVE, FAILED
+  sslExpiresAt      DateTime?
+
+  // DNS Records (for customer to configure)
+  cnameTarget       String?            // What CNAME should point to
+
+  // Default Page
+  defaultPageId     String?            // Default page for this domain
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
+  @@index([companyId])
+  @@index([domain])
+  @@map("payment_page_domains")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FUNNEL BUILDER - Multi-stage conversion funnels with A/B testing
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum FunnelType {
+  DIRECT_CHECKOUT     // Checkout only
+  PRODUCT_CHECKOUT    // Product Selection → Checkout
+  LANDING_CHECKOUT    // Landing → Checkout
+  FULL_FUNNEL         // Landing → Product → Checkout
+}
+
+enum FunnelStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum StageType {
+  LANDING
+  PRODUCT_SELECTION
+  CHECKOUT
+}
+
+enum FunnelSessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
+enum FunnelEventType {
+  // Navigation
+  STAGE_ENTERED
+  STAGE_COMPLETED
+  STAGE_ABANDONED
+  // Product Selection
+  PRODUCT_VIEWED
+  PRODUCT_ADDED
+  PRODUCT_REMOVED
+  QUANTITY_CHANGED
+  // Checkout
+  CHECKOUT_STARTED
+  FIELD_COMPLETED
+  PAYMENT_METHOD_SELECTED
+  COUPON_APPLIED
+  COUPON_FAILED
+  // Conversion
+  PAYMENT_INITIATED
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  // Other
+  ERROR_OCCURRED
+  CUSTOM_EVENT
+}
+
+enum FunnelVariantStatus {
+  ACTIVE
+  PAUSED
+  WINNER
+  LOSER
+}
+
+enum WinnerSelectionMode {
+  MANUAL              // Option 1: Manual only
+  AUTO_PAUSE_LOSERS   // Option 2: Auto-pause losers, manual winner
+  AUTO_WITH_APPROVAL  // Option 3: Auto-select winner, requires approval
+}
+
+enum FunnelABTestStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum AIInsightType {
+  DROP_OFF_ALERT
+  CONVERSION_OPPORTUNITY
+  PRICING_SUGGESTION
+  UX_IMPROVEMENT
+  COPY_ENHANCEMENT
+  AB_TEST_RECOMMENDATION
+  SEGMENT_INSIGHT
+  BENCHMARK_COMPARISON
+}
+
+enum InsightStatus {
+  PENDING
+  APPLIED
+  DISMISSED
+  EXPIRED
+}
+
+enum InsightSource {
+  RULE_BASED
+  LLM
+}
+
+enum FunnelTemplateType {
+  FULL_FUNNEL
+  COMPONENT
+}
+
+model Funnel {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Basic Info
+  name            String
+  slug            String          // Company-scoped slug for admin reference
+  shortId         String          @unique // Public URL: /f/{shortId} - globally unique short ID
+  description     String?
+
+  // Configuration
+  type            FunnelType
+  status          FunnelStatus    @default(DRAFT)
+
+  // Settings (branding, URLs, behavior, SEO, AI settings)
+  settings        Json            @default("{}")
+
+  // A/B Testing
+  activeTestId    String?         // Current A/B test
+
+  // Analytics (denormalized for performance)
+  totalVisits     Int             @default(0)
+  totalConversions Int            @default(0)
+
+  // Timestamps
+  publishedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  createdBy       String
+
+  // Relations
+  stages          FunnelStage[]
+  variants        FunnelVariant[]
+  sessions        FunnelSession[]
+  aiInsights      FunnelAIInsight[]
+  abTests         FunnelABTest[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([status])
+  @@index([shortId])
+  @@map("funnels")
+}
+
+model FunnelStage {
+  id              String          @id @default(cuid())
+  funnelId        String
+  funnel          Funnel          @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  // Stage Info
+  name            String          // "Landing", "Products", "Checkout"
+  type            StageType
+  order           Int             // 0, 1, 2...
+
+  // Stage Configuration (polymorphic JSON based on type)
+  config          Json            @default("{}")
+
+  // Design
+  themeId         String?
+  customStyles    Json?
+
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([funnelId, order])
+  @@index([funnelId])
+  @@map("funnel_stages")
+}
+
+model FunnelVariant {
+  id              String              @id @default(cuid())
+  funnelId        String
+  funnel          Funnel              @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  // Variant Info
+  name            String              // "Control", "Variant A", "Variant B"
+  description     String?
+  isControl       Boolean             @default(false)
+
+  // Traffic Allocation
+  trafficWeight   Int                 @default(50) // Percentage
+
+  // Configuration Override (stage overrides for this variant)
+  stageOverrides  Json?
+
+  // Status
+  status          FunnelVariantStatus @default(ACTIVE)
+
+  // Metrics (denormalized for performance)
+  totalSessions   Int                 @default(0)
+  conversions     Int                 @default(0)
+  revenue         Decimal             @default(0) @db.Decimal(15, 2)
+
+  // Timestamps
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Relations
+  sessions        FunnelSession[]
+  testResults     FunnelABTestResult[]
+
+  @@index([funnelId])
+  @@index([status])
+  @@map("funnel_variants")
+}
+
+model FunnelSession {
+  id              String              @id @default(cuid())
+  funnelId        String
+  funnel          Funnel              @relation(fields: [funnelId], references: [id])
+
+  // Session Token (for anonymous tracking)
+  sessionToken    String              @unique
+
+  // A/B Test Assignment
+  variantId       String?
+  variant         FunnelVariant?      @relation(fields: [variantId], references: [id])
+
+  // Progress
+  currentStageOrder Int               @default(0)
+  completedStages   Int[]             @default([])
+  status          FunnelSessionStatus @default(ACTIVE)
+
+  // Collected Data
+  selectedProducts  Json              @default("[]")
+  customerInfo      Json              @default("{}")
+  shippingAddress   Json?
+  billingAddress    Json?
+  customFields      Json              @default("{}")
+
+  // Attribution
+  entryUrl        String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmTerm         String?
+  utmContent      String?
+  referrer        String?
+  userAgent       String?
+  ipAddress       String?
+
+  // Device Info
+  deviceType      String?             // mobile, tablet, desktop
+  browser         String?
+  os              String?
+
+  // Outcome
+  orderId         String?             @unique
+  totalAmount     Decimal?            @db.Decimal(15, 2)
+  currency        String?
+
+  // Timestamps
+  startedAt       DateTime            @default(now())
+  lastActivityAt  DateTime            @default(now())
+  completedAt     DateTime?
+  abandonedAt     DateTime?
+
+  // Events for detailed tracking
+  events          FunnelEvent[]
+
+  @@index([funnelId])
+  @@index([variantId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("funnel_sessions")
+}
+
+model FunnelEvent {
+  id              String          @id @default(cuid())
+  sessionId       String
+  session         FunnelSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Event Info
+  type            FunnelEventType
+  stageOrder      Int
+
+  // Event Data
+  data            Json            @default("{}")
+
+  // Timestamp
+  timestamp       DateTime        @default(now())
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([timestamp])
+  @@map("funnel_events")
+}
+
+model FunnelABTest {
+  id              String              @id @default(cuid())
+  funnelId        String
+  funnel          Funnel              @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  // Test Info
+  name            String
+  hypothesis      String?
+
+  // Configuration
+  winnerSelectionMode WinnerSelectionMode @default(MANUAL)
+  minimumSessions Int                 @default(100)
+  confidenceThreshold Decimal         @default(0.95) @db.Decimal(3, 2)
+
+  // Auto-actions
+  autoPauseLosers Boolean             @default(false)
+  autoSelectWinner Boolean            @default(false)
+  requireApproval Boolean             @default(true)
+
+  // Status
+  status          FunnelABTestStatus  @default(DRAFT)
+
+  // Results
+  winnerId        String?
+
+  // Timestamps
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  createdBy       String
+
+  // Relations
+  results         FunnelABTestResult[]
+
+  @@index([funnelId])
+  @@index([status])
+  @@map("funnel_ab_tests")
+}
+
+model FunnelABTestResult {
+  id              String          @id @default(cuid())
+  testId          String
+  test            FunnelABTest    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  variantId       String
+  variant         FunnelVariant   @relation(fields: [variantId], references: [id])
+
+  // Metrics at snapshot time
+  sessions        Int
+  conversions     Int
+  conversionRate  Decimal         @db.Decimal(5, 4)
+  revenue         Decimal         @db.Decimal(15, 2)
+  avgOrderValue   Decimal         @db.Decimal(15, 2)
+
+  // Statistical Analysis
+  confidenceLevel Decimal         @db.Decimal(5, 4)
+  improvementOverControl Decimal? @db.Decimal(6, 4)
+  isStatisticallySignificant Boolean @default(false)
+
+  // Timestamp
+  calculatedAt    DateTime        @default(now())
+
+  @@index([testId])
+  @@index([variantId])
+  @@map("funnel_ab_test_results")
+}
+
+model FunnelAIInsight {
+  id              String          @id @default(cuid())
+  funnelId        String
+  funnel          Funnel          @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  // Insight Info
+  type            AIInsightType
+  category        String          // "conversion", "pricing", "ux", "copy"
+  title           String
+  description     String          @db.Text
+
+  // Confidence
+  confidenceScore Decimal         @db.Decimal(3, 2) // 0.00 - 1.00
+  dataPoints      Int             // Number of sessions analyzed
+
+  // Recommendation
+  recommendation  Json            // Specific changes suggested
+  estimatedImpact String?         // "Potential +15% conversion"
+
+  // Action Status
+  status          InsightStatus   @default(PENDING)
+  actionTaken     String?
+  actionTakenAt   DateTime?
+  actionTakenBy   String?
+
+  // Source
+  source          InsightSource   // RULE_BASED or LLM
+  creditsUsed     Int             @default(0)
+
+  // Timestamps
+  generatedAt     DateTime        @default(now())
+  expiresAt       DateTime?
+
+  @@index([funnelId])
+  @@index([status])
+  @@index([type])
+  @@map("funnel_ai_insights")
+}
+
+model AICreditsBalance {
+  id              String          @id @default(cuid())
+  companyId       String          @unique
+
+  // Balance
+  monthlyAllocation Int           @default(100)
+  currentBalance  Int             @default(100)
+  purchasedCredits Int            @default(0)
+
+  // Reset
+  lastResetAt     DateTime        @default(now())
+  nextResetAt     DateTime
+
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@map("ai_credits_balances")
+}
+
+model AICreditsUsage {
+  id              String          @id @default(cuid())
+  companyId       String
+
+  // Usage Info
+  action          String          // "funnel_insight", "copy_generation", etc.
+  creditsUsed     Int
+  funnelId        String?
+
+  // Timestamp
+  usedAt          DateTime        @default(now())
+
+  @@index([companyId])
+  @@index([usedAt])
+  @@map("ai_credits_usage")
+}
+
+model FunnelTemplate {
+  id              String              @id @default(cuid())
+
+  // Template Info
+  name            String
+  slug            String              @unique  // For /preview/{slug}
+  description     String
+  thumbnail       String?             // Preview image URL
+
+  // Type
+  templateType    FunnelTemplateType
+  category        String              // "ecommerce", "saas", "donations", etc.
+
+  // Configuration
+  config          Json                // Full funnel or component config
+
+  // Demo
+  demoUrl         String?
+
+  // Metadata
+  featured        Boolean             @default(false)
+  industry        String[]            @default([])
+  tags            String[]            @default([])
+
+  // Stats
+  usageCount      Int                 @default(0)
+
+  // Timestamps
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([category])
+  @@index([templateType])
+  @@map("funnel_templates")
 }

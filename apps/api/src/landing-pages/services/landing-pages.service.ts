@@ -21,11 +21,11 @@ export class LandingPagesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * List all landing pages for a company
+   * List all landing pages for a company (excluding soft-deleted)
    */
   async findAll(companyId: string): Promise<LandingPageSummary[]> {
     const pages = await this.prisma.landingPage.findMany({
-      where: { companyId },
+      where: { companyId, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -62,7 +62,7 @@ export class LandingPagesService {
    */
   async findOne(companyId: string, pageId: string): Promise<LandingPageDetail> {
     const page = await this.prisma.landingPage.findFirst({
-      where: { id: pageId, companyId },
+      where: { id: pageId, companyId, deletedAt: null },
       include: {
         sections: {
           orderBy: { order: 'asc' },
@@ -229,9 +229,9 @@ export class LandingPagesService {
   }
 
   /**
-   * Delete a landing page (hard delete)
+   * Delete a landing page (soft or hard delete)
    */
-  async delete(companyId: string, pageId: string, userId: string): Promise<void> {
+  async delete(companyId: string, pageId: string, userId: string, permanent: boolean = false): Promise<void> {
     const page = await this.prisma.landingPage.findFirst({
       where: { id: pageId, companyId },
     });
@@ -240,20 +240,31 @@ export class LandingPagesService {
       throw new NotFoundException(`Landing page not found`);
     }
 
-    // Delete related records first (cascade should handle this, but being explicit)
-    await this.prisma.landingPageSection.deleteMany({
-      where: { landingPageId: pageId },
-    });
-    await this.prisma.landingPageDomain.deleteMany({
-      where: { landingPageId: pageId },
-    });
-    await this.prisma.landingPageUsage.deleteMany({
-      where: { landingPageId: pageId },
-    });
+    if (permanent) {
+      // Hard delete - remove all related records
+      await this.prisma.landingPageSection.deleteMany({
+        where: { landingPageId: pageId },
+      });
+      await this.prisma.landingPageDomain.deleteMany({
+        where: { landingPageId: pageId },
+      });
+      await this.prisma.landingPageUsage.deleteMany({
+        where: { landingPageId: pageId },
+      });
 
-    await this.prisma.landingPage.delete({
-      where: { id: pageId },
-    });
+      await this.prisma.landingPage.delete({
+        where: { id: pageId },
+      });
+    } else {
+      // Soft delete - just set deletedAt and deletedBy
+      await this.prisma.landingPage.update({
+        where: { id: pageId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: userId,
+        },
+      });
+    }
   }
 
   /**

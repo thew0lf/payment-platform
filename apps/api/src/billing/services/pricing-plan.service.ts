@@ -47,7 +47,9 @@ export class PricingPlanService {
   }
 
   async findAll(includeHidden = false): Promise<PricingPlan[]> {
-    const where: any = { status: PlanStatus.ACTIVE };
+    const where: any = includeHidden
+      ? {} // Include all plans
+      : { status: { in: [PlanStatus.ACTIVE, PlanStatus.DEPRECATED] } };
 
     const plans = await this.prisma.pricingPlan.findMany({
       where,
@@ -71,6 +73,58 @@ export class PricingPlanService {
       throw new NotFoundException(`Pricing plan "${name}" not found`);
     }
     return this.mapToPricingPlan(plan);
+  }
+
+  async update(id: string, dto: Partial<CreatePricingPlanDto> & { status?: string }): Promise<PricingPlan> {
+    const existing = await this.prisma.pricingPlan.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Pricing plan ${id} not found`);
+    }
+
+    const updateData: any = {};
+
+    if (dto.name !== undefined) updateData.displayName = dto.name;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.displayOrder !== undefined) updateData.sortOrder = dto.displayOrder;
+    if (dto.billingInterval !== undefined) updateData.billingInterval = dto.billingInterval;
+    if (dto.basePrice !== undefined) updateData.baseCost = dto.basePrice;
+    if (dto.status !== undefined) updateData.status = dto.status;
+    if (dto.included !== undefined) updateData.included = dto.included as any;
+    if (dto.overage !== undefined) updateData.overage = dto.overage as any;
+    if (dto.features !== undefined) updateData.features = dto.features as any;
+    if (dto.limits !== undefined) updateData.limits = dto.limits as any;
+
+    const plan = await this.prisma.pricingPlan.update({
+      where: { id },
+      data: updateData,
+    });
+
+    this.logger.log(`Updated pricing plan: ${plan.name}`);
+    return this.mapToPricingPlan(plan);
+  }
+
+  async delete(id: string): Promise<void> {
+    const existing = await this.prisma.pricingPlan.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Pricing plan ${id} not found`);
+    }
+
+    // Check if plan has active subscriptions
+    const subscriptionCount = await this.prisma.clientSubscription.count({
+      where: { planId: id, status: { not: 'canceled' } },
+    });
+
+    if (subscriptionCount > 0) {
+      // Soft delete - mark as hidden instead of deleting
+      await this.prisma.pricingPlan.update({
+        where: { id },
+        data: { status: PlanStatus.HIDDEN },
+      });
+      this.logger.log(`Hid pricing plan (has active subscriptions): ${existing.name}`);
+    } else {
+      await this.prisma.pricingPlan.delete({ where: { id } });
+      this.logger.log(`Deleted pricing plan: ${existing.name}`);
+    }
   }
 
   private mapToPricingPlan(data: any): PricingPlan {

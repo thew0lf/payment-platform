@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { HierarchyModule } from '../hierarchy/hierarchy.module';
 import { LandingPagesController } from './landing-pages.controller';
 import { LandingPagesAdvancedController } from './landing-pages-advanced.controller';
 import { LandingPagesService } from './services/landing-pages.service';
@@ -16,7 +17,7 @@ import { AIContentService } from './services/ai-content.service';
 import { TemplateGalleryService } from './services/template-gallery.service';
 
 @Module({
-  imports: [PrismaModule, IntegrationsModule],
+  imports: [PrismaModule, IntegrationsModule, HierarchyModule],
   controllers: [LandingPagesController, LandingPagesAdvancedController],
   providers: [
     LandingPagesService,

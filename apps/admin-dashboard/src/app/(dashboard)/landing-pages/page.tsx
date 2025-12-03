@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Plus,
   FileText,
@@ -16,6 +17,7 @@ import {
   Palette,
   LayoutTemplate,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -235,6 +237,76 @@ function CreatePageModal({ onClose, onCreated }: CreatePageModalProps) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// DELETE CONFIRMATION MODAL
+// ═══════════════════════════════════════════════════════════════
+
+interface DeleteModalProps {
+  page: LandingPageSummary;
+  onClose: () => void;
+  onConfirm: (permanent: boolean) => void;
+  deleting: boolean;
+}
+
+function DeleteModal({ page, onClose, onConfirm, deleting }: DeleteModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-full bg-red-500/10">
+              <AlertTriangle className="h-6 w-6 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">Delete Landing Page</h3>
+              <p className="text-sm text-zinc-400 mb-4">
+                Are you sure you want to delete <span className="text-white font-medium">"{page.name}"</span>?
+              </p>
+
+              {page.status === 'PUBLISHED' && (
+                <div className="p-3 mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                  <p className="text-sm text-yellow-400">
+                    This page is currently published. Deleting it will remove it from the web.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => onConfirm(false)}
+                  disabled={deleting}
+                  className="w-full px-4 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-50 text-left"
+                >
+                  <div className="font-medium">Move to trash</div>
+                  <div className="text-xs text-zinc-500">Can be restored from deleted items</div>
+                </button>
+                <button
+                  onClick={() => onConfirm(true)}
+                  disabled={deleting}
+                  className="w-full px-4 py-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 text-left"
+                >
+                  <div className="font-medium">Delete permanently</div>
+                  <div className="text-xs text-red-400/70">This cannot be undone</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+          <button
+            onClick={onClose}
+            disabled={deleting}
+            className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PAGE CARD
 // ═══════════════════════════════════════════════════════════════
 
@@ -260,9 +332,9 @@ function PageCard({ page, onEdit, onDuplicate, onDelete }: PageCardProps) {
   const url = getUrl();
 
   return (
-    <div className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all">
+    <div className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all">
       {/* Preview Area */}
-      <div className="aspect-video bg-zinc-800/50 flex items-center justify-center relative">
+      <div className="aspect-video bg-zinc-800/50 flex items-center justify-center relative rounded-t-xl overflow-hidden">
         <FileText className="h-12 w-12 text-zinc-600" />
 
         {/* Overlay on hover */}
@@ -290,18 +362,19 @@ function PageCard({ page, onEdit, onDuplicate, onDelete }: PageCardProps) {
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-medium text-white truncate">{page.name}</h3>
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+              className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors border border-transparent hover:border-zinc-700"
+              title="More options"
             >
               <MoreHorizontal className="h-4 w-4 text-zinc-400" />
             </button>
 
             {menuOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-20 py-1">
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-lg shadow-2xl z-50 py-1 overflow-visible">
                   <button
                     onClick={() => { onEdit(); setMenuOpen(false); }}
                     className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
@@ -370,6 +443,8 @@ export default function LandingPagesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [pageToDelete, setPageToDelete] = useState<LandingPageSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadPages = useCallback(async () => {
     setLoading(true);
@@ -393,24 +468,37 @@ export default function LandingPagesPage() {
 
     try {
       await duplicateLandingPage(page.id, newName);
+      toast.success('Page duplicated successfully');
       loadPages();
     } catch (err: any) {
       console.error('Failed to duplicate:', err);
-      alert(err.message || 'Failed to duplicate page');
+      toast.error(err.message || 'Failed to duplicate page');
     }
   };
 
-  const handleDelete = async (page: LandingPageSummary) => {
-    if (!confirm(`Are you sure you want to delete "${page.name}"? This cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteConfirm = async (permanent: boolean) => {
+    if (!pageToDelete) return;
 
+    setDeleting(true);
     try {
-      await deleteLandingPage(page.id);
+      await deleteLandingPage(pageToDelete.id, permanent);
+      toast.success(
+        permanent
+          ? 'Page permanently deleted'
+          : 'Page moved to trash',
+        {
+          description: permanent
+            ? undefined
+            : 'You can restore it from the deleted items page',
+        }
+      );
+      setPageToDelete(null);
       loadPages();
     } catch (err: any) {
       console.error('Failed to delete:', err);
-      alert(err.message || 'Failed to delete page');
+      toast.error(err.message || 'Failed to delete page');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -525,7 +613,7 @@ export default function LandingPagesPage() {
                 page={page}
                 onEdit={() => router.push(`/landing-pages/${page.id}/edit`)}
                 onDuplicate={() => handleDuplicate(page)}
-                onDelete={() => handleDelete(page)}
+                onDelete={() => setPageToDelete(page)}
               />
             ))}
           </div>
@@ -540,6 +628,16 @@ export default function LandingPagesPage() {
             setShowCreateModal(false);
             loadPages();
           }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {pageToDelete && (
+        <DeleteModal
+          page={pageToDelete}
+          onClose={() => setPageToDelete(null)}
+          onConfirm={handleDeleteConfirm}
+          deleting={deleting}
         />
       )}
     </div>

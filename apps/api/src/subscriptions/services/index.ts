@@ -1,1 +1,13 @@
 export { SubscriptionRebillService } from './subscription-rebill.service';
+export { SubscriptionPlanService } from './subscription-plan.service';
+export { SubscriptionTrialService } from './subscription-trial.service';
+export { SubscriptionLifecycleService } from './subscription-lifecycle.service';
+export { SubscriptionPricingService } from './subscription-pricing.service';
+export { SubscriptionRetentionService } from './subscription-retention.service';
+export { SubscriptionGiftingService } from './subscription-gifting.service';
+export { SubscriptionMultiProductService } from './subscription-multi-product.service';
+export { SubscriptionAIActionsService } from './subscription-ai-actions.service';
+export { SubscriptionIntelligenceService } from './subscription-intelligence.service';
+export { SubscriptionShippingService } from './subscription-shipping.service';
+export { SubscriptionNotificationsService } from './subscription-notifications.service';
+export { SubscriptionAnalyticsService } from './subscription-analytics.service';

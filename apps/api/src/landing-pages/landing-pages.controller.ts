@@ -7,6 +7,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ForbiddenException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { LandingPagesService } from './services/landing-pages.service';
 import { DeployService } from './services/deploy.service';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
 import {
   CreateLandingPageDto,
   UpdateLandingPageDto,
@@ -35,13 +37,56 @@ export class LandingPagesController {
   constructor(
     private readonly landingPagesService: LandingPagesService,
     private readonly deployService: DeployService,
+    private readonly hierarchyService: HierarchyService,
   ) {}
 
-  private getCompanyId(user: AuthenticatedUser): string {
-    if (!user.companyId) {
-      throw new ForbiddenException('User must be associated with a company');
+  /**
+   * Get companyId for operations that require company context.
+   * For COMPANY scope users, uses their scopeId.
+   * For ORGANIZATION/CLIENT scope users, requires companyId to be passed and validates access.
+   */
+  private async getCompanyIdForWrite(user: AuthenticatedUser, requestedCompanyId?: string): Promise<string> {
+    // For COMPANY scope users, the scopeId IS the companyId
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
     }
-    return user.companyId;
+
+    // For users with explicit companyId set
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // For ORGANIZATION or CLIENT scope admins, they must pass a companyId
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      if (!requestedCompanyId) {
+        throw new ForbiddenException('Company selection required. Please select a company to continue.');
+      }
+
+      // Validate they have access to this company
+      const hasAccess = await this.hierarchyService.canAccessCompany(
+        { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+        requestedCompanyId,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException('Access denied to the requested company');
+      }
+      return requestedCompanyId;
+    }
+
+    throw new ForbiddenException('Unable to determine company context');
+  }
+
+  /**
+   * Legacy helper - for backwards compatibility with endpoints not yet updated
+   */
+  private getCompanyId(user: AuthenticatedUser): string {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    throw new ForbiddenException('Company selection required. Please select a company to continue.');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -85,13 +130,15 @@ export class LandingPagesController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER')
   async delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query('permanent') permanent?: string,
   ): Promise<{ success: boolean }> {
     const companyId = this.getCompanyId(user);
-    await this.landingPagesService.delete(companyId, id, user.id);
+    const isPermanent = permanent === 'true';
+    await this.landingPagesService.delete(companyId, id, user.id, isPermanent);
     return { success: true };
   }
 
@@ -115,9 +162,10 @@ export class LandingPagesController {
       name: string;
       slug: string;
       theme?: LandingPageTheme;
+      companyId?: string;
     },
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, body.companyId);
 
     // If 'blank' template, use the createBlankPage method
     if (body.templateId === 'blank') {

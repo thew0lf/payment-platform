@@ -143,11 +143,12 @@ export interface ChartResponse {
 // apiRequest can be called directly (defaults to GET), or with options for other methods
 export async function apiRequest<T>(
   endpoint: string,
-  options?: { method?: string; body?: unknown }
+  options?: { method?: string; body?: string }
 ): Promise<T> {
   const opts: RequestInit = {};
   if (options?.method) opts.method = options.method;
-  if (options?.body) opts.body = JSON.stringify(options.body);
+  // Body should already be JSON.stringify'd by the caller
+  if (options?.body) opts.body = options.body;
   const { data } = await request<T>(endpoint, opts);
   return data;
 }
@@ -162,3 +163,16 @@ apiRequest.patch = <T>(endpoint: string, body?: unknown) =>
   request<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
 apiRequest.delete = <T>(endpoint: string, body?: unknown) =>
   request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
+
+// Create apiClient object for subscription-plans and billing modules
+export const apiClient = {
+  get: <T>(endpoint: string) => request<T>(endpoint).then(r => r.data),
+  post: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
+  put: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
+  patch: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
+  delete: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data),
+};

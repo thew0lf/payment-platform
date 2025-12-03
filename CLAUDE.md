@@ -535,6 +535,110 @@ await productsApi.update(id, data, selectedCompanyId || undefined);
 
 ---
 
+## Toast Notifications & Dialogs
+
+### Convention
+**NEVER use native browser dialogs.** Always use the project's toast system and custom modals.
+
+| ❌ Don't Use | ✅ Use Instead |
+|--------------|----------------|
+| `alert('message')` | `toast.error('message')` or `toast.info('message')` |
+| `confirm('Are you sure?')` | Custom confirmation modal with state |
+| `window.alert()` | `toast()` from sonner |
+
+### Toast Library
+The project uses **sonner** for toast notifications.
+
+```typescript
+import { toast } from 'sonner';
+
+// Success messages
+toast.success('Item created successfully!');
+
+// Error messages
+toast.error('Failed to save. Please try again.');
+
+// Info/warning messages
+toast.info('Changes will take effect after refresh.');
+toast.warning('This action cannot be undone.');
+
+// With description
+toast.success('Funnel published', {
+  description: 'Your funnel is now live and accepting traffic.',
+});
+```
+
+### Confirmation Dialogs Pattern
+Replace `confirm()` with custom modal state:
+
+```typescript
+// State for delete confirmation
+const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+
+// Trigger confirmation
+const handleDelete = (item: Item) => {
+  setItemToDelete(item);
+};
+
+// Confirm action
+const confirmDelete = async () => {
+  if (!itemToDelete) return;
+  try {
+    await api.delete(itemToDelete.id);
+    toast.success(`"${itemToDelete.name}" deleted`);
+  } catch (error) {
+    toast.error('Failed to delete. Please try again.');
+  } finally {
+    setItemToDelete(null);
+  }
+};
+
+// Modal JSX (using createPortal for proper z-index)
+{itemToDelete && createPortal(
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md">
+      <h3>Delete "{itemToDelete.name}"?</h3>
+      <p>This action cannot be undone.</p>
+      <div className="flex gap-3 mt-4">
+        <button onClick={() => setItemToDelete(null)}>Cancel</button>
+        <button onClick={confirmDelete} className="bg-red-600">Delete</button>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
+```
+
+### Form Validation with Toast
+Show validation errors via toast when form submission fails:
+
+```typescript
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validate
+  const nameError = validateName(name);
+  if (nameError) {
+    toast.error(nameError);
+    return;
+  }
+
+  // Submit
+  try {
+    await api.create(data);
+    toast.success('Created successfully!');
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Failed to create');
+  }
+};
+```
+
+### Key Files
+- `apps/admin-dashboard/src/app/layout.tsx` - Toaster component configured
+- Toast import: `import { toast } from 'sonner';`
+
+---
+
 ## Backend Module Structure
 
 ```
@@ -959,6 +1063,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: November 30, 2025*
+*Last Updated: December 3, 2025*
 *Feature 01: Complete | Feature 02-03: Spec Complete*
 

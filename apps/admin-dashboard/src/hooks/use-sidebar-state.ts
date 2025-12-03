@@ -64,9 +64,17 @@ export function useSidebarState() {
     };
   }, []);
 
-  // Auto-expand section containing current route
+  // Track the previous pathname to only auto-expand on navigation changes
+  const prevPathnameRef = useRef<string | null>(null);
+
+  // Auto-expand section containing current route (only on navigation, not on toggle)
   useEffect(() => {
     if (!isInitialized || !pathname) return;
+
+    // Only auto-expand if this is a navigation event (pathname changed)
+    // Skip if we're just re-rendering on the same path
+    if (prevPathnameRef.current === pathname) return;
+    prevPathnameRef.current = pathname;
 
     const activeSection = findSectionByPath(pathname);
     if (activeSection && !expandedSections[activeSection.id]) {
@@ -76,7 +84,10 @@ export function useSidebarState() {
         return newState;
       });
     }
-  }, [pathname, isInitialized, expandedSections, saveToStorage]);
+    // Note: we intentionally don't include expandedSections in deps
+    // to avoid re-running when user manually toggles a section
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, isInitialized, saveToStorage]);
 
   // Toggle a section's expanded state
   const toggleSection = useCallback(
