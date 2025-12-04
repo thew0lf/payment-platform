@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { AbstractPaymentProvider } from './abstract-payment.provider';
 import { PayflowProvider } from './payflow.provider';
 import { PayPalRestProvider } from './paypal-rest.provider';
-import { PaymentProviderType, ProviderConfig, ProviderHealth, PayflowCredentials, PayPalRestCredentials } from '../types/payment.types';
+import { PayPalClassicProvider } from './paypal-classic.provider';
+import { PaymentProviderType, ProviderConfig, ProviderHealth, PayflowCredentials, PayPalRestCredentials, PayPalClassicCredentials } from '../types/payment.types';
 
 @Injectable()
 export class PaymentProviderFactory implements OnModuleInit {
@@ -44,6 +45,7 @@ export class PaymentProviderFactory implements OnModuleInit {
     switch (config.type) {
       case PaymentProviderType.PAYFLOW: return new PayflowProvider(config, this.configService);
       case PaymentProviderType.PAYPAL_REST: return new PayPalRestProvider(config, this.configService);
+      case PaymentProviderType.PAYPAL_CLASSIC: return new PayPalClassicProvider(config, this.configService);
       default: throw new Error(`Unsupported provider type: ${config.type}`);
     }
   }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -67,6 +67,7 @@ export class PlatformIntegrationsController {
   }
 
   @Post(':id/test')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test platform integration' })
   async testPlatform(@Param('id') id: string): Promise<IntegrationTestResult> {
     return this.platformService.test(id);
@@ -122,6 +123,7 @@ export class ClientIntegrationsController {
   }
 
   @Post(':id/test')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test client integration' })
   async test(@Param('id') id: string): Promise<IntegrationTestResult> {
     return this.clientService.test(id);

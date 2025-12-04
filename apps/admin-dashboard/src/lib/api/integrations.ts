@@ -4,6 +4,7 @@ export enum IntegrationProvider {
   // Payment Gateways
   PAYPAL_PAYFLOW = 'PAYPAL_PAYFLOW',
   PAYPAL_REST = 'PAYPAL_REST',
+  PAYPAL_CLASSIC = 'PAYPAL_CLASSIC',  // Legacy NVP API
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
@@ -23,6 +24,10 @@ export enum IntegrationProvider {
   LANGUAGETOOL = 'LANGUAGETOOL',
   // Storage
   AWS_S3 = 'AWS_S3',
+  // CDN
+  AWS_CLOUDFRONT = 'AWS_CLOUDFRONT',
+  // DNS
+  AWS_ROUTE53 = 'AWS_ROUTE53',
   // Image Processing
   CLOUDINARY = 'CLOUDINARY',
   // Video Generation
@@ -50,11 +55,19 @@ export enum IntegrationCategory {
   ANALYTICS = 'ANALYTICS',
   OAUTH = 'OAUTH',
   EMAIL_TRANSACTIONAL = 'EMAIL_TRANSACTIONAL',
+  EMAIL_MARKETING = 'EMAIL_MARKETING',
   SMS = 'SMS',
+  VOICE = 'VOICE',
+  PUSH_NOTIFICATION = 'PUSH_NOTIFICATION',
   AI_ML = 'AI_ML',
   STORAGE = 'STORAGE',
   IMAGE_PROCESSING = 'IMAGE_PROCESSING',
   VIDEO_GENERATION = 'VIDEO_GENERATION',
+  CDN = 'CDN',
+  DNS = 'DNS',
+  MONITORING = 'MONITORING',
+  FEATURE_FLAGS = 'FEATURE_FLAGS',
+  WEBHOOK = 'WEBHOOK',
 }
 
 export enum IntegrationStatus {
@@ -194,7 +207,15 @@ async function request<T>(
     throw new Error(error.message || `HTTP ${response.status}`);
   }
 
-  const data = await response.json();
+  // Handle empty responses (e.g., 204 No Content from DELETE)
+  const contentLength = response.headers.get('content-length');
+  if (response.status === 204 || contentLength === '0') {
+    return { data: undefined as T, status: response.status };
+  }
+
+  // Try to parse JSON, but handle empty body gracefully
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : undefined;
   return { data, status: response.status };
 }
 

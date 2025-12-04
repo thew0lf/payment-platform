@@ -32,7 +32,15 @@ async function request<T>(
     throw new Error(error.message || `HTTP ${response.status}`);
   }
 
-  const data = await response.json();
+  // Handle empty responses (e.g., 204 No Content from DELETE)
+  const contentLength = response.headers.get('content-length');
+  if (response.status === 204 || contentLength === '0') {
+    return { data: undefined as T, status: response.status };
+  }
+
+  // Try to parse JSON, but handle empty body gracefully
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : undefined;
   return { data, status: response.status };
 }
 

@@ -11,6 +11,7 @@ import { OAuthService } from './services/oauth.service';
 import { OAuthTokenRefreshService } from './services/oauth-token-refresh.service';
 import { PlatformIntegrationsController, ClientIntegrationsController, OAuthController } from './integrations.controller';
 // Provider Services
+import { Auth0Service } from './services/providers/auth0.service';
 import { BedrockService } from './services/providers/bedrock.service';
 import { S3StorageService } from './services/providers/s3-storage.service';
 import { LanguageToolService } from './services/providers/languagetool.service';
@@ -19,6 +20,27 @@ import { RunwayService } from './services/providers/runway.service';
 import { TwilioService } from './services/providers/twilio.service';
 import { CloudFrontService } from './services/providers/cloudfront.service';
 import { Route53Service } from './services/providers/route53.service';
+import { CloudWatchService } from './services/providers/cloudwatch.service';
+// Payment Gateway Services
+import { StripeService } from './services/providers/stripe.service';
+import { PayPalClassicService } from './services/providers/paypal-classic.service';
+import { NMIService } from './services/providers/nmi.service';
+import { AuthorizeNetService } from './services/providers/authorize-net.service';
+// AWS Services
+import { AWSSESService } from './services/providers/aws-ses.service';
+import { AWSSNSService } from './services/providers/aws-sns.service';
+// Email & Marketing Services
+import { SendGridService } from './services/providers/sendgrid.service';
+import { KlaviyoService } from './services/providers/klaviyo.service';
+// AI Services
+import { OpenAIService } from './services/providers/openai.service';
+// Monitoring Services
+import { DatadogService } from './services/providers/datadog.service';
+import { SentryService } from './services/providers/sentry.service';
+// Feature Flags
+import { LaunchDarklyService } from './services/providers/launchdarkly.service';
+// OAuth/Communication
+import { SlackService } from './services/providers/slack.service';
 
 @Global()
 @Module({
@@ -33,6 +55,7 @@ import { Route53Service } from './services/providers/route53.service';
     OAuthService,
     OAuthTokenRefreshService,
     // Provider Services
+    Auth0Service,
     BedrockService,
     S3StorageService,
     LanguageToolService,
@@ -41,6 +64,27 @@ import { Route53Service } from './services/providers/route53.service';
     TwilioService,
     CloudFrontService,
     Route53Service,
+    CloudWatchService,
+    // Payment Gateway Services
+    StripeService,
+    PayPalClassicService,
+    NMIService,
+    AuthorizeNetService,
+    // AWS Services
+    AWSSESService,
+    AWSSNSService,
+    // Email & Marketing Services
+    SendGridService,
+    KlaviyoService,
+    // AI Services
+    OpenAIService,
+    // Monitoring Services
+    DatadogService,
+    SentryService,
+    // Feature Flags
+    LaunchDarklyService,
+    // OAuth/Communication
+    SlackService,
   ],
   exports: [
     CredentialEncryptionService,
@@ -50,6 +94,7 @@ import { Route53Service } from './services/providers/route53.service';
     OAuthService,
     OAuthTokenRefreshService,
     // Provider Services
+    Auth0Service,
     BedrockService,
     S3StorageService,
     LanguageToolService,
@@ -58,6 +103,27 @@ import { Route53Service } from './services/providers/route53.service';
     TwilioService,
     CloudFrontService,
     Route53Service,
+    CloudWatchService,
+    // Payment Gateway Services
+    StripeService,
+    PayPalClassicService,
+    NMIService,
+    AuthorizeNetService,
+    // AWS Services
+    AWSSESService,
+    AWSSNSService,
+    // Email & Marketing Services
+    SendGridService,
+    KlaviyoService,
+    // AI Services
+    OpenAIService,
+    // Monitoring Services
+    DatadogService,
+    SentryService,
+    // Feature Flags
+    LaunchDarklyService,
+    // OAuth/Communication
+    SlackService,
   ],
 })
 export class IntegrationsModule {}

@@ -711,7 +711,7 @@ export class TwilioService {
   }
 
   /**
-   * Test connection with Twilio
+   * Test connection with Twilio using companyId
    */
   async testConnection(companyId: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -725,6 +725,33 @@ export class TwilioService {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to connect to Twilio' };
+    }
+  }
+
+  /**
+   * Test connection with Twilio using direct credentials (for integration testing)
+   */
+  async testConnectionWithCredentials(credentials: TwilioCredentials): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!credentials.accountSid || !credentials.authToken) {
+        return { success: false, message: 'Account SID and Auth Token are required' };
+      }
+
+      const client = Twilio(credentials.accountSid, credentials.authToken);
+      const account = await client.api.accounts(credentials.accountSid).fetch();
+
+      return {
+        success: true,
+        message: `Connected to Twilio account: ${account.friendlyName || credentials.accountSid}`,
+      };
+    } catch (error: any) {
+      const message = error.message || 'Failed to connect to Twilio';
+
+      if (message.includes('authenticate')) {
+        return { success: false, message: 'Invalid Account SID or Auth Token' };
+      }
+
+      return { success: false, message: `Connection failed: ${message}` };
     }
   }
 }

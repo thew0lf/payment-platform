@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { Plus, Plug, RefreshCw, AlertCircle, Search, LayoutGrid, List, Filter, X, MoreVertical, TestTube, Share2, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Plug, RefreshCw, AlertCircle, Search, LayoutGrid, List, Filter, X, MoreVertical, TestTube, Share2, Trash2, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 import {
@@ -24,12 +26,20 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
   [IntegrationCategory.OAUTH]: 'Connected Services',
-  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email (Transactional)',
+  [IntegrationCategory.EMAIL_MARKETING]: 'Email (Marketing)',
   [IntegrationCategory.SMS]: 'SMS',
+  [IntegrationCategory.VOICE]: 'Voice',
+  [IntegrationCategory.PUSH_NOTIFICATION]: 'Push Notifications',
   [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
   [IntegrationCategory.STORAGE]: 'Storage',
   [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
   [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
+  [IntegrationCategory.CDN]: 'CDN',
+  [IntegrationCategory.DNS]: 'DNS',
+  [IntegrationCategory.MONITORING]: 'Monitoring',
+  [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
+  [IntegrationCategory.WEBHOOK]: 'Webhooks',
 };
 
 const statusOptions = [
@@ -64,6 +74,8 @@ export default function PlatformIntegrationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [sharingModalIntegration, setSharingModalIntegration] = useState<PlatformIntegration | null>(null);
+  const [integrationToDelete, setIntegrationToDelete] = useState<PlatformIntegration | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Search, filter, and view state
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,13 +179,22 @@ export default function PlatformIntegrationsPage() {
     }
   };
 
-  const handleDeleteIntegration = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this integration?')) return;
+  const handleDeleteIntegration = (integration: PlatformIntegration) => {
+    setIntegrationToDelete(integration);
+  };
+
+  const confirmDelete = async () => {
+    if (!integrationToDelete) return;
+    setIsDeleting(true);
     try {
-      await integrationsApi.deletePlatformIntegration(id);
+      await integrationsApi.deletePlatformIntegration(integrationToDelete.id);
+      toast.success(`"${integrationToDelete.name}" deleted successfully`);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete integration');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete integration');
+    } finally {
+      setIsDeleting(false);
+      setIntegrationToDelete(null);
     }
   };
 
@@ -510,7 +531,7 @@ export default function PlatformIntegrationsPage() {
                         <Share2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteIntegration(integration.id)}
+                        onClick={() => handleDeleteIntegration(integration)}
                         className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-red-400 transition-colors"
                         title="Delete"
                       >
@@ -541,6 +562,54 @@ export default function PlatformIntegrationsPage() {
         onClose={() => setSharingModalIntegration(null)}
         onSubmit={handleConfigureSharing}
       />
+
+      {/* Delete Confirmation Modal */}
+      {integrationToDelete && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Delete Integration</h3>
+                <p className="text-sm text-zinc-400">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-zinc-300 mb-6">
+              Are you sure you want to delete <span className="font-medium text-white">&quot;{integrationToDelete.name}&quot;</span>?
+              This will remove all associated credentials and settings.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setIntegrationToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

@@ -36,6 +36,7 @@ export enum IntegrationProvider {
   // Payment Gateways (Client-configurable)
   PAYPAL_PAYFLOW = 'PAYPAL_PAYFLOW',
   PAYPAL_REST = 'PAYPAL_REST',
+  PAYPAL_CLASSIC = 'PAYPAL_CLASSIC',  // Legacy NVP API
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',

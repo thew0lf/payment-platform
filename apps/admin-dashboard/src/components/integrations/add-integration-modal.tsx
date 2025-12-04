@@ -39,12 +39,20 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
   [IntegrationCategory.OAUTH]: 'Connected Services',
-  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email (Transactional)',
+  [IntegrationCategory.EMAIL_MARKETING]: 'Email (Marketing)',
   [IntegrationCategory.SMS]: 'SMS',
+  [IntegrationCategory.VOICE]: 'Voice',
+  [IntegrationCategory.PUSH_NOTIFICATION]: 'Push Notifications',
   [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
   [IntegrationCategory.STORAGE]: 'Storage',
   [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
   [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
+  [IntegrationCategory.CDN]: 'CDN',
+  [IntegrationCategory.DNS]: 'DNS',
+  [IntegrationCategory.MONITORING]: 'Monitoring',
+  [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
+  [IntegrationCategory.WEBHOOK]: 'Webhooks',
 };
 
 // Provider configuration with icons and brand colors
@@ -57,6 +65,12 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     gradient: 'from-[#003087] to-[#009cde]',
   },
   [IntegrationProvider.PAYPAL_REST]: {
+    icon: 'PP',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
+  },
+  [IntegrationProvider.PAYPAL_CLASSIC]: {
     icon: 'PP',
     iconUrl: '/integrations/paypal.svg',
     bgColor: 'bg-[#003087]',
@@ -118,11 +132,103 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
+  [IntegrationProvider.AWS_SNS]: {
+    icon: 'SNS',
+    iconUrl: '/integrations/aws-sns.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
   [IntegrationProvider.KLAVIYO]: {
     icon: 'KL',
     iconUrl: '/integrations/klaviyo.svg',
     bgColor: 'bg-[#111111]',
     gradient: 'from-[#111111] to-[#5DCB7E]',
+  },
+  // AI & Machine Learning
+  [IntegrationProvider.AWS_BEDROCK]: {
+    icon: 'BR',
+    iconUrl: '/integrations/aws-bedrock.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  [IntegrationProvider.OPENAI]: {
+    icon: 'AI',
+    iconUrl: '/integrations/openai.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#10A37F]',
+  },
+  [IntegrationProvider.LANGUAGETOOL]: {
+    icon: 'LT',
+    iconUrl: '/integrations/languagetool.svg',
+    bgColor: 'bg-[#0066CC]',
+    gradient: 'from-[#0066CC] to-[#00AAFF]',
+  },
+  // Storage
+  [IntegrationProvider.AWS_S3]: {
+    icon: 'S3',
+    iconUrl: '/integrations/aws-s3.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // CDN
+  [IntegrationProvider.AWS_CLOUDFRONT]: {
+    icon: 'CF',
+    iconUrl: '/integrations/aws-cloudfront.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // DNS
+  [IntegrationProvider.AWS_ROUTE53]: {
+    icon: 'R53',
+    iconUrl: '/integrations/aws-route53.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // Image Processing
+  [IntegrationProvider.CLOUDINARY]: {
+    icon: 'CL',
+    iconUrl: '/integrations/cloudinary.svg',
+    bgColor: 'bg-[#3448C5]',
+    gradient: 'from-[#3448C5] to-[#F7C046]',
+  },
+  // Video Generation
+  [IntegrationProvider.RUNWAY]: {
+    icon: 'RW',
+    iconUrl: '/integrations/runway.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#6366F1]',
+  },
+  // Monitoring
+  [IntegrationProvider.DATADOG]: {
+    icon: 'DD',
+    iconUrl: '/integrations/datadog.svg',
+    bgColor: 'bg-[#632CA6]',
+    gradient: 'from-[#632CA6] to-[#9E5DF0]',
+  },
+  [IntegrationProvider.SENTRY]: {
+    icon: 'ST',
+    iconUrl: '/integrations/sentry.svg',
+    bgColor: 'bg-[#362D59]',
+    gradient: 'from-[#362D59] to-[#8B5CF6]',
+  },
+  [IntegrationProvider.CLOUDWATCH]: {
+    icon: 'CW',
+    iconUrl: '/integrations/cloudwatch.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // Feature Flags
+  [IntegrationProvider.LAUNCHDARKLY]: {
+    icon: 'LD',
+    iconUrl: '/integrations/launchdarkly.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#405BFF]',
+  },
+  [IntegrationProvider.AWS_APPCONFIG]: {
+    icon: 'AC',
+    iconUrl: '/integrations/aws-appconfig.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
   },
   // OAuth Providers
   [IntegrationProvider.GOOGLE]: {

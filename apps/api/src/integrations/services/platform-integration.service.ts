@@ -9,11 +9,36 @@ import {
   ConfigureClientSharingDto, IntegrationTestResult,
 } from '../types/integration.types';
 // Provider Services
+import { Auth0Service } from './providers/auth0.service';
 import { BedrockService } from './providers/bedrock.service';
 import { S3StorageService } from './providers/s3-storage.service';
 import { LanguageToolService } from './providers/languagetool.service';
 import { CloudinaryService } from './providers/cloudinary.service';
 import { RunwayService } from './providers/runway.service';
+import { CloudFrontService } from './providers/cloudfront.service';
+import { CloudWatchService } from './providers/cloudwatch.service';
+// Payment Gateway Services
+import { StripeService } from './providers/stripe.service';
+import { PayPalClassicService } from './providers/paypal-classic.service';
+import { NMIService } from './providers/nmi.service';
+import { AuthorizeNetService } from './providers/authorize-net.service';
+// AWS Services
+import { AWSSESService } from './providers/aws-ses.service';
+import { AWSSNSService } from './providers/aws-sns.service';
+// Email & Marketing Services
+import { SendGridService } from './providers/sendgrid.service';
+import { KlaviyoService } from './providers/klaviyo.service';
+// AI Services
+import { OpenAIService } from './providers/openai.service';
+// Monitoring Services
+import { DatadogService } from './providers/datadog.service';
+import { SentryService } from './providers/sentry.service';
+// Feature Flags
+import { LaunchDarklyService } from './providers/launchdarkly.service';
+// OAuth/Communication
+import { SlackService } from './providers/slack.service';
+import { TwilioService } from './providers/twilio.service';
+import { Route53Service } from './providers/route53.service';
 
 @Injectable()
 export class PlatformIntegrationService {
@@ -24,11 +49,36 @@ export class PlatformIntegrationService {
     private readonly encryptionService: CredentialEncryptionService,
     private readonly definitionService: IntegrationDefinitionService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auth0Service: Auth0Service,
     private readonly bedrockService: BedrockService,
     private readonly s3StorageService: S3StorageService,
     private readonly languageToolService: LanguageToolService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly runwayService: RunwayService,
+    private readonly cloudFrontService: CloudFrontService,
+    private readonly cloudWatchService: CloudWatchService,
+    // Payment Gateway Services
+    private readonly stripeService: StripeService,
+    private readonly paypalClassicService: PayPalClassicService,
+    private readonly nmiService: NMIService,
+    private readonly authorizeNetService: AuthorizeNetService,
+    // AWS Services
+    private readonly awsSesService: AWSSESService,
+    private readonly awsSnsService: AWSSNSService,
+    // Email & Marketing Services
+    private readonly sendGridService: SendGridService,
+    private readonly klaviyoService: KlaviyoService,
+    // AI Services
+    private readonly openAIService: OpenAIService,
+    // Monitoring Services
+    private readonly datadogService: DatadogService,
+    private readonly sentryService: SentryService,
+    // Feature Flags
+    private readonly launchDarklyService: LaunchDarklyService,
+    // OAuth/Communication
+    private readonly slackService: SlackService,
+    private readonly twilioService: TwilioService,
+    private readonly route53Service: Route53Service,
   ) {}
 
   async create(orgId: string, dto: CreatePlatformIntegrationDto, createdBy: string): Promise<PlatformIntegration> {
@@ -136,12 +186,21 @@ export class PlatformIntegrationService {
 
   private async testProvider(provider: IntegrationProvider, credentials: Record<string, any>): Promise<{ success: boolean; message: string }> {
     switch (provider) {
+      // Payment Gateway Providers
+      case IntegrationProvider.STRIPE:
+        return this.stripeService.testConnection(credentials as any);
+      case IntegrationProvider.PAYPAL_CLASSIC:
+        return this.paypalClassicService.testConnection(credentials as any);
+      case IntegrationProvider.NMI:
+        return this.nmiService.testConnection(credentials as any);
+      case IntegrationProvider.AUTHORIZE_NET:
+        return this.authorizeNetService.testConnection(credentials as any);
       case IntegrationProvider.PAYPAL_PAYFLOW:
         if (!credentials.vendor || !credentials.user || !credentials.password) return { success: false, message: 'Missing Payflow credentials' };
-        return { success: true, message: 'Payflow credentials validated' };
+        return { success: true, message: 'Payflow credentials validated (beta)' };
+      // Authentication Providers
       case IntegrationProvider.AUTH0:
-        if (!credentials.domain || !credentials.clientId || !credentials.clientSecret) return { success: false, message: 'Missing Auth0 credentials' };
-        return { success: true, message: 'Auth0 credentials validated' };
+        return this.auth0Service.testConnection(credentials as any);
       // AI/ML Providers
       case IntegrationProvider.AWS_BEDROCK:
         return this.bedrockService.testConnection(credentials as any);
@@ -156,6 +215,41 @@ export class PlatformIntegrationService {
       // Video Generation Providers
       case IntegrationProvider.RUNWAY:
         return this.runwayService.testConnection(credentials as any);
+      // CDN Providers
+      case IntegrationProvider.AWS_CLOUDFRONT:
+        return this.cloudFrontService.testConnection(credentials as any);
+      // Monitoring Providers
+      case IntegrationProvider.CLOUDWATCH:
+        return this.cloudWatchService.testConnection(credentials as any);
+      case IntegrationProvider.DATADOG:
+        return this.datadogService.testConnection(credentials as any);
+      case IntegrationProvider.SENTRY:
+        return this.sentryService.testConnection(credentials as any);
+      // AWS Email/SMS
+      case IntegrationProvider.AWS_SES:
+        return this.awsSesService.testConnection(credentials as any);
+      case IntegrationProvider.AWS_SNS:
+        return this.awsSnsService.testConnection(credentials as any);
+      // DNS
+      case IntegrationProvider.AWS_ROUTE53:
+        return this.route53Service.testConnection(credentials as any);
+      // Email & Marketing
+      case IntegrationProvider.SENDGRID:
+        return this.sendGridService.testConnection(credentials as any);
+      case IntegrationProvider.KLAVIYO:
+        return this.klaviyoService.testConnection(credentials as any);
+      // SMS/Communication
+      case IntegrationProvider.TWILIO:
+        return this.twilioService.testConnectionWithCredentials(credentials as any);
+      // AI
+      case IntegrationProvider.OPENAI:
+        return this.openAIService.testConnection(credentials as any);
+      // Feature Flags
+      case IntegrationProvider.LAUNCHDARKLY:
+        return this.launchDarklyService.testConnection(credentials as any);
+      // OAuth
+      case IntegrationProvider.SLACK:
+        return this.slackService.testConnection(credentials as any);
       default:
         return { success: true, message: 'Credentials validated' };
     }

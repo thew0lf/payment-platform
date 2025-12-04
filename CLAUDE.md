@@ -407,20 +407,85 @@ vendor_users, vendor_roles, vendor_marketplace, vendor_settings
 
 ## Development Commands
 
+### Docker Commands (Primary Development Method)
+
+**Project Name:** `avnz-payment-platform`
+
+**IMPORTANT:** Always use `-p avnz-payment-platform` flag with docker-compose commands to ensure correct project naming.
+
 ```bash
-# Start servers
+# Start all services
+docker-compose -p avnz-payment-platform up -d
+
+# Stop all services
+docker-compose -p avnz-payment-platform down
+
+# Restart all services
+docker-compose -p avnz-payment-platform down && docker-compose -p avnz-payment-platform up -d
+
+# View logs
+docker logs avnz-payment-api            # API logs
+docker logs avnz-payment-admin          # Admin dashboard logs
+docker logs avnz-payment-portal         # Company portal logs
+docker logs avnz-payment-postgres       # PostgreSQL logs
+docker logs avnz-payment-redis          # Redis logs
+
+# Follow logs in real-time
+docker logs -f avnz-payment-api
+
+# Check container status
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Restart a single service
+docker-compose -p avnz-payment-platform restart api
+docker-compose -p avnz-payment-platform restart admin-dashboard
+
+# Rebuild a service (after Dockerfile changes)
+docker-compose -p avnz-payment-platform build api --no-cache
+docker-compose -p avnz-payment-platform up -d api
+
+# Reset API node_modules (if dependency issues)
+docker rm -f avnz-payment-api
+docker volume rm avnz-payment-platform_api_node_modules
+docker-compose -p avnz-payment-platform up -d api
+
+# Start with dev tools (pgAdmin, Redis Commander, Prisma Studio)
+docker-compose -p avnz-payment-platform --profile tools up -d
+```
+
+### Container Names
+
+| Service | Container Name | Port |
+|---------|---------------|------|
+| API | `avnz-payment-api` | 3001 |
+| Admin Dashboard | `avnz-payment-admin` | 3000 |
+| Company Portal | `avnz-payment-portal` | 3003 |
+| PostgreSQL | `avnz-payment-postgres` | 5432 |
+| Redis | `avnz-payment-redis` | 6379 |
+| pgAdmin | `avnz-payment-pgadmin` | 5050 |
+| Redis Commander | `avnz-payment-redis-commander` | 8081 |
+| Prisma Studio | `avnz-payment-prisma-studio` | 5555 |
+
+### Local Development (Alternative)
+
+```bash
+# Start servers locally (without Docker)
 cd apps/api && npm run dev              # API on :3001
 cd apps/admin-dashboard && npm run dev  # Dashboard on :3000
+```
 
-# Database
+### Database Commands
+
+```bash
+# Run inside Docker
+docker exec -it avnz-payment-api npx prisma migrate dev --name description
+docker exec -it avnz-payment-api npx prisma generate
+docker exec -it avnz-payment-api npx prisma db seed
+
+# Or locally
 cd apps/api && npx prisma migrate dev --name description
 cd apps/api && npx prisma generate
 cd apps/api && npx prisma db seed
-
-# Docker
-docker-compose up -d                    # Start services
-docker-compose down -v                  # Reset
-docker-compose logs -f api              # View logs
 ```
 
 ---
@@ -449,7 +514,57 @@ AUTH0_DOMAIN=your-domain.auth0.com
 AUTH0_CLIENT_ID=xxx
 AUTH0_CLIENT_SECRET=xxx
 JWT_SECRET=your_jwt_secret
+
+# Credential Encryption (REQUIRED - see Credential Encryption section below)
+INTEGRATION_ENCRYPTION_KEY=<64-char-hex-key>  # Local dev
+# OR
+ENCRYPTION_KEY_SECRET_NAME=payment-platform/encryption-key  # Production (AWS Secrets Manager)
 ```
+
+### Credential Encryption
+
+Integration credentials (API keys, secrets, PII) are encrypted using AES-256-GCM before storage.
+
+**CRITICAL: Set Encryption Key BEFORE Adding Integrations**
+
+The server will **fail to start** without a valid encryption key. This prevents accidental storage of credentials without proper encryption.
+
+**Key Loading Priority:**
+1. **AWS Secrets Manager** (production) - Set `ENCRYPTION_KEY_SECRET_NAME`
+2. **Environment Variable** (local dev) - Set `INTEGRATION_ENCRYPTION_KEY`
+
+**Note:** The server will **fail to start** if no encryption key is configured. There is no fallback.
+
+**First-Time Setup (REQUIRED before adding integrations):**
+```bash
+# 1. Generate a key
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 2. Add to apps/api/.env (local development)
+INTEGRATION_ENCRYPTION_KEY=<paste-64-char-hex-key-here>
+
+# 3. Restart the server - verify you see this log message:
+# "Encryption key loaded from environment variable"
+```
+
+**AWS Secrets Manager Setup (Production):**
+```bash
+# Create the secret in AWS
+aws secretsmanager create-secret \
+  --name payment-platform/encryption-key \
+  --secret-string '{"INTEGRATION_ENCRYPTION_KEY":"<your-64-char-hex-key>"}'
+
+# Set in .env or container config
+ENCRYPTION_KEY_SECRET_NAME=payment-platform/encryption-key
+AWS_REGION=us-east-1
+```
+
+**IMPORTANT:**
+- Never commit encryption keys to git
+- Changing the key invalidates all existing encrypted credentials
+- Back up the key securely - losing it means re-entering all integration credentials
+
+**Key file:** `apps/api/src/integrations/services/credential-encryption.service.ts`
 
 ---
 

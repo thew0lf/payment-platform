@@ -12,6 +12,7 @@
 export enum PaymentProviderType {
   PAYFLOW = 'PAYFLOW',
   PAYPAL_REST = 'PAYPAL_REST',
+  PAYPAL_CLASSIC = 'PAYPAL_CLASSIC',  // Legacy NVP API
   NMI = 'NMI',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
@@ -202,9 +203,17 @@ export interface PayPalRestCredentials {
   environment: 'sandbox' | 'production';
 }
 
+export interface PayPalClassicCredentials {
+  apiUsername: string;
+  apiPassword: string;
+  apiSignature: string;
+  environment: 'sandbox' | 'production';
+}
+
 export type ProviderCredentials =
   | PayflowCredentials
   | PayPalRestCredentials
+  | PayPalClassicCredentials
   | NMICredentials
   | AuthorizeNetCredentials;
 

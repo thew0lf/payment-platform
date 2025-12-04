@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
-  <rect width="80" height="80" rx="8" fill="#232F3E"/>
-  <path d="M25 28L40 22L55 28V52L40 58L25 52V28Z" fill="#569A31"/>
-  <path d="M40 22V40L55 34V28L40 22Z" fill="#8BC34A"/>
-  <path d="M25 28V34L40 40V22L25 28Z" fill="#4CAF50"/>
-  <path d="M40 40V58L55 52V34L40 40Z" fill="#7CB342"/>
-  <path d="M25 34V52L40 58V40L25 34Z" fill="#558B2F"/>
-  <ellipse cx="40" cy="40" rx="8" ry="4" fill="white" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <rect width="48" height="48" rx="8" fill="#232F3E"/>
+  <path d="M14 16L24 11L34 16V32L24 37L14 32V16Z" fill="#569A31"/>
+  <path d="M24 11V24L34 19V16L24 11Z" fill="#8BC34A"/>
+  <path d="M14 16V19L24 24V11L14 16Z" fill="#4CAF50"/>
+  <path d="M24 24V37L34 32V19L24 24Z" fill="#7CB342"/>
+  <path d="M14 19V32L24 37V24L14 19Z" fill="#558B2F"/>
+  <ellipse cx="24" cy="24" rx="5" ry="2.5" fill="white" opacity="0.9"/>
 </svg>

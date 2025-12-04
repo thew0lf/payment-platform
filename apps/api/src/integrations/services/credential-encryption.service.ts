@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import * as crypto from 'crypto';
 import { EncryptedCredentials, IntegrationCredentials } from '../types/integration.types';
 
@@ -12,25 +13,70 @@ export class CredentialEncryptionService implements OnModuleInit {
   private readonly authTagLength = 16;
   private encryptionKey: Buffer;
   private currentKeyVersion = 1;
+  private secretsClient: SecretsManagerClient;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    const region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
+    this.secretsClient = new SecretsManagerClient({ region });
+  }
 
   async onModuleInit() {
     await this.loadEncryptionKey();
   }
 
   private async loadEncryptionKey(): Promise<void> {
+    // Priority 1: Try AWS Secrets Manager (production)
+    const secretName = this.configService.get<string>('ENCRYPTION_KEY_SECRET_NAME');
+    if (secretName) {
+      try {
+        const keyHex = await this.fetchFromSecretsManager(secretName);
+        if (keyHex && keyHex.length === 64) {
+          this.encryptionKey = Buffer.from(keyHex, 'hex');
+          this.logger.log('Encryption key loaded from AWS Secrets Manager');
+          return;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to fetch from Secrets Manager: ${error.message}. Falling back to env var.`);
+      }
+    }
+
+    // Priority 2: Environment variable (local dev / fallback)
     const keyHex = this.configService.get<string>('INTEGRATION_ENCRYPTION_KEY');
-    if (!keyHex) {
-      this.logger.warn('INTEGRATION_ENCRYPTION_KEY not set. Generating temp key. DO NOT USE IN PRODUCTION!');
-      this.encryptionKey = crypto.randomBytes(this.keyLength);
+    if (keyHex) {
+      if (keyHex.length !== 64) {
+        throw new Error('INTEGRATION_ENCRYPTION_KEY must be 64 hex characters');
+      }
+      this.encryptionKey = Buffer.from(keyHex, 'hex');
+      this.logger.log('Encryption key loaded from environment variable');
       return;
     }
-    if (keyHex.length !== 64) {
-      throw new Error('INTEGRATION_ENCRYPTION_KEY must be 64 hex characters');
+
+    // No encryption key configured - fail hard
+    throw new Error(
+      'INTEGRATION_ENCRYPTION_KEY is required. ' +
+      'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))" ' +
+      'and add it to apps/api/.env'
+    );
+  }
+
+  private async fetchFromSecretsManager(secretName: string): Promise<string | null> {
+    try {
+      const command = new GetSecretValueCommand({ SecretId: secretName });
+      const response = await this.secretsClient.send(command);
+
+      if (response.SecretString) {
+        // Support both plain string and JSON format
+        try {
+          const parsed = JSON.parse(response.SecretString);
+          return parsed.INTEGRATION_ENCRYPTION_KEY || parsed.key || response.SecretString;
+        } catch {
+          return response.SecretString;
+        }
+      }
+      return null;
+    } catch (error) {
+      throw error;
     }
-    this.encryptionKey = Buffer.from(keyHex, 'hex');
-    this.logger.log('Encryption key loaded');
   }
 
   encrypt(credentials: IntegrationCredentials): EncryptedCredentials {

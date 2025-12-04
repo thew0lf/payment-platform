@@ -1,18 +1,20 @@
-FROM node:18-alpine
+FROM node:18-alpine3.18
+
+# Install dependencies for native modules (bcrypt) and health checks
+# Using Alpine 3.18 which has OpenSSL 1.1.x built-in (compatible with Prisma)
+RUN apk add --no-cache python3 make g++ wget openssl
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
-COPY . .
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000
+
+# Use entrypoint to handle npm install on first run
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Start development server with hot reload
 CMD ["npm", "run", "dev"]

@@ -219,21 +219,61 @@ export class CloudinaryService {
     latencyMs?: number;
   }> {
     const startTime = Date.now();
+
+    // Validate credentials are provided
+    if (!credentials.cloudName || !credentials.apiKey || !credentials.apiSecret) {
+      return {
+        success: false,
+        message: 'Missing required credentials: cloudName, apiKey, and apiSecret are required',
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
     this.configure(credentials);
 
     try {
-      // Ping Cloudinary API
-      await cloudinary.api.ping();
+      // Ping Cloudinary API - returns { status: 'ok' } on success
+      const result = await cloudinary.api.ping();
+
+      if (result && result.status === 'ok') {
+        return {
+          success: true,
+          message: 'Successfully connected to Cloudinary (processing-only mode)',
+          latencyMs: Date.now() - startTime,
+        };
+      }
 
       return {
-        success: true,
-        message: 'Successfully connected to Cloudinary (processing-only mode)',
+        success: false,
+        message: 'Cloudinary ping returned unexpected response',
         latencyMs: Date.now() - startTime,
       };
     } catch (error: any) {
+      this.logger.error('Cloudinary test connection error:', JSON.stringify(error, null, 2));
+
+      // Cloudinary errors can be in different formats
+      let errorMessage = 'Invalid credentials or network error';
+
+      if (typeof error === 'object' && error !== null) {
+        // Check various error structures
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else if (error.error?.http_code === 401) {
+          errorMessage = 'Invalid API key or secret';
+        } else if (error.http_code === 401) {
+          errorMessage = 'Invalid API key or secret';
+        } else if (error.error) {
+          errorMessage = typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
       return {
         success: false,
-        message: `Connection failed: ${error.message}`,
+        message: `Connection failed: ${errorMessage}`,
         latencyMs: Date.now() - startTime,
       };
     }

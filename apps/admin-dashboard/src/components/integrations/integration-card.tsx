@@ -19,7 +19,7 @@ interface IntegrationCardProps {
   integration: Integration;
   isPlatformView?: boolean;
   onTest?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (integration: Integration) => void;
   onConfigureSharing?: (integration: PlatformIntegration) => void;
   onSetDefault?: (id: string) => void;
 }
@@ -34,6 +34,12 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     gradient: 'from-[#003087] to-[#009cde]',
   },
   [IntegrationProvider.PAYPAL_REST]: {
+    icon: 'PP',
+    iconUrl: '/integrations/paypal.svg',
+    bgColor: 'bg-[#003087]',
+    gradient: 'from-[#003087] to-[#009cde]',
+  },
+  [IntegrationProvider.PAYPAL_CLASSIC]: {
     icon: 'PP',
     iconUrl: '/integrations/paypal.svg',
     bgColor: 'bg-[#003087]',
@@ -97,6 +103,7 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
   },
   [IntegrationProvider.AWS_SNS]: {
     icon: 'SNS',
+    iconUrl: '/integrations/aws-sns.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
@@ -186,27 +193,46 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
   // Monitoring
   [IntegrationProvider.DATADOG]: {
     icon: 'DD',
+    iconUrl: '/integrations/datadog.svg',
     bgColor: 'bg-[#632CA6]',
     gradient: 'from-[#632CA6] to-[#9B59D0]',
   },
   [IntegrationProvider.SENTRY]: {
     icon: 'ST',
+    iconUrl: '/integrations/sentry.svg',
     bgColor: 'bg-[#362D59]',
     gradient: 'from-[#362D59] to-[#6C5FC7]',
   },
   [IntegrationProvider.CLOUDWATCH]: {
     icon: 'CW',
+    iconUrl: '/integrations/cloudwatch.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
   // Feature Flags
   [IntegrationProvider.LAUNCHDARKLY]: {
     icon: 'LD',
+    iconUrl: '/integrations/launchdarkly.svg',
     bgColor: 'bg-[#405BFF]',
     gradient: 'from-[#405BFF] to-[#7B8CFF]',
   },
   [IntegrationProvider.AWS_APPCONFIG]: {
     icon: 'AC',
+    iconUrl: '/integrations/aws-appconfig.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // CDN
+  [IntegrationProvider.AWS_CLOUDFRONT]: {
+    icon: 'CF',
+    iconUrl: '/integrations/aws-cloudfront.svg',
+    bgColor: 'bg-[#232F3E]',
+    gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // DNS
+  [IntegrationProvider.AWS_ROUTE53]: {
+    icon: 'R53',
+    iconUrl: '/integrations/aws-route53.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
@@ -221,12 +247,20 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.COMMUNICATION]: 'Communication',
   [IntegrationCategory.ANALYTICS]: 'Analytics',
   [IntegrationCategory.OAUTH]: 'Connected Services',
-  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email',
+  [IntegrationCategory.EMAIL_TRANSACTIONAL]: 'Email (Transactional)',
+  [IntegrationCategory.EMAIL_MARKETING]: 'Email (Marketing)',
   [IntegrationCategory.SMS]: 'SMS',
+  [IntegrationCategory.VOICE]: 'Voice',
+  [IntegrationCategory.PUSH_NOTIFICATION]: 'Push Notifications',
   [IntegrationCategory.AI_ML]: 'AI & Machine Learning',
   [IntegrationCategory.STORAGE]: 'Storage',
   [IntegrationCategory.IMAGE_PROCESSING]: 'Image Processing',
   [IntegrationCategory.VIDEO_GENERATION]: 'Video Generation',
+  [IntegrationCategory.CDN]: 'CDN',
+  [IntegrationCategory.DNS]: 'DNS',
+  [IntegrationCategory.MONITORING]: 'Monitoring',
+  [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
+  [IntegrationCategory.WEBHOOK]: 'Webhooks',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {
@@ -367,7 +401,7 @@ export function IntegrationCard({
                     <div className="border-t border-zinc-700" />
                     <button
                       onClick={() => {
-                        onDelete(integration.id);
+                        onDelete(integration);
                         setShowMenu(false);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-zinc-700"

@@ -3,6 +3,12 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import * as crypto from 'crypto';
+
+// Polyfill globalThis.crypto for Node.js 18 (required by some dependencies)
+if (!globalThis.crypto) {
+  globalThis.crypto = crypto.webcrypto as Crypto;
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -59,8 +65,10 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api');
+  // Global prefix (exclude health endpoint for Docker healthchecks)
+  app.setGlobalPrefix('api', {
+    exclude: ['health'],
+  });
 
   const port = process.env.API_PORT || 3001;
   await app.listen(port);

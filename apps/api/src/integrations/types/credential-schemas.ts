@@ -85,6 +85,17 @@ export const PAYPAL_REST_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// PayPal Classic NVP Credential Schema (Legacy)
+export const PAYPAL_CLASSIC_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiUsername', 'apiPassword', 'apiSignature'],
+  properties: {
+    apiUsername: { type: 'string', title: 'API Username', description: 'Your PayPal API Username. Found in PayPal account → Profile → My Selling Tools → API Access → NVP/SOAP API integration → View API Signature.' },
+    apiPassword: { type: 'string', title: 'API Password', format: 'password', description: 'Your PayPal API Password. Generated along with your API credentials. Keep this confidential.' },
+    apiSignature: { type: 'string', title: 'API Signature', format: 'password', description: 'Your PayPal API Signature. A long string used to authenticate API requests. Found in the same location as username.' },
+  },
+};
+
 // AWS Bedrock Credential Schema
 export const AWS_BEDROCK_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -181,6 +192,164 @@ export const AWS_ACM_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════
+// ADDITIONAL AUTHENTICATION PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// Okta Credential Schema
+export const OKTA_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['domain', 'clientId', 'clientSecret'],
+  properties: {
+    domain: { type: 'string', title: 'Okta Domain', description: 'Your Okta organization domain (e.g., dev-123456.okta.com). Found in Admin Console → Settings → Account.' },
+    clientId: { type: 'string', title: 'Client ID', description: 'OAuth 2.0 Client ID from your Okta application. Found in Applications → Your App → General.' },
+    clientSecret: { type: 'string', title: 'Client Secret', format: 'password', description: 'OAuth 2.0 Client Secret. Found in Applications → Your App → General → Client Credentials.' },
+    issuer: { type: 'string', title: 'Issuer URL', description: 'Authorization Server issuer URL. Usually https://your-domain.okta.com/oauth2/default.' },
+  },
+};
+
+// AWS Cognito Credential Schema
+export const AWS_COGNITO_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'userPoolId', 'clientId'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region where your Cognito User Pool is located.' },
+    userPoolId: { type: 'string', title: 'User Pool ID', description: 'Cognito User Pool ID (e.g., us-east-1_xxxxxx). Found in Cognito → User Pools → Your Pool → Pool ID.' },
+    clientId: { type: 'string', title: 'App Client ID', description: 'App Client ID from Cognito. Found in User Pool → App Integration → App Clients.' },
+    clientSecret: { type: 'string', title: 'App Client Secret', format: 'password', description: 'App Client Secret (if enabled). Found in App Client settings.' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL MARKETING PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// SendGrid Credential Schema
+export const SENDGRID_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'SendGrid API Key with Mail Send permissions. Create in Settings → API Keys → Create API Key.' },
+    fromEmail: { type: 'string', title: 'From Email', format: 'email', description: 'Verified sender email address. Must be verified in Sender Authentication.' },
+    fromName: { type: 'string', title: 'From Name', description: 'Default sender name to display in emails.' },
+  },
+};
+
+// Klaviyo Credential Schema
+export const KLAVIYO_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['privateApiKey'],
+  properties: {
+    privateApiKey: { type: 'string', title: 'Private API Key', format: 'password', description: 'Klaviyo Private API Key. Found in Account → Settings → API Keys → Create Private API Key.' },
+    publicApiKey: { type: 'string', title: 'Public API Key', description: 'Klaviyo Public API Key (Site ID) for client-side tracking. Found in Account → Settings → API Keys.' },
+    listId: { type: 'string', title: 'Default List ID', description: 'Default list ID for new subscribers. Found in Lists → Your List → Settings → List ID.' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SMS/VOICE PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// AWS SNS Credential Schema
+export const AWS_SNS_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region for SNS. Choose a region that supports SMS.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with SNS permissions (sns:Publish, sns:SetSMSAttributes).' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created.' },
+    smsType: { type: 'string', title: 'SMS Type', default: 'Transactional', description: 'SMS message type: Transactional (high deliverability) or Promotional (lower cost).' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// AI/ML PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// OpenAI Credential Schema
+export const OPENAI_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'OpenAI API Key. Found in platform.openai.com → API Keys → Create new secret key.' },
+    organizationId: { type: 'string', title: 'Organization ID', description: 'Optional organization ID for API usage tracking. Found in Settings → Organization.' },
+    defaultModel: { type: 'string', title: 'Default Model', default: 'gpt-4-turbo-preview', description: 'Default model for completions (e.g., gpt-4-turbo-preview, gpt-3.5-turbo).' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MONITORING PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// Datadog Credential Schema
+export const DATADOG_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey', 'appKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'Datadog API Key. Found in Organization Settings → API Keys.' },
+    appKey: { type: 'string', title: 'Application Key', format: 'password', description: 'Datadog Application Key. Found in Organization Settings → Application Keys.' },
+    site: { type: 'string', title: 'Datadog Site', default: 'datadoghq.com', description: 'Datadog site (e.g., datadoghq.com, datadoghq.eu, us3.datadoghq.com).' },
+    env: { type: 'string', title: 'Environment', default: 'production', description: 'Environment name for tagging (e.g., production, staging, development).' },
+    service: { type: 'string', title: 'Service Name', default: 'payment-platform', description: 'Service name for APM and logs.' },
+  },
+};
+
+// Sentry Credential Schema
+export const SENTRY_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['dsn'],
+  properties: {
+    dsn: { type: 'string', title: 'DSN', description: 'Sentry Data Source Name. Found in Project Settings → Client Keys (DSN).' },
+    authToken: { type: 'string', title: 'Auth Token', format: 'password', description: 'Sentry Auth Token for release tracking. Found in Settings → Auth Tokens.' },
+    org: { type: 'string', title: 'Organization Slug', description: 'Sentry organization slug. Found in Organization Settings.' },
+    project: { type: 'string', title: 'Project Slug', description: 'Sentry project slug. Found in Project Settings.' },
+    environment: { type: 'string', title: 'Environment', default: 'production', description: 'Environment name for error filtering.' },
+  },
+};
+
+// AWS CloudWatch Credential Schema
+export const AWS_CLOUDWATCH_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region for CloudWatch logs and metrics.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with CloudWatch permissions.' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key.' },
+    logGroupName: { type: 'string', title: 'Log Group Name', default: '/payment-platform', description: 'CloudWatch Log Group name for application logs.' },
+    metricsNamespace: { type: 'string', title: 'Metrics Namespace', default: 'PaymentPlatform', description: 'CloudWatch Metrics namespace for custom metrics.' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURE FLAGS PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// LaunchDarkly Credential Schema
+export const LAUNCHDARKLY_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'Access Token', format: 'password', description: 'LaunchDarkly Access Token (API Key) for testing connections. Found in Account Settings → Authorization → Access Tokens. Create a token with "Reader" role.' },
+    sdkKey: { type: 'string', title: 'SDK Key', format: 'password', description: 'LaunchDarkly SDK Key for your environment. Found in Account Settings → Projects → Your Project → Environments.' },
+    clientSideId: { type: 'string', title: 'Client-side ID', description: 'Client-side ID for frontend flag evaluation. Found in same location as SDK Key.' },
+    mobileKey: { type: 'string', title: 'Mobile Key', description: 'Mobile SDK Key for React Native/mobile apps. Found in same location as SDK Key.' },
+  },
+};
+
+// AWS AppConfig Credential Schema
+export const AWS_APPCONFIG_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['region', 'accessKeyId', 'secretAccessKey', 'applicationId', 'environmentId', 'configurationProfileId'],
+  properties: {
+    region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region for AppConfig.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with AppConfig permissions.' },
+    secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key.' },
+    applicationId: { type: 'string', title: 'Application ID', description: 'AppConfig Application ID. Found in AppConfig → Applications.' },
+    environmentId: { type: 'string', title: 'Environment ID', description: 'AppConfig Environment ID. Found in your Application → Environments.' },
+    configurationProfileId: { type: 'string', title: 'Configuration Profile ID', description: 'Configuration Profile ID for your feature flags.' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -192,27 +361,57 @@ export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
 };
 
 export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialSchema>> = {
+  // Payment Gateways
   [IntegrationProvider.PAYPAL_PAYFLOW]: PAYFLOW_CREDENTIAL_SCHEMA,
   [IntegrationProvider.PAYPAL_REST]: PAYPAL_REST_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.PAYPAL_CLASSIC]: PAYPAL_CLASSIC_CREDENTIAL_SCHEMA,
   [IntegrationProvider.NMI]: NMI_CREDENTIAL_SCHEMA,
   [IntegrationProvider.AUTHORIZE_NET]: AUTHORIZE_NET_CREDENTIAL_SCHEMA,
   [IntegrationProvider.STRIPE]: STRIPE_CREDENTIAL_SCHEMA,
+
+  // Authentication providers
   [IntegrationProvider.AUTH0]: AUTH0_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.OKTA]: OKTA_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.COGNITO]: AWS_COGNITO_CREDENTIAL_SCHEMA,
+
+  // Email providers
   [IntegrationProvider.AWS_SES]: AWS_SES_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.SENDGRID]: SENDGRID_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.KLAVIYO]: KLAVIYO_CREDENTIAL_SCHEMA,
+
+  // SMS providers
   [IntegrationProvider.TWILIO]: TWILIO_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.AWS_SNS]: AWS_SNS_CREDENTIAL_SCHEMA,
+
   // AI/ML providers
   [IntegrationProvider.AWS_BEDROCK]: AWS_BEDROCK_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.OPENAI]: OPENAI_CREDENTIAL_SCHEMA,
   [IntegrationProvider.LANGUAGETOOL]: LANGUAGETOOL_CREDENTIAL_SCHEMA,
+
   // Storage providers
   [IntegrationProvider.AWS_S3]: AWS_S3_CREDENTIAL_SCHEMA,
+
   // CDN providers
   [IntegrationProvider.AWS_CLOUDFRONT]: AWS_CLOUDFRONT_CREDENTIAL_SCHEMA,
+
   // DNS providers
   [IntegrationProvider.AWS_ROUTE53]: AWS_ROUTE53_CREDENTIAL_SCHEMA,
+
   // Image Processing providers
   [IntegrationProvider.CLOUDINARY]: CLOUDINARY_CREDENTIAL_SCHEMA,
+
   // Video Generation providers
   [IntegrationProvider.RUNWAY]: RUNWAY_CREDENTIAL_SCHEMA,
+
+  // Monitoring providers
+  [IntegrationProvider.DATADOG]: DATADOG_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.SENTRY]: SENTRY_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.CLOUDWATCH]: AWS_CLOUDWATCH_CREDENTIAL_SCHEMA,
+
+  // Feature Flags providers
+  [IntegrationProvider.LAUNCHDARKLY]: LAUNCHDARKLY_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.AWS_APPCONFIG]: AWS_APPCONFIG_CREDENTIAL_SCHEMA,
+
   // OAuth providers use OAUTH_APP_CREDENTIAL_SCHEMA for app configuration
   [IntegrationProvider.GOOGLE]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.MICROSOFT]: OAUTH_APP_CREDENTIAL_SCHEMA,

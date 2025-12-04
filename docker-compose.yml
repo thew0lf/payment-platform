@@ -1,55 +1,77 @@
-version: '3.8'
+name: avnz-payment-platform
+
 services:
   # Core Application Services
   api:
-    build: 
+    container_name: avnz-payment-api
+    build:
       context: ./apps/api
       dockerfile: Dockerfile.dev
     ports:
       - "3001:3000"
+    env_file:
+      - ./apps/api/.env
     environment:
       - NODE_ENV=development
+      - API_PORT=3000
       - DATABASE_URL=postgresql://postgres:password@postgres:5432/payment_platform
       - REDIS_URL=redis://redis:6379
     volumes:
       - ./apps/api:/app
-      - /app/node_modules
+      - api_node_modules:/app/node_modules
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
-      - payment-platform
+      - avnz-payment-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   admin-dashboard:
+    container_name: avnz-payment-admin
     build:
       context: ./apps/admin-dashboard
       dockerfile: Dockerfile.dev
     ports:
-      - "3002:3000"
+      - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
     volumes:
       - ./apps/admin-dashboard:/app
       - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
     networks:
-      - payment-platform
+      - avnz-payment-network
 
   company-portal:
+    container_name: avnz-payment-portal
     build:
       context: ./apps/company-portal
       dockerfile: Dockerfile.dev
     ports:
       - "3003:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
     volumes:
       - ./apps/company-portal:/app
       - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
     networks:
-      - payment-platform
+      - avnz-payment-network
 
   # Data Services
   postgres:
+    container_name: avnz-payment-postgres
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=postgres
@@ -60,19 +82,27 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - payment-platform
+      - avnz-payment-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
+    container_name: avnz-payment-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - payment-platform
+      - avnz-payment-network
+    command: redis-server --appendonly yes
 
   # Development Tools
   pgadmin:
+    container_name: avnz-payment-pgadmin
     image: dpage/pgadmin4:latest
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@paymentplatform.dev
@@ -82,9 +112,12 @@ services:
     depends_on:
       - postgres
     networks:
-      - payment-platform
+      - avnz-payment-network
+    profiles:
+      - tools
 
   redis-commander:
+    container_name: avnz-payment-redis-commander
     image: rediscommander/redis-commander:latest
     environment:
       - REDIS_HOSTS=local:redis:6379
@@ -93,12 +126,38 @@ services:
     depends_on:
       - redis
     networks:
-      - payment-platform
+      - avnz-payment-network
+    profiles:
+      - tools
+
+  # Prisma Studio for DB management
+  prisma-studio:
+    container_name: avnz-payment-prisma-studio
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/payment_platform
+    volumes:
+      - ./apps/api/prisma:/app/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - avnz-payment-network
+    command: npx prisma studio --port 5555 --browser none
+    profiles:
+      - tools
 
 volumes:
   postgres_data:
   redis_data:
+  api_node_modules:
 
 networks:
-  payment-platform:
+  avnz-payment-network:
     driver: bridge
