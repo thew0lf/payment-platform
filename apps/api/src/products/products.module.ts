@@ -8,6 +8,7 @@ import { IntegrationsModule } from '../integrations/integrations.module';
 
 // Controllers
 import { ProductsController } from './products.controller';
+import { PublicProductsController } from './controllers/public-products.controller';
 import { CategoryController } from './controllers/category.controller';
 import { TagController } from './controllers/tag.controller';
 import { CollectionController } from './controllers/collection.controller';
@@ -44,6 +45,7 @@ import { PriceRuleService } from './services/price-rule.service';
   ],
   controllers: [
     // More specific routes must come FIRST to avoid being caught by :id param
+    PublicProductsController, // Public endpoints (no auth) - must be before ProductsController
     CategoryController,
     TagController,
     CollectionController,

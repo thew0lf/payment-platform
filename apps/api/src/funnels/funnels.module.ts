@@ -1,12 +1,25 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { FunnelsController, PublicFunnelController } from './funnels.controller';
-import { FunnelsService, FunnelSessionsService, FunnelAnalyticsService } from './services';
+import { FunnelTemplatesController } from './funnel-templates.controller';
+import { FunnelsService, FunnelSessionsService, FunnelAnalyticsService, FunnelTemplatesService } from './services';
+import { FunnelPaymentService } from './services/funnel-payment.service';
+import { FunnelPricingService } from './services/funnel-pricing.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { CardVaultModule } from '../card-vault/card-vault.module';
+import { PaymentsModule } from '../payments/payments.module';
+import { OrdersModule } from '../orders/orders.module';
+import { LeadsModule } from '../leads/leads.module';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [FunnelsController, PublicFunnelController],
-  providers: [FunnelsService, FunnelSessionsService, FunnelAnalyticsService],
-  exports: [FunnelsService, FunnelSessionsService, FunnelAnalyticsService],
+  imports: [
+    PrismaModule,
+    CardVaultModule,
+    forwardRef(() => PaymentsModule),
+    forwardRef(() => OrdersModule),
+    LeadsModule,
+  ],
+  controllers: [FunnelsController, PublicFunnelController, FunnelTemplatesController],
+  providers: [FunnelsService, FunnelSessionsService, FunnelAnalyticsService, FunnelPaymentService, FunnelPricingService, FunnelTemplatesService],
+  exports: [FunnelsService, FunnelSessionsService, FunnelAnalyticsService, FunnelPaymentService, FunnelPricingService, FunnelTemplatesService],
 })
 export class FunnelsModule {}

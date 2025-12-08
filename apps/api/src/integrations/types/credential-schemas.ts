@@ -151,7 +151,7 @@ export const RUNWAY_CREDENTIAL_SCHEMA: CredentialSchema = {
   required: ['apiKey'],
   properties: {
     apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'Runway API key from your account settings. Found in Runway Dashboard → Settings → API Keys.' },
-    apiVersion: { type: 'string', title: 'API Version', default: '2024-09-13', description: 'Runway API version to use. Use latest version unless you need compatibility with older features.' },
+    apiVersion: { type: 'string', title: 'API Version', default: '2024-11-06', description: 'Runway API version to use. Use latest version unless you need compatibility with older features.' },
   },
 };
 
@@ -350,6 +350,20 @@ export const AWS_APPCONFIG_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════
+// DEPLOYMENT PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// Vercel Credential Schema
+export const VERCEL_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiToken'],
+  properties: {
+    apiToken: { type: 'string', title: 'API Token', format: 'password', description: 'Vercel API Token. Create in Vercel Dashboard → Account Settings → Tokens → Create.' },
+    teamId: { type: 'string', title: 'Team ID (Optional)', description: 'Team ID for team deployments. Found in Team Settings → General → Team ID. Leave empty for personal account.' },
+  },
+};
+
 // OAuth Provider Credential Schema (for configuring the OAuth app - admin only)
 export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   type: 'object',
@@ -357,6 +371,30 @@ export const OAUTH_APP_CREDENTIAL_SCHEMA: CredentialSchema = {
   properties: {
     clientId: { type: 'string', title: 'Client ID', description: 'OAuth application Client ID. Create an OAuth app in the provider\'s developer console and copy the Client ID.' },
     clientSecret: { type: 'string', title: 'Client Secret', format: 'password', description: 'OAuth application Client Secret. Keep this confidential. Generated when creating the OAuth app.' },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LOCATION SERVICES PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// Google Places Credential Schema
+export const GOOGLE_PLACES_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: {
+      type: 'string',
+      title: 'API Key',
+      format: 'password',
+      description: 'Google Places API Key. Create in Google Cloud Console → APIs & Services → Credentials → Create Credentials → API Key. Enable "Places API" and "Geocoding API" for the key.',
+    },
+    sessionTokenTTL: {
+      type: 'number',
+      title: 'Session Token TTL (seconds)',
+      default: 180,
+      description: 'How long session tokens are valid (default: 180 seconds / 3 minutes). Sessions bundle autocomplete requests for billing. Lower values = more sessions = higher cost.',
+    },
   },
 };
 
@@ -412,6 +450,9 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   [IntegrationProvider.LAUNCHDARKLY]: LAUNCHDARKLY_CREDENTIAL_SCHEMA,
   [IntegrationProvider.AWS_APPCONFIG]: AWS_APPCONFIG_CREDENTIAL_SCHEMA,
 
+  // Deployment providers
+  [IntegrationProvider.VERCEL]: VERCEL_CREDENTIAL_SCHEMA,
+
   // OAuth providers use OAUTH_APP_CREDENTIAL_SCHEMA for app configuration
   [IntegrationProvider.GOOGLE]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.MICROSOFT]: OAUTH_APP_CREDENTIAL_SCHEMA,
@@ -419,4 +460,7 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   [IntegrationProvider.HUBSPOT]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.SALESFORCE]: OAUTH_APP_CREDENTIAL_SCHEMA,
   [IntegrationProvider.QUICKBOOKS]: OAUTH_APP_CREDENTIAL_SCHEMA,
+
+  // Location Services providers
+  [IntegrationProvider.GOOGLE_PLACES]: GOOGLE_PLACES_CREDENTIAL_SCHEMA,
 };

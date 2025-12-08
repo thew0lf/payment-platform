@@ -48,6 +48,7 @@ Senior developer review of a product ticket before implementation. Use: `/featur
 payment-platform/
 ├── apps/
 │   ├── api/                 # NestJS backend (port 3001)
+│   ├── founders-landing/    # Coming soon page (founders.avnz.io)
 │   └── admin-dashboard/     # Next.js 14 frontend (port 3000)
 ├── packages/
 │   └── shared/              # Shared types and utilities

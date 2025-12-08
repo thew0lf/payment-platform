@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { Plus, Plug, RefreshCw, AlertCircle, Search, LayoutGrid, List, Filter, X, MoreVertical, TestTube, Share2, Trash2, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { Plus, Plug, RefreshCw, AlertCircle, Search, LayoutGrid, List, Filter, X, MoreVertical, TestTube, Share2, Trash2, CheckCircle, XCircle, Clock, Loader2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 import {
   integrationsApi,
   PlatformIntegration,
+  ClientIntegration,
   IntegrationDefinition,
   IntegrationCategory,
   IntegrationProvider,
@@ -17,6 +18,7 @@ import {
 import {
   IntegrationCard,
   AddIntegrationModal,
+  EditIntegrationModal,
   ConfigureSharingModal,
 } from '@/components/integrations';
 
@@ -40,6 +42,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.MONITORING]: 'Monitoring',
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
+  [IntegrationCategory.DEPLOYMENT]: 'Deployment',
 };
 
 const statusOptions = [
@@ -62,6 +65,7 @@ const providerConfig: Record<string, { iconUrl?: string; bgColor: string; gradie
   [IntegrationProvider.OPENAI]: { iconUrl: '/integrations/openai.svg', bgColor: 'bg-[#10A37F]', gradient: 'from-[#10A37F] to-[#1ED9A4]' },
   [IntegrationProvider.TWILIO]: { iconUrl: '/integrations/twilio.svg', bgColor: 'bg-[#F22F46]', gradient: 'from-[#F22F46] to-[#FF5A6E]' },
   [IntegrationProvider.SENDGRID]: { iconUrl: '/integrations/sendgrid.svg', bgColor: 'bg-[#1A82E2]', gradient: 'from-[#1A82E2] to-[#4DA3FF]' },
+  [IntegrationProvider.VERCEL]: { iconUrl: '/integrations/vercel.svg', bgColor: 'bg-[#000000]', gradient: 'from-[#000000] to-[#333333]' },
 };
 
 type ViewMode = 'card' | 'table';
@@ -73,6 +77,7 @@ export default function PlatformIntegrationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<PlatformIntegration | null>(null);
   const [sharingModalIntegration, setSharingModalIntegration] = useState<PlatformIntegration | null>(null);
   const [integrationToDelete, setIntegrationToDelete] = useState<PlatformIntegration | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -179,8 +184,11 @@ export default function PlatformIntegrationsPage() {
     }
   };
 
-  const handleDeleteIntegration = (integration: PlatformIntegration) => {
-    setIntegrationToDelete(integration);
+  const handleDeleteIntegration = (integration: PlatformIntegration | ClientIntegration) => {
+    // Only handle platform integrations in this view
+    if ('isSharedWithClients' in integration) {
+      setIntegrationToDelete(integration);
+    }
   };
 
   const confirmDelete = async () => {
@@ -201,6 +209,26 @@ export default function PlatformIntegrationsPage() {
   const handleConfigureSharing = async (data: Parameters<typeof integrationsApi.configureSharing>[1]) => {
     if (!sharingModalIntegration) return;
     await integrationsApi.configureSharing(sharingModalIntegration.id, data);
+    await loadData();
+  };
+
+  const handleEditIntegration = (integration: PlatformIntegration | ClientIntegration) => {
+    // Only handle platform integrations in this view
+    if ('isSharedWithClients' in integration) {
+      setEditingIntegration(integration);
+    }
+  };
+
+  const handleUpdateIntegration = async (id: string, data: {
+    name?: string;
+    description?: string;
+    credentials?: Record<string, string>;
+    environment?: string;
+    isSharedWithClients?: boolean;
+    clientPricing?: { type: string; amount: number; percentage?: number };
+  }) => {
+    await integrationsApi.updatePlatformIntegration(id, data);
+    toast.success('Integration updated successfully');
     await loadData();
   };
 
@@ -442,6 +470,7 @@ export default function PlatformIntegrationsPage() {
                       integration={integration}
                       isPlatformView
                       onTest={handleTestIntegration}
+                      onEdit={handleEditIntegration}
                       onDelete={handleDeleteIntegration}
                       onConfigureSharing={(int) => setSharingModalIntegration(int)}
                     />
@@ -524,6 +553,13 @@ export default function PlatformIntegrationsPage() {
                         <TestTube className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => handleEditIntegration(integration)}
+                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => setSharingModalIntegration(integration)}
                         className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
                         title="Configure sharing"
@@ -553,6 +589,16 @@ export default function PlatformIntegrationsPage() {
         definitions={definitions}
         isPlatformView
         onSubmit={handleCreateIntegration}
+      />
+
+      {/* Edit Integration Modal */}
+      <EditIntegrationModal
+        isOpen={!!editingIntegration}
+        onClose={() => setEditingIntegration(null)}
+        integration={editingIntegration}
+        definition={editingIntegration ? definitions.find(d => d.provider === editingIntegration.provider) : undefined}
+        isPlatformView
+        onSubmit={handleUpdateIntegration}
       />
 
       {/* Configure Sharing Modal */}

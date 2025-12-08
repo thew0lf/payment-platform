@@ -513,7 +513,7 @@ export default function ReviewsPage() {
               <button
                 onClick={async () => {
                   setProcessingAction('bulk');
-                  for (const id of selectedReviews) {
+                  for (const id of Array.from(selectedReviews)) {
                     await handleApprove(id);
                   }
                   setSelectedReviews(new Set());
@@ -528,7 +528,7 @@ export default function ReviewsPage() {
               <button
                 onClick={async () => {
                   setProcessingAction('bulk');
-                  for (const id of selectedReviews) {
+                  for (const id of Array.from(selectedReviews)) {
                     await handleReject(id);
                   }
                   setSelectedReviews(new Set());

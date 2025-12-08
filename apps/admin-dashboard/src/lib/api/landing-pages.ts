@@ -22,6 +22,7 @@ export type LandingPageHosting = 'PLATFORM' | 'CLIENT';
 export type DomainSslStatus = 'PENDING' | 'VALIDATING' | 'ACTIVE' | 'FAILED' | 'EXPIRED';
 
 export type SectionType =
+  // Base types
   | 'HERO'
   | 'FEATURES'
   | 'ABOUT'
@@ -40,7 +41,45 @@ export type SectionType =
   | 'SPACER'
   | 'DIVIDER'
   | 'HEADER'
-  | 'FOOTER';
+  | 'FOOTER'
+  // Hero variants
+  | 'HERO_CENTERED'
+  | 'HERO_SPLIT'
+  | 'HERO_VIDEO'
+  | 'HERO_CAROUSEL'
+  // Features variants
+  | 'FEATURES_GRID'
+  | 'FEATURES_LIST'
+  | 'FEATURES_ICONS'
+  // About variants
+  | 'ABOUT_STORY'
+  | 'ABOUT_TEAM'
+  | 'ABOUT_TIMELINE'
+  // Testimonials variants
+  | 'TESTIMONIALS_CARDS'
+  | 'TESTIMONIALS_CAROUSEL'
+  | 'TESTIMONIALS_WALL'
+  // Logos variants
+  | 'LOGOS_STRIP'
+  // Stats variants
+  | 'STATS_COUNTER'
+  // Pricing variants
+  | 'PRICING_TABLE'
+  | 'PRICING_COMPARISON'
+  // Products variants
+  | 'PRODUCTS_GRID'
+  | 'PRODUCTS_CAROUSEL'
+  // CTA variants
+  | 'CTA_BANNER'
+  | 'CTA_SPLIT'
+  // FAQ variants
+  | 'FAQ_ACCORDION'
+  | 'FAQ_GRID'
+  // Gallery variants
+  | 'GALLERY_GRID'
+  | 'GALLERY_MASONRY'
+  // Video variants
+  | 'VIDEO_EMBED';
 
 export interface ColorScheme {
   primary: string;

@@ -270,16 +270,35 @@ export class CreateSessionDto {
   userAgent?: string;
 }
 
+// Product item for session selection
+export class SelectedProductDto {
+  @IsString()
+  productId: string;
+
+  @IsString()
+  @IsOptional()
+  variantId?: string;
+
+  @IsNumber()
+  quantity: number;
+
+  @IsNumber()
+  price: number;
+
+  @IsString()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  sku?: string;
+}
+
 export class UpdateSessionDto {
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedProductDto)
   @IsOptional()
-  selectedProducts?: {
-    productId: string;
-    variantId?: string;
-    quantity: number;
-    price: number;
-    name: string;
-  }[];
+  selectedProducts?: SelectedProductDto[];
 
   @IsObject()
   @IsOptional()

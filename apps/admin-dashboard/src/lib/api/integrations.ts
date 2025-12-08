@@ -39,6 +39,8 @@ export enum IntegrationProvider {
   // Feature Flags
   LAUNCHDARKLY = 'LAUNCHDARKLY',
   AWS_APPCONFIG = 'AWS_APPCONFIG',
+  // Deployment
+  VERCEL = 'VERCEL',
   // OAuth Providers
   GOOGLE = 'GOOGLE',
   MICROSOFT = 'MICROSOFT',
@@ -68,6 +70,7 @@ export enum IntegrationCategory {
   MONITORING = 'MONITORING',
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
+  DEPLOYMENT = 'DEPLOYMENT',
 }
 
 export enum IntegrationStatus {

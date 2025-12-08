@@ -440,14 +440,33 @@ export class IntegrationDefinitionService implements OnModuleInit {
         provider: IntegrationProvider.RUNWAY,
         category: IntegrationCategory.VIDEO_GENERATION,
         name: 'Runway',
-        description: 'Premium AI video generation from images with Gen-2 for cinematic 4K product videos',
+        description: 'Premium AI video generation from images with Gen-3/Gen-4 models for cinematic 4K product videos',
         logoUrl: '/integrations/runway.svg',
-        documentationUrl: 'https://docs.runwayml.com/',
+        documentationUrl: 'https://docs.dev.runwayml.com/',
         isOrgOnly: false,
         isClientAllowed: true,
         isPlatformOffered: true,
         authType: AuthType.API_KEY,
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.RUNWAY]!,
+        requiredCompliance: [],
+        status: 'active',
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // LOCATION SERVICES
+      // ═══════════════════════════════════════════════════════════════
+      {
+        provider: IntegrationProvider.GOOGLE_PLACES,
+        category: IntegrationCategory.LOCATION_SERVICES,
+        name: 'Google Places',
+        description: 'Google Places API for address autocomplete and place details with session-based billing optimization',
+        logoUrl: '/integrations/google-places.svg',
+        documentationUrl: 'https://developers.google.com/maps/documentation/places/web-service',
+        isOrgOnly: false,
+        isClientAllowed: true,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.GOOGLE_PLACES]!,
         requiredCompliance: [],
         status: 'active',
       },
@@ -533,6 +552,25 @@ export class IntegrationDefinitionService implements OnModuleInit {
         credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.AWS_APPCONFIG]!,
         requiredCompliance: ['soc2', 'iso27001'],
         status: 'beta',
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // DEPLOYMENT (Org-only)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        provider: IntegrationProvider.VERCEL,
+        category: IntegrationCategory.DEPLOYMENT,
+        name: 'Vercel',
+        description: 'Vercel platform for deployments, serverless functions, and edge network with automatic CI/CD',
+        logoUrl: '/integrations/vercel.svg',
+        documentationUrl: 'https://vercel.com/docs',
+        isOrgOnly: true,
+        isClientAllowed: false,
+        isPlatformOffered: true,
+        authType: AuthType.API_KEY,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.VERCEL]!,
+        requiredCompliance: ['soc2'],
+        status: 'active',
       },
 
       // ═══════════════════════════════════════════════════════════════

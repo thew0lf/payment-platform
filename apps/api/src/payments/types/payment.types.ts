@@ -210,12 +210,20 @@ export interface PayPalClassicCredentials {
   environment: 'sandbox' | 'production';
 }
 
+export interface StripeCredentials {
+  secretKey: string;
+  publishableKey?: string;
+  webhookSecret?: string;
+  environment: 'sandbox' | 'production';  // 'sandbox' = test mode
+}
+
 export type ProviderCredentials =
   | PayflowCredentials
   | PayPalRestCredentials
   | PayPalClassicCredentials
   | NMICredentials
-  | AuthorizeNetCredentials;
+  | AuthorizeNetCredentials
+  | StripeCredentials;
 
 export interface ProviderConfig {
   id: string;

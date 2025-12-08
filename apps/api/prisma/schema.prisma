@@ -80,6 +80,9 @@ model Client {
   subscriptionPlans    SubscriptionPlan[]
   subscriptionSettings SubscriptionSettings?
 
+  // Integration Usage (for billing)
+  integrationUsage IntegrationUsage[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -177,6 +180,19 @@ model Company {
 
   // Funnel Builder
   funnels Funnel[]
+
+  // Lead Management
+  leads Lead[]
+
+  // Card Vault (stored payment methods)
+  cardVaults CardVault[]
+
+  // Integration Usage (for billing)
+  integrationUsage IntegrationUsage[]
+
+  // AI Funnel Generator
+  aiMethodologyTemplates AIMethodologyTemplate[]
+  aiFunnelGenerations    AIFunnelGeneration[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -397,6 +413,12 @@ model Customer {
 
   // Payment Pages
   paymentPageSessions PaymentPageSession[]
+
+  // Lead (source lead that converted to this customer)
+  sourceLead Lead?
+
+  // Card Vault (stored payment methods)
+  cardVaults CardVault[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -4460,6 +4482,7 @@ model PlatformIntegration {
 
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientIntegrations ClientIntegration[]
+  usage              IntegrationUsage[]
 
   @@unique([organizationId, provider])
   @@index([organizationId])
@@ -4497,10 +4520,69 @@ model ClientIntegration {
   client              Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platformIntegration PlatformIntegration? @relation(fields: [platformIntegrationId], references: [id])
   merchantAccount     MerchantAccount?     @relation(fields: [merchantAccountId], references: [id])
+  usage               IntegrationUsage[]
 
   @@unique([clientId, provider, name])
   @@index([clientId])
   @@map("client_integrations")
+}
+
+// =============================================================================
+// INTEGRATION USAGE TRACKING
+// Tracks API usage for billing and metering platform-provided integrations
+// =============================================================================
+
+model IntegrationUsage {
+  id String @id @default(cuid())
+
+  // Company context (who made the request and will be billed)
+  companyId String
+  clientId  String
+
+  // Integration reference
+  provider              String // e.g., 'GOOGLE_PLACES'
+  clientIntegrationId   String? // If using client's own integration
+  platformIntegrationId String? // If using platform integration
+
+  // Usage tracking
+  usageType    String    @default("request") // 'request', 'session', 'transaction', etc.
+  sessionToken String? // For session-based billing (e.g., Google Places)
+  requestCount Int       @default(1) // Number of requests in this record
+  timestamp    DateTime  @default(now())
+
+  // Cost tracking
+  baseCostCents    Int    @default(0) // Original API cost in cents
+  markupPercent    Float  @default(40) // Platform markup percentage
+  billableCents    Int    @default(0) // baseCost + markup
+  currency         String @default("USD")
+
+  // Billing status
+  billingPeriod String? // e.g., '2025-12' for December 2025
+  invoiceId     String? // Reference to invoice when billed
+  billedAt      DateTime?
+
+  // Request metadata
+  endpoint     String? // API endpoint called
+  metadata     Json?   // Additional context (request params, etc.)
+  responseCode Int? // HTTP response code
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company             Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client              Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientIntegration   ClientIntegration?   @relation(fields: [clientIntegrationId], references: [id])
+  platformIntegration PlatformIntegration? @relation(fields: [platformIntegrationId], references: [id])
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([provider])
+  @@index([billingPeriod])
+  @@index([sessionToken])
+  @@index([timestamp])
+  @@map("integration_usage")
 }
 
 // =============================================================================
@@ -7529,6 +7611,7 @@ model Funnel {
   sessions        FunnelSession[]
   aiInsights      FunnelAIInsight[]
   abTests         FunnelABTest[]
+  aiGeneration    AIFunnelGeneration?
 
   @@unique([companyId, slug])
   @@index([companyId])
@@ -7612,6 +7695,10 @@ model FunnelSession {
   variantId       String?
   variant         FunnelVariant?      @relation(fields: [variantId], references: [id])
 
+  // Lead Tracking (links anonymous session to identified lead)
+  leadId          String?
+  lead            Lead?               @relation(fields: [leadId], references: [id])
+
   // Progress
   currentStageOrder Int               @default(0)
   completedStages   Int[]             @default([])
@@ -7656,6 +7743,7 @@ model FunnelSession {
 
   @@index([funnelId])
   @@index([variantId])
+  @@index([leadId])
   @@index([status])
   @@index([startedAt])
   @@map("funnel_sessions")
@@ -8264,4 +8352,479 @@ enum CodeReviewCategory {
   DATABASE            // Migrations, transactions, integrity
   API_DESIGN          // RESTful conventions, versioning
   LOGGING             // Log levels, sensitive data protection
+}
+
+// =============================================================================
+// LEAD MANAGEMENT SYSTEM
+// Separate from Customer for pre-conversion tracking with progressive capture
+// =============================================================================
+
+enum LeadStatus {
+  ANONYMOUS       // No identifying info yet
+  IDENTIFIED      // Has email or phone
+  QUALIFIED       // Engaged, high intent
+  CONVERTED       // Became a customer
+  ABANDONED       // Left funnel without converting
+  NURTURING       // Re-engagement sequence
+  DISQUALIFIED    // Invalid, spam, or opted out
+}
+
+enum LeadSource {
+  FUNNEL          // Captured via funnel
+  LANDING_PAGE    // Direct landing page
+  CHECKOUT_ABANDON // Cart/checkout abandonment
+  FORM            // Contact/signup form
+  IMPORT          // Bulk import
+  API             // External API
+  MANUAL          // Manually entered
+}
+
+model Lead {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Identity (progressive capture - saved as fields are entered)
+  email           String?       // First capture priority
+  emailVerified   Boolean       @default(false)
+  phone           String?
+  phoneVerified   Boolean       @default(false)
+  firstName       String?
+  lastName        String?
+
+  // Source Tracking
+  source          LeadSource    @default(FUNNEL)
+  sourceId        String?       // funnelId, formId, etc.
+  sourceName      String?       // "Coffee Explorer Funnel"
+
+  // Attribution (from first touch)
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmTerm         String?
+  utmContent      String?
+  referrer        String?
+  landingPage     String?
+
+  // Device/Browser (from first session)
+  deviceType      String?       // mobile, tablet, desktop
+  browser         String?
+  os              String?
+  ipAddress       String?
+  geoCountry      String?
+  geoRegion       String?
+  geoCity         String?
+
+  // Funnel Progress (snapshot of best progress)
+  funnelId        String?       // Last/primary funnel
+  highestStage    Int           @default(0)
+  lastStageName   String?       // "Checkout"
+  abandonStage    Int?          // Where they dropped off
+  abandonReason   String?       // "payment_failed", "exited", "idle"
+
+  // Progressive Form Data (JSON for flexibility)
+  // Stores all captured fields: { firstName: "John", address1: "123 Main", ... }
+  capturedFields  Json          @default("{}")
+  fieldCaptureLog Json          @default("[]") // [{ field, value, timestamp, stage }]
+
+  // Engagement Metrics
+  totalSessions   Int           @default(0)
+  totalPageViews  Int           @default(0)
+  totalTimeOnSite Int           @default(0) // seconds
+  engagementScore Float         @default(0) // 0-1, calculated
+  intentScore     Float         @default(0) // 0-1, purchase likelihood
+
+  // Value Assessment
+  estimatedValue  Decimal       @default(0) @db.Decimal(10, 2) // Potential revenue
+  cartValue       Decimal       @default(0) @db.Decimal(10, 2) // Last cart total
+  cartItems       Json          @default("[]") // Products in abandoned cart
+
+  // Status & Lifecycle
+  status          LeadStatus    @default(ANONYMOUS)
+  qualifiedAt     DateTime?
+  qualifiedReason String?       // "high_intent", "returning", "filled_checkout"
+
+  // Conversion (if converted to customer)
+  convertedAt     DateTime?
+  customerId      String?       @unique
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  conversionOrderId String?     // First order that converted them
+
+  // Re-engagement
+  lastContactedAt DateTime?
+  contactCount    Int           @default(0)
+  optedOut        Boolean       @default(false)
+  optedOutAt      DateTime?
+
+  // Timestamps
+  firstSeenAt     DateTime      @default(now())
+  lastSeenAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Soft delete
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  // Relations
+  sessions        FunnelSession[]
+  activities      LeadActivity[]
+  visitorProfile  FunnelVisitorProfile?
+
+  @@unique([companyId, email])
+  @@index([companyId])
+  @@index([status])
+  @@index([email])
+  @@index([phone])
+  @@index([funnelId])
+  @@index([engagementScore])
+  @@index([lastSeenAt])
+  @@index([convertedAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id              String        @id @default(cuid())
+  leadId          String
+  lead            Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // Activity Info
+  type            String        // "field_captured", "stage_reached", "cart_updated", "email_opened"
+  category        String        // "capture", "engagement", "funnel", "email", "conversion"
+  description     String?
+
+  // Activity Data
+  data            Json          @default("{}")
+  // For field_captured: { field: "email", value: "john@...", stage: 1 }
+  // For stage_reached: { stage: 2, stageName: "Checkout" }
+  // For cart_updated: { action: "add", productId: "...", quantity: 2 }
+
+  // Context
+  sessionToken    String?
+  funnelId        String?
+  stageOrder      Int?
+
+  // Timestamp
+  occurredAt      DateTime      @default(now())
+
+  @@index([leadId])
+  @@index([type])
+  @@index([occurredAt])
+  @@map("lead_activities")
+}
+
+model FunnelVisitorProfile {
+  id              String        @id @default(cuid())
+
+  // Identity (multiple methods)
+  visitorFingerprint String?    @unique  // Browser fingerprint hash
+  leadId          String?       @unique
+  lead            Lead?         @relation(fields: [leadId], references: [id])
+  email           String?
+
+  // Aggregated Behavior (across all sessions)
+  totalSessions   Int           @default(0)
+  totalPurchases  Int           @default(0)
+  totalRevenue    Decimal       @default(0) @db.Decimal(10, 2)
+  totalAbandons   Int           @default(0)
+
+  // Preferences (Learned over time)
+  preferredDevice String?       // 'desktop' | 'mobile' | 'tablet'
+  preferredTimeOfDay Int?       // Hour most active (0-23)
+  preferredDayOfWeek Int?       // Day most active (0-6)
+
+  // Engagement Patterns
+  avgTimeToConvert Int?         // Seconds from start to purchase
+  avgSessionDuration Int?       // Seconds
+  avgScrollDepth   Float?       // 0-1
+  avgPagesPerSession Float?
+
+  // Product Preferences
+  viewedCategories Json?        // { "coffee": 5, "accessories": 2 }
+  purchasedCategories Json?     // { "coffee": 3 }
+  priceRangePref  String?       // 'budget' | 'mid' | 'premium'
+
+  // Conversion Signals (What works for this visitor)
+  respondsToDiscounts Boolean   @default(false)
+  respondsToUrgency Boolean     @default(false)
+  respondsToSocialProof Boolean @default(false)
+  respondsToPriceAnchor Boolean @default(false)
+
+  // Risk Assessment
+  abandonmentRate  Float        @default(0)  // Historical (0-1)
+  avgAbandonStage  Float?       // Where they usually drop (stage order)
+  lastAbandonReason String?     // Most recent abandon reason
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([email])
+  @@index([visitorFingerprint])
+  @@map("funnel_visitor_profiles")
+}
+
+// =============================================================================
+// CARD VAULT - Secure Payment Method Storage
+// PCI-compliant tokenized storage for payment methods
+// =============================================================================
+
+enum CardVaultStatus {
+  ACTIVE          // Ready for use
+  EXPIRED         // Card has expired
+  REVOKED         // Customer requested removal
+  FAILED          // Repeated failures, disabled
+  PENDING         // Awaiting verification
+}
+
+enum CardType {
+  VISA
+  MASTERCARD
+  AMEX
+  DISCOVER
+  DINERS
+  JCB
+  UNIONPAY
+  OTHER
+}
+
+enum CardVaultProvider {
+  PAYPAL_PAYFLOW   // PayPal Payflow Pro vault
+  STRIPE           // Stripe payment methods
+  NMI              // NMI customer vault
+  AUTHORIZE_NET    // Authorize.net CIM
+  INTERNAL         // Our own encrypted storage (backup only)
+}
+
+model CardVault {
+  id              String            @id @default(cuid())
+  companyId       String
+  customerId      String
+
+  // Provider & Token
+  provider        CardVaultProvider
+  providerToken   String            // Provider's vault token/profile ID
+  providerCustomerId String?        // Provider's customer ID (if different)
+
+  // Card Display Info (for UI only - NOT actual card data)
+  cardType        CardType
+  lastFour        String            // Last 4 digits: "4242"
+  cardholderName  String?           // Name on card (encrypted)
+  expirationMonth Int               // 1-12
+  expirationYear  Int               // YYYY format
+
+  // Billing Address (encrypted JSON)
+  billingAddress  Json?             // { address1, city, state, zip, country }
+
+  // Status
+  status          CardVaultStatus   @default(PENDING)
+  isDefault       Boolean           @default(false)
+
+  // Usage Tracking
+  lastUsedAt      DateTime?
+  successfulUses  Int               @default(0)
+  failedUses      Int               @default(0)
+  lastFailureReason String?
+
+  // Expiration Alert
+  expirationAlertSent Boolean       @default(false)
+  expirationAlertAt   DateTime?
+
+  // Metadata
+  nickname        String?           // "Work Visa", "Personal Amex"
+  metadata        Json              @default("{}")
+
+  // Timestamps
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Soft delete (for audit trail)
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  // Relations
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions    CardVaultTransaction[]
+
+  @@unique([companyId, customerId, providerToken])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([status])
+  @@index([expirationYear, expirationMonth])
+  @@map("card_vaults")
+}
+
+model CardVaultTransaction {
+  id              String        @id @default(cuid())
+  cardVaultId     String
+  cardVault       CardVault     @relation(fields: [cardVaultId], references: [id], onDelete: Cascade)
+
+  // Transaction Reference
+  transactionId   String?       // Link to Transaction model
+  orderId         String?       // Link to Order model
+
+  // Result
+  success         Boolean
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+
+  // Provider Response
+  providerResponse Json?        // Raw provider response (sanitized)
+  errorCode       String?
+  errorMessage    String?
+
+  // Metadata
+  type            String        // "authorization", "capture", "refund", "void"
+  source          String?       // "funnel", "subscription", "manual"
+
+  // Timestamp
+  processedAt     DateTime      @default(now())
+
+  @@index([cardVaultId])
+  @@index([transactionId])
+  @@index([processedAt])
+  @@map("card_vault_transactions")
+}
+
+// Internal encrypted card storage (used only as fallback/bridge)
+// IMPORTANT: This is for temporary storage during checkout,
+// NOT for long-term card storage - always migrate to provider vault
+model EncryptedCard {
+  id              String        @id @default(cuid())
+  companyId       String
+  sessionToken    String?       // Funnel session reference
+
+  // Encrypted card data (AES-256-GCM)
+  encryptedData   String        @db.Text // { cardNumber, cvv, expMonth, expYear }
+  keyVersion      Int           @default(1) // For key rotation
+
+  // Fingerprint for duplicate detection
+  cardFingerprint String        // Hash of card number for dedup
+
+  // Status
+  status          String        @default("pending") // pending, processed, expired, deleted
+  processedAt     DateTime?
+  expiresAt       DateTime      // Auto-expire after 15 minutes
+
+  // Migration tracking
+  migratedToVaultId String?     // CardVault ID after provider tokenization
+
+  // Timestamps
+  createdAt       DateTime      @default(now())
+
+  @@index([sessionToken])
+  @@index([cardFingerprint])
+  @@index([expiresAt])
+  @@map("encrypted_cards")
+}
+
+// =============================================================================
+// AI FUNNEL GENERATOR
+// Momentum Intelligence Feature: AI-powered funnel generation
+// =============================================================================
+
+model AIMethodologyTemplate {
+  id              String          @id @default(cuid())
+
+  // Template metadata
+  name            String
+  description     String?
+  methodology     MarketingMethodology
+
+  // AI configuration
+  systemPrompt    String          @db.Text
+  stagePrompts    Json            // { landing: "...", checkout: "...", email: "..." }
+
+  // Discovery questions
+  questions       Json            // [{ id, question, type, options?, required }]
+
+  // Default funnel structure
+  defaultStages   Json            // Default stages to create
+
+  // Template status
+  isSystem        Boolean         @default(false) // System-provided template
+  isActive        Boolean         @default(true)
+
+  // Ownership (null = system template)
+  companyId       String?
+  company         Company?        @relation(fields: [companyId], references: [id])
+
+  // Usage tracking
+  usageCount      Int             @default(0)
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  generations     AIFunnelGeneration[]
+
+  @@index([methodology])
+  @@index([companyId])
+  @@map("ai_methodology_templates")
+}
+
+model AIFunnelGeneration {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id])
+
+  // Generation inputs
+  templateId      String?
+  template        AIMethodologyTemplate? @relation(fields: [templateId], references: [id])
+  methodology     MarketingMethodology
+  productIds      String[]
+  discoveryAnswers Json           // User's answers to questions
+
+  // AI configuration used
+  aiProvider      String          // 'bedrock' | 'openai'
+  aiModel         String          // 'claude-3-sonnet' | 'gpt-4-turbo'
+
+  // Generated content
+  generatedContent Json           // Full AI output (structured)
+  rawResponses    Json?           // Raw AI responses (for debugging)
+
+  // Result
+  status          GenerationStatus @default(PENDING)
+  errorMessage    String?
+
+  // Created funnel (after user saves)
+  funnelId        String?         @unique
+  funnel          Funnel?         @relation(fields: [funnelId], references: [id])
+
+  // Metrics
+  tokensUsed      Int?
+  generationTimeMs Int?
+  editCount       Int             @default(0) // How much user edited
+
+  // Lifecycle
+  createdAt       DateTime        @default(now())
+  createdBy       String
+  completedAt     DateTime?
+  savedAt         DateTime?
+
+  @@index([companyId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ai_funnel_generations")
+}
+
+enum MarketingMethodology {
+  NCI           // Non-Verbal Communication Influence (Proprietary)
+  AIDA          // Attention, Interest, Desire, Action
+  PAS           // Problem, Agitation, Solution
+  BAB           // Before, After, Bridge
+  FOUR_PS       // Promise, Picture, Proof, Push
+  STORYBRAND    // Donald Miller's Hero Journey
+  PASTOR        // Problem, Amplify, Story, Transform, Offer, Response
+  QUEST         // Qualify, Understand, Educate, Stimulate, Transition
+  FAB           // Features, Advantages, Benefits
+  CUSTOM        // User-defined methodology
+}
+
+enum GenerationStatus {
+  PENDING       // Waiting to start
+  GENERATING    // AI is generating content
+  COMPLETED     // Successfully generated
+  FAILED        // Generation failed
+  SAVED         // User saved as funnel
+  DISCARDED     // User discarded
 }

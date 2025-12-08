@@ -42,7 +42,7 @@ export class PaymentProcessingService {
   async verify(request: TransactionRequest, options: ProcessPaymentOptions): Promise<PaymentResult> { request.type = TransactionType.VERIFY; request.amount = 0; return this.processTransaction(request, options, 'verify'); }
 
   async tokenize(card: CardData, companyId: string, providerId?: string): Promise<TokenizedCard & { providerId: string }> {
-    const provider = providerId ? this.getProviderOrThrow(providerId) : this.getDefaultProviderOrThrow(companyId);
+    const provider = providerId ? this.getProviderOrThrow(providerId) : await this.getDefaultProviderOrThrowAsync(companyId);
     const token = await provider.tokenize(card);
     this.emitEvent(PaymentEventType.TOKEN_CREATED, companyId, provider.getConfig().id, { token: token.token, last4: token.last4, brand: token.brand });
     return { ...token, providerId: provider.getConfig().id };
@@ -55,9 +55,13 @@ export class PaymentProcessingService {
     return result;
   }
 
-  async getProvidersHealth(companyId: string): Promise<ProviderHealth[]> { return this.providerFactory.getProvidersHealth(companyId); }
-  getAvailableProviders(companyId: string): Array<{ id: string; name: string; type: string; isDefault: boolean; isAvailable: boolean; health: ProviderHealth }> {
-    return this.providerFactory.getProvidersByCompany(companyId).map((p) => { const config = p.getConfig(); return { id: config.id, name: config.name, type: config.type, isDefault: config.isDefault, isAvailable: p.isAvailable(), health: p.getHealth() }; });
+  async getProvidersHealth(companyId: string): Promise<ProviderHealth[]> {
+    await this.providerFactory.loadCompanyIntegrations(companyId);
+    return this.providerFactory.getProvidersHealth(companyId);
+  }
+  async getAvailableProviders(companyId: string): Promise<Array<{ id: string; name: string; type: string; isDefault: boolean; isAvailable: boolean; health: ProviderHealth }>> {
+    const providers = await this.providerFactory.getProvidersByCompanyAsync(companyId);
+    return providers.map((p) => { const config = p.getConfig(); return { id: config.id, name: config.name, type: config.type, isDefault: config.isDefault, isAvailable: p.isAvailable(), health: p.getHealth() }; });
   }
 
   private async processTransaction(request: TransactionRequest, options: ProcessPaymentOptions, operation: 'sale' | 'authorize' | 'verify'): Promise<PaymentResult> {
@@ -65,8 +69,8 @@ export class PaymentProcessingService {
     this.validateTransactionRequest(request);
     let providers: AbstractPaymentProvider[];
     if (options.providerId) { providers = [this.getProviderOrThrow(options.providerId)]; }
-    else if (options.allowFallback) { providers = this.providerFactory.getActiveProviders(options.companyId); if (providers.length === 0) throw new NotFoundException(`No active providers for company ${options.companyId}`); }
-    else { const defaultProvider = this.providerFactory.getDefaultProvider(options.companyId); if (!defaultProvider) throw new NotFoundException(`No default provider for company ${options.companyId}`); providers = [defaultProvider]; }
+    else if (options.allowFallback) { providers = await this.providerFactory.getActiveProvidersAsync(options.companyId); if (providers.length === 0) throw new NotFoundException(`No active providers for company ${options.companyId}`); }
+    else { const defaultProvider = await this.providerFactory.getDefaultProviderAsync(options.companyId); if (!defaultProvider) throw new NotFoundException(`No default provider for company ${options.companyId}`); providers = [defaultProvider]; }
     if (options.metadata) request.metadata = { ...request.metadata, ...options.metadata };
 
     let lastError: Error | null = null; let fallbackUsed = false;
@@ -98,6 +102,7 @@ export class PaymentProcessingService {
 
   private getProviderOrThrow(providerId: string): AbstractPaymentProvider { const provider = this.providerFactory.getProvider(providerId); if (!provider) throw new NotFoundException(`Provider not found: ${providerId}`); if (!provider.isAvailable()) throw new BadRequestException(`Provider not available: ${providerId}`); return provider; }
   private getDefaultProviderOrThrow(companyId: string): AbstractPaymentProvider { const provider = this.providerFactory.getDefaultProvider(companyId); if (!provider) throw new NotFoundException(`No default provider for company: ${companyId}`); return provider; }
+  private async getDefaultProviderOrThrowAsync(companyId: string): Promise<AbstractPaymentProvider> { const provider = await this.providerFactory.getDefaultProviderAsync(companyId); if (!provider) throw new NotFoundException(`No default provider for company: ${companyId}`); return provider; }
   private createPaymentResult(response: TransactionResponse, provider: AbstractPaymentProvider, processingTimeMs: number, fallbackUsed: boolean): PaymentResult { const config = provider.getConfig(); return { ...response, providerId: config.id, providerName: config.name, processingTimeMs, fallbackUsed }; }
   private generateReferenceId(): string { return `TXN-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase(); }
   private emitEvent(type: PaymentEventType, companyId: string, providerId: string, data: Record<string, unknown> | PaymentResult): void { const event: PaymentEvent = { id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`, type, providerId, companyId, transactionId: (data as { transactionId?: string }).transactionId, data: data as Record<string, unknown>, timestamp: new Date() }; this.eventEmitter.emit(type, event); this.eventEmitter.emit('payment.*', event); }

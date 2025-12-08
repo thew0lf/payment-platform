@@ -10,6 +10,10 @@ import { IntegrationSyncService } from './services/integration-sync.service';
 import { OAuthService } from './services/oauth.service';
 import { OAuthTokenRefreshService } from './services/oauth-token-refresh.service';
 import { PlatformIntegrationsController, ClientIntegrationsController, OAuthController } from './integrations.controller';
+import { IntegrationUsageController } from './controllers/integration-usage.controller';
+import { IntegrationUsageService } from './services/integration-usage.service';
+// Failover Service
+import { IntegrationFailoverService } from './services/integration-failover.service';
 // Provider Services
 import { Auth0Service } from './services/providers/auth0.service';
 import { BedrockService } from './services/providers/bedrock.service';
@@ -39,21 +43,28 @@ import { DatadogService } from './services/providers/datadog.service';
 import { SentryService } from './services/providers/sentry.service';
 // Feature Flags
 import { LaunchDarklyService } from './services/providers/launchdarkly.service';
+// Deployment
+import { VercelService } from './services/providers/vercel.service';
 // OAuth/Communication
 import { SlackService } from './services/providers/slack.service';
+// Location Services
+import { GooglePlacesService } from './services/providers/google-places.service';
 
 @Global()
 @Module({
   imports: [ConfigModule, PrismaModule, EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', maxListeners: 20 })],
-  controllers: [PlatformIntegrationsController, ClientIntegrationsController, OAuthController],
+  controllers: [PlatformIntegrationsController, ClientIntegrationsController, OAuthController, IntegrationUsageController],
   providers: [
     CredentialEncryptionService,
     IntegrationDefinitionService,
     PlatformIntegrationService,
     ClientIntegrationService,
     IntegrationSyncService,
+    IntegrationUsageService,
     OAuthService,
     OAuthTokenRefreshService,
+    // Failover Service
+    IntegrationFailoverService,
     // Provider Services
     Auth0Service,
     BedrockService,
@@ -83,16 +94,23 @@ import { SlackService } from './services/providers/slack.service';
     SentryService,
     // Feature Flags
     LaunchDarklyService,
+    // Deployment
+    VercelService,
     // OAuth/Communication
     SlackService,
+    // Location Services
+    GooglePlacesService,
   ],
   exports: [
     CredentialEncryptionService,
     IntegrationDefinitionService,
     PlatformIntegrationService,
     ClientIntegrationService,
+    IntegrationUsageService,
     OAuthService,
     OAuthTokenRefreshService,
+    // Failover Service
+    IntegrationFailoverService,
     // Provider Services
     Auth0Service,
     BedrockService,
@@ -122,8 +140,12 @@ import { SlackService } from './services/providers/slack.service';
     SentryService,
     // Feature Flags
     LaunchDarklyService,
+    // Deployment
+    VercelService,
     // OAuth/Communication
     SlackService,
+    // Location Services
+    GooglePlacesService,
   ],
 })
 export class IntegrationsModule {}

@@ -25,23 +25,26 @@ export async function seedDemoCustomers(prisma: PrismaClient, companyIds: string
     for (const template of customerTemplates) {
       const email = `${template.email.split('@')[0]}.${companyId.slice(-4)}@example.com`;
 
-      await prisma.customer.upsert({
+      // Use findFirst + create instead of upsert because Prisma doesn't allow null in unique constraint where clause
+      const existing = await prisma.customer.findFirst({
         where: {
-          companyId_email_deletedAt: {
-            companyId,
-            email,
-            deletedAt: null,
-          },
-        },
-        update: {},
-        create: {
           companyId,
           email,
-          firstName: template.firstName,
-          lastName: template.lastName,
-          status: 'ACTIVE',
+          deletedAt: null,
         },
       });
+
+      if (!existing) {
+        await prisma.customer.create({
+          data: {
+            companyId,
+            email,
+            firstName: template.firstName,
+            lastName: template.lastName,
+            status: 'ACTIVE',
+          },
+        });
+      }
       totalCreated++;
     }
   }

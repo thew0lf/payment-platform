@@ -338,7 +338,7 @@ export default function CodeReviewChecklistPage() {
   };
 
   // Group items by category
-  const itemsByCategory =
+  const itemsByCategory: Record<CodeReviewCategory, CodeReviewCheckItem[]> =
     checklist?.checklist.reduce(
       (acc, item) => {
         if (!acc[item.category]) {
@@ -348,7 +348,7 @@ export default function CodeReviewChecklistPage() {
         return acc;
       },
       {} as Record<CodeReviewCategory, CodeReviewCheckItem[]>
-    ) || {};
+    ) || ({} as Record<CodeReviewCategory, CodeReviewCheckItem[]>);
 
   // Filter categories based on active tab
   const getFilteredCategories = () => {

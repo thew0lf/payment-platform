@@ -34,11 +34,10 @@ import {
   Megaphone,
   FileText,
   Wallet,
-  Globe,
-  Palette,
   Workflow,
   Bug,
   FileCheck2,
+  UserPlus,
   LucideIcon,
 } from 'lucide-react';
 
@@ -115,11 +114,10 @@ export const iconMap: Record<string, LucideIcon> = {
   Megaphone,
   FileText,
   Wallet,
-  Globe,
-  Palette,
   Workflow,
   Bug,
   FileCheck2,
+  UserPlus,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -179,8 +177,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'funnels', label: 'Funnels', href: '/funnels', icon: Workflow },
-      { id: 'payment-pages', label: 'Payment Pages', href: '/payment-pages', icon: Globe },
-      { id: 'themes', label: 'Themes', href: '/payment-pages/themes', icon: Palette },
+      { id: 'leads', label: 'Leads', href: '/leads', icon: UserPlus },
       { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
     ],
   },

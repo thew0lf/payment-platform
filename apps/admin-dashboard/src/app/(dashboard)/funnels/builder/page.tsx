@@ -161,11 +161,20 @@ interface StageConfigPanelProps {
 }
 
 function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const funnelId = searchParams?.get('id') ?? null;
   const [name, setName] = useState(stage.name);
   const StageIcon = stageTypes.find(s => s.type === stage.type)?.icon || Layout;
 
   const handleSave = () => {
     onUpdate({ ...stage, name });
+  };
+
+  const openCheckoutBuilder = () => {
+    if (funnelId) {
+      router.push(`/funnels/checkout-builder?funnelId=${funnelId}&stageId=${stage.id}`);
+    }
   };
 
   return (
@@ -213,6 +222,22 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
         {stage.type === 'CHECKOUT' && (
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-gray-900">Checkout Settings</h4>
+
+            {/* Open Checkout Builder Button */}
+            <button
+              onClick={openCheckoutBuilder}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
+            >
+              <CreditCard className="w-4 h-4" />
+              Open Checkout Builder
+            </button>
+
+            <p className="text-xs text-gray-500 text-center">
+              Configure fields, payment methods, appearance, and more with our visual checkout builder.
+            </p>
+
+            <div className="h-px bg-gray-200" />
+
             <div className="space-y-3">
               <label className="flex items-center gap-3">
                 <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />

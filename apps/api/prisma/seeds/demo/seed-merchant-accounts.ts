@@ -104,17 +104,25 @@ export async function seedDemoMerchantAccounts(prisma: PrismaClient, companyId: 
   ];
 
   for (const account of accounts) {
-    await prisma.merchantAccount.upsert({
+    // Find existing non-deleted account
+    const existing = await prisma.merchantAccount.findFirst({
       where: {
-        companyId_name_deletedAt: {
-          companyId: account.companyId,
-          name: account.name,
-          deletedAt: null,
-        },
+        companyId: account.companyId,
+        name: account.name,
+        deletedAt: null,
       },
-      update: account,
-      create: account,
     });
+
+    if (existing) {
+      await prisma.merchantAccount.update({
+        where: { id: existing.id },
+        data: account,
+      });
+    } else {
+      await prisma.merchantAccount.create({
+        data: account,
+      });
+    }
     console.log(`  ✓ ${account.name}`);
   }
 }
@@ -291,31 +299,39 @@ export async function seedDemoRoutingRules(
   ];
 
   for (const rule of rules) {
-    await prisma.routingRule.upsert({
+    // Find existing non-deleted rule
+    const existing = await prisma.routingRule.findFirst({
       where: {
-        companyId_name_deletedAt: {
-          companyId: rule.companyId,
-          name: rule.name,
-          deletedAt: null,
-        },
-      },
-      update: {
-        description: rule.description,
-        priority: rule.priority,
-        status: rule.status,
-        conditions: rule.conditions,
-        actions: rule.actions,
-      },
-      create: {
         companyId: rule.companyId,
         name: rule.name,
-        description: rule.description,
-        priority: rule.priority,
-        status: rule.status,
-        conditions: rule.conditions,
-        actions: rule.actions,
+        deletedAt: null,
       },
     });
+
+    if (existing) {
+      await prisma.routingRule.update({
+        where: { id: existing.id },
+        data: {
+          description: rule.description,
+          priority: rule.priority,
+          status: rule.status,
+          conditions: rule.conditions,
+          actions: rule.actions,
+        },
+      });
+    } else {
+      await prisma.routingRule.create({
+        data: {
+          companyId: rule.companyId,
+          name: rule.name,
+          description: rule.description,
+          priority: rule.priority,
+          status: rule.status,
+          conditions: rule.conditions,
+          actions: rule.actions,
+        },
+      });
+    }
     console.log(`  ✓ ${rule.name}`);
   }
 }

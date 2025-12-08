@@ -53,6 +53,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.MONITORING]: 'Monitoring',
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
+  [IntegrationCategory.DEPLOYMENT]: 'Deployment',
 };
 
 // Provider configuration with icons and brand colors
@@ -229,6 +230,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     iconUrl: '/integrations/aws-appconfig.svg',
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
+  },
+  // Deployment
+  [IntegrationProvider.VERCEL]: {
+    icon: 'V',
+    iconUrl: '/integrations/vercel.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#333333]',
   },
   // OAuth Providers
   [IntegrationProvider.GOOGLE]: {

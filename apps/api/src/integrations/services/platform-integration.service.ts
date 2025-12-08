@@ -39,6 +39,8 @@ import { LaunchDarklyService } from './providers/launchdarkly.service';
 import { SlackService } from './providers/slack.service';
 import { TwilioService } from './providers/twilio.service';
 import { Route53Service } from './providers/route53.service';
+// Deployment
+import { VercelService } from './providers/vercel.service';
 
 @Injectable()
 export class PlatformIntegrationService {
@@ -79,6 +81,8 @@ export class PlatformIntegrationService {
     private readonly slackService: SlackService,
     private readonly twilioService: TwilioService,
     private readonly route53Service: Route53Service,
+    // Deployment
+    private readonly vercelService: VercelService,
   ) {}
 
   async create(orgId: string, dto: CreatePlatformIntegrationDto, createdBy: string): Promise<PlatformIntegration> {
@@ -164,7 +168,9 @@ export class PlatformIntegrationService {
     const startTime = Date.now();
     try {
       const credentials = this.encryptionService.decrypt(integration.credentials as any) as Record<string, any>;
-      const result = await this.testProvider(integration.provider as IntegrationProvider, credentials);
+      // Include environment in credentials for providers that need it
+      const credentialsWithEnv = { ...credentials, environment: integration.environment };
+      const result = await this.testProvider(integration.provider as IntegrationProvider, credentialsWithEnv);
       const latencyMs = Date.now() - startTime;
       await this.prisma.platformIntegration.update({
         where: { id },
@@ -250,6 +256,9 @@ export class PlatformIntegrationService {
       // OAuth
       case IntegrationProvider.SLACK:
         return this.slackService.testConnection(credentials as any);
+      // Deployment
+      case IntegrationProvider.VERCEL:
+        return this.vercelService.testConnection(credentials as any);
       default:
         return { success: true, message: 'Credentials validated' };
     }

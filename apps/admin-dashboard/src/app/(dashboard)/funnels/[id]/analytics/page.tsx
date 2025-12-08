@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -17,12 +17,9 @@ import {
 import { funnelsApi, FunnelAnalytics, Funnel } from '@/lib/api/funnels';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
-
-export default function FunnelAnalyticsPage({ params }: Props) {
-  const { id } = use(params);
+export default function FunnelAnalyticsPage() {
+  const params = useParams();
+  const id = (params?.id as string) || '';
   const router = useRouter();
   const { selectedCompanyId } = useHierarchy();
   const [funnel, setFunnel] = useState<Funnel | null>(null);

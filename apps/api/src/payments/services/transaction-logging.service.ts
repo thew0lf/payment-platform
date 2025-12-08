@@ -10,7 +10,47 @@ export interface TransactionLogQuery { companyId?: string; customerId?: string; 
 @Injectable()
 export class TransactionLoggingService {
   private readonly logger = new Logger(TransactionLoggingService.name);
+
+  // PCI-DSS: Keys that may contain sensitive card data in provider responses
+  private readonly sensitiveKeys = [
+    'card_number', 'cardNumber', 'ccnumber', 'acct', 'ACCT', 'number',
+    'cvv', 'cvc', 'cvv2', 'CVV2', 'card', 'pan',
+    'exp_date', 'expdate', 'EXPDATE', 'expiry',
+    'security_code', 'securityCode',
+    'account_number', 'accountNumber', 'routing_number', 'routingNumber',
+    'password', 'pwd', 'PWD', 'secret', 'apiKey', 'api_key', 'signature', 'SIGNATURE',
+  ];
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * PCI-DSS Compliance: Sanitize provider responses before storage
+   * Removes or masks sensitive card data from raw provider responses
+   */
+  private sanitizeProviderResponse(data: Record<string, unknown>): Record<string, unknown> {
+    if (!data || typeof data !== 'object') return data;
+
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      // Check if key matches sensitive pattern
+      const isSensitive = this.sensitiveKeys.some(sk =>
+        key.toLowerCase().includes(sk.toLowerCase())
+      );
+
+      if (isSensitive && typeof value === 'string' && value.length > 4) {
+        // Mask sensitive values, keeping only last 4 chars if it looks like card data
+        sanitized[key] = value.length >= 12 ? `****${value.slice(-4)}` : '***REDACTED***';
+      } else if (typeof value === 'object' && value !== null) {
+        // Recursively sanitize nested objects
+        sanitized[key] = this.sanitizeProviderResponse(value as Record<string, unknown>);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
+  }
 
   @OnEvent(PaymentEventType.TRANSACTION_APPROVED) async handleTransactionApproved(event: PaymentEvent): Promise<void> { await this.logTransaction(event); }
   @OnEvent(PaymentEventType.TRANSACTION_DECLINED) async handleTransactionDeclined(event: PaymentEvent): Promise<void> { await this.logTransaction(event); }
@@ -20,9 +60,19 @@ export class TransactionLoggingService {
   async logTransaction(event: PaymentEvent): Promise<void> {
     try {
       const data = event.data as unknown as TransactionResponse & { providerId: string; providerName: string; processingTimeMs: number; fallbackUsed: boolean; customerId?: string; transactionType?: string; ipAddress?: string; metadata?: Record<string, unknown>; };
-      const providerResponseData = { authorizationCode: data.authorizationCode, processingTimeMs: data.processingTimeMs, fallbackUsed: data.fallbackUsed, ipAddress: data.ipAddress, rawResponse: data.rawResponse, ...data.metadata };
+      // PCI-DSS: Sanitize raw response to remove any card data before storage
+      const sanitizedRawResponse = data.rawResponse ? this.sanitizeProviderResponse(data.rawResponse) : undefined;
+      const providerResponseData = { authorizationCode: data.authorizationCode, processingTimeMs: data.processingTimeMs, fallbackUsed: data.fallbackUsed, ipAddress: data.ipAddress, rawResponse: sanitizedRawResponse, providerId: data.providerId, providerName: data.providerName, ...data.metadata };
+
+      // Check if providerId exists in payment_providers table, skip if it doesn't (might be a client integration ID)
+      let paymentProviderId: string | null = null;
+      if (data.providerId) {
+        const provider = await this.prisma.paymentProvider.findUnique({ where: { id: data.providerId } });
+        if (provider) paymentProviderId = data.providerId;
+      }
+
       await this.prisma.transaction.create({
-        data: { companyId: event.companyId, customerId: data.customerId, paymentProviderId: data.providerId, transactionNumber: data.referenceId, type: this.mapTransactionType(data.transactionType || event.type), amount: data.amount, currency: data.currency || 'USD', status: this.mapTransactionStatus(data.status), providerTransactionId: data.transactionId, avsResult: data.avsResult, cvvResult: data.cvvResult, failureCode: data.errorCode || data.declineCode, failureReason: data.errorMessage, riskScore: data.riskScore, riskFlags: data.riskFlags || [], processedAt: data.processedAt, providerResponse: providerResponseData as Prisma.InputJsonValue }
+        data: { companyId: event.companyId, customerId: data.customerId, paymentProviderId, transactionNumber: data.referenceId, type: this.mapTransactionType(data.transactionType || event.type), amount: data.amount, currency: data.currency || 'USD', status: this.mapTransactionStatus(data.status), providerTransactionId: data.transactionId, avsResult: data.avsResult, cvvResult: data.cvvResult, failureCode: data.errorCode || data.declineCode, failureReason: data.errorMessage, riskScore: data.riskScore, riskFlags: data.riskFlags || [], processedAt: data.processedAt, providerResponse: providerResponseData as Prisma.InputJsonValue }
       });
       this.logger.debug(`Transaction logged: ${data.referenceId} (${data.status})`);
     } catch (error) { this.logger.error(`Failed to log transaction: ${(error as Error).message}`, (error as Error).stack); }

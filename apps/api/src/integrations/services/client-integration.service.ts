@@ -143,7 +143,9 @@ export class ClientIntegrationService {
       } else {
         credentials = this.encryptionService.decrypt(integration.credentials as any) as Record<string, any>;
       }
-      const result = await this.testProvider(integration.provider as IntegrationProvider, credentials);
+      // Include environment in credentials for providers that need it
+      const credentialsWithEnv = { ...credentials, environment: integration.environment };
+      const result = await this.testProvider(integration.provider as IntegrationProvider, credentialsWithEnv);
       const latencyMs = Date.now() - startTime;
       await this.prisma.clientIntegration.update({
         where: { id },

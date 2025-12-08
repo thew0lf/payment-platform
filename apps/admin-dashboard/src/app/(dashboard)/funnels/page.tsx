@@ -320,7 +320,8 @@ export default function FunnelsPage() {
               return (
                 <div
                   key={funnel.id}
-                  className="group bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/30 rounded-xl transition-all duration-300 overflow-hidden"
+                  onClick={() => router.push(`/funnels/${funnel.id}/analytics`)}
+                  className="group bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/30 rounded-xl transition-all duration-300 overflow-hidden cursor-pointer"
                 >
                   {/* Card Header */}
                   <div className="p-5 pb-4">
@@ -451,6 +452,17 @@ export default function FunnelsPage() {
                 >
                   <Copy className="w-4 h-4" />
                   Duplicate
+                </button>
+                <button
+                  onClick={() => {
+                    router.push(`/funnels/${funnel.id}/analytics`);
+                    setMenuOpen(null);
+                    setMenuPosition(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Analytics
                 </button>
                 <button
                   onClick={() => {

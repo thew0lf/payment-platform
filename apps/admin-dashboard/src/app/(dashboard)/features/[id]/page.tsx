@@ -247,7 +247,7 @@ export default function FeatureDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { accessLevel } = useHierarchy();
-  const featureId = params.id as string;
+  const featureId = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : '';
 
   // State
   const [feature, setFeature] = useState<Feature | null>(null);

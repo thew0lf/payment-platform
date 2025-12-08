@@ -102,11 +102,13 @@ export class ShortIdService {
 
   /**
    * Validate that a short ID is properly formatted
+   * Accepts both sqids-encoded IDs and nanoid-generated IDs
    */
   isValid(type: 'funnel' | 'checkout' | 'page' | 'generic', shortId: string): boolean {
     if (!shortId || shortId.length < 6) return false;
-    const decoded = this.decode(type, shortId);
-    return decoded !== null;
+    // Accept any alphanumeric string of sufficient length
+    // This allows both sqids-encoded and nanoid-generated IDs
+    return /^[a-zA-Z0-9_-]+$/.test(shortId);
   }
 
   private getEncoder(type: 'funnel' | 'checkout' | 'page' | 'generic'): Sqids {

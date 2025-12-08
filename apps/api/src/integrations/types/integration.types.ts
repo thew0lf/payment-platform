@@ -25,6 +25,8 @@ export enum IntegrationCategory {
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
   OAUTH = 'OAUTH',
+  DEPLOYMENT = 'DEPLOYMENT',
+  LOCATION_SERVICES = 'LOCATION_SERVICES',
 }
 
 export enum IntegrationProvider {
@@ -79,6 +81,9 @@ export enum IntegrationProvider {
   LAUNCHDARKLY = 'LAUNCHDARKLY',
   AWS_APPCONFIG = 'AWS_APPCONFIG',
 
+  // Deployment
+  VERCEL = 'VERCEL',
+
   // OAuth Providers (Org-only, user token-based)
   GOOGLE = 'GOOGLE',
   MICROSOFT = 'MICROSOFT',
@@ -86,6 +91,9 @@ export enum IntegrationProvider {
   HUBSPOT = 'HUBSPOT',
   SALESFORCE = 'SALESFORCE',
   QUICKBOOKS = 'QUICKBOOKS',
+
+  // Location Services
+  GOOGLE_PLACES = 'GOOGLE_PLACES',
 }
 
 export enum IntegrationStatus {
@@ -179,6 +187,18 @@ export interface PayPalRestCredentials {
   clientSecret: string;
 }
 
+// Deployment credentials
+export interface VercelCredentials {
+  apiToken: string;
+  teamId?: string;
+}
+
+// Location Services credentials
+export interface GooglePlacesCredentials {
+  apiKey: string;
+  sessionTokenTTL?: number; // Session token TTL in seconds (default 180 = 3 minutes)
+}
+
 // OAuth token credentials (used for encrypted token storage)
 export interface OAuthTokenCredentials {
   token: string;
@@ -192,6 +212,8 @@ export type IntegrationCredentials =
   | Auth0Credentials
   | AWSSESCredentials
   | TwilioCredentials
+  | VercelCredentials
+  | GooglePlacesCredentials
   | OAuthTokenCredentials
   | Record<string, unknown>;
 

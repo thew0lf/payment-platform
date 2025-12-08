@@ -114,7 +114,7 @@ export class PayflowProvider extends AbstractPaymentProvider {
       if (card.cardholderName) params.NAME = card.cardholderName;
       const response = await this.sendRequest(params);
       if (response.RESULT !== '0') throw new Error(`Tokenization failed: ${response.RESPMSG}`);
-      const tokenizedCard: TokenizedCard = { token: response.PNREF, last4: card.number.slice(-4), brand: this.detectCardBrand(card.number), expiryMonth: parseInt(card.expiryMonth, 10), expiryYear: this.normalizeYear(card.expiryYear), fingerprint: this.generateFingerprint(card.number) };
+      const tokenizedCard: TokenizedCard = { token: response.PNREF, last4: card.number.slice(-4), brand: this.detectCardBrand(card.number), expiryMonth: parseInt(card.expiryMonth, 10), expiryYear: this.normalizeYear(card.expiryYear), fingerprint: this.generateSecureFingerprint(card.number) };
       this.updateHealth(true, Date.now() - startTime);
       return tokenizedCard;
     } catch (error) {
@@ -200,6 +200,5 @@ export class PayflowProvider extends AbstractPaymentProvider {
   private formatExpiry(month: string, year: string): string { return `${month.padStart(2, '0')}${year.length === 4 ? year.slice(-2) : year}`; }
   private normalizeYear(year: string): number { const y = parseInt(year, 10); return y < 100 ? 2000 + y : y; }
   private detectCardBrand(cardNumber: string): CardBrand { const num = cardNumber.replace(/\D/g, ''); if (/^4/.test(num)) return CardBrand.VISA; if (/^5[1-5]/.test(num) || /^2[2-7]/.test(num)) return CardBrand.MASTERCARD; if (/^3[47]/.test(num)) return CardBrand.AMEX; if (/^6(?:011|5)/.test(num)) return CardBrand.DISCOVER; return CardBrand.UNKNOWN; }
-  private generateFingerprint(cardNumber: string): string { const num = cardNumber.replace(/\D/g, ''); let hash = 0; for (let i = 0; i < num.length; i++) { hash = ((hash << 5) - hash) + num.charCodeAt(i); hash = hash & hash; } return Math.abs(hash).toString(36); }
   private generateRequestId(): string { return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`; }
 }

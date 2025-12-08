@@ -14,3 +14,5 @@ export {
 export { seedDemoClientSubscription } from './seed-subscription';
 export { seedCoffeeExplorer } from './seed-coffee-explorer';
 export { seedPaymentPages } from './seed-payment-pages';
+export { seedCoffeeFunnel } from './seed-coffee-funnel';
+export { seedFunnelTemplates } from './seed-funnel-templates';

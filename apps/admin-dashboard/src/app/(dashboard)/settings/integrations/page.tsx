@@ -15,7 +15,7 @@ import {
   IntegrationProvider,
   IntegrationMode,
 } from '@/lib/api/integrations';
-import { IntegrationCard, AddIntegrationModal } from '@/components/integrations';
+import { IntegrationCard, AddIntegrationModal, EditIntegrationModal } from '@/components/integrations';
 
 const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.PAYMENT_GATEWAY]: 'Payment Gateways',
@@ -37,6 +37,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.MONITORING]: 'Monitoring',
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
+  [IntegrationCategory.DEPLOYMENT]: 'Deployment',
 };
 
 export default function ClientIntegrationsPage() {
@@ -48,6 +49,7 @@ export default function ClientIntegrationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<ClientIntegration | null>(null);
   const [integrationToDelete, setIntegrationToDelete] = useState<ClientIntegration | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -111,8 +113,11 @@ export default function ClientIntegrationsPage() {
     }
   };
 
-  const handleDeleteIntegration = (integration: ClientIntegration) => {
-    setIntegrationToDelete(integration);
+  const handleDeleteIntegration = (integration: ClientIntegration | PlatformIntegration) => {
+    // Only handle client integrations in this view
+    if ('mode' in integration) {
+      setIntegrationToDelete(integration);
+    }
   };
 
   const confirmDelete = async () => {
@@ -138,6 +143,26 @@ export default function ClientIntegrationsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set default');
     }
+  };
+
+  const handleEditIntegration = (integration: ClientIntegration | PlatformIntegration) => {
+    // Only handle client integrations in this view
+    if ('mode' in integration) {
+      setEditingIntegration(integration);
+    }
+  };
+
+  const handleUpdateIntegration = async (id: string, data: {
+    name?: string;
+    description?: string;
+    credentials?: Record<string, string>;
+    environment?: string;
+    isDefault?: boolean;
+  }) => {
+    if (!clientId) return;
+    await integrationsApi.updateClientIntegration(clientId, id, data);
+    toast.success('Integration updated successfully');
+    await loadData();
   };
 
   const groupedIntegrations = integrations.reduce(
@@ -248,6 +273,7 @@ export default function ClientIntegrationsPage() {
                       key={integration.id}
                       integration={integration}
                       onTest={handleTestIntegration}
+                      onEdit={handleEditIntegration}
                       onDelete={handleDeleteIntegration}
                       onSetDefault={handleSetDefault}
                     />
@@ -266,6 +292,15 @@ export default function ClientIntegrationsPage() {
         definitions={definitions}
         platformOptions={platformOptions}
         onSubmit={handleCreateIntegration}
+      />
+
+      {/* Edit Integration Modal */}
+      <EditIntegrationModal
+        isOpen={!!editingIntegration}
+        onClose={() => setEditingIntegration(null)}
+        integration={editingIntegration}
+        definition={editingIntegration ? definitions.find(d => d.provider === editingIntegration.provider) : undefined}
+        onSubmit={handleUpdateIntegration}
       />
 
       {/* Delete Confirmation Modal */}

@@ -13,7 +13,7 @@ export interface RunwayCredentials {
 }
 
 export interface RunwaySettings {
-  defaultModel?: 'gen3a_turbo' | 'gen3a' | 'gen4';
+  defaultModel?: 'gen3a_turbo' | 'gen3a' | 'gen4' | 'gen4_turbo';
   defaultDuration?: 5 | 10;
   defaultResolution?: '720p' | '1080p' | '4k';
   defaultAspectRatio?: '16:9' | '9:16' | '1:1';
@@ -25,7 +25,7 @@ export interface VideoGenerationRequest {
   /** Text prompt describing desired motion/action */
   prompt?: string;
   /** Model to use for generation */
-  model?: 'gen3a_turbo' | 'gen3a' | 'gen4';
+  model?: 'gen3a_turbo' | 'gen3a' | 'gen4' | 'gen4_turbo';
   /** Video duration in seconds */
   duration?: 5 | 10;
   /** Output resolution */
@@ -85,7 +85,7 @@ export class RunwayService {
       headers: {
         Authorization: `Bearer ${credentials.apiKey}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': credentials.apiVersion || '2024-09-13',
+        'X-Runway-Version': credentials.apiVersion || '2024-11-06',
       },
     });
   }
@@ -245,32 +245,34 @@ export class RunwayService {
     const client = this.createClient(credentials);
 
     try {
-      // Get account info to verify credentials
-      // Note: Runway API may have different endpoint - adjust as needed
-      const response = await client.get('/account');
+      // Get organization info to verify credentials and check credits
+      const response = await client.get('/organization');
 
       return {
         success: true,
-        message: 'Connected to Runway API',
+        message: `Connected to Runway API (${response.data.tier || 'active'})`,
         latencyMs: Date.now() - startTime,
-        creditsRemaining: response.data.credits?.remaining,
+        creditsRemaining: response.data.credits,
       };
     } catch (error: any) {
-      // If account endpoint doesn't exist, try listing tasks instead
-      try {
-        await client.get('/tasks?limit=1');
-        return {
-          success: true,
-          message: 'Connected to Runway API',
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (innerError: any) {
-        return {
-          success: false,
-          message: innerError.response?.data?.error || innerError.message,
-          latencyMs: Date.now() - startTime,
-        };
+      const statusCode = error.response?.status;
+      const errorMessage = error.response?.data?.error || error.message;
+
+      // Provide specific error messages based on status code
+      let message = errorMessage;
+      if (statusCode === 401) {
+        message = 'Invalid API key. Check your Runway API key in the developer portal.';
+      } else if (statusCode === 403) {
+        message = 'API key does not have permission to access this resource.';
+      } else if (statusCode === 404) {
+        message = 'Runway API endpoint not found. API may have changed.';
       }
+
+      return {
+        success: false,
+        message,
+        latencyMs: Date.now() - startTime,
+      };
     }
   }
 

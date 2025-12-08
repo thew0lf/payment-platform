@@ -16,6 +16,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { FunnelsService, FunnelSessionsService, FunnelAnalyticsService } from './services';
+import { FunnelPaymentService, FunnelCheckoutDto } from './services/funnel-payment.service';
 import {
   CreateFunnelDto,
   UpdateFunnelDto,
@@ -209,6 +210,7 @@ export class PublicFunnelController {
   constructor(
     private readonly funnelsService: FunnelsService,
     private readonly sessionsService: FunnelSessionsService,
+    private readonly paymentService: FunnelPaymentService,
   ) {}
 
   // Get funnel by SEO-friendly URL (public) - /api/f/{slug}-{shortId}
@@ -280,5 +282,43 @@ export class PublicFunnelController {
   @Post('sessions/:sessionToken/abandon')
   async abandonSession(@Param('sessionToken') sessionToken: string) {
     return this.sessionsService.abandon(sessionToken);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // CHECKOUT / PAYMENT ENDPOINTS
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Get checkout summary before processing payment
+   * GET /api/f/sessions/:sessionToken/checkout
+   */
+  @Get('sessions/:sessionToken/checkout')
+  async getCheckoutSummary(@Param('sessionToken') sessionToken: string) {
+    return this.paymentService.getCheckoutSummary(sessionToken);
+  }
+
+  /**
+   * Process checkout / payment
+   * POST /api/f/sessions/:sessionToken/checkout
+   *
+   * This is the main checkout endpoint that:
+   * 1. Validates the session
+   * 2. Stores card temporarily (encrypted)
+   * 3. Processes payment
+   * 4. Creates customer if needed
+   * 5. Creates order
+   * 6. Vaults card if requested
+   * 7. Completes funnel session
+   * 8. Converts lead to customer
+   */
+  @Post('sessions/:sessionToken/checkout')
+  async processCheckout(
+    @Param('sessionToken') sessionToken: string,
+    @Body() dto: Omit<FunnelCheckoutDto, 'sessionToken'>,
+  ) {
+    return this.paymentService.processCheckout({
+      sessionToken,
+      ...dto,
+    });
   }
 }

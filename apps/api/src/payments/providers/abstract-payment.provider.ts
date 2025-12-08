@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import {
   PaymentProviderType,
   ProviderConfig,
@@ -164,6 +165,16 @@ export abstract class AbstractPaymentProvider {
   protected maskCardNumber(cardNumber: string): string {
     if (!cardNumber || cardNumber.length < 8) return '****';
     return `****${cardNumber.slice(-4)}`;
+  }
+
+  /**
+   * Generate a cryptographically secure fingerprint for card deduplication.
+   * Uses SHA-256 hash to create a deterministic, non-reversible identifier.
+   * PCI-DSS compliant - the original card number cannot be derived from the fingerprint.
+   */
+  protected generateSecureFingerprint(cardNumber: string): string {
+    const cleaned = cardNumber.replace(/\D/g, '');
+    return createHash('sha256').update(cleaned).digest('hex').substring(0, 32);
   }
 
   protected logTransaction(operation: string, request: Partial<TransactionRequest>, response?: TransactionResponse): void {

@@ -109,17 +109,33 @@ export class FunnelSessionsService {
   async update(sessionToken: string, dto: UpdateSessionDto) {
     const session = await this.findByToken(sessionToken);
 
+    // Build update data - only include fields that are actually provided
+    const updateData: Prisma.FunnelSessionUpdateInput = {
+      lastActivityAt: new Date(),
+    };
+
+    if (dto.selectedProducts !== undefined) {
+      updateData.selectedProducts = dto.selectedProducts as unknown as Prisma.InputJsonValue;
+    }
+    if (dto.customerInfo !== undefined) {
+      updateData.customerInfo = dto.customerInfo as Prisma.InputJsonValue;
+    }
+    if (dto.shippingAddress !== undefined) {
+      updateData.shippingAddress = dto.shippingAddress as Prisma.InputJsonValue;
+    }
+    if (dto.billingAddress !== undefined) {
+      updateData.billingAddress = dto.billingAddress as Prisma.InputJsonValue;
+    }
+    if (dto.customFields !== undefined) {
+      updateData.customFields = dto.customFields as Prisma.InputJsonValue;
+    }
+    if (dto.currentStageOrder !== undefined) {
+      updateData.currentStageOrder = dto.currentStageOrder;
+    }
+
     return this.prisma.funnelSession.update({
       where: { sessionToken },
-      data: {
-        selectedProducts: dto.selectedProducts as Prisma.InputJsonValue,
-        customerInfo: dto.customerInfo as Prisma.InputJsonValue,
-        shippingAddress: dto.shippingAddress as Prisma.InputJsonValue,
-        billingAddress: dto.billingAddress as Prisma.InputJsonValue,
-        customFields: dto.customFields as Prisma.InputJsonValue,
-        currentStageOrder: dto.currentStageOrder,
-        lastActivityAt: new Date(),
-      },
+      data: updateData,
     });
   }
 

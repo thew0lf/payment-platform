@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Twilio from 'twilio';
-import type TwilioVoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CredentialEncryptionService } from '../credential-encryption.service';
 import { IntegrationProvider, IntegrationStatus } from '../../types/integration.types';
+
+// Handle CommonJS/ESM interop for Twilio
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Twilio = require('twilio');
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -80,7 +82,7 @@ export interface TwiMLSayOptions {
 @Injectable()
 export class TwilioService {
   private readonly logger = new Logger(TwilioService.name);
-  private clientCache = new Map<string, Twilio.Twilio>();
+  private clientCache = new Map<string, any>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -94,7 +96,7 @@ export class TwilioService {
   /**
    * Get Twilio client for a company (uses integration credentials)
    */
-  async getClient(companyId: string): Promise<Twilio.Twilio | null> {
+  async getClient(companyId: string): Promise<any | null> {
     // Check cache first
     const cached = this.clientCache.get(companyId);
     if (cached) {
@@ -335,7 +337,7 @@ export class TwilioService {
   /**
    * Create a new TwiML VoiceResponse
    */
-  createVoiceResponse(): TwilioVoiceResponse {
+  createVoiceResponse(): any {
     return new Twilio.twiml.VoiceResponse();
   }
 

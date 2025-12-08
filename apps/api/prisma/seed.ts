@@ -32,6 +32,7 @@ import {
   seedDemoRoutingRules,
   seedDemoClientSubscription,
   seedCoffeeExplorer,
+  seedCoffeeFunnel,
 } from './seeds/demo';
 
 const prisma = new PrismaClient();
@@ -110,6 +111,9 @@ async function main() {
 
     // Seed Coffee Explorer demo client (for landing page)
     await seedCoffeeExplorer(prisma, org.id);
+
+    // Seed Coffee Explorer funnel
+    await seedCoffeeFunnel(prisma);
   }
 
   // ═══════════════════════════════════════════════════════════════

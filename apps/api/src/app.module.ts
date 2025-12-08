@@ -34,6 +34,10 @@ import { LandingPagesModule } from './landing-pages/landing-pages.module';
 import { PaymentPagesModule } from './payment-pages/payment-pages.module';
 import { FunnelsModule } from './funnels/funnels.module';
 import { FeaturesModule } from './features/features.module';
+import { LeadsModule } from './leads/leads.module';
+import { CardVaultModule } from './card-vault/card-vault.module';
+import { SettingsModule } from './settings/settings.module';
+import { AddressModule } from './address/address.module';
 
 @Module({
   imports: [
@@ -70,6 +74,10 @@ import { FeaturesModule } from './features/features.module';
     PaymentPagesModule,
     FunnelsModule,
     FeaturesModule,
+    LeadsModule,
+    CardVaultModule,
+    SettingsModule,
+    AddressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -199,7 +199,7 @@ export class PayPalClassicProvider extends AbstractPaymentProvider {
         brand: this.detectCardBrand(card.number),
         expiryMonth: parseInt(card.expiryMonth, 10),
         expiryYear: this.normalizeYear(card.expiryYear),
-        fingerprint: this.generateFingerprint(card.number),
+        fingerprint: this.generateSecureFingerprint(card.number),
       };
       this.updateHealth(true, Date.now() - startTime);
       return tokenizedCard;
@@ -518,13 +518,4 @@ export class PayPalClassicProvider extends AbstractPaymentProvider {
     return CardBrand.UNKNOWN;
   }
 
-  private generateFingerprint(cardNumber: string): string {
-    const num = cardNumber.replace(/\D/g, '');
-    let hash = 0;
-    for (let i = 0; i < num.length; i++) {
-      hash = ((hash << 5) - hash) + num.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-  }
 }

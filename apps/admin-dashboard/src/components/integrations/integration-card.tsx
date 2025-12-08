@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { MoreVertical, Share2, TestTube, Trash2, Star, Zap } from 'lucide-react';
+import { MoreVertical, Share2, TestTube, Trash2, Star, Zap, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   PlatformIntegration,
@@ -19,6 +19,7 @@ interface IntegrationCardProps {
   integration: Integration;
   isPlatformView?: boolean;
   onTest?: (id: string) => void;
+  onEdit?: (integration: Integration) => void;
   onDelete?: (integration: Integration) => void;
   onConfigureSharing?: (integration: PlatformIntegration) => void;
   onSetDefault?: (id: string) => void;
@@ -236,6 +237,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#232F3E]',
     gradient: 'from-[#232F3E] to-[#FF9900]',
   },
+  // Deployment
+  [IntegrationProvider.VERCEL]: {
+    icon: 'V',
+    iconUrl: '/integrations/vercel.svg',
+    bgColor: 'bg-[#000000]',
+    gradient: 'from-[#000000] to-[#333333]',
+  },
 };
 
 // Legacy support - map old providerLogos to new structure
@@ -261,6 +269,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.MONITORING]: 'Monitoring',
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
+  [IntegrationCategory.DEPLOYMENT]: 'Deployment',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {
@@ -275,6 +284,7 @@ export function IntegrationCard({
   integration,
   isPlatformView = false,
   onTest,
+  onEdit,
   onDelete,
   onConfigureSharing,
   onSetDefault,
@@ -370,6 +380,18 @@ export function IntegrationCard({
                   >
                     <TestTube className="w-4 h-4" />
                     Test Connection
+                  </button>
+                )}
+                {onEdit && (
+                  <button
+                    onClick={() => {
+                      onEdit(integration);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
                   </button>
                 )}
                 {isPlatformView && isPlatformIntegration(integration) && onConfigureSharing && (

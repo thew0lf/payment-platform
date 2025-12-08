@@ -344,3 +344,320 @@ export const getStageTypeIcon = (type: StageType): string => {
   };
   return icons[type] || 'Box';
 };
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC CHECKOUT TYPES & API (No Auth Required)
+// ═══════════════════════════════════════════════════════════════
+
+export interface FunnelCheckoutSummary {
+  sessionToken: string;
+  funnelId: string;
+  funnelName: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price: number;
+    name: string;
+  }>;
+  subtotal: number;
+  shippingAmount: number;
+  shippingDetails?: {
+    carrier: string;
+    estimatedDays: number;
+    method: string;
+  } | null;
+  taxAmount: number;
+  taxDetails?: {
+    taxRate: number;
+    taxJurisdiction: string;
+  } | null;
+  total: number;
+  currency: string;
+  shippingAddress?: unknown;
+  customerInfo?: unknown;
+}
+
+export interface FunnelCheckoutDto {
+  card: {
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    cvv: string;
+    cardholderName?: string;
+  };
+  billingAddress: {
+    firstName: string;
+    lastName: string;
+    street1: string;
+    street2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    email?: string;
+    phone?: string;
+  };
+  saveCard?: boolean;
+  email: string;
+}
+
+export interface FunnelCheckoutResult {
+  success: boolean;
+  orderId?: string;
+  orderNumber?: string;
+  transactionId?: string;
+  customerId?: string;
+  error?: string;
+  errorCode?: string;
+}
+
+// Error codes that indicate specific issues
+export type FunnelCheckoutErrorCode =
+  | 'CARD_STORAGE_ERROR'
+  | 'PAYMENT_ERROR'
+  | 'DECLINED'
+  | 'INSUFFICIENT_FUNDS'
+  | 'INVALID_CARD'
+  | 'EXPIRED_CARD'
+  | 'CVV_MISMATCH'
+  | 'AVS_MISMATCH'
+  | 'NETWORK_ERROR'
+  | 'SESSION_EXPIRED'
+  | 'VALIDATION_ERROR';
+
+// User-friendly error messages for common error codes
+export const getCheckoutErrorMessage = (errorCode?: string, errorMessage?: string): string => {
+  if (!errorCode) return errorMessage || 'An unexpected error occurred. Please try again.';
+
+  const errorMessages: Record<string, string> = {
+    CARD_STORAGE_ERROR: 'We could not process your card. Please check your card details and try again.',
+    PAYMENT_ERROR: 'Payment processing failed. Please try again or use a different payment method.',
+    DECLINED: 'Your card was declined. Please try a different card or contact your bank.',
+    INSUFFICIENT_FUNDS: 'Insufficient funds. Please use a different card or contact your bank.',
+    INVALID_CARD: 'Invalid card number. Please check and re-enter your card details.',
+    EXPIRED_CARD: 'This card has expired. Please use a different card.',
+    CVV_MISMATCH: 'Invalid security code (CVV). Please check and re-enter.',
+    AVS_MISMATCH: 'Billing address does not match card. Please verify your address.',
+    NETWORK_ERROR: 'Connection error. Please check your internet and try again.',
+    SESSION_EXPIRED: 'Your session has expired. Please refresh the page and try again.',
+    VALIDATION_ERROR: 'Please check your information and try again.',
+  };
+
+  return errorMessages[errorCode] || errorMessage || 'Payment failed. Please try again.';
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+/**
+ * Public Funnel Checkout API (no authentication required)
+ * These endpoints are called from the public-facing funnel pages
+ */
+export const funnelCheckoutApi = {
+  /**
+   * Get checkout summary with calculated shipping and tax
+   */
+  getCheckoutSummary: async (sessionToken: string): Promise<FunnelCheckoutSummary> => {
+    const response = await fetch(`${API_BASE}/api/f/sessions/${sessionToken}/checkout`);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to load checkout summary' }));
+      throw new Error(error.message || 'Failed to load checkout summary');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Process checkout / payment
+   * Returns detailed result with success/error status
+   */
+  processCheckout: async (
+    sessionToken: string,
+    dto: FunnelCheckoutDto,
+  ): Promise<FunnelCheckoutResult> => {
+    const response = await fetch(`${API_BASE}/api/f/sessions/${sessionToken}/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dto),
+    });
+
+    // Parse response body
+    const result = await response.json().catch(() => ({
+      success: false,
+      error: 'Failed to parse response',
+      errorCode: 'NETWORK_ERROR',
+    }));
+
+    // Even if HTTP status is OK, check the result.success flag
+    // The API returns 200 for both success and some business errors
+    return result;
+  },
+
+  /**
+   * Start or resume a funnel session
+   */
+  getSession: async (sessionToken: string): Promise<{
+    id: string;
+    sessionToken: string;
+    status: string;
+    funnelId: string;
+    funnel: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    selectedProducts?: unknown;
+    shippingAddress?: unknown;
+    customerInfo?: unknown;
+  }> => {
+    const response = await fetch(`${API_BASE}/api/f/sessions/${sessionToken}`);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Session not found' }));
+      throw new Error(error.message || 'Session not found');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Update session data (products, shipping address, etc.)
+   */
+  updateSession: async (
+    sessionToken: string,
+    data: {
+      selectedProducts?: Array<{
+        productId: string;
+        quantity: number;
+        price: number;
+        name: string;
+        sku?: string;
+      }>;
+      shippingAddress?: {
+        firstName: string;
+        lastName: string;
+        street1: string;
+        street2?: string;
+        city: string;
+        state: string;
+        postalCode: string;
+        country: string;
+      };
+      customerInfo?: {
+        email?: string;
+        phone?: string;
+      };
+    },
+  ): Promise<unknown> => {
+    const response = await fetch(`${API_BASE}/api/f/sessions/${sessionToken}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to update session' }));
+      throw new Error(error.message || 'Failed to update session');
+    }
+
+    return response.json();
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FUNNEL TEMPLATES API (Public - No Auth)
+// ═══════════════════════════════════════════════════════════════
+
+export interface FunnelTemplate {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  thumbnail: string | null;
+  templateType: 'FULL_FUNNEL' | 'COMPONENT';
+  category: string;
+  config: Record<string, unknown>;
+  demoUrl: string | null;
+  featured: boolean;
+  industry: string[];
+  tags: string[];
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateFilters {
+  type?: 'FULL_FUNNEL' | 'COMPONENT';
+  category?: string;
+  featured?: boolean;
+  industry?: string;
+  search?: string;
+}
+
+export const funnelTemplatesApi = {
+  /**
+   * List all templates with optional filtering
+   */
+  list: async (filters?: TemplateFilters): Promise<FunnelTemplate[]> => {
+    const params = new URLSearchParams();
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.featured !== undefined) params.append('featured', String(filters.featured));
+    if (filters?.industry) params.append('industry', filters.industry);
+    if (filters?.search) params.append('search', filters.search);
+
+    const response = await fetch(`${API_BASE}/api/funnel-templates?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch templates');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get a single template by slug
+   */
+  getBySlug: async (slug: string): Promise<FunnelTemplate> => {
+    const response = await fetch(`${API_BASE}/api/funnel-templates/${slug}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Template not found');
+      }
+      throw new Error('Failed to fetch template');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get all categories
+   */
+  getCategories: async (): Promise<string[]> => {
+    const response = await fetch(`${API_BASE}/api/funnel-templates/categories`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch categories');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get all industries
+   */
+  getIndustries: async (): Promise<string[]> => {
+    const response = await fetch(`${API_BASE}/api/funnel-templates/industries`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch industries');
+    }
+
+    return response.json();
+  },
+};

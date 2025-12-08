@@ -605,7 +605,7 @@ export default function TemplatePreviewPage() {
   const router = useRouter();
   const [template, setTemplate] = useState<TemplateGalleryItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const templateId = params.template as string;
+  const templateId = params?.template as string ?? '';
 
   useEffect(() => {
     async function loadTemplate() {

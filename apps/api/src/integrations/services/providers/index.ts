@@ -26,8 +26,12 @@ export { DatadogService } from './datadog.service';
 export { SentryService } from './sentry.service';
 // Feature Flags
 export { LaunchDarklyService } from './launchdarkly.service';
+// Deployment
+export { VercelService } from './vercel.service';
 // OAuth/Communication
 export { SlackService } from './slack.service';
+// Location Services
+export { GooglePlacesService } from './google-places.service';
 
 // Re-export types
 export type {
@@ -161,7 +165,16 @@ export type {
 // AI types
 export type {
   OpenAICredentials,
+  OpenAISettings,
   OpenAITestResult,
+  ContentGenerationRequest as OpenAIContentRequest,
+  ContentGenerationResponse as OpenAIContentResponse,
+  ProductDescriptionRequest as OpenAIProductRequest,
+  ProductDescriptionResponse as OpenAIProductResponse,
+  ChatMessage,
+  ChatCompletionRequest,
+  EmbeddingRequest,
+  EmbeddingResponse,
 } from './openai.service';
 
 // Monitoring types
@@ -186,3 +199,22 @@ export type {
   SlackCredentials,
   SlackTestResult,
 } from './slack.service';
+
+// Deployment types
+export type {
+  VercelCredentials,
+  VercelTestResult,
+  VercelProject,
+  VercelDeployment,
+} from './vercel.service';
+
+// Location Services types
+export type {
+  GooglePlacesCredentials,
+  GooglePlacesSettings,
+  GooglePlacesTestResult,
+  AddressPrediction,
+  AutocompleteResult,
+  ParsedAddress,
+  PlaceDetailsResult,
+} from './google-places.service';
