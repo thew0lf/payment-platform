@@ -41,6 +41,8 @@ import { TwilioService } from './providers/twilio.service';
 import { Route53Service } from './providers/route53.service';
 // Deployment
 import { VercelService } from './providers/vercel.service';
+// Location Services
+import { GooglePlacesService } from './providers/google-places.service';
 
 @Injectable()
 export class PlatformIntegrationService {
@@ -83,6 +85,8 @@ export class PlatformIntegrationService {
     private readonly route53Service: Route53Service,
     // Deployment
     private readonly vercelService: VercelService,
+    // Location Services
+    private readonly googlePlacesService: GooglePlacesService,
   ) {}
 
   async create(orgId: string, dto: CreatePlatformIntegrationDto, createdBy: string): Promise<PlatformIntegration> {
@@ -259,6 +263,9 @@ export class PlatformIntegrationService {
       // Deployment
       case IntegrationProvider.VERCEL:
         return this.vercelService.testConnection(credentials as any);
+      // Location Services
+      case IntegrationProvider.GOOGLE_PLACES:
+        return this.googlePlacesService.testConnection(credentials as any);
       default:
         return { success: true, message: 'Credentials validated' };
     }

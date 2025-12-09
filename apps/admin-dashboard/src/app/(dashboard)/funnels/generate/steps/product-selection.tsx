@@ -11,10 +11,12 @@ import {
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { productsApi, type Product } from '@/lib/api/products';
 
+export type { Product };
+
 interface ProductSelectionStepProps {
   selectedProductIds: string[];
   primaryProductId?: string;
-  onNext: (productIds: string[], primaryId?: string) => void;
+  onNext: (productIds: string[], primaryId: string | undefined, selectedProducts: Product[]) => void;
   companyId?: string;
 }
 
@@ -87,7 +89,9 @@ export function ProductSelectionStep({
       toast.error('Please select at least one product');
       return;
     }
-    onNext(selectedIds, primaryId || selectedIds[0]);
+    // Get full product objects for selected products
+    const selectedProducts = products.filter(p => selectedIds.includes(p.id));
+    onNext(selectedIds, primaryId || selectedIds[0], selectedProducts);
   };
 
   const formatPrice = (price: number, currency: string) => {

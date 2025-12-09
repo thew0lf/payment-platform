@@ -43,6 +43,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
+  [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
 };
 
 const statusOptions = [
@@ -66,6 +67,7 @@ const providerConfig: Record<string, { iconUrl?: string; bgColor: string; gradie
   [IntegrationProvider.TWILIO]: { iconUrl: '/integrations/twilio.svg', bgColor: 'bg-[#F22F46]', gradient: 'from-[#F22F46] to-[#FF5A6E]' },
   [IntegrationProvider.SENDGRID]: { iconUrl: '/integrations/sendgrid.svg', bgColor: 'bg-[#1A82E2]', gradient: 'from-[#1A82E2] to-[#4DA3FF]' },
   [IntegrationProvider.VERCEL]: { iconUrl: '/integrations/vercel.svg', bgColor: 'bg-[#000000]', gradient: 'from-[#000000] to-[#333333]' },
+  [IntegrationProvider.GOOGLE_PLACES]: { iconUrl: '/integrations/google-places.svg', bgColor: 'bg-white', gradient: 'from-[#4285F4] to-[#34A853]' },
 };
 
 type ViewMode = 'card' | 'table';

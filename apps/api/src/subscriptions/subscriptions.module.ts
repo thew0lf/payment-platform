@@ -11,6 +11,7 @@ import { SubscriptionIntelligenceController } from './controllers/subscription-i
 import { SubscriptionShippingController } from './controllers/subscription-shipping.controller';
 import { SubscriptionNotificationsController } from './controllers/subscription-notifications.controller';
 import { SubscriptionAnalyticsController } from './controllers/subscription-analytics.controller';
+import { PublicSubscriptionController } from './controllers/public-subscription.controller';
 import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionRebillService } from './services/subscription-rebill.service';
 import { SubscriptionPlanService } from './services/subscription-plan.service';
@@ -50,6 +51,7 @@ import { PaymentsModule } from '../payments/payments.module';
     SubscriptionShippingController,
     SubscriptionNotificationsController,
     SubscriptionAnalyticsController,
+    PublicSubscriptionController,
   ],
   providers: [
     SubscriptionsService,

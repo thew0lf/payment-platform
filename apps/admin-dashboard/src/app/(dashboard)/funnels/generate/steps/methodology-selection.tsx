@@ -14,6 +14,7 @@ import type { MarketingMethodology, MethodologySummary } from '@/lib/api/ai-funn
 interface MethodologySelectionStepProps {
   methodologies: MethodologySummary[];
   selectedMethodology?: MarketingMethodology;
+  recommendedMethodology?: MarketingMethodology;
   onSelect: (methodology: MarketingMethodology) => void;
   onBack: () => void;
   isLoading: boolean;
@@ -48,6 +49,7 @@ const METHODOLOGY_COLORS: Record<MarketingMethodology, string> = {
 export function MethodologySelectionStep({
   methodologies,
   selectedMethodology,
+  recommendedMethodology,
   onSelect,
   onBack,
   isLoading,
@@ -64,12 +66,29 @@ export function MethodologySelectionStep({
         </p>
       </div>
 
+      {/* MI Recommendation Banner */}
+      {recommendedMethodology && (
+        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+            <SparklesIcon className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+              MI recommends <span className="font-bold">{methodologies.find(m => m.id === recommendedMethodology)?.name || recommendedMethodology}</span> for your products
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Based on product type, price point, and target audience analysis
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Methodology grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {methodologies.map(methodology => {
           const Icon = METHODOLOGY_ICONS[methodology.id] || LightBulbIcon;
           const gradient = METHODOLOGY_COLORS[methodology.id] || 'from-gray-500 to-slate-500';
-          const isRecommended = methodology.id === 'NCI';
+          const isRecommended = recommendedMethodology === methodology.id;
           const isSelected = selectedMethodology === methodology.id;
 
           return (
@@ -85,11 +104,12 @@ export function MethodologySelectionStep({
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
             >
-              {/* Recommended badge */}
+              {/* MI Recommended badge */}
               {isRecommended && (
                 <div className="absolute -top-2 -right-2">
-                  <span className="px-2 py-1 text-xs font-medium bg-purple-600 text-white rounded-full">
-                    Recommended
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full">
+                    <SparklesIcon className="h-3 w-3" />
+                    MI Pick
                   </span>
                 </div>
               )}

@@ -10,13 +10,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import * as aiFunnelApi from '@/lib/api/ai-funnel';
+import { funnelsApi, FunnelType } from '@/lib/api/funnels';
 import type {
   MarketingMethodology,
   MethodologySummary,
   DiscoveryQuestion,
   GeneratedFunnelContent,
 } from '@/lib/api/ai-funnel';
-import { ProductSelectionStep } from './steps/product-selection';
+import { ProductSelectionStep, type Product } from './steps/product-selection';
 import { MethodologySelectionStep } from './steps/methodology-selection';
 import { DiscoveryQuestionsStep } from './steps/discovery-questions';
 import { GenerationProgressStep } from './steps/generation-progress';
@@ -27,9 +28,12 @@ type WizardStep = 'products' | 'methodology' | 'questions' | 'generating' | 'rev
 interface WizardState {
   selectedProductIds: string[];
   primaryProductId?: string;
+  selectedProducts: Product[];
   selectedMethodology?: MarketingMethodology;
+  recommendedMethodology?: MarketingMethodology;
   methodologyQuestions: DiscoveryQuestion[];
   discoveryAnswers: Record<string, string>;
+  miSuggestions: Record<string, string>;
   generationId?: string;
   generatedContent?: GeneratedFunnelContent;
 }
@@ -50,10 +54,13 @@ export default function AIFunnelGeneratorPage() {
   const [currentStep, setCurrentStep] = useState<WizardStep>('products');
   const [methodologies, setMethodologies] = useState<MethodologySummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [wizardState, setWizardState] = useState<WizardState>({
     selectedProductIds: [],
+    selectedProducts: [],
     methodologyQuestions: [],
     discoveryAnswers: {},
+    miSuggestions: {},
   });
 
   // Load methodologies on mount
@@ -71,14 +78,125 @@ export default function AIFunnelGeneratorPage() {
 
   const currentStepIndex = STEP_ORDER.indexOf(currentStep);
 
-  const handleProductsSelected = useCallback((productIds: string[], primaryId?: string) => {
+  // Generate MI suggestions based on product descriptions
+  const generateMISuggestions = useCallback((products: Product[], primaryProductId?: string): Record<string, string> => {
+    const primaryProduct = products.find(p => p.id === primaryProductId) || products[0];
+    if (!primaryProduct) return {};
+
+    const description = primaryProduct.description || '';
+    const name = primaryProduct.name || '';
+    const price = primaryProduct.price || 0;
+    const allDescriptions = products.map(p => p.description || '').join(' ');
+
+    // Analyze product to generate smart prefills
+    const suggestions: Record<string, string> = {};
+
+    // Detect product characteristics from description
+    const isPremium = price > 30 || /premium|luxury|artisan|craft|specialty|reserve/i.test(allDescriptions);
+    const isCoffee = /coffee|roast|brew|espresso|bean/i.test(allDescriptions);
+    const isExperience = /experience|journey|discover|transform/i.test(allDescriptions);
+    const hasOrigin = /origin|source|farm|region/i.test(allDescriptions);
+
+    // initial_emotion - based on product type
+    if (isPremium || isExperience) {
+      suggestions.initial_emotion = 'Desire - wanting what they see';
+    } else if (isCoffee) {
+      suggestions.initial_emotion = 'Curiosity - intrigued and wanting more';
+    } else {
+      suggestions.initial_emotion = 'Excitement - energized and eager';
+    }
+
+    // transformation - who customer wants to become
+    if (isCoffee) {
+      suggestions.transformation = `A discerning coffee connoisseur who appreciates quality and craftsmanship. Someone who starts each day with an exceptional cup that elevates their morning ritual.`;
+    } else if (isPremium) {
+      suggestions.transformation = `Someone who invests in quality over quantity. A person who appreciates the finer things and isn't willing to settle for less.`;
+    }
+
+    // current_pain - the trigger moment
+    if (isCoffee) {
+      suggestions.current_pain = `That disappointing moment when they take a sip of their usual coffee and realize it tastes flat, bitter, or just... mediocre. They know there's better out there, but haven't found it yet.`;
+    } else {
+      suggestions.current_pain = `The frustration of settling for products that don't meet their standards. They've tried cheaper alternatives and been disappointed every time.`;
+    }
+
+    // main_objection
+    if (price > 20) {
+      suggestions.main_objection = `"I can get coffee/products cheaper elsewhere"`;
+    } else {
+      suggestions.main_objection = `"I'm not sure if this is right for me"`;
+    }
+
+    // credibility_proof - based on product info
+    if (hasOrigin) {
+      suggestions.credibility_proof = `Direct relationships with farmers and artisan producers worldwide`;
+    } else if (isPremium) {
+      suggestions.credibility_proof = `Trusted by thousands of discerning customers`;
+    }
+
+    // unique_mechanism
+    if (isCoffee && hasOrigin) {
+      suggestions.unique_mechanism = `We source directly from small-batch farms and roast within days of shipping, so you taste the coffee at peak freshness with distinct regional flavors you won't find anywhere else.`;
+    } else if (isPremium) {
+      suggestions.unique_mechanism = `Our careful curation process ensures only the highest quality products make it to your door.`;
+    }
+
+    // urgency_reason (optional)
+    if (/limited|small.?batch|seasonal/i.test(allDescriptions)) {
+      suggestions.urgency_reason = `Small-batch production means limited availability`;
+    }
+
+    return suggestions;
+  }, []);
+
+  // Determine recommended methodology based on product analysis
+  const getRecommendedMethodology = useCallback((products: Product[], primaryProductId?: string): MarketingMethodology => {
+    const primaryProduct = products.find(p => p.id === primaryProductId) || products[0];
+    if (!primaryProduct) return 'NCI'; // Default
+
+    const allDescriptions = products.map(p => (p.description || '') + ' ' + p.name).join(' ').toLowerCase();
+    const price = primaryProduct.price || 0;
+
+    // Analyze product characteristics
+    const isPremium = price > 30 || /premium|luxury|artisan|craft|specialty|reserve|exclusive/i.test(allDescriptions);
+    const isProblemSolver = /solve|fix|relief|cure|eliminate|stop|reduce|prevent/i.test(allDescriptions);
+    const hasStory = /story|journey|tradition|heritage|founder|family|generation|handcraft/i.test(allDescriptions);
+    const isTechProduct = /software|app|platform|saas|digital|online|automated/i.test(allDescriptions);
+    const isService = /service|consulting|coaching|training|support|help/i.test(allDescriptions);
+
+    // Methodology selection logic
+    if (hasStory) {
+      return 'STORYBRAND'; // Story-driven products
+    }
+    if (isProblemSolver) {
+      return 'PAS'; // Problem-Agitate-Solve for pain points
+    }
+    if (isTechProduct || isService) {
+      return 'AIDA'; // Attention-Interest-Desire-Action for tech/services
+    }
+    if (isPremium) {
+      return 'NCI'; // Non-verbal Communication Influence for premium
+    }
+    // Default to NCI for most consumer products
+    return 'NCI';
+  }, []);
+
+  const handleProductsSelected = useCallback((productIds: string[], primaryId: string | undefined, selectedProducts: Product[]) => {
+    const miSuggestions = generateMISuggestions(selectedProducts, primaryId);
+    const recommendedMethodology = getRecommendedMethodology(selectedProducts, primaryId);
+
     setWizardState(prev => ({
       ...prev,
       selectedProductIds: productIds,
       primaryProductId: primaryId,
+      selectedProducts,
+      miSuggestions,
+      recommendedMethodology,
+      // Pre-fill answers with MI suggestions
+      discoveryAnswers: { ...miSuggestions },
     }));
     setCurrentStep('methodology');
-  }, []);
+  }, [generateMISuggestions, getRecommendedMethodology]);
 
   const handleMethodologySelected = useCallback(async (methodology: MarketingMethodology) => {
     setIsLoading(true);
@@ -163,6 +281,52 @@ export default function AIFunnelGeneratorPage() {
     }
   }, [currentStep]);
 
+  const handleSaveDraft = useCallback(
+    async (answers: Record<string, string>) => {
+      if (!selectedCompanyId) {
+        toast.error('Please select a company first');
+        return;
+      }
+
+      setIsSavingDraft(true);
+      try {
+        // Generate a name from the primary product
+        const primaryProduct = wizardState.selectedProducts.find(
+          p => p.id === wizardState.primaryProductId
+        ) || wizardState.selectedProducts[0];
+
+        const funnelName = primaryProduct
+          ? `${primaryProduct.name} Funnel (Draft)`
+          : 'New Funnel (Draft)';
+
+        // Create a draft funnel with basic settings
+        const funnel = await funnelsApi.create(
+          {
+            name: funnelName,
+            type: FunnelType.FULL_FUNNEL,
+            settings: {
+              methodology: wizardState.selectedMethodology,
+              discoveryAnswers: answers,
+              productIds: wizardState.selectedProductIds,
+              primaryProductId: wizardState.primaryProductId,
+              generatedWithAI: false,
+              draftSavedAt: new Date().toISOString(),
+            },
+          },
+          selectedCompanyId
+        );
+
+        toast.success('Draft saved! You can continue editing anytime.');
+        router.push(`/funnels/${funnel.id}`);
+      } catch (error) {
+        toast.error('Failed to save draft');
+      } finally {
+        setIsSavingDraft(false);
+      }
+    },
+    [selectedCompanyId, wizardState.selectedProducts, wizardState.selectedMethodology, wizardState.selectedProductIds, wizardState.primaryProductId, router]
+  );
+
   const canGoBack = currentStepIndex > 0 && currentStep !== 'generating';
 
   return (
@@ -186,7 +350,7 @@ export default function AIFunnelGeneratorPage() {
                   AI Funnel Generator
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Create a professional funnel in minutes
+                  Powered by Momentum Intelligence™ — Create a professional funnel in minutes
                 </p>
               </div>
             </div>
@@ -253,6 +417,7 @@ export default function AIFunnelGeneratorPage() {
           <MethodologySelectionStep
             methodologies={methodologies}
             selectedMethodology={wizardState.selectedMethodology}
+            recommendedMethodology={wizardState.recommendedMethodology}
             onSelect={handleMethodologySelected}
             onBack={handleBack}
             isLoading={isLoading}
@@ -264,8 +429,11 @@ export default function AIFunnelGeneratorPage() {
             methodology={wizardState.selectedMethodology}
             questions={wizardState.methodologyQuestions}
             answers={wizardState.discoveryAnswers}
+            miSuggestions={wizardState.miSuggestions}
             onSubmit={handleQuestionsAnswered}
+            onSaveDraft={handleSaveDraft}
             onBack={handleBack}
+            isSavingDraft={isSavingDraft}
           />
         )}
 

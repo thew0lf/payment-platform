@@ -32,6 +32,7 @@ import {
   Workflow,
   RefreshCw,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/header';
@@ -220,10 +221,21 @@ export default function FunnelsPage() {
         title="Funnels"
         subtitle={loading ? 'Loading...' : `${funnels.length} funnels`}
         actions={
-          <Button size="sm" onClick={() => router.push('/funnels/builder')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Funnel
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push('/funnels/generate')}
+              className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate with MI
+            </Button>
+            <Button size="sm" onClick={() => router.push('/funnels/builder')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Funnel
+            </Button>
+          </div>
         }
       />
 

@@ -128,6 +128,13 @@ export type {
 export type {
   PayPalClassicCredentials,
   PayPalClassicTestResult,
+  PayPalCardInfo,
+  PayPalBillingAddress,
+  PayPalShippingAddress,
+  PayPalPaymentRequest,
+  PayPalPaymentResult,
+  PayPalRefundRequest,
+  PayPalRefundResult,
 } from './paypal-classic.service';
 
 export type {

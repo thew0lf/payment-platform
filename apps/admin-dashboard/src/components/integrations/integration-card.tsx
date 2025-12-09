@@ -244,6 +244,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#000000]',
     gradient: 'from-[#000000] to-[#333333]',
   },
+  // Location Services
+  [IntegrationProvider.GOOGLE_PLACES]: {
+    icon: 'GP',
+    iconUrl: '/integrations/google-places.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#4285F4] to-[#34A853]',
+  },
 };
 
 // Legacy support - map old providerLogos to new structure
@@ -270,6 +277,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
+  [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {

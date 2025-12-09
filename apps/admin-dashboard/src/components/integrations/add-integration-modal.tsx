@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, ArrowLeft, ArrowRight, Check, Zap, Key, Loader2 } from 'lucide-react';
+import { X, ArrowLeft, ArrowRight, Check, Zap, Key, Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   IntegrationDefinition,
@@ -54,6 +54,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
+  [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
 };
 
 // Provider configuration with icons and brand colors
@@ -275,6 +276,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     bgColor: 'bg-[#2CA01C]',
     gradient: 'from-[#2CA01C] to-[#4CD93A]',
   },
+  // Location Services
+  [IntegrationProvider.GOOGLE_PLACES]: {
+    icon: 'GP',
+    iconUrl: '/integrations/google-places.svg',
+    bgColor: 'bg-white',
+    gradient: 'from-[#4285F4] to-[#34A853]',
+  },
 };
 
 type Step = 'select' | 'configure' | 'credentials';
@@ -304,11 +312,22 @@ export function AddIntegrationModal({
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const selectedDefinition = definitions.find((d) => d.provider === selectedProvider);
   const platformOptionForProvider = platformOptions.find((p) => p.provider === selectedProvider);
 
-  const groupedDefinitions = definitions.reduce(
+  // Filter definitions based on search query
+  const filteredDefinitions = searchQuery.trim()
+    ? definitions.filter(
+        (def) =>
+          def.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          def.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          def.provider.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : definitions;
+
+  const groupedDefinitions = filteredDefinitions.reduce(
     (acc, def) => {
       if (!acc[def.category]) acc[def.category] = [];
       acc[def.category].push(def);
@@ -414,6 +433,7 @@ export function AddIntegrationModal({
     });
     setCredentials({});
     setError(null);
+    setSearchQuery('');
     onClose();
   };
 
@@ -453,6 +473,27 @@ export function AddIntegrationModal({
           {/* Step 1: Select Provider */}
           {step === 'select' && (
             <div className="space-y-6">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search integrations..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 text-sm"
+                  autoFocus
+                />
+              </div>
+
+              {/* No Results */}
+              {Object.keys(groupedDefinitions).length === 0 && searchQuery && (
+                <div className="text-center py-8 text-zinc-500">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No integrations found for &quot;{searchQuery}&quot;</p>
+                </div>
+              )}
+
               {Object.entries(groupedDefinitions).map(([category, defs]) => (
                 <div key={category}>
                   <h3 className="text-sm font-medium text-zinc-400 mb-3">

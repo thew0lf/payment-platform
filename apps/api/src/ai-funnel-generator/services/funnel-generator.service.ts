@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BedrockService, BedrockCredentials } from '../../integrations/services/providers/bedrock.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { EncryptedCredentials } from '../../integrations/types/integration.types';
 import { PromptBuilderService } from './prompt-builder.service';
 import { METHODOLOGIES, getMethodology, isMethodologyAvailable } from '../methodologies';
 import {
@@ -37,6 +39,7 @@ export class FunnelGeneratorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bedrockService: BedrockService,
+    private readonly encryptionService: CredentialEncryptionService,
     private readonly promptBuilder: PromptBuilderService,
   ) {}
 
@@ -528,13 +531,17 @@ export class FunnelGeneratorService {
       throw new Error('AWS Bedrock integration not configured');
     }
 
-    const credentials = integration.credentials as any;
+    // Decrypt the stored credentials
+    const decrypted = this.encryptionService.decrypt(
+      integration.credentials as unknown as EncryptedCredentials
+    );
+    const credentials = decrypted as Record<string, unknown>;
 
     return {
-      region: credentials.region || 'us-east-1',
-      accessKeyId: credentials.accessKeyId,
-      secretAccessKey: credentials.secretAccessKey,
-      modelId: credentials.modelId || 'anthropic.claude-3-sonnet-20240229-v1:0',
+      region: (credentials.region as string) || 'us-east-1',
+      accessKeyId: credentials.accessKeyId as string,
+      secretAccessKey: credentials.secretAccessKey as string,
+      modelId: (credentials.modelId as string) || 'anthropic.claude-3-sonnet-20240229-v1:0',
     };
   }
 

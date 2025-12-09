@@ -534,3 +534,95 @@ export async function getCustomerOrders(email: string): Promise<{ orders: Public
   }
   return res.json();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOMER SUBSCRIPTIONS API
+// ═══════════════════════════════════════════════════════════════
+
+export interface PublicSubscription {
+  id: string;
+  status: string;
+  planName: string;
+  planDisplayName?: string;
+  productName?: string;
+  productImageUrl?: string;
+  amount: number;
+  currency: string;
+  interval: string;
+  nextBillingDate: string | null;
+  currentPeriodStart: string;
+  currentPeriodEnd: string | null;
+  trialEndsAt: string | null;
+  canceledAt: string | null;
+  pausedUntil: string | null;
+  createdAt: string;
+  canPause: boolean;
+  canCancel: boolean;
+  canResume: boolean;
+}
+
+export async function getCustomerSubscriptions(
+  email: string
+): Promise<{ subscriptions: PublicSubscription[]; total: number }> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/public/my-subscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch subscriptions');
+  }
+  return res.json();
+}
+
+export async function pauseSubscription(
+  email: string,
+  subscriptionId: string,
+  reason?: string,
+  resumeDate?: string
+): Promise<PublicSubscription> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/public/pause`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, subscriptionId, reason, resumeDate }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to pause subscription' }));
+    throw new Error(error.message || 'Failed to pause subscription');
+  }
+  return res.json();
+}
+
+export async function resumeSubscription(
+  email: string,
+  subscriptionId: string
+): Promise<PublicSubscription> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/public/resume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, subscriptionId }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to resume subscription' }));
+    throw new Error(error.message || 'Failed to resume subscription');
+  }
+  return res.json();
+}
+
+export async function cancelSubscription(
+  email: string,
+  subscriptionId: string,
+  reason?: string,
+  feedback?: string
+): Promise<PublicSubscription> {
+  const res = await fetch(`${API_BASE}/api/subscriptions/public/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, subscriptionId, reason, feedback }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to cancel subscription' }));
+    throw new Error(error.message || 'Failed to cancel subscription');
+  }
+  return res.json();
+}

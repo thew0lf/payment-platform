@@ -48,6 +48,8 @@ export enum IntegrationProvider {
   HUBSPOT = 'HUBSPOT',
   SALESFORCE = 'SALESFORCE',
   QUICKBOOKS = 'QUICKBOOKS',
+  // Location Services
+  GOOGLE_PLACES = 'GOOGLE_PLACES',
 }
 
 export enum IntegrationCategory {
@@ -71,6 +73,7 @@ export enum IntegrationCategory {
   FEATURE_FLAGS = 'FEATURE_FLAGS',
   WEBHOOK = 'WEBHOOK',
   DEPLOYMENT = 'DEPLOYMENT',
+  LOCATION_SERVICES = 'LOCATION_SERVICES',
 }
 
 export enum IntegrationStatus {

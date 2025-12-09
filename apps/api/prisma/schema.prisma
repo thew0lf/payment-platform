@@ -1423,6 +1423,24 @@ model SubscriptionPlan {
   features     Json    @default("[]")  // Array of feature strings
 
   // ─────────────────────────────────────────────────────────────────────────
+  // MOMENTUM INTELLIGENCE SETTINGS
+  // ─────────────────────────────────────────────────────────────────────────
+  miEnabled                  Boolean @default(true)   // Enable MI features for this plan
+  miChurnDetectionEnabled    Boolean @default(true)   // Enable churn prediction
+  miChurnThresholdCritical   Int     @default(80)     // Score threshold for CRITICAL risk
+  miChurnThresholdHigh       Int     @default(60)     // Score threshold for HIGH risk
+  miChurnThresholdMedium     Int     @default(40)     // Score threshold for MEDIUM risk
+  miSaveFlowEnabled          Boolean @default(true)   // Enable save flow on cancellation
+  miSaveFlowMaxAttempts      Int     @default(3)      // Max save attempts per subscription
+  miInterventionsEnabled     Boolean @default(true)   // Enable behavioral interventions
+  miInterventionTypes        Json    @default("[]")   // Allowed intervention types: ["DISCOUNT", "PAUSE", "SKIP", "DOWNGRADE"]
+  miSocialProofEnabled       Boolean @default(false)  // Show social proof (reviews, purchase count)
+  miUrgencyEnabled           Boolean @default(false)  // Show urgency indicators (limited stock, timer)
+  miUpsellEnabled            Boolean @default(true)   // Enable AI-driven upsells
+  miCrossSellEnabled         Boolean @default(true)   // Enable cross-sell recommendations
+  miPersonalizationEnabled   Boolean @default(true)   // Enable personalized messaging
+
+  // ─────────────────────────────────────────────────────────────────────────
   // METADATA
   // ─────────────────────────────────────────────────────────────────────────
   metadata Json @default("{}")

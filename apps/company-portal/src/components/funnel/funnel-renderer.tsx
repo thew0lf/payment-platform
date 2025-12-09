@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Funnel } from '@/lib/api';
 import { FunnelProvider, useFunnel } from '@/contexts/funnel-context';
+import { InterventionProvider, UrgencyBanner } from '@/components/interventions';
 import { LandingStage } from './stages/landing-stage';
 import { ProductSelectionStage } from './stages/product-selection-stage';
 import { CheckoutStage } from './stages/checkout-stage';
@@ -85,59 +86,68 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
   }
 
   return (
-    <div
-      className="min-h-screen bg-gray-50"
-      style={{
-        ...brandStyles,
-        fontFamily: branding.fontFamily || 'inherit',
-      }}
+    <InterventionProvider
+      funnelId={funnel.id}
+      sessionToken={session?.sessionToken}
+      currentStage={currentStage.type}
     >
-      {/* Header with branding */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            {branding.logoUrl ? (
-              <img src={branding.logoUrl} alt={funnel.name} className="h-8" />
-            ) : (
-              <h1 className="text-xl font-semibold text-gray-900">{funnel.name}</h1>
-            )}
+      <div
+        className="min-h-screen bg-gray-50"
+        style={{
+          ...brandStyles,
+          fontFamily: branding.fontFamily || 'inherit',
+        }}
+      >
+        {/* Urgency Banner (shows at top when configured) */}
+        <UrgencyBanner />
 
-            {/* Cart indicator for product/checkout stages */}
-            {currentStage.type !== 'LANDING' && cart.length > 0 && (
-              <CartSummary />
-            )}
+        {/* Header with branding */}
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={funnel.name} className="h-8" />
+              ) : (
+                <h1 className="text-xl font-semibold text-gray-900">{funnel.name}</h1>
+              )}
+
+              {/* Cart indicator for product/checkout stages */}
+              {currentStage.type !== 'LANDING' && cart.length > 0 && (
+                <CartSummary />
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Progress bar */}
-      {funnel.settings.behavior.showProgressBar && (
-        <ProgressBar progress={progress} stages={funnel.stages} currentIndex={currentStage.order} />
-      )}
+        {/* Progress bar */}
+        {funnel.settings.behavior.showProgressBar && (
+          <ProgressBar progress={progress} stages={funnel.stages} currentIndex={currentStage.order} />
+        )}
 
-      {/* Stage content */}
-      <main className="flex-1">
-        {renderStage(currentStage, funnel)}
-      </main>
+        {/* Stage content */}
+        <main className="flex-1">
+          {renderStage(currentStage, funnel)}
+        </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-            {funnel.settings.urls.termsUrl && (
-              <a href={funnel.settings.urls.termsUrl} className="hover:text-gray-700">
-                Terms of Service
-              </a>
-            )}
-            {funnel.settings.urls.privacyUrl && (
-              <a href={funnel.settings.urls.privacyUrl} className="hover:text-gray-700">
-                Privacy Policy
-              </a>
-            )}
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+              {funnel.settings.urls.termsUrl && (
+                <a href={funnel.settings.urls.termsUrl} className="hover:text-gray-700">
+                  Terms of Service
+                </a>
+              )}
+              {funnel.settings.urls.privacyUrl && (
+                <a href={funnel.settings.urls.privacyUrl} className="hover:text-gray-700">
+                  Privacy Policy
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </InterventionProvider>
   );
 }
 

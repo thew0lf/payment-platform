@@ -167,6 +167,22 @@ export interface SubscriptionPlan {
   badgeText: string | null;
   features: string[];
 
+  // Momentum Intelligence
+  miEnabled: boolean;
+  miChurnDetectionEnabled: boolean;
+  miChurnThresholdCritical: number;
+  miChurnThresholdHigh: number;
+  miChurnThresholdMedium: number;
+  miSaveFlowEnabled: boolean;
+  miSaveFlowMaxAttempts: number;
+  miInterventionsEnabled: boolean;
+  miInterventionTypes: string[];
+  miSocialProofEnabled: boolean;
+  miUrgencyEnabled: boolean;
+  miUpsellEnabled: boolean;
+  miCrossSellEnabled: boolean;
+  miPersonalizationEnabled: boolean;
+
   // Metadata
   metadata: Record<string, unknown>;
 
@@ -511,6 +527,75 @@ export class CreateSubscriptionPlanDto {
   @IsString({ each: true })
   features?: string[];
 
+  // Momentum Intelligence settings
+  @IsOptional()
+  @IsBoolean()
+  miEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miChurnDetectionEnabled?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdCritical?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdHigh?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdMedium?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  miSaveFlowEnabled?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  miSaveFlowMaxAttempts?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  miInterventionsEnabled?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  miInterventionTypes?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  miSocialProofEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miUrgencyEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miUpsellEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miCrossSellEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miPersonalizationEnabled?: boolean;
+
   @IsOptional()
   metadata?: Record<string, unknown>;
 }
@@ -808,6 +893,75 @@ export class UpdateSubscriptionPlanDto {
   @IsArray()
   @IsString({ each: true })
   features?: string[];
+
+  // Momentum Intelligence settings
+  @IsOptional()
+  @IsBoolean()
+  miEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miChurnDetectionEnabled?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdCritical?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdHigh?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  miChurnThresholdMedium?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  miSaveFlowEnabled?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  miSaveFlowMaxAttempts?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  miInterventionsEnabled?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  miInterventionTypes?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  miSocialProofEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miUrgencyEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miUpsellEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miCrossSellEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  miPersonalizationEnabled?: boolean;
 
   @IsOptional()
   metadata?: Record<string, unknown>;
