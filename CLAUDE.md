@@ -2,6 +2,21 @@
 
 ## Review Commands
 
+### Quick Reference
+
+| Command | Role | Focus Area |
+|---------|------|------------|
+| `/review` | Senior Developer | Code quality, patterns, maintainability |
+| `/review-arch` | Senior Architect | System design, scalability, infrastructure |
+| `/review-dba` | Senior DBA | Database design, queries, data integrity |
+| `/review-qa` | Senior QA Engineer | Test coverage, edge cases, quality gates |
+| `/review-cmo` | Chief Marketing Officer | Messaging, conversion, brand, UX |
+| `/review-seo` | SEO Manager | Search optimization, discoverability |
+| `/review-all` | Full Team | All roles review (comprehensive) |
+| `/feature` | Senior Developer | Pre-implementation ticket review |
+
+---
+
 ### `/review` - Senior Developer Review
 Comprehensive code/architecture review. Use: `/review [description or file path]`
 
@@ -20,6 +35,163 @@ Comprehensive code/architecture review. Use: `/review [description or file path]
 12. Standards - Follows project conventions?
 
 **Verdict:** Approve | Approve with suggestions | Request changes
+
+---
+
+### `/review-arch` - Senior Architect Review
+System architecture and infrastructure review. Use: `/review-arch [description or file path]`
+
+**Checklist:**
+1. System Design - Right architectural pattern? Microservices vs monolith?
+2. Scalability - Can this handle 10x, 100x load? Horizontal scaling?
+3. Reliability - Single points of failure? Failover strategy?
+4. Data Flow - Clear data paths? Bottlenecks? Async vs sync?
+5. Service Boundaries - Right separation of concerns? API contracts?
+6. Infrastructure - Cloud-native? Container-ready? Serverless fit?
+7. Integration Points - Third-party dependencies? Circuit breakers?
+8. Cost Implications - Resource usage? Optimization opportunities?
+9. Security Architecture - Defense in depth? Zero trust?
+10. Observability - Logging, metrics, tracing strategy?
+11. Disaster Recovery - Backup strategy? RTO/RPO requirements?
+12. Future Extensibility - Locked in? Migration path?
+
+**Verdict:** Architecture approved | Needs redesign | Requires POC
+
+---
+
+### `/review-dba` - Senior DBA Review
+Database design and query optimization review. Use: `/review-dba [description or file path]`
+
+**Checklist:**
+1. Schema Design - Normalized? Denormalized where needed? Relationships correct?
+2. Index Strategy - Right indexes? Missing indexes? Over-indexed?
+3. Query Performance - N+1 queries? Full table scans? Explain analyze?
+4. Data Integrity - Constraints? Foreign keys? Cascades appropriate?
+5. Migration Safety - Reversible? Data loss risk? Lock duration?
+6. Transaction Handling - Isolation levels? Deadlock potential?
+7. Connection Pooling - Pool size? Connection limits? Timeout settings?
+8. Data Volume - Partitioning needed? Archival strategy?
+9. Backup & Recovery - Point-in-time recovery? Tested restores?
+10. Replication - Read replicas? Sync vs async? Failover?
+11. Security - Row-level security? Encrypted columns? Audit trail?
+12. Compliance - PII handling? GDPR deletion? Data retention?
+
+**Verdict:** Schema approved | Needs optimization | Requires migration plan
+
+---
+
+### `/review-qa` - Senior QA Engineer Review
+Quality assurance and testing review. Use: `/review-qa [description or file path]`
+
+**Checklist:**
+1. Test Coverage - Unit tests? Integration tests? E2E tests? Coverage %?
+2. Edge Cases - Boundary conditions? Null/empty handling? Error states?
+3. Happy Path - Core user flows tested? Success scenarios?
+4. Negative Testing - Invalid inputs? Unauthorized access? Rate limits?
+5. Regression Risk - Breaking changes? Backward compatibility?
+6. Test Data - Realistic data? Data factories? Fixtures?
+7. Environment Parity - Tests match production? Config differences?
+8. Performance Testing - Load tests? Stress tests? Benchmarks?
+9. Security Testing - OWASP checks? Injection tests? Auth bypass?
+10. Accessibility - WCAG compliance? Screen reader tested?
+11. Cross-browser/Device - Browser matrix? Mobile responsive?
+12. Documentation - Test plans? Bug reproduction steps?
+
+**Verdict:** QA approved | Needs more tests | Blocking issues found
+
+---
+
+### `/review-cmo` - Chief Marketing Officer Review
+Marketing, messaging, and conversion review. Use: `/review-cmo [description or file path]`
+
+**Checklist:**
+1. Value Proposition - Clear benefit? Compelling reason to act?
+2. Messaging Clarity - Easy to understand? Jargon-free? Scannable?
+3. Brand Consistency - Tone of voice? Visual identity? Guidelines followed?
+4. Call-to-Action - Clear CTAs? Action-oriented? Urgency/scarcity?
+5. Conversion Optimization - Friction points? Drop-off risks? Form length?
+6. Customer Journey - Logical flow? Missing touchpoints? Dead ends?
+7. Target Audience - Right messaging for persona? Segment-specific?
+8. Trust Signals - Social proof? Testimonials? Security badges? Guarantees?
+9. Competitive Differentiation - Unique value clear? Why us vs them?
+10. Emotional Appeal - Pain points addressed? Aspirational messaging?
+11. Mobile Experience - Thumb-friendly? Fast loading? Readable?
+12. Legal Compliance - Disclaimers? Terms visible? GDPR consent?
+
+**Verdict:** Launch ready | Needs copy refinement | Needs UX revision
+
+---
+
+### `/review-seo` - SEO Manager Review
+Search engine optimization review. Use: `/review-seo [description or file path]`
+
+**Checklist:**
+1. Keyword Strategy - Target keywords identified? Search intent matched?
+2. Title Tags - Unique? Keyword-rich? Under 60 chars? Compelling?
+3. Meta Descriptions - Unique? Action-oriented? Under 160 chars?
+4. Header Structure - H1 unique? H2-H6 hierarchy? Keywords in headers?
+5. URL Structure - Clean URLs? Keywords included? No parameters?
+6. Internal Linking - Related content linked? Anchor text optimized?
+7. Content Quality - Original? Comprehensive? E-E-A-T signals?
+8. Image Optimization - Alt text? File names? Compression? WebP?
+9. Page Speed - Core Web Vitals? LCP, FID, CLS metrics?
+10. Mobile-First - Mobile-friendly? Responsive? No intrusive interstitials?
+11. Schema Markup - Structured data? Rich snippets opportunity?
+12. Crawlability - Robots.txt? Sitemap? Canonical tags? No broken links?
+
+**Verdict:** SEO optimized | Needs improvements | Critical issues
+
+---
+
+### `/review-all` - Full Team Review
+Comprehensive review by all team roles. Use: `/review-all [description or file path]`
+
+This command runs ALL review checklists sequentially:
+1. Senior Developer Review
+2. Senior Architect Review
+3. Senior DBA Review
+4. Senior QA Engineer Review
+5. CMO Review
+6. SEO Manager Review
+
+**Output Format:**
+```
+## Full Team Review: [Subject]
+
+### Senior Developer
+[Checklist results]
+**Verdict:** [verdict]
+
+### Senior Architect
+[Checklist results]
+**Verdict:** [verdict]
+
+### Senior DBA
+[Checklist results]
+**Verdict:** [verdict]
+
+### Senior QA Engineer
+[Checklist results]
+**Verdict:** [verdict]
+
+### Chief Marketing Officer
+[Checklist results]
+**Verdict:** [verdict]
+
+### SEO Manager
+[Checklist results]
+**Verdict:** [verdict]
+
+---
+## Summary
+| Role | Verdict | Blockers |
+|------|---------|----------|
+| ... | ... | ... |
+
+**Overall Status:** Ready for launch | Needs work | Blocked
+```
+
+---
 
 ### `/feature` - Feature File Review
 Senior developer review of a product ticket before implementation. Use: `/feature [ticket description]`
@@ -1179,6 +1351,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: December 3, 2025*
+*Last Updated: December 11, 2025*
 *Feature 01: Complete | Feature 02-03: Spec Complete*
 

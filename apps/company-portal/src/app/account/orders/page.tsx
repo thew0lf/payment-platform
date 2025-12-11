@@ -10,7 +10,7 @@ import {
   ClockIcon,
   XCircleIcon,
   ChevronRightIcon,
-  PackageIcon,
+  CubeIcon,
 } from '@heroicons/react/24/outline';
 
 type ViewMode = 'lookup' | 'orders';
@@ -163,7 +163,7 @@ export default function OrdersPage() {
                       />
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <PackageIcon className="h-8 w-8 text-gray-400" />
+                        <CubeIcon className="h-8 w-8 text-gray-400" />
                       </div>
                     )}
                     <div className="flex-1">

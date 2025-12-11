@@ -626,3 +626,100 @@ export async function cancelSubscription(
   }
   return res.json();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOMER PAYMENT METHODS API
+// ═══════════════════════════════════════════════════════════════
+
+export interface PaymentMethod {
+  id: string;
+  cardType: string;
+  lastFour: string;
+  expirationMonth: number;
+  expirationYear: number;
+  cardholderName?: string;
+  nickname?: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+// Get company code from environment or URL
+// In production, this would be derived from the subdomain or portal config
+function getCompanyCode(): string {
+  return process.env.NEXT_PUBLIC_COMPANY_CODE || 'DEMO';
+}
+
+export async function getCustomerPaymentMethods(
+  email: string
+): Promise<{ paymentMethods: PaymentMethod[]; total: number }> {
+  const companyCode = getCompanyCode();
+  const res = await fetch(`${API_BASE}/api/card-vault/public/my-cards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, companyCode }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch payment methods');
+  }
+  return res.json();
+}
+
+export async function addPaymentMethod(
+  email: string,
+  data: {
+    card: {
+      number: string;
+      expiryMonth: string;
+      expiryYear: string;
+      cvv: string;
+      cardholderName?: string;
+    };
+    nickname?: string;
+    setAsDefault?: boolean;
+  }
+): Promise<PaymentMethod> {
+  const companyCode = getCompanyCode();
+  const res = await fetch(`${API_BASE}/api/card-vault/public/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, companyCode, ...data }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to add payment method' }));
+    throw new Error(error.message || 'Failed to add payment method');
+  }
+  return res.json();
+}
+
+export async function deletePaymentMethod(
+  email: string,
+  paymentMethodId: string
+): Promise<void> {
+  const companyCode = getCompanyCode();
+  const res = await fetch(`${API_BASE}/api/card-vault/public/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, companyCode, paymentMethodId }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to delete payment method' }));
+    throw new Error(error.message || 'Failed to delete payment method');
+  }
+}
+
+export async function setDefaultPaymentMethod(
+  email: string,
+  paymentMethodId: string
+): Promise<PaymentMethod> {
+  const companyCode = getCompanyCode();
+  const res = await fetch(`${API_BASE}/api/card-vault/public/set-default`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, companyCode, paymentMethodId }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: 'Failed to set default' }));
+    throw new Error(error.message || 'Failed to set default');
+  }
+  return res.json();
+}
