@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Zap, AlertCircle, Eye, EyeOff, Loader2, Check, Shield } from 'lucide-react';
 
-// Demo accounts for testing - these are real accounts from the database seed
-const demoAccounts = [
+// Demo accounts for testing - ONLY shown in development mode
+// These are real accounts from the database seed
+const isDevelopment = process.env.NODE_ENV === 'development';
+const demoAccounts = isDevelopment ? [
   { label: 'Organization', email: 'admin@avnz.io', color: 'from-cyan-400 to-blue-500' },
   { label: 'Client', email: 'owner@velocityagency.com', color: 'from-violet-400 to-purple-500' },
   { label: 'Company', email: 'manager@coffee-co.com', color: 'from-emerald-400 to-green-500' },
-];
+] : [];
 
 export default function LoginPage() {
   const { login, isLoading, error, authConfig } = useAuth();
@@ -199,8 +201,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Demo accounts - Clickable (only show for local login) */}
-              {(!auth0Enabled || showLocalLogin) && (
+              {/* Demo accounts - Clickable (only show for local login in development) */}
+              {(!auth0Enabled || showLocalLogin) && demoAccounts.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-border">
                   <p className="text-xs text-muted-foreground text-center mb-3">Click to use demo account (password: demo123)</p>
                   <div className="space-y-2">
