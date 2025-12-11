@@ -1,8 +1,12 @@
+// Import Sentry instrumentation first (must be before other imports)
+import './instrument';
+
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import * as Sentry from '@sentry/nestjs';
 import * as crypto from 'crypto';
 
 // Polyfill globalThis.crypto for Node.js 18 (required by some dependencies)
@@ -79,14 +83,16 @@ async function bootstrap() {
 process.on('unhandledRejection', (reason, promise) => {
   const logger = new Logger('UnhandledRejection');
   logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+  Sentry.captureException(reason);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   const logger = new Logger('UncaughtException');
   logger.error(`Uncaught Exception: ${error.message}`, error.stack);
-  // Give the logger time to flush before exiting
-  setTimeout(() => process.exit(1), 1000);
+  Sentry.captureException(error);
+  // Give Sentry time to send and logger time to flush before exiting
+  setTimeout(() => process.exit(1), 2000);
 });
 
 bootstrap();

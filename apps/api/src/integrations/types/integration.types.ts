@@ -209,6 +209,15 @@ export interface GooglePlacesCredentials {
   sessionTokenTTL?: number; // Session token TTL in seconds (default 180 = 3 minutes)
 }
 
+// Sentry credentials
+export interface SentryCredentials {
+  dsn: string;
+  authToken?: string;
+  org?: string;
+  project?: string;
+  environment?: string;
+}
+
 // OAuth token credentials (used for encrypted token storage)
 export interface OAuthTokenCredentials {
   token: string;
@@ -224,6 +233,7 @@ export type IntegrationCredentials =
   | TwilioCredentials
   | VercelCredentials
   | GooglePlacesCredentials
+  | SentryCredentials
   | OAuthTokenCredentials
   | Record<string, unknown>;
 
