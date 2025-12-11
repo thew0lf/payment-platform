@@ -830,99 +830,305 @@ export class RMAService {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
+    // Fetch all RMAs in the date range
+    const rmas = await this.prisma.rMA.findMany({
+      where: {
+        companyId: dto.companyId,
+        createdAt: { gte: startDate, lte: endDate },
+      },
+    });
+
+    // Calculate overview stats
+    const totalRMAs = rmas.length;
+    const totalItems = rmas.reduce((sum, rma) => {
+      const items = (rma.items as any[]) || [];
+      return sum + items.length;
+    }, 0);
+    const totalValue = rmas.reduce((sum, rma) => {
+      const items = (rma.items as any[]) || [];
+      return sum + items.reduce((itemSum, item) => itemSum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+    }, 0);
+    // Compare using string values since DB uses prefixed names (RMA_APPROVED vs APPROVED)
+    const rejectedStatuses = ['REQUESTED', 'RMA_REJECTED', 'REJECTED', 'RMA_CANCELLED', 'CANCELLED'];
+    const approvedRMAs = rmas.filter(r => !rejectedStatuses.includes(r.status));
+    const approvalRate = totalRMAs > 0 ? (approvedRMAs.length / totalRMAs) * 100 : 0;
+
+    // Calculate average processing time (in days)
+    const completedStatuses = ['COMPLETED', 'RMA_COMPLETED'];
+    const completedRMAs = rmas.filter(r => completedStatuses.includes(r.status) && r.completedAt);
+    const avgProcessingTime = completedRMAs.length > 0
+      ? completedRMAs.reduce((sum, r) => {
+          const processingTime = (new Date(r.completedAt!).getTime() - new Date(r.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+          return sum + processingTime;
+        }, 0) / completedRMAs.length
+      : 0;
+
+    // Calculate return rate (RMAs / total orders in period)
+    const totalOrders = await this.prisma.order.count({
+      where: {
+        companyId: dto.companyId,
+        createdAt: { gte: startDate, lte: endDate },
+      },
+    });
+    const returnRate = totalOrders > 0 ? (totalRMAs / totalOrders) * 100 : 0;
+
+    // Calculate by status
+    const byStatus: Record<RMAStatus, { count: number; value: number }> = {} as any;
+    for (const status of Object.values(RMAStatus)) {
+      const statusRMAs = rmas.filter(r => r.status === status);
+      const statusValue = statusRMAs.reduce((sum, rma) => {
+        const items = (rma.items as any[]) || [];
+        return sum + items.reduce((itemSum, item) => itemSum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+      }, 0);
+      byStatus[status] = {
+        count: statusRMAs.length,
+        value: statusValue,
+      };
+    }
+
+    // Calculate by type
+    const byType: Record<RMAType, { count: number; value: number }> = {} as any;
+    for (const type of Object.values(RMAType)) {
+      const typeRMAs = rmas.filter(r => r.type === type);
+      const typeValue = typeRMAs.reduce((sum, rma) => {
+        const items = (rma.items as any[]) || [];
+        return sum + items.reduce((itemSum, item) => itemSum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+      }, 0);
+      byType[type] = {
+        count: typeRMAs.length,
+        value: typeValue,
+      };
+    }
+
+    // Calculate by reason with trend
+    const reasonStats = new Map<string, { count: number; value: number }>();
+    for (const rma of rmas) {
+      const reason = rma.reason;
+      const current = reasonStats.get(reason) || { count: 0, value: 0 };
+      const items = (rma.items as any[]) || [];
+      const rmaValue = items.reduce((sum, item) => sum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+      reasonStats.set(reason, {
+        count: current.count + 1,
+        value: current.value + rmaValue,
+      });
+    }
+
+    // Get previous period for trend calculation
+    const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const prevStartDate = new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const prevEndDate = new Date(startDate.getTime() - 1);
+
+    const prevRMAs = await this.prisma.rMA.findMany({
+      where: {
+        companyId: dto.companyId,
+        createdAt: { gte: prevStartDate, lte: prevEndDate },
+      },
+    });
+
+    const prevReasonStats = new Map<string, number>();
+    for (const rma of prevRMAs) {
+      const reason = rma.reason;
+      prevReasonStats.set(reason, (prevReasonStats.get(reason) || 0) + 1);
+    }
+
+    const byReason = Array.from(reasonStats.entries()).map(([reason, data]) => {
+      const prevCount = prevReasonStats.get(reason) || 0;
+      const trend = prevCount > 0 ? ((data.count - prevCount) / prevCount) * 100 : 0;
+      return {
+        reason: reason as ReturnReason,
+        count: data.count,
+        value: data.value,
+        avgValue: data.count > 0 ? data.value / data.count : 0,
+        trend: Math.round(trend),
+      };
+    });
+
+    // Calculate inspection stats
+    const inspectedRMAs = rmas.filter(r => r.inspectionStatus === 'completed');
+    const passedInspection = inspectedRMAs.filter(r =>
+      r.inspectionResult === 'PASSED' || r.inspectionResult === 'PARTIAL'
+    );
+    const passRate = inspectedRMAs.length > 0 ? (passedInspection.length / inspectedRMAs.length) * 100 : 0;
+
+    // Calculate inspection by condition and disposition from items
+    const conditionCounts: Record<ItemCondition, number> = {} as any;
+    const dispositionCounts: Record<DispositionAction, number> = {} as any;
+    for (const condition of Object.values(ItemCondition)) {
+      conditionCounts[condition] = 0;
+    }
+    for (const disposition of Object.values(DispositionAction)) {
+      dispositionCounts[disposition] = 0;
+    }
+
+    for (const rma of rmas) {
+      const items = (rma.items as any[]) || [];
+      for (const item of items) {
+        if (item.inspection?.condition) {
+          conditionCounts[item.inspection.condition as ItemCondition]++;
+        }
+        if (item.disposition?.action) {
+          dispositionCounts[item.disposition.action as DispositionAction]++;
+        }
+      }
+    }
+
+    // Calculate resolution stats
+    const resolutionStats = new Map<string, { count: number; value: number }>();
+    for (const rma of rmas) {
+      const resolutionType = rma.resolutionType || 'refund';
+      const current = resolutionStats.get(resolutionType) || { count: 0, value: 0 };
+      const items = (rma.items as any[]) || [];
+      const rmaValue = items.reduce((sum, item) => sum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+      resolutionStats.set(resolutionType, {
+        count: current.count + 1,
+        value: current.value + rmaValue,
+      });
+    }
+
+    const resolutionByType = Array.from(resolutionStats.entries()).map(([type, data]) => ({
+      type,
+      count: data.count,
+      value: data.value,
+    }));
+
+    // Calculate shipping stats
+    const shippedRMAs = rmas.filter(r => r.shippedAt && r.deliveredAt);
+    const avgTransitTime = shippedRMAs.length > 0
+      ? shippedRMAs.reduce((sum, r) => {
+          const transitTime = (new Date(r.deliveredAt!).getTime() - new Date(r.shippedAt!).getTime()) / (1000 * 60 * 60 * 24);
+          return sum + transitTime;
+        }, 0) / shippedRMAs.length
+      : 0;
+
+    const prepaidLabelsIssued = rmas.filter(r => r.labelType === 'prepaid').length;
+
+    // Calculate daily trends
+    const trends: { date: string; rmaCount: number; itemCount: number; value: number }[] = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const nextDate = new Date(currentDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayRMAs = rmas.filter(r => {
+        const created = new Date(r.createdAt);
+        return created >= currentDate && created < nextDate;
+      });
+
+      const dayItems = dayRMAs.reduce((sum, rma) => {
+        const items = (rma.items as any[]) || [];
+        return sum + items.length;
+      }, 0);
+
+      const dayValue = dayRMAs.reduce((sum, rma) => {
+        const items = (rma.items as any[]) || [];
+        return sum + items.reduce((itemSum, item) => itemSum + (item.unitPrice || 0) * (item.quantity || 1), 0);
+      }, 0);
+
+      trends.push({
+        date: currentDate.toISOString().split('T')[0],
+        rmaCount: dayRMAs.length,
+        itemCount: dayItems,
+        value: dayValue,
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Calculate top returned products
+    const productReturnStats = new Map<string, {
+      productId: string;
+      productName: string;
+      count: number;
+      reasons: Map<string, number>;
+    }>();
+
+    for (const rma of rmas) {
+      const items = (rma.items as any[]) || [];
+      for (const item of items) {
+        const productId = item.productId || item.sku || 'unknown';
+        const current = productReturnStats.get(productId) || {
+          productId,
+          productName: item.productName || item.sku || 'Unknown Product',
+          count: 0,
+          reasons: new Map<string, number>(),
+        };
+        current.count += item.quantity || 1;
+        const reason = item.reason || rma.reason;
+        current.reasons.set(reason, (current.reasons.get(reason) || 0) + 1);
+        productReturnStats.set(productId, current);
+      }
+    }
+
+    const topReturnedProducts = Array.from(productReturnStats.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(p => {
+        const topReasons = Array.from(p.reasons.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([reason]) => reason as ReturnReason);
+        return {
+          productId: p.productId,
+          productName: p.productName,
+          returnCount: p.count,
+          returnRate: 0, // Would need total orders per product to calculate
+          topReasons,
+        };
+      });
+
+    // Calculate quality insights
+    const defectiveRMAs = rmas.filter(r => r.reason === ReturnReason.DEFECTIVE);
+    const defectRate = totalRMAs > 0 ? (defectiveRMAs.length / totalRMAs) * 100 : 0;
+
+    // Extract defect categories from reason details
+    const defectCategories = new Map<string, number>();
+    for (const rma of defectiveRMAs) {
+      if (rma.reasonDetails) {
+        defectCategories.set(rma.reasonDetails, (defectCategories.get(rma.reasonDetails) || 0) + 1);
+      }
+    }
+    const topDefectCategories = Array.from(defectCategories.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([category]) => category);
+
     return {
       period: { start: startDate, end: endDate },
       overview: {
-        totalRMAs: 320,
-        totalItems: 485,
-        totalValue: 14250,
-        approvalRate: 94,
-        avgProcessingTime: 5.2,
-        returnRate: 3.5,
+        totalRMAs,
+        totalItems,
+        totalValue,
+        approvalRate,
+        avgProcessingTime,
+        returnRate,
       },
-      byStatus: {
-        [RMAStatus.REQUESTED]: { count: 15, value: 450 },
-        [RMAStatus.APPROVED]: { count: 10, value: 300 },
-        [RMAStatus.LABEL_SENT]: { count: 25, value: 750 },
-        [RMAStatus.IN_TRANSIT]: { count: 35, value: 1050 },
-        [RMAStatus.RECEIVED]: { count: 8, value: 240 },
-        [RMAStatus.INSPECTING]: { count: 5, value: 150 },
-        [RMAStatus.INSPECTION_COMPLETE]: { count: 3, value: 90 },
-        [RMAStatus.PROCESSING_REFUND]: { count: 2, value: 60 },
-        [RMAStatus.COMPLETED]: { count: 200, value: 10500 },
-        [RMAStatus.REJECTED]: { count: 12, value: 360 },
-        [RMAStatus.CANCELLED]: { count: 3, value: 150 },
-        [RMAStatus.EXPIRED]: { count: 2, value: 150 },
-      },
-      byType: {
-        [RMAType.RETURN]: { count: 250, value: 11000 },
-        [RMAType.EXCHANGE]: { count: 45, value: 2200 },
-        [RMAType.WARRANTY]: { count: 20, value: 900 },
-        [RMAType.REPAIR]: { count: 3, value: 100 },
-        [RMAType.RECALL]: { count: 2, value: 50 },
-      },
-      byReason: [
-        { reason: ReturnReason.DEFECTIVE, count: 85, value: 2800, avgValue: 32.94, trend: -8 },
-        { reason: ReturnReason.WRONG_SIZE, count: 60, value: 1800, avgValue: 30.00, trend: 0 },
-        { reason: ReturnReason.NOT_AS_DESCRIBED, count: 55, value: 1650, avgValue: 30.00, trend: -3 },
-        { reason: ReturnReason.NO_LONGER_NEEDED, count: 70, value: 2100, avgValue: 30.00, trend: 5 },
-        { reason: ReturnReason.QUALITY_NOT_EXPECTED, count: 50, value: 1500, avgValue: 30.00, trend: -2 },
-      ],
+      byStatus,
+      byType,
+      byReason,
       inspection: {
-        totalInspected: 195,
-        passRate: 88,
-        avgInspectionTime: 1.5,
-        byCondition: {
-          [ItemCondition.NEW_UNOPENED]: 45,
-          [ItemCondition.NEW_OPENED]: 65,
-          [ItemCondition.LIKE_NEW]: 40,
-          [ItemCondition.GOOD]: 25,
-          [ItemCondition.FAIR]: 12,
-          [ItemCondition.POOR]: 5,
-          [ItemCondition.DAMAGED]: 3,
-          [ItemCondition.DEFECTIVE]: 0,
-        },
-        byDisposition: {
-          [DispositionAction.RESTOCK]: 110,
-          [DispositionAction.REFURBISH]: 55,
-          [DispositionAction.LIQUIDATE]: 15,
-          [DispositionAction.DONATE]: 10,
-          [DispositionAction.DESTROY]: 3,
-          [DispositionAction.RETURN_TO_VENDOR]: 2,
-        },
+        totalInspected: inspectedRMAs.length,
+        passRate,
+        avgInspectionTime: 0, // Would need inspection start/end timestamps
+        byCondition: conditionCounts,
+        byDisposition: dispositionCounts,
       },
       resolution: {
-        byType: [
-          { type: 'refund', count: 180, value: 8500 },
-          { type: 'exchange', count: 45, value: 2200 },
-          { type: 'store_credit', count: 35, value: 1400 },
-        ],
-        avgResolutionTime: 3.8,
-        customerSatisfaction: 4.4,
+        byType: resolutionByType,
+        avgResolutionTime: avgProcessingTime,
+        customerSatisfaction: 0, // Would need separate survey data
       },
       shipping: {
-        avgTransitTime: 4.2,
-        lostPackages: 2,
-        prepaidLabelsIssued: 285,
-        shippingCostTotal: 2850,
+        avgTransitTime,
+        lostPackages: 0, // Would need separate tracking
+        prepaidLabelsIssued,
+        shippingCostTotal: 0, // Would need cost data
       },
-      trends: [
-        { date: '2024-01-01', rmaCount: 12, itemCount: 18, value: 540 },
-        { date: '2024-01-02', rmaCount: 15, itemCount: 22, value: 660 },
-        { date: '2024-01-03', rmaCount: 10, itemCount: 15, value: 450 },
-      ],
-      topReturnedProducts: [
-        { productId: 'prod_1', productName: 'Premium Coffee Blend', returnCount: 35, returnRate: 4.2, topReasons: [ReturnReason.QUALITY_NOT_EXPECTED, ReturnReason.NOT_AS_DESCRIBED] },
-        { productId: 'prod_2', productName: 'Coffee Grinder Pro', returnCount: 28, returnRate: 5.1, topReasons: [ReturnReason.DEFECTIVE, ReturnReason.QUALITY_NOT_EXPECTED] },
-        { productId: 'prod_3', productName: 'Single Origin Sampler', returnCount: 22, returnRate: 2.8, topReasons: [ReturnReason.NO_LONGER_NEEDED] },
-      ],
+      trends,
+      topReturnedProducts,
       qualityInsights: {
-        defectRate: 2.3,
-        topDefectCategories: ['Seal issues', 'Stale product', 'Packaging damage'],
-        vendorIssues: [
-          { vendorId: 'vendor_1', vendorName: 'Bean Supplier Co', returnCount: 15, defectRate: 3.8 },
-          { vendorId: 'vendor_2', vendorName: 'Equipment Ltd', returnCount: 12, defectRate: 4.2 },
-        ],
+        defectRate,
+        topDefectCategories: topDefectCategories.length > 0 ? topDefectCategories : ['No defects reported'],
+        vendorIssues: [], // Would need vendor data
       },
     };
   }

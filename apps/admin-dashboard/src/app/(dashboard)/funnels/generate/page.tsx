@@ -343,10 +343,10 @@ export default function AIFunnelGeneratorPage() {
             </button>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-                <SparklesIcon className="h-6 w-6 text-white" />
+                <SparklesIcon className="h-6 w-6 text-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-foreground">
                   AI Funnel Generator
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -369,8 +369,8 @@ export default function AIFunnelGeneratorPage() {
                     <div
                       className={`
                         flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
-                        ${isComplete ? 'bg-green-500 text-white' : ''}
-                        ${isCurrent ? 'bg-purple-600 text-white' : ''}
+                        ${isComplete ? 'bg-green-500 text-foreground' : ''}
+                        ${isCurrent ? 'bg-purple-600 text-foreground' : ''}
                         ${!isComplete && !isCurrent ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : ''}
                       `}
                     >
@@ -380,7 +380,7 @@ export default function AIFunnelGeneratorPage() {
                       className={`
                         ml-2 text-sm font-medium hidden sm:block
                         ${isCurrent ? 'text-purple-600 dark:text-purple-400' : ''}
-                        ${isPast ? 'text-gray-900 dark:text-white' : ''}
+                        ${isPast ? 'text-gray-900 dark:text-foreground' : ''}
                         ${!isCurrent && !isPast ? 'text-gray-500 dark:text-gray-400' : ''}
                       `}
                     >

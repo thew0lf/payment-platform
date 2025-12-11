@@ -23,16 +23,16 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-zinc-400 mb-1 block">First Name</label>
+                <label className="text-sm text-muted-foreground mb-1 block">First Name</label>
                 <Input defaultValue={user?.firstName || ''} />
               </div>
               <div>
-                <label className="text-sm text-zinc-400 mb-1 block">Last Name</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Last Name</label>
                 <Input defaultValue={user?.lastName || ''} />
               </div>
             </div>
             <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Email</label>
+              <label className="text-sm text-muted-foreground mb-1 block">Email</label>
               <Input defaultValue={user?.email || ''} disabled />
             </div>
             <Button>Save Changes</Button>
@@ -46,15 +46,15 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Current Password</label>
+              <label className="text-sm text-muted-foreground mb-1 block">Current Password</label>
               <Input type="password" />
             </div>
             <div>
-              <label className="text-sm text-zinc-400 mb-1 block">New Password</label>
+              <label className="text-sm text-muted-foreground mb-1 block">New Password</label>
               <Input type="password" />
             </div>
             <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Confirm New Password</label>
+              <label className="text-sm text-muted-foreground mb-1 block">Confirm New Password</label>
               <Input type="password" />
             </div>
             <Button variant="outline">Update Password</Button>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -22,10 +23,16 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  X,
+  Search,
+  Plus,
+  User,
+  Check,
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { formatDate, cn } from '@/lib/utils';
 import {
   leadsApi,
@@ -35,7 +42,317 @@ import {
   formatLeadName,
   getLeadLocation,
 } from '@/lib/api/leads';
+import { customersApi, Customer, CreateCustomerInput } from '@/lib/api/customers';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 import { toast } from 'sonner';
+
+// ═══════════════════════════════════════════════════════════════
+// CONVERT TO CUSTOMER MODAL
+// ═══════════════════════════════════════════════════════════════
+
+interface ConvertModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  lead: Lead;
+  onConverted: (updatedLead: Lead) => void;
+}
+
+function ConvertToCustomerModal({ isOpen, onClose, lead, onConverted }: ConvertModalProps) {
+  const { selectedCompanyId } = useHierarchy();
+  const [mode, setMode] = useState<'select' | 'create'>('select');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [converting, setConverting] = useState(false);
+
+  // Create customer form
+  const [newEmail, setNewEmail] = useState(lead.email || '');
+  const [newFirstName, setNewFirstName] = useState(lead.firstName || '');
+  const [newLastName, setNewLastName] = useState(lead.lastName || '');
+  const [newPhone, setNewPhone] = useState(lead.phone || '');
+  const [creating, setCreating] = useState(false);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode('select');
+      setSearchQuery(lead.email || '');
+      setSelectedCustomer(null);
+      setNewEmail(lead.email || '');
+      setNewFirstName(lead.firstName || '');
+      setNewLastName(lead.lastName || '');
+      setNewPhone(lead.phone || '');
+    }
+  }, [isOpen, lead]);
+
+  // Search customers
+  useEffect(() => {
+    if (!isOpen || mode !== 'select' || !searchQuery.trim()) {
+      setCustomers([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const result = await customersApi.list({ search: searchQuery, limit: 10 });
+        setCustomers(result.items);
+      } catch (error) {
+        console.error('Failed to search customers:', error);
+        setCustomers([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isOpen, mode]);
+
+  const handleLinkExisting = async () => {
+    if (!selectedCustomer) return;
+
+    setConverting(true);
+    try {
+      const updated = await leadsApi.convert(lead.id, { customerId: selectedCustomer.id });
+      toast.success('Lead converted to customer');
+      onConverted(updated);
+      onClose();
+    } catch (error) {
+      console.error('Failed to convert lead:', error);
+      toast.error('Failed to convert lead');
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleCreateAndLink = async () => {
+    if (!newEmail.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!selectedCompanyId) {
+      toast.error('Please select a company first');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      // Create the customer
+      const customerData: CreateCustomerInput = {
+        email: newEmail.trim(),
+        firstName: newFirstName.trim() || undefined,
+        lastName: newLastName.trim() || undefined,
+        phone: newPhone.trim() || undefined,
+        companyId: selectedCompanyId,
+      };
+
+      const newCustomer = await customersApi.create(customerData);
+
+      // Link to lead
+      const updated = await leadsApi.convert(lead.id, { customerId: newCustomer.id });
+
+      toast.success('Customer created and lead converted');
+      onConverted(updated);
+      onClose();
+    } catch (error) {
+      console.error('Failed to create customer:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create customer');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Convert to Customer</h2>
+            <p className="text-sm text-muted-foreground">
+              Link this lead to an existing customer or create a new one
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg text-muted-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Mode Tabs */}
+        <div className="flex border-b border-border">
+          <button
+            onClick={() => setMode('select')}
+            className={cn(
+              'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+              mode === 'select'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Search className="w-4 h-4 inline-block mr-2" />
+            Link Existing
+          </button>
+          <button
+            onClick={() => setMode('create')}
+            className={cn(
+              'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+              mode === 'create'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Plus className="w-4 h-4 inline-block mr-2" />
+            Create New
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {mode === 'select' ? (
+            <div className="space-y-4">
+              <Input
+                placeholder="Search customers by email or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {searching ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : customers.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {searchQuery ? 'No customers found' : 'Search for a customer'}
+                  </div>
+                ) : (
+                  customers.map((customer) => (
+                    <button
+                      key={customer.id}
+                      onClick={() => setSelectedCustomer(customer)}
+                      className={cn(
+                        'w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left',
+                        selectedCustomer?.id === customer.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      )}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {customer.firstName} {customer.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">{customer.email}</p>
+                      </div>
+                      {selectedCustomer?.id === customer.id && (
+                        <Check className="w-5 h-5 text-primary shrink-0" />
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Create a new customer with data from this lead.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Email *
+                </label>
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    First Name
+                  </label>
+                  <Input
+                    value={newFirstName}
+                    onChange={(e) => setNewFirstName(e.target.value)}
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    Last Name
+                  </label>
+                  <Input
+                    value={newLastName}
+                    onChange={(e) => setNewLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Phone
+                </label>
+                <Input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-4 border-t border-border">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          {mode === 'select' ? (
+            <Button onClick={handleLinkExisting} disabled={!selectedCustomer || converting}>
+              {converting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Linking...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Link to Customer
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button onClick={handleCreateAndLink} disabled={!newEmail.trim() || creating}>
+              {creating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create & Link
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export default function LeadDetailPage() {
   const params = useParams();
@@ -51,6 +368,9 @@ export default function LeadDetailPage() {
   const [showCapturedFields, setShowCapturedFields] = useState(false);
   const [showFieldLog, setShowFieldLog] = useState(false);
   const [showAttribution, setShowAttribution] = useState(false);
+
+  // Convert to Customer modal
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   useEffect(() => {
     async function fetchLead() {
@@ -84,13 +404,9 @@ export default function LeadDetailPage() {
     }
   };
 
-  const handleConvertToCustomer = async () => {
+  const handleConvertToCustomer = () => {
     if (!lead) return;
-    // TODO: Implement conversion modal with customer creation/selection
-    // For now, show toast with info
-    toast.info('Convert to Customer functionality coming soon', {
-      description: 'This will allow you to link this lead to an existing customer or create a new one.',
-    });
+    setShowConvertModal(true);
   };
 
   if (loading) {
@@ -141,7 +457,7 @@ export default function LeadDetailPage() {
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</span>
       </div>
       <div className="flex items-end gap-2">
-        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+        <span className="text-3xl font-bold text-gray-900 dark:text-foreground">
           {Math.round(score * 100)}%
         </span>
         <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
@@ -187,7 +503,7 @@ export default function LeadDetailPage() {
               <ExternalLink className="w-3 h-3" />
             </a>
           ) : (
-            <p className="text-sm text-gray-900 dark:text-white truncate">{value}</p>
+            <p className="text-sm text-gray-900 dark:text-foreground truncate">{value}</p>
           )}
         </div>
       </div>
@@ -239,7 +555,7 @@ export default function LeadDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground">
                       {formatLeadName(lead)}
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
@@ -266,7 +582,7 @@ export default function LeadDetailPage() {
 
               {/* Scores */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
                   Lead Scores
                 </h3>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -288,13 +604,13 @@ export default function LeadDetailPage() {
               {/* Funnel Progress */}
               {lead.funnelId && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
                     Funnel Progress
                   </h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Highest Stage</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-gray-900 dark:text-foreground">
                         Stage {lead.highestStage}
                         {lead.lastStageName && ` - ${lead.lastStageName}`}
                       </span>
@@ -329,7 +645,7 @@ export default function LeadDetailPage() {
                   onClick={() => setShowCapturedFields(!showCapturedFields)}
                   className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">
                     Captured Fields
                   </h3>
                   {showCapturedFields ? (
@@ -360,7 +676,7 @@ export default function LeadDetailPage() {
                     onClick={() => setShowFieldLog(!showFieldLog)}
                     className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">
                       Field Capture Timeline ({lead.fieldCaptureLog.length})
                     </h3>
                     {showFieldLog ? (
@@ -377,7 +693,7 @@ export default function LeadDetailPage() {
                           className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
                         >
                           <div>
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-medium text-gray-900 dark:text-foreground">
                               {entry.field}
                             </span>
                             <span className="text-gray-500 dark:text-gray-400 mx-2">=</span>
@@ -402,7 +718,7 @@ export default function LeadDetailPage() {
                     onClick={() => setShowAttribution(!showAttribution)}
                     className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">
                       Attribution & UTM
                     </h3>
                     {showAttribution ? (
@@ -432,20 +748,20 @@ export default function LeadDetailPage() {
             <div className="space-y-6">
               {/* Value Card */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Value</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">Value</h3>
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-500 uppercase">
                       Estimated Value
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-foreground">
                       ${Number(lead.estimatedValue).toLocaleString()}
                     </p>
                   </div>
                   {lead.cartValue > 0 && (
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-500 uppercase">Cart Value</p>
-                      <p className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <p className="text-xl font-semibold text-gray-900 dark:text-foreground flex items-center gap-2">
                         <ShoppingCart className="w-4 h-4 text-gray-400" />
                         ${Number(lead.cartValue).toLocaleString()}
                       </p>
@@ -456,31 +772,31 @@ export default function LeadDetailPage() {
 
               {/* Activity Stats */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
                   Activity
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Sessions</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 dark:text-foreground">
                       {lead.totalSessions}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Page Views</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 dark:text-foreground">
                       {lead.totalPageViews}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Time on Site</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 dark:text-foreground">
                       {Math.round(lead.totalTimeOnSite / 60)}m
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Contact Count</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 dark:text-foreground">
                       {lead.contactCount}
                     </span>
                   </div>
@@ -489,13 +805,13 @@ export default function LeadDetailPage() {
 
               {/* Status Timeline */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
                   Timeline
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Created</span>
-                    <span className="text-gray-900 dark:text-white">{formatDate(lead.createdAt)}</span>
+                    <span className="text-gray-900 dark:text-foreground">{formatDate(lead.createdAt)}</span>
                   </div>
                   {lead.qualifiedAt && (
                     <div className="flex justify-between">
@@ -516,7 +832,7 @@ export default function LeadDetailPage() {
                   {lead.lastContactedAt && (
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Last Contacted</span>
-                      <span className="text-gray-900 dark:text-white">
+                      <span className="text-gray-900 dark:text-foreground">
                         {formatDate(lead.lastContactedAt)}
                       </span>
                     </div>
@@ -543,6 +859,14 @@ export default function LeadDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Convert to Customer Modal */}
+      <ConvertToCustomerModal
+        isOpen={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        lead={lead}
+        onConverted={setLead}
+      />
     </div>
   );
 }

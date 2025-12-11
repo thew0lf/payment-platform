@@ -26,7 +26,7 @@ export function CursorPagination({
 
   return (
     <div className={`flex items-center justify-between ${className}`}>
-      <div className="text-sm text-zinc-500">
+      <div className="text-sm text-muted-foreground">
         {estimatedTotal ? (
           <span>
             Showing {count} of ~{estimatedTotal.toLocaleString()} items
@@ -86,7 +86,7 @@ export function CursorPaginationCompact({
 
   return (
     <div className={`flex items-center gap-4 ${className}`}>
-      <span className="text-sm text-zinc-500">
+      <span className="text-sm text-muted-foreground">
         {estimatedTotal
           ? `${count} of ~${estimatedTotal.toLocaleString()}`
           : `${count} items`}

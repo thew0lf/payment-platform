@@ -23,6 +23,7 @@ import {
   Calendar,
   X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ordersApi, Order, OrderQueryParams, OrderStats } from '@/lib/api/orders';
 import { formatOrderNumber } from '@/lib/order-utils';
@@ -37,7 +38,7 @@ import { Button } from '@/components/ui/button';
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Pending', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', icon: Clock },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: CheckCircle2 },
-  PROCESSING: { label: 'Processing', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', icon: Package },
+  PROCESSING: { label: 'Processing', color: 'bg-primary/10 text-primary border-primary/20', icon: Package },
   SHIPPED: { label: 'Shipped', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: Truck },
   DELIVERED: { label: 'Delivered', color: 'bg-green-500/10 text-green-400 border-green-500/20', icon: CheckCircle2 },
   COMPLETED: { label: 'Completed', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: CheckCircle2 },
@@ -55,7 +56,7 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
 };
 
 const FULFILLMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  UNFULFILLED: { label: 'Unfulfilled', color: 'bg-zinc-500/10 text-zinc-400' },
+  UNFULFILLED: { label: 'Unfulfilled', color: 'bg-muted text-muted-foreground' },
   PARTIALLY_FULFILLED: { label: 'Partial', color: 'bg-yellow-500/10 text-yellow-400' },
   FULFILLED: { label: 'Fulfilled', color: 'bg-green-500/10 text-green-400' },
 };
@@ -109,7 +110,7 @@ function getDateRangeForFilter(filter: TimeFilter): { startDate: string; endDate
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400', icon: AlertCircle };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground', icon: AlertCircle };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border', config.color)}>
@@ -120,7 +121,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PaymentBadge({ status }: { status: string }) {
-  const config = PAYMENT_STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400' };
+  const config = PAYMENT_STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground' };
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', config.color)}>
       {config.label}
@@ -129,7 +130,7 @@ function PaymentBadge({ status }: { status: string }) {
 }
 
 function FulfillmentBadge({ status }: { status: string }) {
-  const config = FULFILLMENT_STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400' };
+  const config = FULFILLMENT_STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground' };
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', config.color)}>
       {config.label}
@@ -156,19 +157,19 @@ function StatsCard({
   color?: 'cyan' | 'yellow' | 'green' | 'purple';
 }) {
   const colorClasses = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    cyan: 'bg-primary/10 text-primary border-primary/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     green: 'bg-green-500/10 text-green-400 border-green-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 md:p-5">
+    <div className="bg-card/50 border border-border rounded-xl p-4 md:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs md:text-sm text-zinc-500 mb-1">{title}</p>
-          <p className="text-xl md:text-2xl font-bold text-white">{value}</p>
-          {trend && <p className="text-xs text-zinc-500 mt-1">{trend}</p>}
+          <p className="text-xs md:text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
+          {trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>}
         </div>
         <div className={cn('p-2.5 md:p-3 rounded-xl border', colorClasses[color])}>
           <Icon className="w-5 h-5 md:w-6 md:h-6" />
@@ -311,7 +312,7 @@ export default function OrdersPage() {
         title="Orders"
         subtitle={loading ? 'Loading...' : `${total} orders`}
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={() => router.push('/orders/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Create Order
           </Button>
@@ -349,7 +350,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Time Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-card/50 border border-border rounded-lg w-fit">
           {TIME_FILTER_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -364,8 +365,8 @@ export default function OrdersPage() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 timeFilter === option.value
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               {option.label}
@@ -375,23 +376,23 @@ export default function OrdersPage() {
 
         {/* Custom Date Picker */}
         {showCustomDatePicker && timeFilter === 'custom' && (
-          <div className="flex flex-wrap items-end gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+          <div className="flex flex-wrap items-end gap-3 p-4 bg-card/50 border border-border rounded-lg">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Start Date</label>
+              <label className="text-xs text-muted-foreground">Start Date</label>
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">End Date</label>
+              <label className="text-xs text-muted-foreground">End Date</label>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <button
@@ -401,7 +402,7 @@ export default function OrdersPage() {
                 setTimeFilter('day');
                 setShowCustomDatePicker(false);
               }}
-              className="p-2 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
               title="Clear custom dates"
             >
               <X className="w-4 h-4" />
@@ -414,13 +415,13 @@ export default function OrdersPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by order number, customer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
@@ -431,21 +432,21 @@ export default function OrdersPage() {
                 className={cn(
                   'flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   showFilters
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-card text-muted-foreground border border-border hover:text-foreground'
                 )}
               >
                 <Filter className="w-4 h-4" />
                 <span className="sm:inline">Filters</span>
                 {(statusFilter || paymentFilter || fulfillmentFilter) && (
-                  <span className="w-2 h-2 bg-cyan-400 rounded-full" />
+                  <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
 
               {/* Refresh */}
               <button
                 onClick={fetchOrders}
-                className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
                 title="Refresh"
               >
                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -455,14 +456,14 @@ export default function OrdersPage() {
 
           {/* Filter Dropdowns */}
           {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-card/50 border border-border rounded-lg">
               {/* Status Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Status</label>
+                <label className="text-xs text-muted-foreground">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Statuses</option>
                   {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
@@ -473,11 +474,11 @@ export default function OrdersPage() {
 
               {/* Payment Status Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Payment</label>
+                <label className="text-xs text-muted-foreground">Payment</label>
                 <select
                   value={paymentFilter}
                   onChange={(e) => setPaymentFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Payments</option>
                   {Object.entries(PAYMENT_STATUS_CONFIG).map(([value, { label }]) => (
@@ -488,11 +489,11 @@ export default function OrdersPage() {
 
               {/* Fulfillment Status Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Fulfillment</label>
+                <label className="text-xs text-muted-foreground">Fulfillment</label>
                 <select
                   value={fulfillmentFilter}
                   onChange={(e) => setFulfillmentFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Fulfillment</option>
                   {Object.entries(FULFILLMENT_STATUS_CONFIG).map(([value, { label }]) => (
@@ -510,7 +511,7 @@ export default function OrdersPage() {
                       setPaymentFilter('');
                       setFulfillmentFilter('');
                     }}
-                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-zinc-400 hover:text-white transition-colors bg-zinc-800/50 rounded-lg"
+                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 rounded-lg"
                   >
                     Clear all
                   </button>
@@ -530,16 +531,16 @@ export default function OrdersPage() {
       {/* Loading State */}
       {loading && orders.length === 0 && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
       {!loading && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Package className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No orders found</h3>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <Package className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No orders found</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
             {search || statusFilter || paymentFilter || fulfillmentFilter
               ? 'Try adjusting your search or filters to find what you\'re looking for.'
               : 'Orders will appear here once customers place them.'}
@@ -549,38 +550,38 @@ export default function OrdersPage() {
 
       {/* Orders Table */}
       {orders.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Order</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Fulfillment</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Total</th>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Order</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Fulfillment</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-border">
                 {orders.map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => router.push(`/orders/${order.id}`)}
                   >
                     <td className="px-4 py-4">
                       <Link href={`/orders/${order.id}`} className="block" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-sm font-medium text-white hover:text-cyan-400 transition-colors">
+                        <p className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                           {formatOrderNumber(order.orderNumber)}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {order.items?.length || 0} items
                         </p>
                       </Link>
                     </td>
                     <td className="px-4 py-4">
-                      <p className="text-sm text-zinc-300">{formatDate(order.orderedAt)}</p>
+                      <p className="text-sm text-foreground">{formatDate(order.orderedAt)}</p>
                     </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={order.status} />
@@ -592,7 +593,7 @@ export default function OrdersPage() {
                       <FulfillmentBadge status={order.fulfillmentStatus} />
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-foreground">
                         {formatCurrency(order.total, order.currency)}
                       </p>
                     </td>
@@ -604,25 +605,25 @@ export default function OrdersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800">
-              <p className="text-sm text-zinc-500">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <p className="text-sm text-muted-foreground">
                 Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} orders
               </p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-zinc-400">
+                <span className="text-sm text-muted-foreground">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

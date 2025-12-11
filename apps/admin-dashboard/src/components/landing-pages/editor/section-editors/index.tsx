@@ -142,8 +142,8 @@ export function SectionEditorPanel({ section, onUpdate, onClose }: SectionEditor
 
       default:
         return (
-          <div className="text-sm text-zinc-400 p-4">
-            <p className="mb-2">Editor for {section.type} coming soon.</p>
+          <div className="text-sm text-muted-foreground p-4">
+            <p className="mb-2">No specific editor for {section.type}.</p>
             <p>You can edit the section name and visibility settings above.</p>
           </div>
         );
@@ -151,30 +151,30 @@ export function SectionEditorPanel({ section, onUpdate, onClose }: SectionEditor
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[400px] bg-zinc-900 border-l border-zinc-800 shadow-2xl z-40 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-[400px] bg-card border-l border-border shadow-2xl z-40 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div>
-          <h3 className="font-medium text-white">{getSectionLabel(section.type)}</h3>
-          <p className="text-xs text-zinc-500">{section.type}</p>
+          <h3 className="font-medium text-foreground">{getSectionLabel(section.type)}</h3>
+          <p className="text-xs text-muted-foreground">{section.type}</p>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
         >
-          <X className="h-4 w-4 text-zinc-400" />
+          <X className="h-4 w-4 text-muted-foreground" />
         </button>
       </div>
 
       {/* Section Settings */}
-      <div className="p-4 border-b border-zinc-800 space-y-3">
+      <div className="p-4 border-b border-border space-y-3">
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Section Name</label>
+          <label className="block text-xs text-muted-foreground mb-1">Section Name</label>
           <input
             type="text"
             value={section.name || ''}
             onChange={(e) => onUpdate({ name: e.target.value })}
-            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
             placeholder="Optional name for reference"
           />
         </div>
@@ -185,18 +185,18 @@ export function SectionEditorPanel({ section, onUpdate, onClose }: SectionEditor
               type="checkbox"
               checked={section.enabled}
               onChange={(e) => onUpdate({ enabled: e.target.checked })}
-              className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
+              className="rounded border-border bg-muted text-blue-500 focus:ring-blue-500"
             />
-            <span className="text-sm text-zinc-300">Visible</span>
+            <span className="text-sm text-foreground">Visible</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={section.hideOnMobile}
               onChange={(e) => onUpdate({ hideOnMobile: e.target.checked })}
-              className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
+              className="rounded border-border bg-muted text-blue-500 focus:ring-blue-500"
             />
-            <span className="text-sm text-zinc-300">Hide on mobile</span>
+            <span className="text-sm text-foreground">Hide on mobile</span>
           </label>
         </div>
       </div>
@@ -206,7 +206,7 @@ export function SectionEditorPanel({ section, onUpdate, onClose }: SectionEditor
         {/* Background Settings - shown for most section types */}
         {showBackgroundEditor && (
           <div>
-            <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Style</h4>
+            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Style</h4>
             <BackgroundEditor
               styles={section.styles}
               onStyleUpdate={handleStyleUpdate}
@@ -216,7 +216,7 @@ export function SectionEditorPanel({ section, onUpdate, onClose }: SectionEditor
 
         {/* Content Fields */}
         <div>
-          <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Content</h4>
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Content</h4>
           {renderEditor()}
         </div>
       </div>

@@ -80,34 +80,34 @@ export function PricingEditor({ section, onUpdate }: SectionEditorProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-zinc-400 mb-2">Section Headline</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-2">Section Headline</label>
         <input
           type="text"
           value={content.headline || ''}
           onChange={(e) => handleChange('headline', e.target.value)}
-          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:border-blue-500 focus:outline-none"
           placeholder="Simple, Transparent Pricing"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-400 mb-2">Subheadline</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-2">Subheadline</label>
         <input
           type="text"
           value={content.subheadline || ''}
           onChange={(e) => handleChange('subheadline', e.target.value)}
-          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:border-blue-500 focus:outline-none"
           placeholder="Choose the plan that works for you"
         />
       </div>
 
-      <hr className="border-zinc-800" />
+      <hr className="border-border" />
 
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-zinc-300">Pricing Tiers ({(content.tiers || []).length})</h4>
+        <h4 className="text-sm font-medium text-foreground">Pricing Tiers ({(content.tiers || []).length})</h4>
         <button
           onClick={addTier}
-          className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-foreground text-xs rounded-lg hover:bg-blue-700"
         >
           <Plus className="h-3 w-3" />
           Add
@@ -118,30 +118,30 @@ export function PricingEditor({ section, onUpdate }: SectionEditorProps) {
         {(content.tiers || []).map((tier, index) => (
           <div
             key={tier.id}
-            className="border border-zinc-700 rounded-lg bg-zinc-800/50 overflow-hidden"
+            className="border border-border rounded-lg bg-muted/50 overflow-hidden"
           >
             <div
-              className="flex items-center gap-2 p-3 cursor-pointer hover:bg-zinc-800"
+              className="flex items-center gap-2 p-3 cursor-pointer hover:bg-muted"
               onClick={() => setExpandedTier(expandedTier === tier.id ? null : tier.id)}
             >
-              <GripVertical className="h-4 w-4 text-zinc-600" />
-              <span className="flex-1 text-sm text-white">{tier.name}</span>
-              <span className="text-sm text-zinc-400">{tier.price}{tier.period}</span>
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1 text-sm text-foreground">{tier.name}</span>
+              <span className="text-sm text-muted-foreground">{tier.price}{tier.period}</span>
               {tier.highlighted && <Star className="h-4 w-4 text-amber-400 fill-current" />}
               <div className="flex items-center gap-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); moveTier(tier.id, 'up'); }}
                   disabled={index === 0}
-                  className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30"
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30"
                 >
-                  <ChevronUp className="h-3.5 w-3.5 text-zinc-400" />
+                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); moveTier(tier.id, 'down'); }}
                   disabled={index === (content.tiers || []).length - 1}
-                  className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30"
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30"
                 >
-                  <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); removeTier(tier.id); }}
@@ -153,66 +153,66 @@ export function PricingEditor({ section, onUpdate }: SectionEditorProps) {
             </div>
 
             {expandedTier === tier.id && (
-              <div className="p-3 pt-0 space-y-3 border-t border-zinc-700">
+              <div className="p-3 pt-0 space-y-3 border-t border-border">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Plan Name</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Plan Name</label>
                     <input
                       type="text"
                       value={tier.name}
                       onChange={(e) => handleTierChange(tier.id, 'name', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Description</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Description</label>
                     <input
                       type="text"
                       value={tier.description || ''}
                       onChange={(e) => handleTierChange(tier.id, 'description', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Price</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Price</label>
                     <input
                       type="text"
                       value={tier.price}
                       onChange={(e) => handleTierChange(tier.id, 'price', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                       placeholder="$29"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Period</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Period</label>
                     <input
                       type="text"
                       value={tier.period || ''}
                       onChange={(e) => handleTierChange(tier.id, 'period', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                       placeholder="/month"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Button Text</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Button Text</label>
                     <input
                       type="text"
                       value={tier.ctaText || ''}
                       onChange={(e) => handleTierChange(tier.id, 'ctaText', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1">Button URL</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Button URL</label>
                     <input
                       type="text"
                       value={tier.ctaUrl || ''}
                       onChange={(e) => handleTierChange(tier.id, 'ctaUrl', e.target.value)}
-                      className="w-full px-2 py-1.5 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -222,14 +222,14 @@ export function PricingEditor({ section, onUpdate }: SectionEditorProps) {
                     type="checkbox"
                     checked={tier.highlighted || false}
                     onChange={(e) => handleTierChange(tier.id, 'highlighted', e.target.checked)}
-                    className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
+                    className="rounded border-border bg-muted text-blue-500 focus:ring-blue-500"
                   />
-                  <span className="text-xs text-zinc-300">Highlight as popular</span>
+                  <span className="text-xs text-foreground">Highlight as popular</span>
                 </label>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs text-zinc-400">Features</label>
+                    <label className="block text-xs text-muted-foreground">Features</label>
                     <button
                       onClick={() => addFeature(tier.id)}
                       className="text-xs text-blue-400 hover:text-blue-300"
@@ -244,7 +244,7 @@ export function PricingEditor({ section, onUpdate }: SectionEditorProps) {
                           type="text"
                           value={feature}
                           onChange={(e) => handleFeatureChange(tier.id, featureIndex, e.target.value)}
-                          className="flex-1 px-2 py-1 bg-zinc-700 border border-zinc-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                          className="flex-1 px-2 py-1 bg-muted border border-border rounded text-foreground text-sm focus:border-blue-500 focus:outline-none"
                         />
                         <button
                           onClick={() => removeFeature(tier.id, featureIndex)}

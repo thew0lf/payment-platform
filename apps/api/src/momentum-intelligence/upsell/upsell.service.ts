@@ -35,12 +35,36 @@ interface ScoredOffer extends UpsellOfferData {
   reasons: string[];
 }
 
+// Default fallback pricing when no company-specific config exists
+const DEFAULT_UPSELL_PRICING: Record<UpsellType, number> = {
+  [UpsellType.SHIPPING_PROTECTION]: 6.95,
+  [UpsellType.TIER_UPGRADE]: 39.95,
+  [UpsellType.FREQUENCY_UPGRADE]: 29.95,
+  [UpsellType.ADD_ON]: 14.95,
+  [UpsellType.GIFT_SUBSCRIPTION]: 99.95,
+  [UpsellType.ANNUAL_PLAN]: 299.95,
+};
+
+// Company-specific upsell pricing config structure (stored in Company.settings.upsellPricing)
+interface CompanyUpsellPricingConfig {
+  [UpsellType.SHIPPING_PROTECTION]?: number;
+  [UpsellType.TIER_UPGRADE]?: number;
+  [UpsellType.FREQUENCY_UPGRADE]?: number;
+  [UpsellType.ADD_ON]?: number;
+  [UpsellType.GIFT_SUBSCRIPTION]?: number;
+  [UpsellType.ANNUAL_PLAN]?: number;
+}
+
 @Injectable()
 export class UpsellService {
   private readonly logger = new Logger(UpsellService.name);
   private readonly anthropic: Anthropic;
 
-  // Default offer configurations
+  // Cache for company-specific upsell pricing
+  private pricingCache = new Map<string, { pricing: CompanyUpsellPricingConfig; expiry: number }>();
+  private readonly PRICING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  // Default offer configurations (messaging templates)
   private readonly defaultOffers: Record<UpsellType, Partial<UpsellOfferData>> = {
     [UpsellType.SHIPPING_PROTECTION]: {
       type: UpsellType.SHIPPING_PROTECTION,
@@ -114,6 +138,59 @@ export class UpsellService {
     this.anthropic = new Anthropic({
       apiKey: this.config.get('ANTHROPIC_API_KEY'),
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // COMPANY UPSELL PRICING
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get company-specific upsell pricing from database with caching
+   * Falls back to DEFAULT_UPSELL_PRICING if not configured
+   */
+  private async getCompanyUpsellPricing(companyId: string): Promise<Record<UpsellType, number>> {
+    // Check cache first
+    const cached = this.pricingCache.get(companyId);
+    if (cached && Date.now() < cached.expiry) {
+      // Merge cached pricing with defaults
+      return { ...DEFAULT_UPSELL_PRICING, ...cached.pricing };
+    }
+
+    try {
+      const company = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: { settings: true },
+      });
+
+      const settings = company?.settings as Record<string, unknown> | null;
+      const upsellPricing = settings?.upsellPricing as CompanyUpsellPricingConfig | undefined;
+
+      if (upsellPricing && typeof upsellPricing === 'object') {
+        // Cache the company-specific pricing
+        this.pricingCache.set(companyId, {
+          pricing: upsellPricing,
+          expiry: Date.now() + this.PRICING_CACHE_TTL,
+        });
+
+        this.logger.debug(
+          `Loaded company-specific upsell pricing for ${companyId}: ${Object.keys(upsellPricing).length} custom prices`,
+        );
+
+        // Return merged with defaults (company pricing overrides defaults)
+        return { ...DEFAULT_UPSELL_PRICING, ...upsellPricing };
+      }
+
+      // No company-specific pricing, cache empty and return defaults
+      this.pricingCache.set(companyId, {
+        pricing: {},
+        expiry: Date.now() + this.PRICING_CACHE_TTL,
+      });
+
+      return { ...DEFAULT_UPSELL_PRICING };
+    } catch (error) {
+      this.logger.warn(`Failed to fetch company upsell pricing, using defaults: ${error}`);
+      return { ...DEFAULT_UPSELL_PRICING };
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -781,6 +858,9 @@ Focus on:
     // Get relevant offer types for this moment
     const relevantTypes = this.getRelevantTypesForMoment(moment);
 
+    // Fetch company-specific pricing from database (cached)
+    const basePrices = await this.getCompanyUpsellPricing(companyId);
+
     // Get previous upsells to avoid repetition
     const recentUpsells = await this.prisma.upsellOffer.findMany({
       where: {
@@ -837,8 +917,8 @@ Focus on:
         reasons.push('Already orders frequently');
       }
 
-      // Calculate personalized pricing
-      const pricing = this.calculatePersonalizedPricing(type, customer, segment);
+      // Calculate personalized pricing using company-specific prices
+      const pricing = this.calculatePersonalizedPricing(type, basePrices, segment);
 
       scoredOffers.push({
         type,
@@ -887,9 +967,13 @@ Focus on:
     return momentTypes[moment] || [];
   }
 
+  /**
+   * Calculate personalized pricing for an upsell type
+   * Uses company-specific base prices (fetched from DB) with segment-based discount adjustments
+   */
   private calculatePersonalizedPricing(
     type: UpsellType,
-    customer: any,
+    basePrices: Record<UpsellType, number>,
     segment: any,
   ): { original: number; offer: number; discount: number } {
     const baseOffer = this.defaultOffers[type];
@@ -901,17 +985,8 @@ Focus on:
       adjustedDiscount = Math.min(50, baseDiscount + 10);
     }
 
-    // Sample pricing (would come from product catalog in production)
-    const basePrices: Record<UpsellType, number> = {
-      [UpsellType.SHIPPING_PROTECTION]: 6.95,
-      [UpsellType.TIER_UPGRADE]: 39.95,
-      [UpsellType.FREQUENCY_UPGRADE]: 29.95,
-      [UpsellType.ADD_ON]: 14.95,
-      [UpsellType.GIFT_SUBSCRIPTION]: 99.95,
-      [UpsellType.ANNUAL_PLAN]: 299.95,
-    };
-
-    const original = basePrices[type] || 0;
+    // Use company-specific pricing (already fetched from database with defaults)
+    const original = basePrices[type] || DEFAULT_UPSELL_PRICING[type] || 0;
     const offer = original * (1 - adjustedDiscount / 100);
 
     return {

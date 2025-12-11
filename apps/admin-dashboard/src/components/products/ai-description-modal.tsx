@@ -100,7 +100,7 @@ export function AIDescriptionModal({
           <div className="space-y-4">
             {/* Tone Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Tone</label>
+              <label className="text-sm font-medium text-foreground">Tone</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {AI_TONES.map((t) => (
                   <button
@@ -110,8 +110,8 @@ export function AIDescriptionModal({
                     className={cn(
                       'px-3 py-2 text-sm rounded-lg border transition-colors',
                       tone === t.value
-                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-border'
                     )}
                   >
                     {t.label}
@@ -122,7 +122,7 @@ export function AIDescriptionModal({
 
             {/* Length Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Length</label>
+              <label className="text-sm font-medium text-foreground">Length</label>
               <div className="grid grid-cols-3 gap-2">
                 {AI_LENGTHS.map((l) => (
                   <button
@@ -132,8 +132,8 @@ export function AIDescriptionModal({
                     className={cn(
                       'px-3 py-2 text-sm rounded-lg border transition-colors',
                       length === l.value
-                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-border'
                     )}
                   >
                     {l.label}
@@ -144,15 +144,15 @@ export function AIDescriptionModal({
 
             {/* Target Audience */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-sm font-medium text-foreground">
                 Target Audience{' '}
-                <span className="text-zinc-500 font-normal">(optional)</span>
+                <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
                 placeholder="e.g., Coffee enthusiasts, Home baristas"
-                className="bg-zinc-800"
+                className="bg-muted"
               />
             </div>
 
@@ -162,9 +162,9 @@ export function AIDescriptionModal({
                 type="checkbox"
                 checked={includeSEO}
                 onChange={(e) => setIncludeSEO(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-cyan-500 focus:ring-cyan-500/20"
+                className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary/20"
               />
-              <span className="text-sm text-zinc-300">
+              <span className="text-sm text-foreground">
                 Include SEO meta title and description
               </span>
             </label>
@@ -172,10 +172,10 @@ export function AIDescriptionModal({
             {/* Current Description Preview */}
             {currentDescription && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-500">
+                <label className="text-sm font-medium text-muted-foreground">
                   Current Description
                 </label>
-                <p className="text-sm text-zinc-400 bg-zinc-800/50 rounded-lg p-3 line-clamp-3">
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 line-clamp-3">
                   {currentDescription}
                 </p>
               </div>
@@ -196,12 +196,12 @@ export function AIDescriptionModal({
             {/* Generated Description */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-300">
+                <label className="text-sm font-medium text-foreground">
                   Generated Description
                 </label>
                 <button
                   onClick={() => handleCopy(result.description, 'description')}
-                  className="p-1.5 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   title="Copy"
                 >
                   {copiedField === 'description' ? (
@@ -211,7 +211,7 @@ export function AIDescriptionModal({
                   )}
                 </button>
               </div>
-              <div className="bg-zinc-800 rounded-lg p-4 text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
+              <div className="bg-muted rounded-lg p-4 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                 {result.description}
               </div>
             </div>
@@ -220,13 +220,13 @@ export function AIDescriptionModal({
             {result.metaTitle && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-300">
+                  <label className="text-sm font-medium text-foreground">
                     Meta Title{' '}
-                    <span className="text-zinc-500">({result.metaTitle.length}/60)</span>
+                    <span className="text-muted-foreground">({result.metaTitle.length}/60)</span>
                   </label>
                   <button
                     onClick={() => handleCopy(result.metaTitle!, 'metaTitle')}
-                    className="p-1.5 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     title="Copy"
                   >
                     {copiedField === 'metaTitle' ? (
@@ -236,7 +236,7 @@ export function AIDescriptionModal({
                     )}
                   </button>
                 </div>
-                <div className="bg-zinc-800 rounded-lg p-3 text-sm text-zinc-200">
+                <div className="bg-muted rounded-lg p-3 text-sm text-foreground">
                   {result.metaTitle}
                 </div>
               </div>
@@ -246,15 +246,15 @@ export function AIDescriptionModal({
             {result.metaDescription && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-300">
+                  <label className="text-sm font-medium text-foreground">
                     Meta Description{' '}
-                    <span className="text-zinc-500">
+                    <span className="text-muted-foreground">
                       ({result.metaDescription.length}/160)
                     </span>
                   </label>
                   <button
                     onClick={() => handleCopy(result.metaDescription!, 'metaDescription')}
-                    className="p-1.5 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     title="Copy"
                   >
                     {copiedField === 'metaDescription' ? (
@@ -264,7 +264,7 @@ export function AIDescriptionModal({
                     )}
                   </button>
                 </div>
-                <div className="bg-zinc-800 rounded-lg p-3 text-sm text-zinc-200">
+                <div className="bg-muted rounded-lg p-3 text-sm text-foreground">
                   {result.metaDescription}
                 </div>
               </div>
@@ -273,16 +273,16 @@ export function AIDescriptionModal({
             {/* Suggestions */}
             {result.suggestions && result.suggestions.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
+                <label className="text-sm font-medium text-foreground">
                   Key Highlights
                 </label>
                 <ul className="space-y-1">
                   {result.suggestions.map((suggestion, index) => (
                     <li
                       key={index}
-                      className="text-sm text-zinc-400 flex items-start gap-2"
+                      className="text-sm text-muted-foreground flex items-start gap-2"
                     >
-                      <span className="text-cyan-400 mt-1">•</span>
+                      <span className="text-primary mt-1">•</span>
                       {suggestion}
                     </li>
                   ))}

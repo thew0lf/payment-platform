@@ -226,7 +226,7 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
             {/* Open Checkout Builder Button */}
             <button
               onClick={openCheckoutBuilder}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
             >
               <CreditCard className="w-4 h-4" />
               Open Checkout Builder
@@ -322,7 +322,7 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <button
           onClick={handleSave}
-          className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+          className="w-full py-2.5 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
         >
           Save Changes
         </button>
@@ -508,7 +508,7 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
+              className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Funnel'}
             </button>
@@ -711,7 +711,7 @@ function BuilderContent() {
           <button
             onClick={handlePublish}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
           >
             <Play className="w-4 h-4" />
             <span>{saving ? 'Publishing...' : 'Publish'}</span>
@@ -801,7 +801,7 @@ function BuilderContent() {
               </button>
               <button
                 onClick={confirmDeleteStage}
-                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
+                className="flex-1 py-2.5 bg-red-600 text-foreground rounded-xl font-medium hover:bg-red-700 transition-colors"
               >
                 Delete
               </button>

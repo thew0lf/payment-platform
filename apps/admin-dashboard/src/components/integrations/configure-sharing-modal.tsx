@@ -64,14 +64,14 @@ export function ConfigureSharingModal({ isOpen, integration, onClose, onSubmit }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <Share2 className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-lg font-semibold text-white">Configure Client Sharing</h2>
+            <Share2 className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Configure Client Sharing</h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -82,9 +82,9 @@ export function ConfigureSharingModal({ isOpen, integration, onClose, onSubmit }
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>
           )}
 
-          <div className="p-3 bg-zinc-800/50 rounded-lg">
-            <p className="text-sm text-zinc-400">Integration</p>
-            <p className="font-medium text-white">{integration.name}</p>
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground">Integration</p>
+            <p className="font-medium text-foreground">{integration.name}</p>
           </div>
 
           <label className="flex items-center gap-3 cursor-pointer">
@@ -92,22 +92,22 @@ export function ConfigureSharingModal({ isOpen, integration, onClose, onSubmit }
               type="checkbox"
               checked={isShared}
               onChange={(e) => setIsShared(e.target.checked)}
-              className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+              className="w-5 h-5 rounded border-border bg-muted text-primary focus:ring-primary"
             />
             <div>
-              <p className="font-medium text-white">Share with Clients</p>
-              <p className="text-sm text-zinc-500">Allow clients to use this integration</p>
+              <p className="font-medium text-foreground">Share with Clients</p>
+              <p className="text-sm text-muted-foreground">Allow clients to use this integration</p>
             </div>
           </label>
 
           {isShared && (
-            <div className="space-y-4 pt-2 border-t border-zinc-800">
+            <div className="space-y-4 pt-2 border-t border-border">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Pricing Type</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Pricing Type</label>
                 <select
                   value={pricingType}
                   onChange={(e) => setPricingType(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="fixed">Fixed per transaction</option>
                   <option value="percentage">Percentage</option>
@@ -116,31 +116,31 @@ export function ConfigureSharingModal({ isOpen, integration, onClose, onSubmit }
 
               {pricingType === 'fixed' ? (
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Amount per Transaction ($)</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Amount per Transaction ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={pricingAmount}
                     onChange={(e) => setPricingAmount(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                     placeholder="0.30"
                   />
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Clients will be charged ${pricingAmount || '0.00'} per transaction
                   </p>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Percentage (%)</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Percentage (%)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={pricingPercentage}
                     onChange={(e) => setPricingPercentage(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                     placeholder="2.9"
                   />
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Clients will be charged {pricingPercentage || '0'}% of each transaction
                   </p>
                 </div>
@@ -150,14 +150,14 @@ export function ConfigureSharingModal({ isOpen, integration, onClose, onSubmit }
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary disabled:bg-muted disabled:text-muted-foreground text-foreground text-sm font-medium rounded-lg transition-colors"
           >
             {isSubmitting ? (
               <>

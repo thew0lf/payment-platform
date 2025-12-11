@@ -76,16 +76,16 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         <div
           ref={ref}
           className={cn(
-            'relative z-50 w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl animate-in fade-in-0 zoom-in-95 duration-200',
+            'relative z-50 w-full max-w-lg bg-popover border border-border rounded-lg shadow-xl animate-in fade-in-0 zoom-in-95 duration-200',
             className
           )}
           {...props}
         >
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-zinc-900 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
-            <X className="h-4 w-4 text-zinc-400" />
+            <X className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">Close</span>
           </button>
           {children}
@@ -129,7 +129,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight text-white', className)}
+    className={cn('text-lg font-semibold leading-none tracking-tight text-foreground', className)}
     {...props}
   />
 ));
@@ -141,7 +141,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-zinc-400', className)}
+    className={cn('text-sm text-muted-foreground', className)}
     {...props}
   />
 ));

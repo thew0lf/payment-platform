@@ -152,7 +152,7 @@ export default function ApiKeysPage() {
           <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-amber-400">Keep your API keys secure</p>
-            <p className="text-sm text-zinc-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Never share your API keys in public repositories or client-side code.
               Rotate keys regularly and use the minimum required scopes.
             </p>
@@ -166,23 +166,23 @@ export default function ApiKeysPage() {
               <CardContent className="p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-                    <div className="p-2 bg-zinc-800 rounded-lg flex-shrink-0">
-                      <Key className="w-5 h-5 text-cyan-400" />
+                    <div className="p-2 bg-muted rounded-lg flex-shrink-0">
+                      <Key className="w-5 h-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-medium text-white">{key.name}</h3>
+                        <h3 className="font-medium text-foreground">{key.name}</h3>
                         <Badge variant={key.isActive ? 'success' : 'default'}>
                           {key.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
-                        <code className="text-sm text-zinc-400 font-mono">
+                        <code className="text-sm text-muted-foreground font-mono">
                           {key.keyPrefix}••••••••••••
                         </code>
                         <button
                           onClick={() => handleCopy(`${key.keyPrefix}...`, key.id)}
-                          className="p-1 text-zinc-500 hover:text-white"
+                          className="p-1 text-muted-foreground hover:text-foreground"
                         >
                           {copiedId === key.id ? (
                             <Check className="w-4 h-4 text-emerald-400" />
@@ -195,13 +195,13 @@ export default function ApiKeysPage() {
                         {key.scopes.map(scope => (
                           <span
                             key={scope}
-                            className="px-2 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded"
+                            className="px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded"
                           >
                             {scope}
                           </span>
                         ))}
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>Created {formatDate(key.createdAt)}</span>
                         {key.lastUsedAt && (
                           <span>Last used {formatRelativeTime(key.lastUsedAt)}</span>
@@ -257,9 +257,9 @@ export default function ApiKeysPage() {
           {apiKeys.length === 0 && (
             <Card>
               <CardContent className="p-8 text-center">
-                <Key className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No API keys yet</h3>
-                <p className="text-sm text-zinc-400 mb-4">
+                <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No API keys yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
                   Create your first API key to start integrating with the platform.
                 </p>
                 <Button onClick={() => setShowCreateModal(true)}>
@@ -275,14 +275,14 @@ export default function ApiKeysPage() {
       {/* Create API Key Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">
                 {createdKey ? 'API Key Created' : 'Create API Key'}
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 text-zinc-400 hover:text-white"
+                className="p-2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -295,13 +295,13 @@ export default function ApiKeysPage() {
                     <Check className="w-5 h-5 text-emerald-400" />
                     <span className="font-medium text-emerald-400">Key created successfully</span>
                   </div>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-muted-foreground">
                     Copy your API key now. You won&apos;t be able to see it again.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1.5 block">Your API Key</label>
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Your API Key</label>
                   <div className="flex items-center gap-2">
                     <Input
                       value={createdKey}
@@ -329,7 +329,7 @@ export default function ApiKeysPage() {
             ) : (
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1.5 block">Name</label>
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Name</label>
                   <Input
                     placeholder="e.g., Production API"
                     value={newKeyName}
@@ -338,12 +338,12 @@ export default function ApiKeysPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-zinc-400 mb-2 block">Permissions</label>
+                  <label className="text-sm text-muted-foreground mb-2 block">Permissions</label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {availableScopes.map(scope => (
                       <label
                         key={scope.id}
-                        className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800"
+                        className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted"
                       >
                         <input
                           type="checkbox"
@@ -355,11 +355,11 @@ export default function ApiKeysPage() {
                               setNewKeyScopes(newKeyScopes.filter(s => s !== scope.id));
                             }
                           }}
-                          className="mt-0.5 rounded border-zinc-600 bg-zinc-700 text-cyan-500 focus:ring-cyan-500"
+                          className="mt-0.5 rounded border-border bg-muted text-primary focus:ring-primary"
                         />
                         <div>
-                          <p className="text-sm font-medium text-white">{scope.label}</p>
-                          <p className="text-xs text-zinc-500">{scope.description}</p>
+                          <p className="text-sm font-medium text-foreground">{scope.label}</p>
+                          <p className="text-xs text-muted-foreground">{scope.description}</p>
                         </div>
                       </label>
                     ))}

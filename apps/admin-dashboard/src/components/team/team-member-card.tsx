@@ -48,20 +48,20 @@ export function TeamMemberCard({
     : 'Never';
 
   return (
-    <Card className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
+    <Card className="bg-card/50 border-border hover:border-border transition-colors">
       <CardContent className="p-4">
         {/* Header with avatar and menu */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
               {user.avatar && <AvatarImage src={user.avatar} alt={fullName} />}
-              <AvatarFallback className="bg-zinc-800 text-zinc-300 text-sm font-medium">
+              <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-medium text-white">{fullName}</h3>
-              <p className="text-sm text-zinc-400 flex items-center gap-1">
+              <h3 className="font-medium text-foreground">{fullName}</h3>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Mail className="h-3 w-3" />
                 {user.email}
               </p>
@@ -69,7 +69,7 @@ export function TeamMemberCard({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -121,12 +121,12 @@ export function TeamMemberCard({
         {/* Info section */}
         <div className="space-y-2 text-sm">
           {user.companyName && (
-            <div className="flex items-center gap-2 text-zinc-400">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Building2 className="h-4 w-4" />
               <span>{user.companyName}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-zinc-400">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4" />
             <span>Last login: {lastLogin}</span>
           </div>
@@ -134,10 +134,10 @@ export function TeamMemberCard({
 
         {/* RBAC Roles section */}
         {user.roleAssignments && user.roleAssignments.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-zinc-800">
+          <div className="mt-4 pt-4 border-t border-border">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white w-full"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full"
             >
               <Shield className="h-4 w-4" />
               <span>{user.roleAssignments.length} RBAC role{user.roleAssignments.length !== 1 ? 's' : ''}</span>
@@ -150,7 +150,7 @@ export function TeamMemberCard({
                 {user.roleAssignments.map((ra) => (
                   <div
                     key={ra.id}
-                    className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2"
+                    className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2"
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -158,16 +158,16 @@ export function TeamMemberCard({
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: ra.roleColor || '#71717a' }}
                         />
-                        <span className="text-sm font-medium text-zinc-200">{ra.roleName}</span>
+                        <span className="text-sm font-medium text-foreground">{ra.roleName}</span>
                       </div>
-                      <p className="text-xs text-zinc-500 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {ra.scopeType}: {ra.scopeName || ra.scopeId}
                       </p>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 text-zinc-500 hover:text-red-400"
+                      className="h-7 px-2 text-muted-foreground hover:text-red-400"
                       onClick={() => onRemoveRole?.(user, ra.roleId)}
                     >
                       Remove

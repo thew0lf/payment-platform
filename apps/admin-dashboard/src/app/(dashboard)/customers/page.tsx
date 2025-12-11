@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Plus, Mail, MoreHorizontal, Eye, Loader2, Calendar, Clock, ChevronDown, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
+import { Search, Plus, Mail, MoreHorizontal, Eye, Loader2, Calendar, Clock, ChevronDown, X, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,12 +76,18 @@ interface CustomerWithCompany extends Customer {
 }
 
 export default function CustomersPage() {
+  const router = useRouter();
   const { selectedCompanyId } = useHierarchy();
   const [search, setSearch] = useState('');
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Action menu state
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<CustomerWithCompany | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Date range state
   const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('all_time');
@@ -153,13 +162,43 @@ export default function CustomersPage() {
     return customer.email.split('@')[0];
   };
 
+  // Action handlers
+  const handleEmailCustomer = (customer: CustomerWithCompany) => {
+    window.location.href = `mailto:${customer.email}`;
+  };
+
+  const handleEditCustomer = (customer: CustomerWithCompany) => {
+    router.push(`/customers/${customer.id}/edit`);
+    setOpenMenuId(null);
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    setIsDeleting(true);
+    try {
+      await customersApi.delete(customerToDelete.id);
+      toast.success(`Customer "${getCustomerName(customerToDelete)}" deleted`);
+      setCustomerToDelete(null);
+      fetchCustomers();
+    } catch (err) {
+      console.error('Failed to delete customer:', err);
+      toast.error('Failed to delete customer. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAddCustomer = () => {
+    router.push('/customers/new');
+  };
+
   return (
     <>
       <Header
         title="Customers"
         subtitle={loading ? 'Loading...' : `${total} customers`}
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={handleAddCustomer}>
             <Plus className="w-4 h-4 mr-2" />
             Add Customer
           </Button>
@@ -169,7 +208,7 @@ export default function CustomersPage() {
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search customers..."
               value={search}
@@ -185,8 +224,8 @@ export default function CustomersPage() {
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
                 dateRangePreset !== 'all_time'
-                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600'
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-muted border-border text-foreground hover:text-foreground hover:border-border'
               )}
             >
               <Calendar className="w-4 h-4" />
@@ -202,7 +241,7 @@ export default function CustomersPage() {
                   onClick={() => setShowDateDropdown(false)}
                 />
                 {/* Dropdown */}
-                <div className="absolute top-full left-0 mt-2 z-20 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 z-20 w-64 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
                   {/* Preset options */}
                   <div className="p-2">
                     {dateRangePresets.map(preset => (
@@ -217,8 +256,8 @@ export default function CustomersPage() {
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left',
                           dateRangePreset === preset.value
-                            ? 'bg-cyan-500/10 text-cyan-400'
-                            : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-foreground hover:bg-muted hover:text-foreground'
                         )}
                       >
                         {preset.icon || <Calendar className="w-3.5 h-3.5 opacity-50" />}
@@ -229,28 +268,28 @@ export default function CustomersPage() {
 
                   {/* Custom date inputs */}
                   {dateRangePreset === 'custom' && (
-                    <div className="border-t border-zinc-700 p-3 space-y-3">
+                    <div className="border-t border-border p-3 space-y-3">
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">Start Date</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
                         <input
                           type="date"
                           value={customStartDate}
                           onChange={e => setCustomStartDate(e.target.value)}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">End Date</label>
+                        <label className="block text-xs text-muted-foreground mb-1">End Date</label>
                         <input
                           type="date"
                           value={customEndDate}
                           onChange={e => setCustomEndDate(e.target.value)}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <button
                         onClick={() => setShowDateDropdown(false)}
-                        className="w-full px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="w-full px-3 py-2 bg-primary hover:bg-primary text-foreground text-sm font-medium rounded-lg transition-colors"
                       >
                         Apply
                       </button>
@@ -269,7 +308,7 @@ export default function CustomersPage() {
                 setCustomStartDate('');
                 setCustomEndDate('');
               }}
-              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
               title="Clear date filter"
             >
               <X className="w-4 h-4" />
@@ -283,7 +322,7 @@ export default function CustomersPage() {
           </div>
         )}
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -300,24 +339,24 @@ export default function CustomersPage() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={selectedCompanyId ? 6 : 7} className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-zinc-500" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={selectedCompanyId ? 6 : 7} className="text-center py-8 text-zinc-500">
+                  <TableCell colSpan={selectedCompanyId ? 6 : 7} className="text-center py-8 text-muted-foreground">
                     No customers found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredCustomers.map(customer => (
-                  <TableRow key={customer.id} className="hover:bg-zinc-800/50 cursor-pointer">
+                  <TableRow key={customer.id} className="hover:bg-muted/50 cursor-pointer">
                     <TableCell>
                       <Link href={`/customers/${customer.id}`} className="block">
-                        <p className="font-medium text-white hover:text-cyan-400 transition-colors">
+                        <p className="font-medium text-foreground hover:text-primary transition-colors">
                           {getCustomerName(customer)}
                         </p>
-                        <p className="text-sm text-zinc-500">{customer.email}</p>
+                        <p className="text-sm text-muted-foreground">{customer.email}</p>
                       </Link>
                     </TableCell>
                     {!selectedCompanyId && (
@@ -330,22 +369,69 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>{customer._count?.transactions || 0}</TableCell>
                     <TableCell>{customer._count?.subscriptions || 0}</TableCell>
-                    <TableCell className="text-zinc-500">{formatDate(new Date(customer.createdAt))}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(new Date(customer.createdAt))}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Link
                           href={`/customers/${customer.id}`}
-                          className="p-1 text-zinc-500 hover:text-cyan-400 rounded"
+                          className="p-1 text-muted-foreground hover:text-primary rounded"
                           title="View customer"
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
-                        <button className="p-1 text-zinc-500 hover:text-white rounded">
+                        <button
+                          className="p-1 text-muted-foreground hover:text-foreground rounded"
+                          title="Email customer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEmailCustomer(customer);
+                          }}
+                        >
                           <Mail className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-zinc-500 hover:text-white rounded">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            className="p-1 text-muted-foreground hover:text-foreground rounded"
+                            title="More actions"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === customer.id ? null : customer.id);
+                            }}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                          {openMenuId === customer.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                                <button
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditCustomer(customer);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                <button
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCustomerToDelete(customer);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -355,6 +441,35 @@ export default function CustomersPage() {
           </Table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {customerToDelete && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Customer</h3>
+            <p className="text-muted-foreground mb-4">
+              Are you sure you want to delete &quot;{getCustomerName(customerToDelete)}&quot;? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setCustomerToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteCustomer}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

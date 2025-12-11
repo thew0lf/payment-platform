@@ -131,7 +131,7 @@ export class AuthService {
 
   async login(user: AuthenticatedUser): Promise<LoginResponse> {
     const tokens = this.generateTokens(user);
-    this.logger.log(`User logged in: ${user.email}`);
+    this.logger.log(`User logged in: ${user.id}`);
 
     return {
       ...tokens,

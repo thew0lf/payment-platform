@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CreditCard,
   Plus,
@@ -41,12 +42,12 @@ function StatusBadge({ status }: { status: AccountStatus }) {
     [AccountStatus.PENDING]: 'bg-yellow-500/20 text-yellow-400',
     [AccountStatus.SUSPENDED]: 'bg-orange-500/20 text-orange-400',
     [AccountStatus.UNDER_REVIEW]: 'bg-orange-500/20 text-orange-400',
-    [AccountStatus.INACTIVE]: 'bg-zinc-500/20 text-zinc-400',
+    [AccountStatus.INACTIVE]: 'bg-muted/500/20 text-muted-foreground',
     [AccountStatus.CLOSED]: 'bg-red-500/20 text-red-400',
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-zinc-500/20 text-zinc-400'}`}>
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-muted/500/20 text-muted-foreground'}`}>
       {status.replace('_', ' ')}
     </span>
   );
@@ -70,18 +71,18 @@ function HealthIndicator({ status }: { status: 'healthy' | 'degraded' | 'down' }
 
 function UsageBar({ current, limit, label }: { current: number; limit?: number; label: string }) {
   const percentage = calculateUsagePercentage(current, limit);
-  const barColor = percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-cyan-500';
+  const barColor = percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-primary';
 
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-zinc-400">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>{label}</span>
         <span>
           {formatNumber(current)} {limit ? `/ ${formatNumber(limit)}` : ''}
         </span>
       </div>
       {limit && (
-        <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className={`h-full ${barColor} transition-all`} style={{ width: `${percentage}%` }} />
         </div>
       )}
@@ -127,22 +128,22 @@ function ConfigureDropdown({ onSelect }: { onSelect: (type: ModalType) => void }
         <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-20 overflow-hidden">
+        <div className="absolute right-0 mt-1 w-56 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden">
           {options.map(({ type, label, icon: Icon, description }) => (
             <button
               key={type}
               type="button"
-              className="w-full px-3 py-2.5 flex items-start gap-3 hover:bg-zinc-800 transition-colors text-left"
+              className="w-full px-3 py-2.5 flex items-start gap-3 hover:bg-muted transition-colors text-left"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen(false);
                 onSelect(type);
               }}
             >
-              <Icon className="w-4 h-4 text-zinc-400 mt-0.5 shrink-0" />
+              <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <span className="block text-sm text-white font-medium">{label}</span>
-                <span className="block text-xs text-zinc-500">{description}</span>
+                <span className="block text-sm text-foreground font-medium">{label}</span>
+                <span className="block text-xs text-muted-foreground">{description}</span>
               </div>
             </button>
           ))}
@@ -162,7 +163,7 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors">
+    <div className="bg-card/50 border border-border rounded-lg hover:border-border transition-colors">
       <div
         className="p-4 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -173,11 +174,11 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
               className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: account.color || '#6366f1' }}
             >
-              <CreditCard className="w-5 h-5 text-white" />
+              <CreditCard className="w-5 h-5 text-foreground" />
             </div>
             <div>
-              <h3 className="font-medium text-white">{account.name}</h3>
-              <p className="text-sm text-zinc-400">
+              <h3 className="font-medium text-foreground">{account.name}</h3>
+              <p className="text-sm text-muted-foreground">
                 {account.providerType} - {account.merchantId}
               </p>
             </div>
@@ -190,29 +191,29 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
 
         <div className="mt-4 grid grid-cols-4 gap-4 text-center">
           <div>
-            <p className="text-xs text-zinc-500">Today</p>
-            <p className="font-semibold text-white">{formatNumber(account.currentUsage.todayTransactionCount)}</p>
+            <p className="text-xs text-muted-foreground">Today</p>
+            <p className="font-semibold text-foreground">{formatNumber(account.currentUsage.todayTransactionCount)}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Success Rate</p>
-            <p className="font-semibold text-white">{account.health.successRate.toFixed(1)}%</p>
+            <p className="text-xs text-muted-foreground">Success Rate</p>
+            <p className="font-semibold text-foreground">{account.health.successRate.toFixed(1)}%</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Volume</p>
-            <p className="font-semibold text-white">{formatCurrency(account.currentUsage.todayVolume)}</p>
+            <p className="text-xs text-muted-foreground">Volume</p>
+            <p className="font-semibold text-foreground">{formatCurrency(account.currentUsage.todayVolume)}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Latency</p>
-            <p className="font-semibold text-white">{account.health.avgLatencyMs.toFixed(0)}ms</p>
+            <p className="text-xs text-muted-foreground">Latency</p>
+            <p className="font-semibold text-foreground">{account.health.avgLatencyMs.toFixed(0)}ms</p>
           </div>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-zinc-800 p-4 bg-zinc-800/30 space-y-4">
+        <div className="border-t border-border p-4 bg-muted/30 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-zinc-300">Daily Usage</h4>
+              <h4 className="text-sm font-medium text-foreground">Daily Usage</h4>
               <UsageBar
                 current={account.currentUsage.todayTransactionCount}
                 limit={account.limits.dailyTransactionLimit}
@@ -225,7 +226,7 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
               />
             </div>
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-zinc-300">Monthly Usage</h4>
+              <h4 className="text-sm font-medium text-foreground">Monthly Usage</h4>
               <UsageBar
                 current={account.currentUsage.monthTransactionCount}
                 limit={account.limits.monthlyTransactionLimit}
@@ -241,23 +242,23 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
 
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
-              <p className="text-zinc-500">Environment</p>
-              <p className="font-medium text-white capitalize">{account.environment}</p>
+              <p className="text-muted-foreground">Environment</p>
+              <p className="font-medium text-foreground capitalize">{account.environment}</p>
             </div>
             <div>
-              <p className="text-zinc-500">Priority</p>
-              <p className="font-medium text-white">{account.routing.priority}</p>
+              <p className="text-muted-foreground">Priority</p>
+              <p className="font-medium text-foreground">{account.routing.priority}</p>
             </div>
             <div>
-              <p className="text-zinc-500">Default</p>
-              <p className="font-medium text-white">{account.routing.isDefault ? 'Yes' : 'No'}</p>
+              <p className="text-muted-foreground">Default</p>
+              <p className="font-medium text-foreground">{account.routing.isDefault ? 'Yes' : 'No'}</p>
             </div>
           </div>
 
           {account.limits.minTransactionAmount && (
             <div className="text-sm">
-              <p className="text-zinc-500">Transaction Range</p>
-              <p className="font-medium text-white">
+              <p className="text-muted-foreground">Transaction Range</p>
+              <p className="font-medium text-foreground">
                 {formatCurrency(account.limits.minTransactionAmount)} - {formatCurrency(account.limits.maxTransactionAmount)}
               </p>
             </div>
@@ -287,6 +288,7 @@ function AccountCard({ account, onRefresh, onConfigure }: AccountCardProps) {
 }
 
 export default function MerchantAccountsPage() {
+  const router = useRouter();
   const { accessLevel } = useHierarchy();
   const [accounts, setAccounts] = useState<MerchantAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -348,7 +350,11 @@ export default function MerchantAccountsPage() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <Button size="sm" onClick={() => window.location.href = integrationsPath}>
+            <Button variant="outline" size="sm" onClick={() => router.push('/settings/merchant-accounts/test-checkout')}>
+              <Activity className="w-4 h-4 mr-2" />
+              Run Transaction
+            </Button>
+            <Button size="sm" onClick={() => router.push(integrationsPath)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Integration
             </Button>
@@ -359,40 +365,40 @@ export default function MerchantAccountsPage() {
       <div className="p-6 space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
-            <div className="flex items-center gap-2 text-zinc-400 mb-1">
+          <div className="bg-card/50 rounded-lg border border-border p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <CreditCard className="w-4 h-4" />
               <span className="text-sm">Total Accounts</span>
             </div>
-            <p className="text-2xl font-semibold text-white">{summary.total}</p>
+            <p className="text-2xl font-semibold text-foreground">{summary.total}</p>
           </div>
-          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+          <div className="bg-card/50 rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-green-400 mb-1">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm">Active</span>
             </div>
-            <p className="text-2xl font-semibold text-white">{summary.active}</p>
+            <p className="text-2xl font-semibold text-foreground">{summary.active}</p>
           </div>
-          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
-            <div className="flex items-center gap-2 text-cyan-400 mb-1">
+          <div className="bg-card/50 rounded-lg border border-border p-4">
+            <div className="flex items-center gap-2 text-primary mb-1">
               <Activity className="w-4 h-4" />
               <span className="text-sm">Healthy</span>
             </div>
-            <p className="text-2xl font-semibold text-white">{summary.healthy}</p>
+            <p className="text-2xl font-semibold text-foreground">{summary.healthy}</p>
           </div>
-          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+          <div className="bg-card/50 rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-purple-400 mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Today&apos;s Volume</span>
             </div>
-            <p className="text-2xl font-semibold text-white">{formatCurrency(summary.totalVolume)}</p>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(summary.totalVolume)}</p>
           </div>
-          <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+          <div className="bg-card/50 rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-indigo-400 mb-1">
               <BarChart3 className="w-4 h-4" />
               <span className="text-sm">Today&apos;s Txns</span>
             </div>
-            <p className="text-2xl font-semibold text-white">{formatNumber(summary.totalTransactions)}</p>
+            <p className="text-2xl font-semibold text-foreground">{formatNumber(summary.totalTransactions)}</p>
           </div>
         </div>
 
@@ -439,8 +445,8 @@ export default function MerchantAccountsPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-zinc-400" />
-            <span className="ml-2 text-zinc-500">Loading accounts...</span>
+            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading accounts...</span>
           </div>
         )}
 
@@ -448,13 +454,13 @@ export default function MerchantAccountsPage() {
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {accounts.length === 0 ? (
-              <div className="col-span-2 text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                <CreditCard className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No Merchant Accounts</h3>
-                <p className="text-zinc-400 mb-4">
+              <div className="col-span-2 text-center py-12 bg-card/50 rounded-lg border border-border">
+                <CreditCard className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Merchant Accounts</h3>
+                <p className="text-muted-foreground mb-4">
                   Merchant accounts are created when you add payment gateway integrations.
                 </p>
-                <Button onClick={() => window.location.href = integrationsPath}>
+                <Button onClick={() => router.push(integrationsPath)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Integration
                 </Button>

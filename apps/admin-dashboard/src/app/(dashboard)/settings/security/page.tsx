@@ -38,8 +38,8 @@ export default function SecurityPage() {
                   <Lock className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-400">Password</p>
-                  <p className="font-medium text-white">Set</p>
+                  <p className="text-sm text-muted-foreground">Password</p>
+                  <p className="font-medium text-foreground">Set</p>
                 </div>
               </div>
             </CardContent>
@@ -52,8 +52,8 @@ export default function SecurityPage() {
                   <Smartphone className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-400">Two-Factor Auth</p>
-                  <p className="font-medium text-white">Not Enabled</p>
+                  <p className="text-sm text-muted-foreground">Two-Factor Auth</p>
+                  <p className="font-medium text-foreground">Not Enabled</p>
                 </div>
               </div>
             </CardContent>
@@ -62,12 +62,12 @@ export default function SecurityPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <Shield className="w-5 h-5 text-cyan-400" />
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Shield className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-400">Account Status</p>
-                  <p className="font-medium text-white">Secure</p>
+                  <p className="text-sm text-muted-foreground">Account Status</p>
+                  <p className="font-medium text-foreground">Secure</p>
                 </div>
               </div>
             </CardContent>
@@ -88,8 +88,8 @@ export default function SecurityPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-400">
-                  Last changed: <span className="text-zinc-300">Never</span>
+                <p className="text-sm text-muted-foreground">
+                  Last changed: <span className="text-foreground">Never</span>
                 </p>
               </div>
               <Button variant="outline" onClick={() => setShowPasswordModal(true)}>
@@ -117,7 +117,7 @@ export default function SecurityPage() {
                 <p className="font-medium text-amber-400 mb-1">
                   Two-factor authentication is not enabled
                 </p>
-                <p className="text-sm text-zinc-400 mb-3">
+                <p className="text-sm text-muted-foreground mb-3">
                   Protect your account by requiring a second verification step when signing in.
                 </p>
                 <Button size="sm">
@@ -164,22 +164,22 @@ export default function SecurityPage() {
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`p-1.5 bg-${item.color}-500/20 rounded`}>
                       <item.icon className={`w-4 h-4 text-${item.color}-400`} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{item.event}</p>
-                      <p className="text-xs text-zinc-500">{item.location}</p>
+                      <p className="text-sm font-medium text-foreground">{item.event}</p>
+                      <p className="text-xs text-muted-foreground">{item.location}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-zinc-500">{item.time}</span>
+                  <span className="text-xs text-muted-foreground">{item.time}</span>
                 </div>
               ))}
             </div>
-            <Button variant="ghost" className="w-full mt-4 text-zinc-400">
+            <Button variant="ghost" className="w-full mt-4 text-muted-foreground">
               View All Activity
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>

@@ -253,7 +253,7 @@ export default function PlatformIntegrationsPage() {
         );
       case 'INACTIVE':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-500/10 text-zinc-400 text-xs rounded-full">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">
             <Clock className="w-3 h-3" />
             Inactive
           </span>
@@ -266,7 +266,7 @@ export default function PlatformIntegrationsPage() {
           </span>
         );
       default:
-        return <span className="text-xs text-zinc-500">{status}</span>;
+        return <span className="text-xs text-muted-foreground">{status}</span>;
     }
   };
 
@@ -283,8 +283,8 @@ export default function PlatformIntegrationsPage() {
     }
 
     return (
-      <div className={cn('w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br', config?.gradient || 'from-zinc-600 to-zinc-700')}>
-        <span className="text-white text-xs font-bold">{initials}</span>
+      <div className={cn('w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br', config?.gradient || 'from-muted to-muted')}>
+        <span className="text-foreground text-xs font-bold">{initials}</span>
       </div>
     );
   };
@@ -294,7 +294,7 @@ export default function PlatformIntegrationsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-zinc-400">You do not have access to this page</p>
+          <p className="text-muted-foreground">You do not have access to this page</p>
         </div>
       </div>
     );
@@ -305,22 +305,22 @@ export default function PlatformIntegrationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Platform Integrations</h1>
-          <p className="text-zinc-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Platform Integrations</h1>
+          <p className="text-muted-foreground mt-1">
             Manage platform-level integrations that can be shared with clients
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => loadData()}
-            className="flex items-center gap-2 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Integration
@@ -329,16 +329,16 @@ export default function PlatformIntegrationsPage() {
       </div>
 
       {/* Search, Filter, and View Toggle Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-card/50 border border-border rounded-xl p-4">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search integrations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+            className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
@@ -346,7 +346,7 @@ export default function PlatformIntegrationsPage() {
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="h-9 px-3 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="all">All Categories</option>
           {availableCategories.map((category) => (
@@ -360,7 +360,7 @@ export default function PlatformIntegrationsPage() {
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="h-9 px-3 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {statusOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -373,7 +373,7 @@ export default function PlatformIntegrationsPage() {
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors text-sm"
+            className="flex items-center gap-1 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors text-sm"
           >
             <X className="w-4 h-4" />
             Clear
@@ -381,12 +381,12 @@ export default function PlatformIntegrationsPage() {
         )}
 
         {/* View Toggle */}
-        <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="flex items-center border border-border rounded-lg overflow-hidden">
           <button
             onClick={() => setViewMode('card')}
             className={cn(
               'p-2 transition-colors',
-              viewMode === 'card' ? 'bg-cyan-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              viewMode === 'card' ? 'bg-primary text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             )}
             title="Card view"
           >
@@ -396,7 +396,7 @@ export default function PlatformIntegrationsPage() {
             onClick={() => setViewMode('table')}
             className={cn(
               'p-2 transition-colors',
-              viewMode === 'table' ? 'bg-cyan-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              viewMode === 'table' ? 'bg-primary text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             )}
             title="Table view"
           >
@@ -407,7 +407,7 @@ export default function PlatformIntegrationsPage() {
 
       {/* Results count */}
       {!isLoading && (
-        <div className="text-sm text-zinc-500">
+        <div className="text-sm text-muted-foreground">
           Showing {filteredIntegrations.length} of {integrations.length} integrations
           {hasActiveFilters && ' (filtered)'}
         </div>
@@ -423,19 +423,19 @@ export default function PlatformIntegrationsPage() {
       {/* Loading state */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
         </div>
       ) : filteredIntegrations.length === 0 ? (
         /* Empty state */
-        <div className="flex flex-col items-center justify-center h-64 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-          <Plug className="w-12 h-12 text-zinc-600 mb-4" />
+        <div className="flex flex-col items-center justify-center h-64 bg-card/50 border border-border rounded-xl">
+          <Plug className="w-12 h-12 text-muted-foreground mb-4" />
           {integrations.length === 0 ? (
             <>
-              <p className="text-lg font-medium text-zinc-400 mb-2">No integrations configured</p>
-              <p className="text-sm text-zinc-500 mb-4">Add your first integration to get started</p>
+              <p className="text-lg font-medium text-muted-foreground mb-2">No integrations configured</p>
+              <p className="text-sm text-muted-foreground mb-4">Add your first integration to get started</p>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground font-medium rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Integration
@@ -443,11 +443,11 @@ export default function PlatformIntegrationsPage() {
             </>
           ) : (
             <>
-              <p className="text-lg font-medium text-zinc-400 mb-2">No integrations match your filters</p>
-              <p className="text-sm text-zinc-500 mb-4">Try adjusting your search or filters</p>
+              <p className="text-lg font-medium text-muted-foreground mb-2">No integrations match your filters</p>
+              <p className="text-sm text-muted-foreground mb-4">Try adjusting your search or filters</p>
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted text-foreground font-medium rounded-lg transition-colors"
               >
                 <X className="w-4 h-4" />
                 Clear Filters
@@ -464,7 +464,7 @@ export default function PlatformIntegrationsPage() {
 
             return (
               <div key={category}>
-                <h2 className="text-lg font-semibold text-white mb-4">{label}</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-4">{label}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {categoryIntegrations.map((integration) => (
                     <IntegrationCard
@@ -484,44 +484,44 @@ export default function PlatformIntegrationsPage() {
         </div>
       ) : (
         /* Table View */
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+              <tr className="border-b border-border">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Integration
                 </th>
-                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Category
                 </th>
-                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Status
                 </th>
-                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Sharing
                 </th>
-                <th className="text-left text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Last Tested
                 </th>
-                <th className="text-right text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border">
               {filteredIntegrations.map((integration) => (
-                <tr key={integration.id} className="hover:bg-zinc-800/30 transition-colors">
+                <tr key={integration.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {getProviderIcon(integration.provider)}
                       <div>
-                        <p className="text-sm font-medium text-white">{integration.name}</p>
-                        <p className="text-xs text-zinc-500">{integration.provider.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-foreground">{integration.name}</p>
+                        <p className="text-xs text-muted-foreground">{integration.provider.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-zinc-400">
+                    <span className="text-sm text-muted-foreground">
                       {categoryLabels[integration.category] || integration.category}
                     </span>
                   </td>
@@ -535,11 +535,11 @@ export default function PlatformIntegrationsPage() {
                         Enabled
                       </span>
                     ) : (
-                      <span className="text-sm text-zinc-500">Disabled</span>
+                      <span className="text-sm text-muted-foreground">Disabled</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-zinc-500">
+                    <span className="text-sm text-muted-foreground">
                       {integration.lastTestedAt
                         ? new Date(integration.lastTestedAt).toLocaleDateString()
                         : 'Never'}
@@ -549,28 +549,28 @@ export default function PlatformIntegrationsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleTestIntegration(integration.id)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Test connection"
                       >
                         <TestTube className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleEditIntegration(integration)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setSharingModalIntegration(integration)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Configure sharing"
                       >
                         <Share2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteIntegration(integration)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-red-400 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-red-400 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -614,32 +614,32 @@ export default function PlatformIntegrationsPage() {
       {/* Delete Confirmation Modal */}
       {integrationToDelete && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Delete Integration</h3>
-                <p className="text-sm text-zinc-400">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-foreground">Delete Integration</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone</p>
               </div>
             </div>
-            <p className="text-zinc-300 mb-6">
-              Are you sure you want to delete <span className="font-medium text-white">&quot;{integrationToDelete.name}&quot;</span>?
+            <p className="text-foreground mb-6">
+              Are you sure you want to delete <span className="font-medium text-foreground">&quot;{integrationToDelete.name}&quot;</span>?
               This will remove all associated credentials and settings.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setIntegrationToDelete(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isDeleting ? (
                   <>

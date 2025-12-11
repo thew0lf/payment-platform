@@ -1,24 +1,24 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Request, HttpCode, HttpStatus, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { PaymentProcessingService, ProcessPaymentOptions, PaymentResult } from './services/payment-processing.service';
 import { TransactionLoggingService, TransactionLog, TransactionLogQuery } from './services/transaction-logging.service';
-import { TransactionRequest, CardData, BillingAddress, TransactionStatus } from './types/payment.types';
-
-class CardDto implements CardData { number: string; expiryMonth: string; expiryYear: string; cvv: string; cardholderName?: string; }
-class BillingAddressDto implements BillingAddress { firstName: string; lastName: string; company?: string; street1: string; street2?: string; city: string; state: string; postalCode: string; country: string; phone?: string; email?: string; }
-class CreateTransactionDto { amount: number; currency?: string; card?: CardDto; token?: string; orderId?: string; customerId?: string; description?: string; billingAddress?: BillingAddressDto; ipAddress?: string; metadata?: Record<string, string>; providerId?: string; allowFallback?: boolean; }
-class CaptureDto { amount?: number; }
-class RefundDto { amount?: number; reason?: string; }
-class TokenizeCardDto { card: CardDto; providerId?: string; }
-class TransactionQueryDto { status?: TransactionStatus[]; transactionType?: string[]; providerId?: string; dateFrom?: string; dateTo?: string; minAmount?: number; maxAmount?: number; limit?: number; offset?: number; }
+import { TransactionRequest, CardData, BillingAddress } from './types/payment.types';
+import {
+  CreateTransactionDto,
+  CaptureDto,
+  RefundDto,
+  TokenizeCardDto,
+  TransactionQueryDto,
+} from './dto/payment.dto';
 
 @ApiTags('Payments')
 @ApiBearerAuth()
 @Controller('payments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ThrottlerGuard)
 export class PaymentsController {
   constructor(
     private readonly paymentService: PaymentProcessingService,
@@ -58,49 +58,70 @@ export class PaymentsController {
     return transaction;
   }
 
-  @Post('charge') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Process a sale (authorize + capture)' })
+  @Post('charge')
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 transactions per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Process a sale (authorize + capture)' })
   async charge(@Request() req, @Body() dto: CreateTransactionDto): Promise<PaymentResult> {
     const companyId = this.getCompanyId(req);
     const request = this.buildTransactionRequest(dto, req);
     return this.paymentService.sale(request, { companyId, providerId: dto.providerId, allowFallback: dto.allowFallback ?? false, metadata: dto.metadata });
   }
 
-  @Post('authorize') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Authorize a transaction (capture later)' })
+  @Post('authorize')
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 authorizations per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Authorize a transaction (capture later)' })
   async authorize(@Request() req, @Body() dto: CreateTransactionDto): Promise<PaymentResult> {
     const companyId = this.getCompanyId(req);
     const request = this.buildTransactionRequest(dto, req);
     return this.paymentService.authorize(request, { companyId, providerId: dto.providerId, allowFallback: dto.allowFallback ?? false, metadata: dto.metadata });
   }
 
-  @Post(':transactionId/capture') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Capture authorized transaction' })
+  @Post(':transactionId/capture')
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 captures per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Capture authorized transaction' })
   async capture(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: CaptureDto, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
     await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.capture(transactionId, providerId, dto.amount);
   }
 
-  @Post(':transactionId/void') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Void transaction' })
+  @Post(':transactionId/void')
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 voids per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Void transaction' })
   async void(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
     await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.void(transactionId, providerId);
   }
 
-  @Post(':transactionId/refund') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Refund transaction' })
+  @Post(':transactionId/refund')
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 refunds per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refund transaction' })
   async refund(@Param('transactionId') transactionId: string, @Query('providerId') providerId: string, @Body() dto: RefundDto, @CurrentUser() user: AuthenticatedUser): Promise<PaymentResult> {
     if (!providerId) throw new BadRequestException('providerId required');
     await this.verifyTransactionAccess(user, transactionId);
     return this.paymentService.refund(transactionId, providerId, dto.amount);
   }
 
-  @Post('verify') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Verify card' })
+  @Post('verify')
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 verifications per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify card' })
   async verify(@Request() req, @Body() dto: CreateTransactionDto): Promise<PaymentResult> {
     const companyId = this.getCompanyId(req);
     const request = this.buildTransactionRequest(dto, req);
     return this.paymentService.verify(request, { companyId, providerId: dto.providerId });
   }
 
-  @Post('tokenize') @HttpCode(HttpStatus.OK) @ApiOperation({ summary: 'Tokenize card' })
+  @Post('tokenize')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 tokenizations per minute (stricter - PCI sensitive)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Tokenize card' })
   async tokenize(@Request() req, @Body() dto: TokenizeCardDto): Promise<{ token: string; last4: string; brand: string; providerId: string }> {
     const companyId = this.getCompanyId(req);
     const result = await this.paymentService.tokenize(dto.card, companyId, dto.providerId);

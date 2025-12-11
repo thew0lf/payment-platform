@@ -75,7 +75,7 @@ export default function DashboardPage() {
           }
         />
         <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <div className="flex items-center gap-3 text-zinc-400">
+          <div className="flex items-center gap-3 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span>Loading dashboard...</span>
           </div>

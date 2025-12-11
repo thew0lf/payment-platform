@@ -57,13 +57,13 @@ function UsageBar({ label, used, included, icon, format = formatNumber }: UsageB
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm">
           {icon}
-          <span className="text-zinc-300">{label}</span>
+          <span className="text-foreground">{label}</span>
         </div>
-        <span className={`text-sm ${isOverage ? 'text-orange-400' : 'text-zinc-400'}`}>
+        <span className={`text-sm ${isOverage ? 'text-orange-400' : 'text-muted-foreground'}`}>
           {format(used)} / {isUnlimited ? 'Unlimited' : format(included)}
         </span>
       </div>
-      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
             isOverage ? 'bg-orange-500' : percentage > 80 ? 'bg-yellow-500' : 'bg-blue-500'
@@ -95,16 +95,16 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
 
   return (
     <div
-      className={`bg-zinc-900 border rounded-xl p-6 transition-all ${
+      className={`bg-card border rounded-xl p-6 transition-all ${
         isCurrentPlan
           ? 'border-blue-500 ring-1 ring-blue-500/20'
-          : 'border-zinc-800 hover:border-zinc-700'
+          : 'border-border hover:border-border'
       }`}
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">{plan.displayName}</h3>
-          <p className="text-sm text-zinc-400">{plan.description}</p>
+          <h3 className="text-lg font-semibold text-foreground">{plan.displayName}</h3>
+          <p className="text-sm text-muted-foreground">{plan.description}</p>
         </div>
         {isCurrentPlan && (
           <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
@@ -115,13 +115,13 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
 
       <div className="mb-6">
         {isEnterprise ? (
-          <div className="text-2xl font-bold text-white">Custom</div>
+          <div className="text-2xl font-bold text-foreground">Custom</div>
         ) : (
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-white">
+            <span className="text-2xl font-bold text-foreground">
               {formatCurrency(plan.baseCost, plan.currency)}
             </span>
-            <span className="text-zinc-400">/mo</span>
+            <span className="text-muted-foreground">/mo</span>
           </div>
         )}
       </div>
@@ -129,21 +129,21 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
       <div className="space-y-3 mb-6 text-sm">
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-green-500" />
-          <span className="text-zinc-300">
+          <span className="text-foreground">
             {formatNumber(plan.included.transactions)} transactions
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-green-500" />
-          <span className="text-zinc-300">{formatNumber(plan.included.companies)} companies</span>
+          <span className="text-foreground">{formatNumber(plan.included.companies)} companies</span>
         </div>
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-green-500" />
-          <span className="text-zinc-300">{formatNumber(plan.included.users)} users</span>
+          <span className="text-foreground">{formatNumber(plan.included.users)} users</span>
         </div>
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-green-500" />
-          <span className="text-zinc-300">
+          <span className="text-foreground">
             {formatNumber(plan.included.merchantAccounts)} merchant accounts
           </span>
         </div>
@@ -152,7 +152,7 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
       {!isCurrentPlan && onSelect && (
         <button
           onClick={onSelect}
-          className="w-full py-2 px-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="w-full py-2 px-4 bg-muted hover:bg-muted text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           {isEnterprise ? 'Contact Sales' : 'Upgrade'}
         </button>
@@ -232,7 +232,7 @@ export default function BillingPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -251,14 +251,14 @@ export default function BillingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Billing & Subscription</h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h1 className="text-2xl font-semibold text-foreground">Billing & Subscription</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage your subscription plan and view usage
           </p>
         </div>
         <Link
           href="/settings/billing/plans"
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           <Package className="h-4 w-4" />
           Manage Plans
@@ -269,59 +269,59 @@ export default function BillingPage() {
       {subscription && currentPlan ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Plan Info Card */}
-          <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-xl font-semibold text-white">{currentPlan.displayName} Plan</h2>
+                  <h2 className="text-xl font-semibold text-foreground">{currentPlan.displayName} Plan</h2>
                   <span
                     className={`text-xs px-2 py-1 rounded-full border ${getSubscriptionStatusColor(subscription.status)}`}
                   >
                     {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400">{currentPlan.description}</p>
+                <p className="text-sm text-muted-foreground">{currentPlan.description}</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-white">
+                <div className="text-2xl font-bold text-foreground">
                   {formatCurrency(currentPlan.baseCost, currentPlan.currency)}
                 </div>
-                <div className="text-sm text-zinc-400">per month</div>
+                <div className="text-sm text-muted-foreground">per month</div>
               </div>
             </div>
 
             {/* Billing Cycle */}
-            <div className="flex items-center gap-6 py-4 border-t border-zinc-800 text-sm">
+            <div className="flex items-center gap-6 py-4 border-t border-border text-sm">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-zinc-500" />
-                <span className="text-zinc-400">Current period:</span>
-                <span className="text-white">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Current period:</span>
+                <span className="text-foreground">
                   {new Date(subscription.currentPeriodStart).toLocaleDateString()} -{' '}
                   {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                 </span>
               </div>
               {usage && (
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-zinc-500" />
-                  <span className="text-zinc-400">{usage.period.daysRemaining} days remaining</span>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">{usage.period.daysRemaining} days remaining</span>
                 </div>
               )}
             </div>
 
             {/* Features */}
-            <div className="pt-4 border-t border-zinc-800">
-              <h3 className="text-sm font-medium text-zinc-300 mb-3">Included Features</h3>
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-medium text-foreground mb-3">Included Features</h3>
               <div className="flex flex-wrap gap-2">
                 {currentPlan.features.slice(0, 8).map((feature) => (
                   <span
                     key={feature}
-                    className="text-xs px-2 py-1 bg-zinc-800 text-zinc-300 rounded-full"
+                    className="text-xs px-2 py-1 bg-muted text-foreground rounded-full"
                   >
                     {getFeatureLabel(feature)}
                   </span>
                 ))}
                 {currentPlan.features.length > 8 && (
-                  <span className="text-xs px-2 py-1 bg-zinc-800 text-zinc-400 rounded-full">
+                  <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
                     +{currentPlan.features.length - 8} more
                   </span>
                 )}
@@ -330,32 +330,32 @@ export default function BillingPage() {
           </div>
 
           {/* Estimated Cost Card */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-            <h3 className="text-sm font-medium text-zinc-400 mb-4">Estimated This Period</h3>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">Estimated This Period</h3>
             {usage ? (
               <>
-                <div className="text-3xl font-bold text-white mb-4">
+                <div className="text-3xl font-bold text-foreground mb-4">
                   {formatCurrency(usage.estimatedCost.total, 'USD')}
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">Base subscription</span>
-                    <span className="text-white">
+                    <span className="text-muted-foreground">Base subscription</span>
+                    <span className="text-foreground">
                       {formatCurrency(usage.estimatedCost.base, 'USD')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">Overages</span>
+                    <span className="text-muted-foreground">Overages</span>
                     <span
                       className={
-                        usage.estimatedCost.overages > 0 ? 'text-orange-400' : 'text-white'
+                        usage.estimatedCost.overages > 0 ? 'text-orange-400' : 'text-foreground'
                       }
                     >
                       {formatCurrency(usage.estimatedCost.overages, 'USD')}
                     </span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-zinc-800">
+                <div className="mt-4 pt-4 border-t border-border">
                   <Link
                     href="/settings/billing/usage"
                     className="flex items-center justify-between text-sm text-blue-400 hover:text-blue-300"
@@ -366,24 +366,24 @@ export default function BillingPage() {
                 </div>
               </>
             ) : (
-              <div className="text-zinc-500">Usage data unavailable</div>
+              <div className="text-muted-foreground">Usage data unavailable</div>
             )}
           </div>
         </div>
       ) : (
         /* No Subscription */
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-          <CreditCard className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">No Active Subscription</h2>
-          <p className="text-zinc-400 mb-6">Choose a plan to get started with the platform.</p>
+        <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">No Active Subscription</h2>
+          <p className="text-muted-foreground mb-6">Choose a plan to get started with the platform.</p>
         </div>
       )}
 
       {/* Usage Overview */}
       {usage && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Current Usage</h2>
+            <h2 className="text-lg font-semibold text-foreground">Current Usage</h2>
             <Link
               href="/settings/billing/usage"
               className="text-sm text-blue-400 hover:text-blue-300"
@@ -396,38 +396,38 @@ export default function BillingPage() {
               label="Transactions"
               used={usage.usage.transactions.used}
               included={usage.usage.transactions.included}
-              icon={<CreditCard className="h-4 w-4 text-zinc-500" />}
+              icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
             />
             <UsageBar
               label="Volume"
               used={usage.usage.volume.used}
               included={usage.usage.volume.included}
-              icon={<TrendingUp className="h-4 w-4 text-zinc-500" />}
+              icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
               format={(val) => formatCurrency(val, 'USD')}
             />
             <UsageBar
               label="Companies"
               used={usage.usage.companies.used}
               included={usage.usage.companies.included}
-              icon={<Building2 className="h-4 w-4 text-zinc-500" />}
+              icon={<Building2 className="h-4 w-4 text-muted-foreground" />}
             />
             <UsageBar
               label="Team Members"
               used={usage.usage.teamMembers.used}
               included={usage.usage.teamMembers.included}
-              icon={<Users className="h-4 w-4 text-zinc-500" />}
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
             />
             <UsageBar
               label="Merchant Accounts"
               used={usage.usage.merchantAccounts.used}
               included={usage.usage.merchantAccounts.included}
-              icon={<Server className="h-4 w-4 text-zinc-500" />}
+              icon={<Server className="h-4 w-4 text-muted-foreground" />}
             />
             <UsageBar
               label="API Calls"
               used={usage.usage.apiCalls.used}
               included={usage.usage.apiCalls.included}
-              icon={<Zap className="h-4 w-4 text-zinc-500" />}
+              icon={<Zap className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function BillingPage() {
       {/* Available Plans */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Available Plans</h2>
+          <h2 className="text-lg font-semibold text-foreground">Available Plans</h2>
           <Link
             href="/settings/billing/plans"
             className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
@@ -462,9 +462,9 @@ export default function BillingPage() {
 
       {/* Recent Invoices */}
       {invoices.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Recent Invoices</h2>
+            <h2 className="text-lg font-semibold text-foreground">Recent Invoices</h2>
             <Link
               href="/settings/billing/invoices"
               className="text-sm text-blue-400 hover:text-blue-300"
@@ -472,17 +472,17 @@ export default function BillingPage() {
               View All
             </Link>
           </div>
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-border">
             {invoices.map((invoice) => (
               <div
                 key={invoice.id}
                 className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
               >
                 <div className="flex items-center gap-4">
-                  <Receipt className="h-5 w-5 text-zinc-500" />
+                  <Receipt className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <div className="text-sm text-white">{invoice.invoiceNumber}</div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-sm text-foreground">{invoice.invoiceNumber}</div>
+                    <div className="text-xs text-muted-foreground">
                       {new Date(invoice.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -493,7 +493,7 @@ export default function BillingPage() {
                   >
                     {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                   </span>
-                  <span className="text-sm text-white font-medium">
+                  <span className="text-sm text-foreground font-medium">
                     {formatCurrency(invoice.total, invoice.currency)}
                   </span>
                   {invoice.pdfUrl && (
@@ -501,7 +501,7 @@ export default function BillingPage() {
                       href={invoice.pdfUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-zinc-400 hover:text-white"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>

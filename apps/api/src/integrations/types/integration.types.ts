@@ -128,10 +128,20 @@ export interface CredentialSchemaProperty {
   default?: string | number | boolean;
 }
 
+export interface TestCard {
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  brand: string;
+  description: string;
+}
+
 export interface CredentialSchema {
   type: 'object';
   required: string[];
   properties: Record<string, CredentialSchemaProperty>;
+  testCards?: TestCard[];  // Sandbox test cards for payment providers
 }
 
 // ═══════════════════════════════════════════════════════════════

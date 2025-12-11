@@ -94,6 +94,13 @@ export const PAYPAL_CLASSIC_CREDENTIAL_SCHEMA: CredentialSchema = {
     apiPassword: { type: 'string', title: 'API Password', format: 'password', description: 'Your PayPal API Password. Generated along with your API credentials. Keep this confidential.' },
     apiSignature: { type: 'string', title: 'API Signature', format: 'password', description: 'Your PayPal API Signature. A long string used to authenticate API requests. Found in the same location as username.' },
   },
+  // Test cards for sandbox environment
+  testCards: [
+    { number: '4032036234479689', expiryMonth: '04', expiryYear: '2030', cvv: '288', brand: 'Visa', description: 'PayPal Sandbox Visa - Approved' },
+    { number: '5425233430109903', expiryMonth: '04', expiryYear: '2030', cvv: '123', brand: 'MasterCard', description: 'PayPal Sandbox MasterCard - Approved' },
+    { number: '378282246310005', expiryMonth: '04', expiryYear: '2030', cvv: '1234', brand: 'Amex', description: 'PayPal Sandbox Amex - Approved' },
+    { number: '6011111111111117', expiryMonth: '04', expiryYear: '2030', cvv: '123', brand: 'Discover', description: 'PayPal Sandbox Discover - Approved' },
+  ],
 };
 
 // AWS Bedrock Credential Schema

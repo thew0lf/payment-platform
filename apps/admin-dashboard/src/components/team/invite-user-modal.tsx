@@ -134,7 +134,7 @@ export function InviteUserModal({
                     <SelectItem key={role.value} value={role.value}>
                       <div className="flex flex-col">
                         <span>{role.label}</span>
-                        <span className="text-xs text-zinc-500">{role.description}</span>
+                        <span className="text-xs text-muted-foreground">{role.description}</span>
                       </div>
                     </SelectItem>
                   ))}

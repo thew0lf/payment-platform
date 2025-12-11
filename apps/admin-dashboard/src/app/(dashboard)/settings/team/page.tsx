@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import {
   Search,
   UserPlus,
@@ -97,6 +99,9 @@ export default function TeamPage() {
   // Filters
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+
+  // Confirmation modal state
+  const [roleToRemove, setRoleToRemove] = useState<{ user: User; roleId: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
 
   // Modals
@@ -159,10 +164,11 @@ export default function TeamPage() {
   const handleStatusChange = async (user: User, status: UserStatus) => {
     try {
       await usersApi.updateStatus(user.id, status);
+      toast.success(`Status updated to ${formatStatus(status)}`);
       fetchUsers();
     } catch (err: any) {
       console.error('Failed to update status:', err);
-      alert(`Failed to update status: ${err.message}`);
+      toast.error('Failed to update status. Please try again.');
     }
   };
 
@@ -171,14 +177,21 @@ export default function TeamPage() {
     setShowRoleModal(true);
   };
 
-  const handleRemoveRole = async (user: User, roleId: string) => {
-    if (!confirm('Remove this role assignment?')) return;
+  const handleRemoveRole = (user: User, roleId: string) => {
+    setRoleToRemove({ user, roleId });
+  };
+
+  const confirmRemoveRole = async () => {
+    if (!roleToRemove) return;
     try {
-      await usersApi.removeRole(user.id, roleId);
+      await usersApi.removeRole(roleToRemove.user.id, roleToRemove.roleId);
+      toast.success('Role removed successfully');
       fetchUsers();
     } catch (err: any) {
       console.error('Failed to remove role:', err);
-      alert(`Failed to remove role: ${err.message}`);
+      toast.error('Failed to remove role. Please try again.');
+    } finally {
+      setRoleToRemove(null);
     }
   };
 
@@ -189,9 +202,9 @@ export default function TeamPage() {
         <div className="p-6">
           <Card>
             <CardContent className="p-8 text-center">
-              <Lock className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Access Denied</h3>
-              <p className="text-sm text-zinc-400">
+              <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Access Denied</h3>
+              <p className="text-sm text-muted-foreground">
                 You don&apos;t have permission to view team members.
               </p>
             </CardContent>
@@ -220,54 +233,54 @@ export default function TeamPage() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card className="bg-zinc-900/50 border-zinc-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/10 rounded-lg">
                     <Users className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-white">{stats.total}</p>
-                    <p className="text-xs text-zinc-500">Total members</p>
+                    <p className="text-2xl font-semibold text-foreground">{stats.total}</p>
+                    <p className="text-xs text-muted-foreground">Total members</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900/50 border-zinc-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-500/10 rounded-lg">
                     <Users className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-white">{stats.active}</p>
-                    <p className="text-xs text-zinc-500">Active</p>
+                    <p className="text-2xl font-semibold text-foreground">{stats.active}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900/50 border-zinc-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-amber-500/10 rounded-lg">
                     <Clock className="w-5 h-5 text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-white">{stats.pending}</p>
-                    <p className="text-xs text-zinc-500">Pending</p>
+                    <p className="text-2xl font-semibold text-foreground">{stats.pending}</p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900/50 border-zinc-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-zinc-500/10 rounded-lg">
-                    <Users className="w-5 h-5 text-zinc-400" />
+                  <div className="p-2 bg-muted rounded-lg">
+                    <Users className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-white">{stats.inactive}</p>
-                    <p className="text-xs text-zinc-500">Inactive</p>
+                    <p className="text-2xl font-semibold text-foreground">{stats.inactive}</p>
+                    <p className="text-xs text-muted-foreground">Inactive</p>
                   </div>
                 </div>
               </CardContent>
@@ -279,7 +292,7 @@ export default function TeamPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-1 gap-3 flex-col sm:flex-row w-full sm:w-auto">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
                 value={search}
@@ -328,31 +341,31 @@ export default function TeamPage() {
           view === 'cards' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-48 bg-zinc-800/50 rounded-lg animate-pulse" />
+                <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="h-64 bg-zinc-800/50 rounded-lg animate-pulse" />
+            <div className="h-64 bg-muted/50 rounded-lg animate-pulse" />
           )
         ) : error ? (
           <Card>
             <CardContent className="p-8 text-center">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Failed to load team members</h3>
-              <p className="text-sm text-zinc-400 mb-4">{error}</p>
+              <h3 className="text-lg font-medium text-foreground mb-2">Failed to load team members</h3>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
               <Button onClick={fetchUsers}>Try Again</Button>
             </CardContent>
           </Card>
         ) : users.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <Users className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {search || roleFilter !== 'all' || statusFilter !== 'all'
                   ? 'No members found'
                   : 'No team members yet'}
               </h3>
-              <p className="text-sm text-zinc-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 {search || roleFilter !== 'all' || statusFilter !== 'all'
                   ? 'Try different filters or search terms'
                   : 'Invite your first team member to get started.'}
@@ -379,32 +392,32 @@ export default function TeamPage() {
             ))}
           </div>
         ) : (
-          <Card className="bg-zinc-900/50 border-zinc-800 overflow-hidden">
+          <Card className="bg-card/50 border-border overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent border-zinc-800">
-                  <TableHead className="text-zinc-400">Member</TableHead>
-                  <TableHead className="text-zinc-400">Role</TableHead>
-                  <TableHead className="text-zinc-400">Status</TableHead>
-                  <TableHead className="text-zinc-400 hidden md:table-cell">Company</TableHead>
-                  <TableHead className="text-zinc-400 hidden lg:table-cell">Last Login</TableHead>
-                  {canManageUsers && <TableHead className="text-zinc-400 w-10"></TableHead>}
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="text-muted-foreground">Member</TableHead>
+                  <TableHead className="text-muted-foreground">Role</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground hidden md:table-cell">Company</TableHead>
+                  <TableHead className="text-muted-foreground hidden lg:table-cell">Last Login</TableHead>
+                  {canManageUsers && <TableHead className="text-muted-foreground w-10"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((u) => (
-                  <TableRow key={u.id} className="border-zinc-800 hover:bg-zinc-800/50">
+                  <TableRow key={u.id} className="border-border hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           {u.avatar && <AvatarImage src={u.avatar} alt={getUserFullName(u)} />}
-                          <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
+                          <AvatarFallback className="bg-muted text-foreground text-xs">
                             {getUserInitials(u)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-white">{getUserFullName(u)}</p>
-                          <p className="text-xs text-zinc-500">{u.email}</p>
+                          <p className="font-medium text-foreground">{getUserFullName(u)}</p>
+                          <p className="text-xs text-muted-foreground">{u.email}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -414,10 +427,10 @@ export default function TeamPage() {
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(u.status)}>{formatStatus(u.status)}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-zinc-400">
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
                       {u.companyName || '-'}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-zinc-400">
+                    <TableCell className="hidden lg:table-cell text-muted-foreground">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
                     </TableCell>
                     {canManageUsers && (
@@ -465,7 +478,7 @@ export default function TeamPage() {
 
         {/* Results count */}
         {users.length > 0 && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             Showing {users.length} of {total} team members
           </p>
         )}
@@ -488,6 +501,27 @@ export default function TeamPage() {
         scopeId={scopeId}
         onSuccess={fetchUsers}
       />
+
+      {/* Remove Role Confirmation Modal */}
+      {roleToRemove && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Remove Role?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to remove this role assignment from {getUserFullName(roleToRemove.user)}? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setRoleToRemove(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmRemoveRole}>
+                Remove Role
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

@@ -49,14 +49,14 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
 
   return (
     <div
-      className={`bg-zinc-900 border rounded-xl overflow-hidden transition-all ${
+      className={`bg-card border rounded-xl overflow-hidden transition-all ${
         isHidden
-          ? 'border-zinc-700 opacity-60'
+          ? 'border-border opacity-60'
           : isDeprecated
             ? 'border-orange-500/30'
             : plan.isDefault
               ? 'border-blue-500'
-              : 'border-zinc-800'
+              : 'border-border'
       }`}
     >
       {/* Header */}
@@ -64,14 +64,14 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-semibold text-white">{plan.displayName}</h3>
+              <h3 className="text-xl font-semibold text-foreground">{plan.displayName}</h3>
               {plan.isDefault && (
                 <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full">
                   Default
                 </span>
               )}
               {isHidden && (
-                <span className="text-xs px-2 py-0.5 bg-zinc-700 text-zinc-400 rounded-full">
+                <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
                   Hidden
                 </span>
               )}
@@ -81,25 +81,25 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
                 </span>
               )}
             </div>
-            <p className="text-sm text-zinc-400 mt-1">{plan.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => onToggleStatus(plan)}
-              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
               title={isHidden ? 'Show plan' : 'Hide plan'}
             >
               {isHidden ? (
-                <Eye className="h-4 w-4 text-zinc-400" />
+                <Eye className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <EyeOff className="h-4 w-4 text-zinc-400" />
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
               )}
             </button>
             <button
               onClick={() => onEdit(plan)}
-              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
             >
-              <Edit2 className="h-4 w-4 text-zinc-400" />
+              <Edit2 className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -107,13 +107,13 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
         {/* Price */}
         <div className="mb-4">
           {isEnterprise ? (
-            <div className="text-3xl font-bold text-white">Custom</div>
+            <div className="text-3xl font-bold text-foreground">Custom</div>
           ) : (
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white">
+              <span className="text-3xl font-bold text-foreground">
                 {formatCurrency(plan.baseCost, plan.currency)}
               </span>
-              <span className="text-zinc-400">/mo</span>
+              <span className="text-muted-foreground">/mo</span>
             </div>
           )}
         </div>
@@ -121,24 +121,24 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2 text-sm">
-            <CreditCard className="h-4 w-4 text-zinc-500" />
-            <span className="text-zinc-400">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
               {formatNumber(plan.included.transactions)} txns
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <Building2 className="h-4 w-4 text-zinc-500" />
-            <span className="text-zinc-400">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
               {formatNumber(plan.included.companies)} companies
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <Users className="h-4 w-4 text-zinc-500" />
-            <span className="text-zinc-400">{formatNumber(plan.included.users)} users</span>
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">{formatNumber(plan.included.users)} users</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <Server className="h-4 w-4 text-zinc-500" />
-            <span className="text-zinc-400">
+            <Server className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
               {formatNumber(plan.included.merchantAccounts)} merchants
             </span>
           </div>
@@ -148,7 +148,7 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
       {/* Expand Toggle */}
       <button
         onClick={onToggleExpand}
-        className="w-full px-6 py-3 flex items-center justify-center gap-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border-t border-zinc-800"
+        className="w-full px-6 py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border"
       >
         {expanded ? (
           <>
@@ -165,34 +165,34 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="px-6 pb-6 border-t border-zinc-800 space-y-6">
+        <div className="px-6 pb-6 border-t border-border space-y-6">
           {/* Included Allowances */}
           <div className="pt-4">
-            <h4 className="text-sm font-medium text-zinc-300 mb-3">Included Allowances</h4>
+            <h4 className="text-sm font-medium text-foreground mb-3">Included Allowances</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                <span className="text-zinc-400">Transactions</span>
-                <span className="text-white">{formatNumber(plan.included.transactions)}</span>
+              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                <span className="text-muted-foreground">Transactions</span>
+                <span className="text-foreground">{formatNumber(plan.included.transactions)}</span>
               </div>
-              <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                <span className="text-zinc-400">Volume</span>
-                <span className="text-white">
+              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                <span className="text-muted-foreground">Volume</span>
+                <span className="text-foreground">
                   {plan.included.volume === 0
                     ? 'Unlimited'
                     : formatCurrency(plan.included.volume, plan.currency)}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                <span className="text-zinc-400">API Calls</span>
-                <span className="text-white">{formatNumber(plan.included.apiCalls)}</span>
+              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                <span className="text-muted-foreground">API Calls</span>
+                <span className="text-foreground">{formatNumber(plan.included.apiCalls)}</span>
               </div>
-              <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                <span className="text-zinc-400">Webhooks</span>
-                <span className="text-white">{formatNumber(plan.included.webhooks)}</span>
+              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                <span className="text-muted-foreground">Webhooks</span>
+                <span className="text-foreground">{formatNumber(plan.included.webhooks)}</span>
               </div>
-              <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                <span className="text-zinc-400">Vault Entries</span>
-                <span className="text-white">{formatNumber(plan.included.vaultEntries)}</span>
+              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                <span className="text-muted-foreground">Vault Entries</span>
+                <span className="text-foreground">{formatNumber(plan.included.vaultEntries)}</span>
               </div>
             </div>
           </div>
@@ -200,27 +200,27 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
           {/* Overage Pricing */}
           {!isEnterprise && (
             <div>
-              <h4 className="text-sm font-medium text-zinc-300 mb-3">Overage Pricing</h4>
+              <h4 className="text-sm font-medium text-foreground mb-3">Overage Pricing</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                  <span className="text-zinc-400">Per Transaction</span>
-                  <span className="text-white">
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Per Transaction</span>
+                  <span className="text-foreground">
                     {formatCurrency(plan.overage.transactionPrice, plan.currency)}
                   </span>
                 </div>
-                <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                  <span className="text-zinc-400">Volume Fee</span>
-                  <span className="text-white">{(plan.overage.volumePercent * 100).toFixed(2)}%</span>
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Volume Fee</span>
+                  <span className="text-foreground">{(plan.overage.volumePercent * 100).toFixed(2)}%</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                  <span className="text-zinc-400">Per User</span>
-                  <span className="text-white">
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Per User</span>
+                  <span className="text-foreground">
                     {formatCurrency(plan.overage.userPrice, plan.currency)}
                   </span>
                 </div>
-                <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                  <span className="text-zinc-400">Per Company</span>
-                  <span className="text-white">
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Per Company</span>
+                  <span className="text-foreground">
                     {formatCurrency(plan.overage.companyPrice, plan.currency)}
                   </span>
                 </div>
@@ -230,7 +230,7 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
 
           {/* Features */}
           <div>
-            <h4 className="text-sm font-medium text-zinc-300 mb-3">Features</h4>
+            <h4 className="text-sm font-medium text-foreground mb-3">Features</h4>
             <div className="flex flex-wrap gap-2">
               {plan.features.map((feature) => (
                 <span
@@ -246,24 +246,24 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
           {/* Limits */}
           {plan.limits && (
             <div>
-              <h4 className="text-sm font-medium text-zinc-300 mb-3">Limits</h4>
+              <h4 className="text-sm font-medium text-foreground mb-3">Limits</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {plan.limits.maxCompanies && (
-                  <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                    <span className="text-zinc-400">Max Companies</span>
-                    <span className="text-white">{plan.limits.maxCompanies}</span>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Max Companies</span>
+                    <span className="text-foreground">{plan.limits.maxCompanies}</span>
                   </div>
                 )}
                 {plan.limits.maxUsers && (
-                  <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                    <span className="text-zinc-400">Max Users</span>
-                    <span className="text-white">{plan.limits.maxUsers}</span>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Max Users</span>
+                    <span className="text-foreground">{plan.limits.maxUsers}</span>
                   </div>
                 )}
                 {plan.limits.maxMerchantAccounts && (
-                  <div className="flex justify-between py-1.5 px-2 bg-zinc-800/50 rounded">
-                    <span className="text-zinc-400">Max Merchants</span>
-                    <span className="text-white">{plan.limits.maxMerchantAccounts}</span>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Max Merchants</span>
+                    <span className="text-foreground">{plan.limits.maxMerchantAccounts}</span>
                   </div>
                 )}
               </div>
@@ -369,27 +369,27 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <h2 className="text-xl font-semibold text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">
             {isEditing ? 'Edit Plan' : 'Create New Plan'}
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-800 transition-colors">
-            <X className="h-5 w-5 text-zinc-400" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-zinc-800">
+        <div className="flex border-b border-border">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'text-foreground border-b-2 border-blue-500'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {tab.label}
@@ -403,24 +403,24 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Internal Name</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Internal Name</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="e.g., starter"
                     required
                     disabled={isEditing}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Display Name</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Display Name</label>
                   <input
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="e.g., Starter"
                     required
                   />
@@ -428,11 +428,11 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
               </div>
 
               <div>
-                <label className="block text-sm text-zinc-400 mb-1.5">Description</label>
+                <label className="block text-sm text-muted-foreground mb-1.5">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                   rows={2}
                   placeholder="Brief description of this plan..."
                 />
@@ -440,29 +440,29 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Base Price (in cents)</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Base Price (in cents)</label>
                   <input
                     type="number"
                     value={formData.baseCost}
                     onChange={(e) =>
                       setFormData({ ...formData, baseCost: parseInt(e.target.value) || 0 })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {formatCurrency(formData.baseCost, formData.currency || 'USD')}/month
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Sort Order</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Sort Order</label>
                   <input
                     type="number"
                     value={formData.sortOrder}
                     onChange={(e) =>
                       setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
@@ -474,9 +474,9 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                     type="checkbox"
                     checked={formData.isDefault}
                     onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                    className="rounded border-zinc-600 bg-zinc-800 text-blue-500"
+                    className="rounded border-border bg-muted text-blue-500"
                   />
-                  <span className="text-sm text-zinc-300">Default Plan</span>
+                  <span className="text-sm text-foreground">Default Plan</span>
                 </label>
               </div>
             </div>
@@ -484,13 +484,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
           {activeTab === 'included' && (
             <div className="space-y-4">
-              <p className="text-sm text-zinc-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Set the included allowances for this plan. Use 0 for unlimited.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Transactions</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Transactions</label>
                   <input
                     type="number"
                     value={formData.included.transactions}
@@ -503,12 +503,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Volume (in cents)</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Volume (in cents)</label>
                   <input
                     type="number"
                     value={formData.included.volume}
@@ -518,12 +518,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         included: { ...formData.included, volume: parseInt(e.target.value) || 0 },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Companies</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Companies</label>
                   <input
                     type="number"
                     value={formData.included.companies}
@@ -536,12 +536,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Users</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Users</label>
                   <input
                     type="number"
                     value={formData.included.users}
@@ -551,12 +551,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         included: { ...formData.included, users: parseInt(e.target.value) || 0 },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Merchant Accounts</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Merchant Accounts</label>
                   <input
                     type="number"
                     value={formData.included.merchantAccounts}
@@ -569,12 +569,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">API Calls</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">API Calls</label>
                   <input
                     type="number"
                     value={formData.included.apiCalls}
@@ -587,12 +587,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Vault Entries</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Vault Entries</label>
                   <input
                     type="number"
                     value={formData.included.vaultEntries}
@@ -605,12 +605,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Webhooks</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Webhooks</label>
                   <input
                     type="number"
                     value={formData.included.webhooks}
@@ -623,7 +623,7 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
@@ -633,13 +633,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
           {activeTab === 'overage' && (
             <div className="space-y-4">
-              <p className="text-sm text-zinc-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Set the overage pricing when usage exceeds included amounts.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">
+                  <label className="block text-sm text-muted-foreground mb-1.5">
                     Per Transaction (cents)
                   </label>
                   <input
@@ -654,12 +654,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">
+                  <label className="block text-sm text-muted-foreground mb-1.5">
                     Volume Fee (decimal, e.g., 0.0025 = 0.25%)
                   </label>
                   <input
@@ -675,12 +675,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Per User (cents)</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Per User (cents)</label>
                   <input
                     type="number"
                     value={formData.overage.userPrice}
@@ -693,12 +693,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">Per Company (cents)</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Per Company (cents)</label>
                   <input
                     type="number"
                     value={formData.overage.companyPrice}
@@ -711,12 +711,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">
+                  <label className="block text-sm text-muted-foreground mb-1.5">
                     Per Merchant Account (cents)
                   </label>
                   <input
@@ -731,12 +731,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">
+                  <label className="block text-sm text-muted-foreground mb-1.5">
                     Per 1K API Calls (cents)
                   </label>
                   <input
@@ -751,12 +751,12 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">
+                  <label className="block text-sm text-muted-foreground mb-1.5">
                     Per Vault Entry (cents)
                   </label>
                   <input
@@ -771,7 +771,7 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
@@ -781,7 +781,7 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
           {activeTab === 'features' && (
             <div className="space-y-4">
-              <p className="text-sm text-zinc-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Select the features included in this plan.
               </p>
 
@@ -794,13 +794,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
                       formData.features.includes(feature)
                         ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                        : 'bg-muted border-border text-muted-foreground hover:border-border'
                     }`}
                   >
                     {formData.features.includes(feature) ? (
                       <Check className="h-4 w-4 flex-shrink-0" />
                     ) : (
-                      <div className="w-4 h-4 border border-zinc-600 rounded flex-shrink-0" />
+                      <div className="w-4 h-4 border border-border rounded flex-shrink-0" />
                     )}
                     {getFeatureLabel(feature)}
                   </button>
@@ -811,18 +811,18 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEditing ? 'Save Changes' : 'Create Plan'}
@@ -908,24 +908,24 @@ export default function BillingPlansPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Pricing Plans</h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h1 className="text-2xl font-semibold text-foreground">Pricing Plans</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage subscription plans for your platform
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <input
               type="checkbox"
               checked={showHidden}
               onChange={(e) => setShowHidden(e.target.checked)}
-              className="rounded border-zinc-600 bg-zinc-800 text-blue-500"
+              className="rounded border-border bg-muted text-blue-500"
             />
             Show hidden
           </label>
           <button
             onClick={() => setModalPlan(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Plan
@@ -943,7 +943,7 @@ export default function BillingPlansPage() {
       {/* Loading State */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
         /* Plans Grid */
@@ -964,14 +964,14 @@ export default function BillingPlansPage() {
       {/* Empty State */}
       {!isLoading && plans.length === 0 && (
         <div className="text-center py-20">
-          <Package className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No plans found</h3>
-          <p className="text-sm text-zinc-400 mb-4">
+          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No plans found</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             {showHidden ? 'No pricing plans exist yet.' : 'No active plans. Try showing hidden plans.'}
           </p>
           <button
             onClick={() => setModalPlan(null)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="h-4 w-4" />
             Create First Plan

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService, UserContext } from '../hierarchy/hierarchy.service';
 import {
@@ -299,6 +299,106 @@ export class CustomersService {
       newThisMonth,
       growthRate: Math.round(growthRate * 10) / 10,
     };
+  }
+
+  async createCustomer(
+    user: UserContext,
+    data: { email: string; firstName?: string; lastName?: string; phone?: string; companyId: string; metadata?: Record<string, unknown> },
+  ) {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    // Verify user has access to the company
+    if (!companyIds.includes(data.companyId)) {
+      throw new ForbiddenException('You do not have access to create customers for this company');
+    }
+
+    // Check if customer with same email already exists for this company
+    const existing = await this.prisma.customer.findFirst({
+      where: {
+        email: data.email.toLowerCase(),
+        companyId: data.companyId,
+        deletedAt: null,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException('A customer with this email already exists');
+    }
+
+    const customer = await this.prisma.customer.create({
+      data: {
+        email: data.email.toLowerCase(),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        companyId: data.companyId,
+        metadata: data.metadata || {},
+        status: 'ACTIVE',
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    return customer;
+  }
+
+  async updateCustomer(
+    user: UserContext,
+    customerId: string,
+    data: { firstName?: string; lastName?: string; phone?: string; status?: string; metadata?: Record<string, unknown> },
+  ) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const updated = await this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        status: data.status as any,
+        metadata: data.metadata,
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    return updated;
+  }
+
+  async deleteCustomer(user: UserContext, customerId: string) {
+    // Verify access to customer first
+    const customer = await this.getCustomer(user, customerId);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    // Soft delete the customer by setting deletedAt timestamp
+    await this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: user.sub,
+        status: 'INACTIVE',
+      },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════

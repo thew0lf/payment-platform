@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma, UserRole, UserStatus, ScopeType } from '@prisma/client';
-import { User, UserStats, UserRoleAssignment } from '../types/user.types';
+import { User, UserStats, UserRoleAssignment, UserPreferences } from '../types/user.types';
 import {
   UserQueryDto,
   InviteUserDto,
@@ -228,7 +228,7 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`User invited: ${user.email} by user ${inviterId}`);
+    this.logger.log(`User invited: ${user.id} by user ${inviterId}`);
     this.eventEmitter.emit('user.invited', { user: this.mapToUser(user), inviterId });
 
     return this.mapToUser(user);
@@ -287,7 +287,7 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`User updated: ${user.email} by user ${updaterId}`);
+    this.logger.log(`User updated: ${user.id} by user ${updaterId}`);
     this.eventEmitter.emit('user.updated', { user: this.mapToUser(user), updaterId });
 
     return this.mapToUser(user);
@@ -337,7 +337,7 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`User status changed: ${user.email} -> ${status} by user ${updaterId}`);
+    this.logger.log(`User status changed: ${user.id} -> ${status} by user ${updaterId}`);
     this.eventEmitter.emit('user.status_changed', { user: this.mapToUser(user), status, updaterId });
 
     return this.mapToUser(user);
@@ -388,7 +388,7 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`Role ${role.name} assigned to user ${user.email} by ${assignerId}`);
+    this.logger.log(`Role ${role.name} assigned to user ${user.id} by ${assignerId}`);
   }
 
   async removeRole(
@@ -409,7 +409,54 @@ export class UsersService {
       where: { id: assignment.id },
     });
 
-    this.logger.log(`Role ${assignment.role.name} removed from user ${assignment.user.email} by ${removerId}`);
+    this.logger.log(`Role ${assignment.role.name} removed from user ${assignment.user.id} by ${removerId}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // USER PREFERENCES
+  // ═══════════════════════════════════════════════════════════════
+
+  async getPreferences(userId: string): Promise<UserPreferences> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: { preferences: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    const defaults: UserPreferences = {
+      theme: 'system',
+      sidebarCollapsed: false,
+    };
+
+    return { ...defaults, ...(user.preferences as object || {}) };
+  }
+
+  async updatePreferences(
+    userId: string,
+    preferences: Partial<UserPreferences>,
+  ): Promise<UserPreferences> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    // Merge with existing preferences
+    const currentPrefs = (user.preferences as object) || {};
+    const newPrefs = { ...currentPrefs, ...preferences };
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { preferences: newPrefs },
+    });
+
+    this.logger.log(`User preferences updated: ${userId}`);
+    return newPrefs as UserPreferences;
   }
 
   // ═══════════════════════════════════════════════════════════════

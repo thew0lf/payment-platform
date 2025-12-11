@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Video,
   Loader2,
@@ -95,6 +96,7 @@ export function VideoGenerator({
 
   // Complete state
   const [completedVideo, setCompletedVideo] = useState<MarketingVideo | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   // Reset on close
   useEffect(() => {
@@ -202,13 +204,18 @@ export function VideoGenerator({
 
   const handleClose = useCallback(() => {
     if (step === 'generating' && videoId) {
-      // Video is being generated, warn user
-      if (!confirm('Video generation is in progress. Are you sure you want to close?')) {
-        return;
-      }
+      // Video is being generated, show confirmation
+      setShowCloseConfirm(true);
+      return;
     }
     onClose();
   }, [step, videoId, onClose]);
+
+  const confirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    toast.info('Video will continue generating in the background');
+    onClose();
+  }, [onClose]);
 
   const handleDownload = useCallback(() => {
     if (completedVideo?.outputUrl) {
@@ -234,7 +241,7 @@ export function VideoGenerator({
                 className={cn(
                   'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
                   step === s
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-foreground'
                     : (['configure', 'script', 'generating', 'complete'].indexOf(step) >
                         ['configure', 'script', 'generating', 'complete'].indexOf(s))
                     ? 'bg-green-100 text-green-700'
@@ -497,6 +504,28 @@ export function VideoGenerator({
           </div>
         )}
       </div>
+
+      {/* Close Confirmation Modal */}
+      {showCloseConfirm && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 rounded-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-2">
+              Video in Progress
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Your video is still generating. It will continue in the background if you close this dialog.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowCloseConfirm(false)}>
+                Keep Open
+              </Button>
+              <Button onClick={confirmClose}>
+                Close Anyway
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ModalFooter>
         {step === 'configure' && (

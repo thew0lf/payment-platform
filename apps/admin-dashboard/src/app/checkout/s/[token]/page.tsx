@@ -82,10 +82,10 @@ export default function SessionCheckoutPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-400 mx-auto" />
-          <p className="mt-2 text-sm text-zinc-500">Loading checkout session...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading checkout session...</p>
         </div>
       </div>
     );
@@ -94,18 +94,18 @@ export default function SessionCheckoutPage() {
   // Error state
   if (error || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md px-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Session Not Found</h1>
-          <p className="text-zinc-500 mb-6">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Session Not Found</h1>
+          <p className="text-muted-foreground mb-6">
             {error || 'This checkout session is invalid or has expired.'}
           </p>
           <a
             href="/"
-            className="inline-flex items-center px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+            className="inline-flex items-center px-4 py-2 bg-card text-foreground rounded-lg hover:bg-muted"
           >
             Go Home
           </a>
@@ -117,18 +117,18 @@ export default function SessionCheckoutPage() {
   // Expired session
   if (session.status === 'EXPIRED') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md px-4">
           <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Clock className="h-8 w-8 text-yellow-600" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Session Expired</h1>
-          <p className="text-zinc-500 mb-6">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Session Expired</h1>
+          <p className="text-muted-foreground mb-6">
             This checkout session has expired. Please start a new checkout.
           </p>
           <a
             href="/"
-            className="inline-flex items-center px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+            className="inline-flex items-center px-4 py-2 bg-card text-foreground rounded-lg hover:bg-muted"
           >
             Start Over
           </a>
@@ -140,18 +140,18 @@ export default function SessionCheckoutPage() {
   // Cancelled session
   if (session.status === 'CANCELLED' || session.status === 'ABANDONED') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md px-4">
-          <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="h-8 w-8 text-zinc-500" />
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Session Cancelled</h1>
-          <p className="text-zinc-500 mb-6">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Session Cancelled</h1>
+          <p className="text-muted-foreground mb-6">
             This checkout session was cancelled. You can start a new checkout if needed.
           </p>
           <a
             href="/"
-            className="inline-flex items-center px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+            className="inline-flex items-center px-4 py-2 bg-card text-foreground rounded-lg hover:bg-muted"
           >
             Start Over
           </a>
@@ -163,18 +163,18 @@ export default function SessionCheckoutPage() {
   // Failed session
   if (session.status === 'FAILED') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md px-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Payment Failed</h1>
-          <p className="text-zinc-500 mb-6">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Payment Failed</h1>
+          <p className="text-muted-foreground mb-6">
             Unfortunately, we were unable to process your payment. Please try again or use a different payment method.
           </p>
           <a
             href={`/checkout/${session.page.companyCode}/${session.page.slug}`}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-foreground rounded-lg hover:bg-blue-700"
           >
             Try Again
           </a>
@@ -186,15 +186,15 @@ export default function SessionCheckoutPage() {
   // Completed (shouldn't normally reach here, but just in case)
   if (session.status === 'COMPLETED') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md px-4">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Payment Complete</h1>
-          <p className="text-zinc-500">
+          <h1 className="text-xl font-semibold text-foreground mb-2">Payment Complete</h1>
+          <p className="text-muted-foreground">
             Thank you for your purchase! A confirmation email has been sent to {session.customerEmail}.
           </p>
         </div>
@@ -204,8 +204,8 @@ export default function SessionCheckoutPage() {
 
   // Default fallback
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-      <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+    <div className="min-h-screen flex items-center justify-center bg-muted/50">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
   );
 }

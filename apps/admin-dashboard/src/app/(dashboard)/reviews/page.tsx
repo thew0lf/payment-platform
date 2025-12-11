@@ -89,7 +89,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md
           key={star}
           className={cn(
             starSize,
-            star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-600'
+            star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'
           )}
         />
       ))}
@@ -101,7 +101,7 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  color = 'text-cyan-400',
+  color = 'text-primary',
   subtitle,
 }: {
   title: string;
@@ -111,13 +111,13 @@ function StatCard({
   subtitle?: string;
 }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-card/50 border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-zinc-500">{title}</span>
+        <span className="text-sm text-muted-foreground">{title}</span>
         <Icon className={cn('w-5 h-5', color)} />
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {subtitle && <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>}
+      <div className="text-2xl font-bold text-foreground">{value}</div>
+      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -125,14 +125,14 @@ function StatCard({
 function RatingDistributionBar({ rating, count, percentage }: { rating: number; count: number; percentage: number }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-zinc-400 w-12">{rating} stars</span>
-      <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+      <span className="text-xs text-muted-foreground w-12">{rating} stars</span>
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div
           className="h-full bg-yellow-400 rounded-full transition-all"
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className="text-xs text-zinc-500 w-8 text-right">{count}</span>
+      <span className="text-xs text-muted-foreground w-8 text-right">{count}</span>
     </div>
   );
 }
@@ -150,32 +150,32 @@ function ResponseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-lg w-full mx-4">
-        <h3 className="text-lg font-semibold text-white mb-4">Respond to Review</h3>
+      <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full mx-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Respond to Review</h3>
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <StarRating rating={review.rating} />
-            <span className="text-sm text-zinc-400">by {review.reviewerName || 'Anonymous'}</span>
+            <span className="text-sm text-muted-foreground">by {review.reviewerName || 'Anonymous'}</span>
           </div>
-          <p className="text-sm text-zinc-300">{review.content}</p>
+          <p className="text-sm text-foreground">{review.content}</p>
         </div>
         <textarea
           value={response}
           onChange={(e) => setResponse(e.target.value)}
           placeholder="Write your response..."
-          className="w-full h-32 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="w-full h-32 px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => onSubmit(response)}
             disabled={!response.trim()}
-            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             Submit Response
           </button>
@@ -387,12 +387,12 @@ export default function ReviewsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Reviews</h1>
-          <p className="text-sm text-zinc-500">Moderate and manage customer reviews</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Reviews</h1>
+          <p className="text-sm text-muted-foreground">Moderate and manage customer reviews</p>
         </div>
         <Link
           href="/settings/reviews"
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors text-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors text-sm"
         >
           <Settings className="w-4 h-4" />
           Review Settings
@@ -429,8 +429,8 @@ export default function ReviewsPage() {
       </div>
 
       {/* Rating Distribution */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-6">
-        <h3 className="text-sm font-medium text-white mb-3">Rating Distribution</h3>
+      <div className="bg-card/50 border border-border rounded-xl p-4 mb-6">
+        <h3 className="text-sm font-medium text-foreground mb-3">Rating Distribution</h3>
         <div className="space-y-2">
           {stats.ratingDistribution.map((dist) => (
             <RatingDistributionBar
@@ -446,13 +446,13 @@ export default function ReviewsPage() {
       {/* Search */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search reviews by content, product, or reviewer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full pl-9 pr-4 py-2.5 bg-card/50 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -474,8 +474,8 @@ export default function ReviewsPage() {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
                   isActive
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    ? 'bg-primary text-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted'
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -492,7 +492,7 @@ export default function ReviewsPage() {
             setSelectedRating(Number(e.target.value));
             setOffset(0);
           }}
-          className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {RATING_FILTERS.map((filter) => (
             <option key={filter.value} value={filter.value}>
@@ -506,7 +506,7 @@ export default function ReviewsPage() {
       {selectedReviews.size > 0 && (
         <div className="bg-cyan-900/20 border border-cyan-800 rounded-xl p-4 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <p className="text-sm text-cyan-400">
+            <p className="text-sm text-primary">
               {selectedReviews.size} review{selectedReviews.size !== 1 ? 's' : ''} selected
             </p>
             <div className="flex gap-2 w-full sm:w-auto">
@@ -520,7 +520,7 @@ export default function ReviewsPage() {
                   setProcessingAction(null);
                 }}
                 disabled={processingAction === 'bulk'}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-foreground rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Check className="w-4 h-4" />
                 Approve All
@@ -535,7 +535,7 @@ export default function ReviewsPage() {
                   setProcessingAction(null);
                 }}
                 disabled={processingAction === 'bulk'}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-foreground rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <X className="w-4 h-4" />
                 Reject All
@@ -549,13 +549,13 @@ export default function ReviewsPage() {
       <div className="space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         ) : reviews.length > 0 ? (
           reviews.map((review) => (
             <div
               key={review.id}
-              className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors"
+              className="bg-card/50 border border-border rounded-xl p-4 hover:border-border transition-colors"
             >
               {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-3">
@@ -564,7 +564,7 @@ export default function ReviewsPage() {
                     type="checkbox"
                     checked={selectedReviews.has(review.id)}
                     onChange={() => toggleSelectReview(review.id)}
-                    className="mt-1 w-4 h-4 bg-zinc-700 border-zinc-600 rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                    className="mt-1 w-4 h-4 bg-muted border-border rounded text-cyan-600 focus:ring-primary focus:ring-offset-0"
                   />
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -583,7 +583,7 @@ export default function ReviewsPage() {
                       )}
                     </div>
                     {review.title && (
-                      <h3 className="text-sm font-medium text-white">{review.title}</h3>
+                      <h3 className="text-sm font-medium text-foreground">{review.title}</h3>
                     )}
                   </div>
                 </div>
@@ -592,7 +592,7 @@ export default function ReviewsPage() {
 
               {/* Content */}
               {review.content && (
-                <p className="text-sm text-zinc-300 mb-3 pl-7">{review.content}</p>
+                <p className="text-sm text-foreground mb-3 pl-7">{review.content}</p>
               )}
 
               {/* Pros/Cons */}
@@ -601,7 +601,7 @@ export default function ReviewsPage() {
                   {review.pros.length > 0 && (
                     <div className="flex-1">
                       <p className="text-xs text-green-400 font-medium mb-1">Pros</p>
-                      <ul className="text-xs text-zinc-400 space-y-0.5">
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
                         {review.pros.map((pro, i) => (
                           <li key={i} className="flex items-start gap-1">
                             <span className="text-green-400">+</span> {pro}
@@ -613,7 +613,7 @@ export default function ReviewsPage() {
                   {review.cons.length > 0 && (
                     <div className="flex-1">
                       <p className="text-xs text-red-400 font-medium mb-1">Cons</p>
-                      <ul className="text-xs text-zinc-400 space-y-0.5">
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
                         {review.cons.map((con, i) => (
                           <li key={i} className="flex items-start gap-1">
                             <span className="text-red-400">-</span> {con}
@@ -627,15 +627,15 @@ export default function ReviewsPage() {
 
               {/* Merchant Response */}
               {review.merchantResponse && (
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 mb-3 ml-7">
-                  <p className="text-xs text-cyan-400 font-medium mb-1">Merchant Response</p>
-                  <p className="text-sm text-zinc-300">{review.merchantResponse}</p>
+                <div className="bg-muted/50 border border-border rounded-lg p-3 mb-3 ml-7">
+                  <p className="text-xs text-primary font-medium mb-1">Merchant Response</p>
+                  <p className="text-sm text-foreground">{review.merchantResponse}</p>
                 </div>
               )}
 
               {/* Meta & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pl-7 pt-3 border-t border-zinc-800">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pl-7 pt-3 border-t border-border">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5" />
                     {review.reviewerName || 'Anonymous'}
@@ -666,7 +666,7 @@ export default function ReviewsPage() {
                       <button
                         onClick={() => handleApprove(review.id)}
                         disabled={processingAction === review.id}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs font-medium"
+                        className="px-3 py-1.5 bg-green-600 text-foreground rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs font-medium"
                         title="Approve"
                       >
                         Approve
@@ -674,7 +674,7 @@ export default function ReviewsPage() {
                       <button
                         onClick={() => handleReject(review.id)}
                         disabled={processingAction === review.id}
-                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs font-medium"
+                        className="px-3 py-1.5 bg-red-600 text-foreground rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs font-medium"
                         title="Reject"
                       >
                         Reject
@@ -685,7 +685,7 @@ export default function ReviewsPage() {
                     <button
                       onClick={() => setRespondingToReview(review)}
                       disabled={processingAction === review.id}
-                      className="px-3 py-1.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 text-xs font-medium"
+                      className="px-3 py-1.5 bg-primary text-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 text-xs font-medium"
                       title="Respond"
                     >
                       <MessageSquare className="w-3.5 h-3.5 inline mr-1" />
@@ -699,8 +699,8 @@ export default function ReviewsPage() {
                       className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         review.isFeatured
-                          ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                          : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                          ? 'bg-yellow-600 text-foreground hover:bg-yellow-700'
+                          : 'bg-muted text-foreground hover:bg-muted'
                       )}
                       title={review.isFeatured ? 'Remove from featured' : 'Feature this review'}
                     >
@@ -712,7 +712,7 @@ export default function ReviewsPage() {
                     <button
                       onClick={() => handleFlag(review.id)}
                       disabled={processingAction === review.id}
-                      className="p-1.5 text-zinc-400 hover:text-orange-400 transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-orange-400 transition-colors"
                       title="Flag for review"
                     >
                       <Flag className="w-4 h-4" />
@@ -723,10 +723,10 @@ export default function ReviewsPage() {
             </div>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-            <Star className="w-12 h-12 text-zinc-700 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-1">No reviews found</h3>
-            <p className="text-sm text-zinc-500">
+          <div className="flex flex-col items-center justify-center py-12 bg-card/50 border border-border rounded-xl">
+            <Star className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-1">No reviews found</h3>
+            <p className="text-sm text-muted-foreground">
               {searchQuery
                 ? 'Try adjusting your search or filters'
                 : 'Customer reviews will appear here'}
@@ -737,22 +737,22 @@ export default function ReviewsPage() {
 
       {/* Pagination */}
       {total > limit && (
-        <div className="flex items-center justify-between p-4 mt-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-          <p className="text-sm text-zinc-500">
+        <div className="flex items-center justify-between p-4 mt-4 bg-card/50 border border-border rounded-xl">
+          <p className="text-sm text-muted-foreground">
             Showing {offset + 1} to {Math.min(offset + limit, total)} of {total} reviews
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setOffset(Math.max(0, offset - limit))}
               disabled={offset === 0}
-              className="px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               Previous
             </button>
             <button
               onClick={() => setOffset(offset + limit)}
               disabled={offset + limit >= total}
-              className="px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               Next
             </button>

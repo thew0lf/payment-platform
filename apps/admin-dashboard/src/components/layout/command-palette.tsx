@@ -162,10 +162,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         aria-modal="true"
         aria-label="Command palette"
       >
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-popover border border-border rounded-xl shadow-2xl overflow-hidden">
           {/* Search Input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
-            <Search className="w-5 h-5 text-zinc-500" aria-hidden="true" />
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+            <Search className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
             <input
               ref={inputRef}
               type="text"
@@ -176,11 +176,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               }}
               onKeyDown={handleKeyDown}
               placeholder="Search pages..."
-              className="flex-1 bg-transparent text-white placeholder-zinc-500 outline-none text-sm"
+              className="flex-1 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
               aria-label="Search navigation"
               autoComplete="off"
             />
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800 rounded text-xs text-zinc-400">
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
               <span>esc</span>
             </kbd>
           </div>
@@ -192,7 +192,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             role="listbox"
           >
             {flatItems.length === 0 ? (
-              <div className="px-4 py-8 text-center text-zinc-500">
+              <div className="px-4 py-8 text-center text-muted-foreground">
                 <p className="text-sm">No results found</p>
                 <p className="text-xs mt-1">Try a different search term</p>
               </div>
@@ -200,7 +200,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               Object.entries(groupedItems).map(([section, items]) => (
                 <div key={section}>
                   <div className="px-4 py-2">
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {section}
                     </span>
                   </div>
@@ -223,8 +223,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
                           isSelected
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                            ? 'bg-muted text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                         )}
                         role="option"
                         aria-selected={isSelected}
@@ -232,7 +232,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                         <span className="flex-1 text-sm">{item.label}</span>
                         {isSelected && (
-                          <ArrowRight className="w-4 h-4 text-zinc-500" aria-hidden="true" />
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
                         )}
                       </button>
                     );
@@ -243,25 +243,25 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </div>
 
           {/* Footer with keyboard hints */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-800 text-xs text-zinc-500">
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border text-xs text-muted-foreground">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">↑</kbd>
-                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">↓</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded">↑</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded">↓</kbd>
                 <span className="ml-1">to navigate</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded flex items-center">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded flex items-center">
                   <CornerDownLeft className="w-3 h-3" />
                 </kbd>
                 <span className="ml-1">to select</span>
               </span>
             </div>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded flex items-center">
+              <kbd className="px-1.5 py-0.5 bg-muted rounded flex items-center">
                 <Command className="w-3 h-3" />
               </kbd>
-              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded">K</kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded">K</kbd>
               <span className="ml-1">to open</span>
             </span>
           </div>

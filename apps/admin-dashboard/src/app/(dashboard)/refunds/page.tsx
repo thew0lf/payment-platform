@@ -121,7 +121,7 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  color = 'text-cyan-400'
+  color = 'text-primary'
 }: {
   title: string;
   value: string | number;
@@ -129,12 +129,12 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-card/50 border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-zinc-500">{title}</span>
+        <span className="text-sm text-muted-foreground">{title}</span>
         <Icon className={cn('w-5 h-5', color)} />
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-2xl font-bold text-foreground">{value}</div>
     </div>
   );
 }
@@ -217,9 +217,8 @@ export default function RefundsPage() {
     } catch (err) {
       console.error('Failed to fetch refunds:', err);
       setError('Failed to load refunds. Please try again.');
-      // Use mock data for development
-      setRefunds(generateMockRefunds());
-      setTotal(generateMockRefunds().length);
+      setRefunds([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -245,15 +244,14 @@ export default function RefundsPage() {
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
-      // Use mock stats
       setStats({
-        totalRefunds: 42,
-        pendingRefunds: 8,
-        approvedRefunds: 5,
-        rejectedRefunds: 2,
-        completedRefunds: 27,
-        totalRefundAmount: 12450.00,
-        averageRefundAmount: 296.43,
+        totalRefunds: 0,
+        pendingRefunds: 0,
+        approvedRefunds: 0,
+        rejectedRefunds: 0,
+        completedRefunds: 0,
+        totalRefundAmount: 0,
+        averageRefundAmount: 0,
       });
     }
   };
@@ -352,12 +350,12 @@ export default function RefundsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Refunds</h1>
-          <p className="text-sm text-zinc-500">Manage refund requests and approvals</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Refunds</h1>
+          <p className="text-sm text-muted-foreground">Manage refund requests and approvals</p>
         </div>
         <Link
           href="/settings/refunds"
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors text-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors text-sm"
         >
           <Settings className="w-4 h-4" />
           Refund Settings
@@ -408,8 +406,8 @@ export default function RefundsPage() {
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
                 timeFilter === option.value
-                  ? 'bg-cyan-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                  ? 'bg-primary text-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               {option.label}
@@ -419,24 +417,24 @@ export default function RefundsPage() {
 
         {/* Custom Date Picker */}
         {showCustomDatePicker && (
-          <div className="mt-4 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+          <div className="mt-4 p-4 bg-muted/50 border border-border rounded-lg">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <label className="block text-sm text-zinc-400 mb-1">Start Date</label>
+                <label className="block text-sm text-muted-foreground mb-1">Start Date</label>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm text-zinc-400 mb-1">End Date</label>
+                <label className="block text-sm text-muted-foreground mb-1">End Date</label>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -447,13 +445,13 @@ export default function RefundsPage() {
       {/* Search */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by refund number, order, or customer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full pl-9 pr-4 py-2.5 bg-card/50 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -471,8 +469,8 @@ export default function RefundsPage() {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
                   isActive
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    ? 'bg-primary text-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted'
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -487,14 +485,14 @@ export default function RefundsPage() {
       {selectedRefunds.size > 0 && (
         <div className="bg-cyan-900/20 border border-cyan-800 rounded-xl p-4 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <p className="text-sm text-cyan-400">
+            <p className="text-sm text-primary">
               {selectedRefunds.size} refund{selectedRefunds.size !== 1 ? 's' : ''} selected
             </p>
             <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={handleBulkApprove}
                 disabled={processingAction === 'bulk'}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-foreground rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Check className="w-4 h-4" />
                 Approve All
@@ -502,7 +500,7 @@ export default function RefundsPage() {
               <button
                 onClick={() => handleBulkReject('Bulk rejection')}
                 disabled={processingAction === 'bulk'}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-foreground rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <X className="w-4 h-4" />
                 Reject All
@@ -513,15 +511,15 @@ export default function RefundsPage() {
       )}
 
       {/* Refunds List */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
         {/* Table Header */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-3 p-4 bg-zinc-800/50 border-b border-zinc-700 text-sm font-medium text-zinc-400">
+        <div className="hidden lg:grid lg:grid-cols-12 gap-3 p-4 bg-muted/50 border-b border-border text-sm font-medium text-muted-foreground">
           <div className="col-span-1 flex items-center">
             <input
               type="checkbox"
               checked={selectedRefunds.size === refunds.length && refunds.length > 0}
               onChange={toggleSelectAll}
-              className="w-4 h-4 bg-zinc-700 border-zinc-600 rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+              className="w-4 h-4 bg-muted border-border rounded text-cyan-600 focus:ring-primary focus:ring-offset-0"
             />
           </div>
           <div className="col-span-2">Refund #</div>
@@ -533,16 +531,16 @@ export default function RefundsPage() {
         </div>
 
         {/* Table Body */}
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y divide-border">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
             </div>
           ) : refunds.length > 0 ? (
             refunds.map((refund) => (
               <div
                 key={refund.id}
-                className="lg:grid lg:grid-cols-12 gap-3 p-4 hover:bg-zinc-800/30 transition-colors"
+                className="lg:grid lg:grid-cols-12 gap-3 p-4 hover:bg-muted/30 transition-colors"
               >
                 {/* Mobile Layout */}
                 <div className="lg:hidden space-y-3">
@@ -552,13 +550,13 @@ export default function RefundsPage() {
                         type="checkbox"
                         checked={selectedRefunds.has(refund.id)}
                         onChange={() => toggleSelectRefund(refund.id)}
-                        className="mt-1 w-4 h-4 bg-zinc-700 border-zinc-600 rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                        className="mt-1 w-4 h-4 bg-muted border-border rounded text-cyan-600 focus:ring-primary focus:ring-offset-0"
                       />
                       <div>
-                        <p className="text-sm font-medium text-white font-mono">
+                        <p className="text-sm font-medium text-foreground font-mono">
                           {formatRefundNumber(refund.refundNumber || refund.id)}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {formatDate(refund.createdAt)}
                         </p>
                       </div>
@@ -568,23 +566,23 @@ export default function RefundsPage() {
 
                   <div className="pl-7 space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Order:</span>
+                      <span className="text-muted-foreground">Order:</span>
                       <Link
                         href={`/orders/${refund.orderId}`}
-                        className="text-cyan-400 hover:text-cyan-300 font-mono text-xs"
+                        className="text-primary hover:text-primary font-mono text-xs"
                       >
                         {refund.order ? formatOrderNumber(refund.order.orderNumber) : refund.orderId}
                       </Link>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Amount:</span>
-                      <span className="text-white font-medium">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="text-foreground font-medium">
                         {formatCurrency(refund.refundAmount || 0, refund.currency)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Reason:</span>
-                      <span className="text-zinc-300 text-xs">
+                      <span className="text-muted-foreground">Reason:</span>
+                      <span className="text-foreground text-xs">
                         {getRefundReasonLabel(refund.reason)}
                       </span>
                     </div>
@@ -595,7 +593,7 @@ export default function RefundsPage() {
                       <button
                         onClick={() => handleApprove(refund.id)}
                         disabled={processingAction === refund.id}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-foreground rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs"
                       >
                         <Check className="w-3.5 h-3.5" />
                         Approve
@@ -603,7 +601,7 @@ export default function RefundsPage() {
                       <button
                         onClick={() => handleReject(refund.id, 'Rejected')}
                         disabled={processingAction === refund.id}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-foreground rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs"
                       >
                         <X className="w-3.5 h-3.5" />
                         Reject
@@ -619,30 +617,30 @@ export default function RefundsPage() {
                       type="checkbox"
                       checked={selectedRefunds.has(refund.id)}
                       onChange={() => toggleSelectRefund(refund.id)}
-                      className="w-4 h-4 bg-zinc-700 border-zinc-600 rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
+                      className="w-4 h-4 bg-muted border-border rounded text-cyan-600 focus:ring-primary focus:ring-offset-0"
                     />
                   </div>
                   <div className="col-span-2 flex flex-col justify-center min-w-0">
-                    <p className="text-sm font-medium text-white font-mono truncate">
+                    <p className="text-sm font-medium text-foreground font-mono truncate">
                       {formatRefundNumber(refund.refundNumber || refund.id)}
                     </p>
-                    <p className="text-xs text-zinc-500">{formatDate(refund.createdAt)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(refund.createdAt)}</p>
                   </div>
                   <div className="col-span-2 flex items-center min-w-0">
                     <Link
                       href={`/orders/${refund.orderId}`}
-                      className="text-sm text-cyan-400 hover:text-cyan-300 truncate"
+                      className="text-sm text-primary hover:text-primary truncate"
                     >
                       {refund.order?.orderNumber ? formatOrderNumber(refund.order.orderNumber) : 'View Order'}
                     </Link>
                   </div>
                   <div className="col-span-2 flex items-center">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-foreground">
                       {formatCurrency(refund.refundAmount || 0, refund.currency)}
                     </p>
                   </div>
                   <div className="col-span-1 flex items-center min-w-0">
-                    <p className="text-xs text-zinc-300 truncate" title={getRefundReasonLabel(refund.reason)}>{getRefundReasonLabel(refund.reason)}</p>
+                    <p className="text-xs text-foreground truncate" title={getRefundReasonLabel(refund.reason)}>{getRefundReasonLabel(refund.reason)}</p>
                   </div>
                   <div className="col-span-2 flex items-center">
                     <StatusBadge status={refund.status} />
@@ -653,7 +651,7 @@ export default function RefundsPage() {
                         <button
                           onClick={() => handleApprove(refund.id)}
                           disabled={processingAction === refund.id}
-                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs font-medium"
+                          className="px-3 py-1.5 bg-green-600 text-foreground rounded-lg hover:bg-green-700 disabled:opacity-50 text-xs font-medium"
                           title="Approve"
                         >
                           Approve
@@ -661,14 +659,14 @@ export default function RefundsPage() {
                         <button
                           onClick={() => handleReject(refund.id, 'Rejected')}
                           disabled={processingAction === refund.id}
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs font-medium"
+                          className="px-3 py-1.5 bg-red-600 text-foreground rounded-lg hover:bg-red-700 disabled:opacity-50 text-xs font-medium"
                           title="Reject"
                         >
                           Reject
                         </button>
                       </>
                     ) : (
-                      <span className="text-xs text-zinc-500">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                 </div>
@@ -676,9 +674,9 @@ export default function RefundsPage() {
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-12">
-              <RotateCcw className="w-12 h-12 text-zinc-700 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-1">No refunds found</h3>
-              <p className="text-sm text-zinc-500">
+              <RotateCcw className="w-12 h-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-1">No refunds found</h3>
+              <p className="text-sm text-muted-foreground">
                 {searchQuery
                   ? 'Try adjusting your search or filters'
                   : 'Refund requests will appear here'}
@@ -689,22 +687,22 @@ export default function RefundsPage() {
 
         {/* Pagination */}
         {total > limit && (
-          <div className="flex items-center justify-between p-4 bg-zinc-800/50 border-t border-zinc-700">
-            <p className="text-sm text-zinc-500">
+          <div className="flex items-center justify-between p-4 bg-muted/50 border-t border-border">
+            <p className="text-sm text-muted-foreground">
               Showing {offset + 1} to {Math.min(offset + limit, total)} of {total} refunds
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setOffset(Math.max(0, offset - limit))}
                 disabled={offset === 0}
-                className="px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 Previous
               </button>
               <button
                 onClick={() => setOffset(offset + limit)}
                 disabled={offset + limit >= total}
-                className="px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 Next
               </button>
@@ -716,42 +714,3 @@ export default function RefundsPage() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA (for development)
-// ═══════════════════════════════════════════════════════════════
-
-function generateMockRefunds(): Refund[] {
-  const statuses: RefundStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'PROCESSING', 'COMPLETED'];
-  const reasons: RefundReason[] = ['CUSTOMER_REQUEST', 'DAMAGED_ITEM', 'WRONG_ITEM', 'QUALITY_ISSUE'];
-
-  return Array.from({ length: 10 }, (_, i) => ({
-    id: `refund-${i + 1}`,
-    companyId: 'company-1',
-    orderId: `order-${i + 1}`,
-    customerId: `customer-${i + 1}`,
-    requestedBy: null,
-    refundNumber: `RFN-${String(i + 1).padStart(9, '0')}`,
-    type: 'FULL' as RefundType,
-    status: statuses[i % statuses.length],
-    reason: reasons[i % reasons.length],
-    reasonDetails: 'Customer requested refund',
-    originalAmount: 100 + (i * 25),
-    refundAmount: 100 + (i * 25),
-    currency: 'USD',
-    lineItems: [],
-    autoApproved: false,
-    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
-    order: {
-      id: `order-${i + 1}`,
-      orderNumber: `VELO-COFF-A-${String(i + 1).padStart(9, '0')}`,
-      total: 100 + (i * 25),
-    },
-    customer: {
-      id: `customer-${i + 1}`,
-      email: `customer${i + 1}@example.com`,
-      firstName: 'John',
-      lastName: `Doe ${i + 1}`,
-    },
-  }));
-}

@@ -12,9 +12,10 @@ interface NavSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   badges?: NavBadges;
+  collapsed?: boolean;
 }
 
-export function NavSection({ section, isExpanded, onToggle, badges }: NavSectionProps) {
+export function NavSection({ section, isExpanded, onToggle, badges, collapsed }: NavSectionProps) {
   const pathname = usePathname();
   const SectionIcon = section.icon;
   const currentPath = pathname || '';
@@ -29,6 +30,35 @@ export function NavSection({ section, isExpanded, onToggle, badges }: NavSection
     }
     return sum;
   }, 0);
+
+  // When collapsed, show just the section icon as a link to the first item
+  if (collapsed) {
+    const firstItem = section.items[0];
+    return (
+      <div className="mb-1 relative group" role="group" aria-labelledby={`nav-section-${section.id}`}>
+        <Link
+          href={firstItem.href}
+          className={cn(
+            'flex items-center justify-center rounded-lg p-2 transition-colors',
+            'hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            hasActiveItem && 'bg-primary/10 text-primary'
+          )}
+          title={section.label}
+        >
+          <SectionIcon className={cn('h-5 w-5', hasActiveItem ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
+          {totalBadgeCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
+              {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
+            </span>
+          )}
+        </Link>
+        {/* Tooltip on hover */}
+        <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50 whitespace-nowrap">
+          {section.label}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-1" role="group" aria-labelledby={`nav-section-${section.id}`}>

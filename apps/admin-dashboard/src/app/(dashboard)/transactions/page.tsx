@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Download, Plus, Search, Loader2, Calendar, Clock, ChevronDown, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,12 +67,55 @@ const getDateRange = (preset: DateRangePreset): DateRange => {
 };
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const { selectedCompanyId, selectedClientId } = useHierarchy();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (transactions.length === 0) {
+      toast.info('No transactions to export');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      // Create CSV content
+      const headers = ['Transaction #', 'Customer', 'Company', 'Amount', 'Currency', 'Status', 'Provider', 'Date'];
+      const rows = transactions.map(txn => [
+        txn.transactionNumber,
+        txn.customer?.email || '-',
+        txn.company?.name || '-',
+        txn.amount.toString(),
+        txn.currency,
+        txn.status,
+        txn.paymentProvider?.name || '-',
+        new Date(txn.createdAt).toISOString(),
+      ]);
+
+      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${transactions.length} transactions`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export transactions');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Date range state
   const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('all_time');
@@ -153,7 +198,7 @@ export default function TransactionsPage() {
         title="Transactions"
         subtitle={`${total} transactions`}
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={() => toast.info('Transactions are created through orders or customer checkout')}>
             <Plus className="w-4 h-4 mr-2" />
             New Transaction
           </Button>
@@ -164,7 +209,7 @@ export default function TransactionsPage() {
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search transactions..."
               value={search}
@@ -180,8 +225,8 @@ export default function TransactionsPage() {
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
                 dateRangePreset !== 'all_time'
-                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600'
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-muted border-border text-foreground hover:text-foreground hover:border-border'
               )}
             >
               <Calendar className="w-4 h-4" />
@@ -197,7 +242,7 @@ export default function TransactionsPage() {
                   onClick={() => setShowDateDropdown(false)}
                 />
                 {/* Dropdown */}
-                <div className="absolute top-full left-0 mt-2 z-20 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 z-20 w-64 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
                   {/* Preset options */}
                   <div className="p-2">
                     {dateRangePresets.map(preset => (
@@ -212,8 +257,8 @@ export default function TransactionsPage() {
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left',
                           dateRangePreset === preset.value
-                            ? 'bg-cyan-500/10 text-cyan-400'
-                            : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-foreground hover:bg-muted hover:text-foreground'
                         )}
                       >
                         {preset.icon || <Calendar className="w-3.5 h-3.5 opacity-50" />}
@@ -224,28 +269,28 @@ export default function TransactionsPage() {
 
                   {/* Custom date inputs */}
                   {dateRangePreset === 'custom' && (
-                    <div className="border-t border-zinc-700 p-3 space-y-3">
+                    <div className="border-t border-border p-3 space-y-3">
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">Start Date</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
                         <input
                           type="date"
                           value={customStartDate}
                           onChange={e => setCustomStartDate(e.target.value)}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">End Date</label>
+                        <label className="block text-xs text-muted-foreground mb-1">End Date</label>
                         <input
                           type="date"
                           value={customEndDate}
                           onChange={e => setCustomEndDate(e.target.value)}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <button
                         onClick={() => setShowDateDropdown(false)}
-                        className="w-full px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="w-full px-3 py-2 bg-primary hover:bg-primary text-foreground text-sm font-medium rounded-lg transition-colors"
                       >
                         Apply
                       </button>
@@ -264,7 +309,7 @@ export default function TransactionsPage() {
                 setCustomStartDate('');
                 setCustomEndDate('');
               }}
-              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
               title="Clear date filter"
             >
               <X className="w-4 h-4" />
@@ -283,27 +328,27 @@ export default function TransactionsPage() {
               </Button>
             ))}
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || loading}>
             <Download className="w-4 h-4 mr-2" />
-            Export
+            {exporting ? 'Exporting...' : 'Export'}
           </Button>
         </div>
 
         {/* Loading State */}
         {loading ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-12 flex items-center justify-center">
-            <div className="flex items-center gap-3 text-zinc-400">
+          <div className="bg-card/50 border border-border rounded-xl p-12 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>Loading transactions...</span>
             </div>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-12 text-center">
-            <p className="text-zinc-400">No transactions found</p>
+          <div className="bg-card/50 border border-border rounded-xl p-12 text-center">
+            <p className="text-muted-foreground">No transactions found</p>
           </div>
         ) : (
           /* Table */
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -324,8 +369,8 @@ export default function TransactionsPage() {
                     {!selectedCompanyId && <TableCell>{txn.company?.name || '-'}</TableCell>}
                     <TableCell className="font-medium">{formatCurrency(txn.amount, txn.currency)}</TableCell>
                     <TableCell>{getStatusBadge(txn.status)}</TableCell>
-                    <TableCell className="text-zinc-400">{txn.paymentProvider?.name || '-'}</TableCell>
-                    <TableCell className="text-zinc-500">{formatRelativeTime(txn.createdAt)}</TableCell>
+                    <TableCell className="text-muted-foreground">{txn.paymentProvider?.name || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatRelativeTime(txn.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

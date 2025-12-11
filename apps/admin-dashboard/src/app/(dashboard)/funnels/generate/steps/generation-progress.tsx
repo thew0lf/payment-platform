@@ -125,13 +125,13 @@ export function GenerationProgressStep({
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
           <ExclamationCircleIcon className="h-8 w-8 text-red-600" />
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">
           Generation Failed
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
         <button
           onClick={onFailed}
-          className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+          className="px-6 py-3 bg-purple-600 text-foreground font-medium rounded-lg hover:bg-purple-700 transition-colors"
         >
           Try Again
         </button>
@@ -144,9 +144,9 @@ export function GenerationProgressStep({
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center animate-pulse">
-          <SparklesIcon className="h-10 w-10 text-white" />
+          <SparklesIcon className="h-10 w-10 text-foreground" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
           Generating Your Funnel
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-400">

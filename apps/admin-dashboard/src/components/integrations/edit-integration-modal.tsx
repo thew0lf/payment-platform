@@ -53,6 +53,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
+  [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
 };
 
 // Provider configuration with icons and brand colors
@@ -214,8 +215,8 @@ export function EditIntegrationModal({
 
   const config = providerConfig[integration.provider] || {
     icon: getProviderInitials(integration.provider),
-    bgColor: 'bg-zinc-700',
-    gradient: 'from-zinc-500 to-zinc-600',
+    bgColor: 'bg-muted',
+    gradient: 'from-muted to-muted',
   };
 
   const categoryLabel = categoryLabels[integration.category] || integration.category;
@@ -224,9 +225,9 @@ export function EditIntegrationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full max-w-lg max-h-[90vh] bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[90vh] bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -243,15 +244,15 @@ export function EditIntegrationModal({
                   className="w-6 h-6 object-contain"
                 />
               ) : (
-                <span className="text-white font-bold text-xs">{config.icon}</span>
+                <span className="text-foreground font-bold text-xs">{config.icon}</span>
               )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Edit Integration</h2>
-              <p className="text-sm text-zinc-500">{categoryLabel}</p>
+              <h2 className="text-lg font-semibold text-foreground">Edit Integration</h2>
+              <p className="text-sm text-muted-foreground">{categoryLabel}</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white">
+          <button onClick={handleClose} className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -267,23 +268,23 @@ export function EditIntegrationModal({
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                 placeholder="Integration name"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Description (optional)</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Description (optional)</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 resize-none"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
                 rows={2}
                 placeholder="Optional description"
               />
@@ -291,11 +292,11 @@ export function EditIntegrationModal({
 
             {/* Environment */}
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Environment</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Environment</label>
               <select
                 value={formData.environment}
                 onChange={(e) => setFormData((prev) => ({ ...prev, environment: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="sandbox">Sandbox</option>
                 <option value="production">Production</option>
@@ -304,23 +305,23 @@ export function EditIntegrationModal({
 
             {/* Credentials section - only if not using platform mode */}
             {!isUsingPlatform && definition?.credentialSchema?.properties && (
-              <div className="pt-4 border-t border-zinc-800">
+              <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-zinc-300">Update Credentials</label>
+                  <label className="text-sm font-medium text-foreground">Update Credentials</label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={updateCredentials}
                       onChange={(e) => setUpdateCredentials(e.target.checked)}
-                      className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                      className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-zinc-400">Change credentials</span>
+                    <span className="text-sm text-muted-foreground">Change credentials</span>
                   </label>
                 </div>
 
                 {updateCredentials && (
                   <div className="space-y-3">
-                    <p className="text-xs text-zinc-500 mb-2">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Enter new credentials. Leave blank to keep existing values.
                     </p>
                     {Object.entries(definition.credentialSchema.properties).map(([key, prop]) => {
@@ -328,26 +329,26 @@ export function EditIntegrationModal({
                       const isPassword = prop.format === 'password';
                       return (
                         <div key={key}>
-                          <label className="block text-sm font-medium text-zinc-300 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             {prop.title}
                             {isRequired && updateCredentials && <span className="text-amber-400 ml-1">*</span>}
                           </label>
                           {prop.description && (
-                            <p className="text-xs text-zinc-500 mb-1">{prop.description}</p>
+                            <p className="text-xs text-muted-foreground mb-1">{prop.description}</p>
                           )}
                           <div className="relative">
                             <input
                               type={isPassword && !showCredentials[key] ? 'password' : 'text'}
                               value={credentials[key] || ''}
                               onChange={(e) => setCredentials((prev) => ({ ...prev, [key]: e.target.value }))}
-                              className="w-full px-3 py-2 pr-10 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                              className="w-full px-3 py-2 pr-10 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                               placeholder={`Enter new ${prop.title.toLowerCase()}`}
                             />
                             {isPassword && (
                               <button
                                 type="button"
                                 onClick={() => setShowCredentials(prev => ({ ...prev, [key]: !prev[key] }))}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
                               >
                                 {showCredentials[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
@@ -368,35 +369,35 @@ export function EditIntegrationModal({
                   type="checkbox"
                   checked={formData.isDefault}
                   onChange={(e) => setFormData((prev) => ({ ...prev, isDefault: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                 />
-                <span className="text-sm text-zinc-300">Set as default gateway</span>
+                <span className="text-sm text-foreground">Set as default gateway</span>
               </label>
             )}
 
             {/* Sharing options for platform view */}
             {isPlatformView && (
               <>
-                <div className="pt-4 border-t border-zinc-800">
+                <div className="pt-4 border-t border-border">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.isSharedWithClients}
                       onChange={(e) => setFormData((prev) => ({ ...prev, isSharedWithClients: e.target.checked }))}
-                      className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                      className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-zinc-300">Share with clients</span>
+                    <span className="text-sm text-foreground">Share with clients</span>
                   </label>
                 </div>
 
                 {formData.isSharedWithClients && (
                   <div className="pl-6 space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-1">Pricing Type</label>
+                      <label className="block text-sm font-medium text-foreground mb-1">Pricing Type</label>
                       <select
                         value={formData.pricingType}
                         onChange={(e) => setFormData((prev) => ({ ...prev, pricingType: e.target.value }))}
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
                       >
                         <option value="fixed">Fixed per transaction</option>
                         <option value="percentage">Percentage</option>
@@ -404,25 +405,25 @@ export function EditIntegrationModal({
                     </div>
                     {formData.pricingType === 'fixed' ? (
                       <div>
-                        <label className="block text-sm font-medium text-zinc-300 mb-1">Amount per Transaction ($)</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">Amount per Transaction ($)</label>
                         <input
                           type="number"
                           step="0.01"
                           value={formData.pricingAmount}
                           onChange={(e) => setFormData((prev) => ({ ...prev, pricingAmount: e.target.value }))}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                           placeholder="0.30"
                         />
                       </div>
                     ) : (
                       <div>
-                        <label className="block text-sm font-medium text-zinc-300 mb-1">Percentage</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">Percentage</label>
                         <input
                           type="number"
                           step="0.01"
                           value={formData.pricingPercentage}
                           onChange={(e) => setFormData((prev) => ({ ...prev, pricingPercentage: e.target.value }))}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                           placeholder="2.9"
                         />
                       </div>
@@ -435,14 +436,14 @@ export function EditIntegrationModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800">
-          <button onClick={handleClose} className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-border">
+          <button onClick={handleClose} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !formData.name}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary disabled:bg-muted disabled:text-muted-foreground text-foreground text-sm font-medium rounded-lg transition-colors"
           >
             {isSubmitting ? (
               <>

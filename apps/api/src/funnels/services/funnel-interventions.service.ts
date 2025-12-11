@@ -60,26 +60,114 @@ export interface SocialProofNotification {
 export class FunnelInterventionsService {
   private readonly logger = new Logger(FunnelInterventionsService.name);
 
-  // Sample data for social proof - in production this would come from real transactions
-  private readonly sampleNames = [
+  // Fallback data used only when no real data exists in the database
+  private readonly fallbackNames = [
     'Sarah', 'Michael', 'Emily', 'James', 'Jessica', 'David', 'Ashley', 'Robert',
     'Jennifer', 'Daniel', 'Amanda', 'Christopher', 'Stephanie', 'Matthew', 'Nicole',
     'Andrew', 'Lauren', 'Joshua', 'Megan', 'Ryan', 'Brittany', 'Brandon', 'Samantha',
   ];
 
-  private readonly sampleLocations = [
+  private readonly fallbackLocations = [
     'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
     'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
     'Austin, TX', 'Seattle, WA', 'Denver, CO', 'Boston, MA', 'Nashville, TN',
     'Portland, OR', 'Miami, FL', 'Atlanta, GA', 'San Francisco, CA', 'Minneapolis, MN',
   ];
 
-  private readonly timeAgoOptions = [
-    '2 minutes ago', '5 minutes ago', '8 minutes ago', '12 minutes ago', '15 minutes ago',
-    '20 minutes ago', '25 minutes ago', '30 minutes ago', '45 minutes ago', '1 hour ago',
-  ];
+  // Cached real data from database
+  private cachedNames: string[] = [];
+  private cachedLocations: string[] = [];
+  private cacheExpiry: number = 0;
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Refresh cached names and locations from real customer/order data
+   */
+  private async refreshCache(companyId: string): Promise<void> {
+    if (Date.now() < this.cacheExpiry && this.cachedNames.length > 0) {
+      return; // Cache still valid
+    }
+
+    try {
+      // Get real customer names from recent orders
+      const recentOrders = await this.prisma.order.findMany({
+        where: {
+          companyId,
+          status: { in: ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED'] },
+          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Last 30 days
+        },
+        select: {
+          shippingSnapshot: true,
+          customer: {
+            select: {
+              firstName: true,
+            },
+          },
+        },
+        take: 100,
+      });
+
+      // Extract unique first names from orders
+      const names = new Set<string>();
+      const locations = new Set<string>();
+
+      for (const order of recentOrders) {
+        // Get name from customer
+        if (order.customer?.firstName) {
+          names.add(order.customer.firstName);
+        }
+
+        // Get location from shipping snapshot (Json field)
+        const address = order.shippingSnapshot as { city?: string; state?: string } | null;
+        if (address?.city && address?.state) {
+          locations.add(`${address.city}, ${address.state}`);
+        }
+      }
+
+      // Also get names from customers table
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          companyId,
+          firstName: { not: null },
+        },
+        select: {
+          firstName: true,
+          addresses: true,
+        },
+        take: 50,
+      });
+
+      for (const customer of customers) {
+        if (customer.firstName) {
+          names.add(customer.firstName);
+        }
+        // Get locations from customer addresses
+        const addresses = customer.addresses as any[];
+        if (Array.isArray(addresses)) {
+          for (const addr of addresses) {
+            if (addr?.city && addr?.state) {
+              locations.add(`${addr.city}, ${addr.state}`);
+            }
+          }
+        }
+      }
+
+      // Update cache with real data, keeping fallbacks if insufficient data
+      this.cachedNames = names.size >= 5 ? Array.from(names) : this.fallbackNames;
+      this.cachedLocations = locations.size >= 5 ? Array.from(locations) : this.fallbackLocations;
+      this.cacheExpiry = Date.now() + this.CACHE_TTL;
+
+      this.logger.debug(
+        `Social proof cache refreshed: ${this.cachedNames.length} names, ${this.cachedLocations.length} locations`,
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to refresh social proof cache, using fallbacks: ${error}`);
+      this.cachedNames = this.fallbackNames;
+      this.cachedLocations = this.fallbackLocations;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // INTERVENTION CONFIG
@@ -172,6 +260,13 @@ export class FunnelInterventionsService {
   // SOCIAL PROOF DATA
   // ═══════════════════════════════════════════════════════════════════════════════
 
+  // Time ago options for social proof notifications
+  private readonly timeAgoOptions = [
+    'just now', '2 minutes ago', '5 minutes ago', '8 minutes ago',
+    '12 minutes ago', '15 minutes ago', '23 minutes ago', '34 minutes ago',
+    '45 minutes ago', '1 hour ago', '2 hours ago', '3 hours ago',
+  ];
+
   /**
    * Get social proof notifications for a funnel
    * Returns sample notifications for display
@@ -187,6 +282,9 @@ export class FunnelInterventionsService {
     });
 
     if (funnel) {
+      // Refresh the cache with real customer data
+      await this.refreshCache(funnel.companyId);
+
       // Get recent order count to determine if we have real data
       const recentOrderCount = await this.prisma.order.count({
         where: {
@@ -245,11 +343,13 @@ export class FunnelInterventionsService {
   }
 
   private getRandomName(): string {
-    return this.sampleNames[Math.floor(Math.random() * this.sampleNames.length)];
+    const names = this.cachedNames.length > 0 ? this.cachedNames : this.fallbackNames;
+    return names[Math.floor(Math.random() * names.length)];
   }
 
   private getRandomLocation(): string {
-    return this.sampleLocations[Math.floor(Math.random() * this.sampleLocations.length)];
+    const locations = this.cachedLocations.length > 0 ? this.cachedLocations : this.fallbackLocations;
+    return locations[Math.floor(Math.random() * locations.length)];
   }
 
   private getTimeAgo(date: Date): string {

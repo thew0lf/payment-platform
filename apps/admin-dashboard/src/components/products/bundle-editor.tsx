@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   Package,
   Plus,
@@ -65,6 +66,7 @@ export function BundleEditor({
   const [selectedProductId, setSelectedProductId] = useState('');
   const [priceCalc, setPriceCalc] = useState<PriceCalculation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -135,10 +137,13 @@ export function BundleEditor({
     }
   };
 
-  const deleteBundle = async () => {
+  const deleteBundle = () => {
     if (!bundle) return;
-    if (!confirm('Are you sure you want to remove the bundle configuration?')) return;
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDeleteBundle = async () => {
+    if (!bundle) return;
     setSaving(true);
     setError(null);
     try {
@@ -146,11 +151,13 @@ export function BundleEditor({
       setBundle(null);
       setPriceCalc(null);
       onBundleChange?.(null);
+      toast.success('Bundle configuration removed');
     } catch (err: any) {
       console.error('Failed to delete bundle:', err);
-      setError(err.message || 'Failed to delete bundle');
+      toast.error('Failed to delete bundle');
     } finally {
       setSaving(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -212,7 +219,7 @@ export function BundleEditor({
   if (loading) {
     return (
       <div className={cn('flex items-center justify-center py-8', className)}>
-        <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
       </div>
     );
   }
@@ -226,7 +233,7 @@ export function BundleEditor({
             {error}
           </div>
         )}
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Make this product a bundle to include multiple items.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -235,10 +242,10 @@ export function BundleEditor({
               key={type.value}
               onClick={() => createBundle(type.value)}
               disabled={saving}
-              className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg text-left hover:border-cyan-500/50 transition-colors disabled:opacity-50"
+              className="p-4 bg-muted border border-border rounded-lg text-left hover:border-primary/50 transition-colors disabled:opacity-50"
             >
-              <p className="text-sm font-medium text-white">{type.label}</p>
-              <p className="text-xs text-zinc-500 mt-1">{type.description}</p>
+              <p className="text-sm font-medium text-foreground">{type.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">{type.description}</p>
             </button>
           ))}
         </div>
@@ -258,8 +265,8 @@ export function BundleEditor({
       {/* Bundle Settings Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Package className="w-5 h-5 text-cyan-400" />
-          <h4 className="text-sm font-medium text-white">Bundle Configuration</h4>
+          <Package className="w-5 h-5 text-primary" />
+          <h4 className="text-sm font-medium text-foreground">Bundle Configuration</h4>
         </div>
         <Button
           variant="ghost"
@@ -277,14 +284,14 @@ export function BundleEditor({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Bundle Type
           </label>
           <select
             value={bundle.type}
             onChange={(e) => updateBundle({ type: e.target.value as BundleType })}
             disabled={saving}
-            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
           >
             {BUNDLE_TYPES.map((type) => (
               <option key={type.value} value={type.value}>
@@ -296,14 +303,14 @@ export function BundleEditor({
 
         {/* Pricing Strategy */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Pricing Strategy
           </label>
           <select
             value={bundle.pricingStrategy}
             onChange={(e) => updateBundle({ pricingStrategy: e.target.value as BundlePricing })}
             disabled={saving}
-            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
           >
             {PRICING_STRATEGIES.map((strategy) => (
               <option key={strategy.value} value={strategy.value}>
@@ -317,7 +324,7 @@ export function BundleEditor({
         {bundle.pricingStrategy === 'CALCULATED' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Discount Type
               </label>
               <select
@@ -328,7 +335,7 @@ export function BundleEditor({
                   })
                 }
                 disabled={saving}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
               >
                 <option value="">No discount</option>
                 {DISCOUNT_TYPES.map((dt) => (
@@ -340,7 +347,7 @@ export function BundleEditor({
             </div>
             {bundle.discountType && (
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {bundle.discountType === 'PERCENTAGE' ? 'Discount %' : 'Discount Amount'}
                 </label>
                 <Input
@@ -352,7 +359,7 @@ export function BundleEditor({
                   min="0"
                   max={bundle.discountType === 'PERCENTAGE' ? 100 : undefined}
                   disabled={saving}
-                  className="bg-zinc-800"
+                  className="bg-muted"
                 />
               </div>
             )}
@@ -363,7 +370,7 @@ export function BundleEditor({
         {bundle.type === 'MIX_AND_MATCH' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Min Items
               </label>
               <Input
@@ -374,11 +381,11 @@ export function BundleEditor({
                 }
                 min="1"
                 disabled={saving}
-                className="bg-zinc-800"
+                className="bg-muted"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Max Items
               </label>
               <Input
@@ -389,7 +396,7 @@ export function BundleEditor({
                 }
                 min="1"
                 disabled={saving}
-                className="bg-zinc-800"
+                className="bg-muted"
               />
             </div>
           </>
@@ -403,9 +410,9 @@ export function BundleEditor({
             checked={bundle.isActive}
             onChange={(e) => updateBundle({ isActive: e.target.checked })}
             disabled={saving}
-            className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500/50"
+            className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary/50"
           />
-          <label htmlFor="bundle-active" className="text-sm text-zinc-300">
+          <label htmlFor="bundle-active" className="text-sm text-foreground">
             Bundle is active
           </label>
         </div>
@@ -414,11 +421,11 @@ export function BundleEditor({
       {/* Bundle Items */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-white">Bundle Items</h4>
+          <h4 className="text-sm font-medium text-foreground">Bundle Items</h4>
           <button
             onClick={() => setShowAddProduct(true)}
             disabled={saving}
-            className="flex items-center gap-1 px-2 py-1 text-sm text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+            className="flex items-center gap-1 px-2 py-1 text-sm text-primary hover:text-primary disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Add Product
@@ -430,19 +437,19 @@ export function BundleEditor({
             {bundle.items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg"
+                className="flex items-center gap-3 p-3 bg-muted border border-border rounded-lg"
               >
-                <GripVertical className="w-4 h-4 text-zinc-500 cursor-grab" />
+                <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white truncate">
+                  <p className="text-sm text-foreground truncate">
                     {item.product?.name || 'Unknown Product'}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     {item.product?.sku} • {formatCurrency(Number(item.product?.price) || 0)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400">Qty:</span>
+                  <span className="text-xs text-muted-foreground">Qty:</span>
                   <input
                     type="number"
                     value={item.quantity}
@@ -450,12 +457,12 @@ export function BundleEditor({
                       updateItemQuantity(item.id, parseInt(e.target.value) || 1)
                     }
                     min="1"
-                    className="w-16 px-2 py-1 bg-zinc-700 border border-zinc-600 rounded text-white text-center text-sm"
+                    className="w-16 px-2 py-1 bg-muted border border-border rounded text-foreground text-center text-sm"
                   />
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -463,7 +470,7 @@ export function BundleEditor({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-500 text-center py-4 bg-zinc-800/50 rounded-lg border border-zinc-700 border-dashed">
+          <p className="text-sm text-muted-foreground text-center py-4 bg-muted/50 rounded-lg border border-border border-dashed">
             No items in bundle yet. Click "Add Product" to get started.
           </p>
         )}
@@ -471,15 +478,15 @@ export function BundleEditor({
 
       {/* Price Calculation */}
       {priceCalc && bundle.items.length > 0 && (
-        <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+        <div className="p-4 bg-muted/50 border border-border rounded-lg">
           <div className="flex items-center gap-2 mb-3">
-            <Calculator className="w-4 h-4 text-cyan-400" />
-            <h4 className="text-sm font-medium text-white">Price Calculation</h4>
+            <Calculator className="w-4 h-4 text-primary" />
+            <h4 className="text-sm font-medium text-foreground">Price Calculation</h4>
           </div>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Items Total:</span>
-              <span className="text-white">{formatCurrency(priceCalc.itemsTotal)}</span>
+              <span className="text-muted-foreground">Items Total:</span>
+              <span className="text-foreground">{formatCurrency(priceCalc.itemsTotal)}</span>
             </div>
             {priceCalc.discountAmount > 0 && (
               <div className="flex justify-between text-green-400">
@@ -487,18 +494,18 @@ export function BundleEditor({
                 <span>-{formatCurrency(priceCalc.discountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between font-medium pt-2 border-t border-zinc-700">
-              <span className="text-white">Final Price:</span>
-              <span className="text-cyan-400">{formatCurrency(priceCalc.finalPrice)}</span>
+            <div className="flex justify-between font-medium pt-2 border-t border-border">
+              <span className="text-foreground">Final Price:</span>
+              <span className="text-primary">{formatCurrency(priceCalc.finalPrice)}</span>
             </div>
           </div>
 
           {/* Breakdown */}
           {priceCalc.breakdown.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-zinc-700">
-              <p className="text-xs text-zinc-500 mb-2">Breakdown:</p>
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2">Breakdown:</p>
               {priceCalc.breakdown.map((item, index) => (
-                <div key={index} className="flex justify-between text-xs text-zinc-400">
+                <div key={index} className="flex justify-between text-xs text-muted-foreground">
                   <span>
                     {item.quantity}x {item.productName}
                   </span>
@@ -518,12 +525,12 @@ export function BundleEditor({
             onClick={() => setShowAddProduct(false)}
           />
           <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50">
-            <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6">
+            <div className="bg-card border border-border rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Add Product to Bundle</h3>
+                <h3 className="text-lg font-semibold text-foreground">Add Product to Bundle</h3>
                 <button
                   onClick={() => setShowAddProduct(false)}
-                  className="p-1 text-zinc-500 hover:text-white"
+                  className="p-1 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -532,7 +539,7 @@ export function BundleEditor({
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white mb-4"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground mb-4"
               >
                 <option value="">Select a product</option>
                 {products
@@ -558,6 +565,32 @@ export function BundleEditor({
                   disabled={!selectedProductId || saving}
                 >
                   {saving ? 'Adding...' : 'Add to Bundle'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete Bundle Confirmation Modal */}
+      {showDeleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Remove Bundle?</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Are you sure you want to remove the bundle configuration? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={confirmDeleteBundle} disabled={saving}>
+                  {saving ? 'Removing...' : 'Remove Bundle'}
                 </Button>
               </div>
             </div>

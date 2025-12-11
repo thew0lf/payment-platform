@@ -23,7 +23,7 @@ export function ProviderStatus({ providers, manageHref = '/integrations' }: Prov
       case 'healthy': return 'bg-emerald-400';
       case 'degraded': return 'bg-amber-400';
       case 'down': return 'bg-red-400';
-      default: return 'bg-zinc-400';
+      default: return 'bg-muted-foreground';
     }
   };
 
@@ -34,12 +34,12 @@ export function ProviderStatus({ providers, manageHref = '/integrations' }: Prov
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+    <div className="bg-card border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-white">Payment Providers</h2>
+        <h2 className="text-lg font-medium text-foreground">Payment Providers</h2>
         <Link
           href={manageHref}
-          className="text-sm text-cyan-400 hover:text-cyan-300"
+          className="text-sm text-primary hover:text-primary/80"
         >
           Manage
         </Link>
@@ -48,20 +48,20 @@ export function ProviderStatus({ providers, manageHref = '/integrations' }: Prov
         {providers.map(provider => (
           <div
             key={provider.id}
-            className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50"
+            className="p-3 bg-muted/50 rounded-lg border border-border"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-white">{provider.name}</span>
+              <span className="text-sm font-medium text-foreground">{provider.name}</span>
               <span className={cn(
                 "w-2 h-2 rounded-full",
                 getStatusColor(provider.status)
               )} />
             </div>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-lg font-semibold text-foreground">
               {formatVolume(provider.volume)}
             </p>
             {provider.successRate !== undefined && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 {provider.successRate.toFixed(1)}% success rate
               </p>
             )}

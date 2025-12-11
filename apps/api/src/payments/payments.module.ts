@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { PaymentProviderFactory } from './providers/payment-provider.factory';
 import { PaymentProcessingService } from './services/payment-processing.service';
 import { TransactionLoggingService } from './services/transaction-logging.service';
@@ -17,6 +18,13 @@ import { HierarchyModule } from '../hierarchy/hierarchy.module';
     ConfigModule,
     PrismaModule,
     HierarchyModule,
+    ThrottlerModule.forRoot([
+      {
+        name: 'payment',
+        ttl: 60000, // 1 minute
+        limit: 30, // 30 payment operations per minute (stricter for financial ops)
+      },
+    ]),
     HttpModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

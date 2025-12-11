@@ -50,7 +50,8 @@ export class Auth0Strategy extends PassportStrategy(JwtStrategy, 'auth0') {
   }
 
   async validate(request: any, payload: any): Promise<AuthenticatedUser> {
-    this.logger.debug('Auth0 token payload:', JSON.stringify(payload, null, 2));
+    // Log only non-PII claims for debugging (sub is already opaque)
+    this.logger.debug(`Auth0 token validation - sub: ${payload.sub}, iss: ${payload.iss}`);
 
     // Auth0 tokens contain:
     // - sub: user ID in Auth0
@@ -88,12 +89,12 @@ export class Auth0Strategy extends PassportStrategy(JwtStrategy, 'auth0') {
     });
 
     if (!user) {
-      this.logger.warn(`No user found for Auth0 email: ${auth0Email}`);
+      this.logger.warn(`No user found for Auth0 sub: ${auth0Sub}`);
       throw new UnauthorizedException('User not found');
     }
 
     if (user.status !== 'ACTIVE') {
-      this.logger.warn(`User ${auth0Email} is not active`);
+      this.logger.warn(`User ${user.id} is not active (status: ${user.status})`);
       throw new UnauthorizedException('User account is not active');
     }
 

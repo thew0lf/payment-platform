@@ -67,44 +67,44 @@ export default function GeneralSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-cyan-400" />
+              <Building2 className="w-5 h-5 text-primary" />
               <CardTitle>Company Information</CardTitle>
             </div>
             <CardDescription>Basic information about your company</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 Company Name
               </label>
               <input
                 type="text"
                 value={settings.companyName}
                 onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 Display Name
               </label>
               <input
                 type="text"
                 value={settings.displayName}
                 onChange={(e) => setSettings({ ...settings, displayName: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
-              <p className="mt-1 text-xs text-zinc-500">This name will be shown to customers</p>
+              <p className="mt-1 text-xs text-muted-foreground">This name will be shown to customers</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 Website
               </label>
               <input
                 type="url"
                 value={settings.website}
                 onChange={(e) => setSettings({ ...settings, website: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
           </CardContent>
@@ -114,21 +114,21 @@ export default function GeneralSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-cyan-400" />
+              <Globe className="w-5 h-5 text-primary" />
               <CardTitle>Regional Settings</CardTitle>
             </div>
             <CardDescription>Configure timezone, currency, and date formats</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 <Clock className="w-4 h-4 inline mr-1" />
                 Timezone
               </label>
               <select
                 value={settings.timezone}
                 onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               >
                 {timezones.map((tz) => (
                   <option key={tz.value} value={tz.value}>
@@ -138,14 +138,14 @@ export default function GeneralSettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 <DollarSign className="w-4 h-4 inline mr-1" />
                 Currency
               </label>
               <select
                 value={settings.currency}
                 onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               >
                 {currencies.map((cur) => (
                   <option key={cur.value} value={cur.value}>
@@ -155,13 +155,13 @@ export default function GeneralSettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 Date Format
               </label>
               <select
                 value={settings.dateFormat}
                 onChange={(e) => setSettings({ ...settings, dateFormat: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               >
                 {dateFormats.map((df) => (
                   <option key={df.value} value={df.value}>
@@ -182,8 +182,8 @@ export default function GeneralSettingsPage() {
           <CardContent>
             <div className="flex items-center justify-between p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
               <div>
-                <p className="font-medium text-white">Delete Company</p>
-                <p className="text-sm text-zinc-400">
+                <p className="font-medium text-foreground">Delete Company</p>
+                <p className="text-sm text-muted-foreground">
                   Permanently delete this company and all its data
                 </p>
               </div>

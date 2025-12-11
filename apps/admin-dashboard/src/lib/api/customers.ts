@@ -99,6 +99,7 @@ export interface CreateCustomerInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  companyId: string;
   metadata?: Record<string, unknown>;
 }
 

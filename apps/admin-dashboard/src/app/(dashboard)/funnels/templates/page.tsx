@@ -272,7 +272,7 @@ function TemplateCard({ template, onPreview, onUse, featured }: TemplateCardProp
           </button>
         </div>
         {featured && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-amber-500 text-white text-xs font-medium rounded-full">
+          <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-amber-500 text-foreground text-xs font-medium rounded-full">
             <Star className="w-3 h-3" />
             Featured
           </div>

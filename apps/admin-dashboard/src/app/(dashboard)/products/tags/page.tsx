@@ -78,13 +78,13 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
 
       {/* Modal */}
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full z-50">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl">
+        <div className="bg-card border border-border rounded-xl shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">
               {tag ? 'Edit Tag' : 'Add Tag'}
             </h2>
-            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -93,30 +93,30 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
           <form onSubmit={handleSubmit} className="p-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="Tag name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Slug</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Slug</label>
                 <input
                   type="text"
                   value={formData.slug || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, slug: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="tag-slug (auto-generated if empty)"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Color</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Color</label>
                 <div className="flex flex-wrap gap-2">
                   {TAG_COLORS.map((color) => (
                     <button
@@ -126,7 +126,7 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
                       className={cn(
                         'w-8 h-8 rounded-full transition-all',
                         formData.color === color.value
-                          ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                          ? 'ring-2 ring-white ring-offset-2 ring-offset-background'
                           : 'hover:scale-110'
                       )}
                       style={{ backgroundColor: color.value }}
@@ -138,9 +138,9 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
 
               {/* Preview */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Preview</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Preview</label>
                 <span
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-foreground"
                   style={{ backgroundColor: `${formData.color}20`, color: formData.color }}
                 >
                   <Tag className="w-3.5 h-3.5" />
@@ -151,11 +151,11 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
@@ -163,7 +163,7 @@ function TagModal({ tag, onClose, onSave }: TagModalProps) {
               type="submit"
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               {tag ? 'Save Changes' : 'Create Tag'}
@@ -204,18 +204,18 @@ function DeleteModal({ tag, onClose, onConfirm }: DeleteModalProps) {
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full z-50">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6">
+        <div className="bg-card border border-border rounded-xl shadow-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-500/10 rounded-lg">
               <AlertTriangle className="w-6 h-6 text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Delete Tag</h2>
-              <p className="text-sm text-zinc-500">This action cannot be undone</p>
+              <h2 className="text-lg font-semibold text-foreground">Delete Tag</h2>
+              <p className="text-sm text-muted-foreground">This action cannot be undone</p>
             </div>
           </div>
 
-          <p className="text-sm text-zinc-300 mb-6">
+          <p className="text-sm text-foreground mb-6">
             Are you sure you want to delete <strong>{tag.name}</strong>?
             {tag.productCount > 0 && (
               <span className="block mt-2 text-yellow-400">
@@ -227,14 +227,14 @@ function DeleteModal({ tag, onClose, onConfirm }: DeleteModalProps) {
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-foreground rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               Delete
@@ -327,13 +327,13 @@ export default function TagsPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/products"
-            className="p-2 text-zinc-500 hover:text-white transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Tags</h1>
-            <p className="text-sm text-zinc-500 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Tags</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Label your products for easy filtering
             </p>
           </div>
@@ -341,7 +341,7 @@ export default function TagsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchTags}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
             title="Refresh"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -349,7 +349,7 @@ export default function TagsPage() {
           <button
             onClick={openCreateModal}
             disabled={needsCompanySelection}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title={needsCompanySelection ? 'Select a company first' : undefined}
           >
             <Plus className="w-4 h-4" />
@@ -362,13 +362,13 @@ export default function TagsPage() {
       {tags.length > 0 && (
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search tags..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </div>
@@ -384,18 +384,18 @@ export default function TagsPage() {
       {/* Loading State */}
       {loading && tags.length === 0 && !needsCompanySelection && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       )}
 
       {/* Company Selection Required */}
       {needsCompanySelection && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-zinc-500" />
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <h3 className="text-lg font-medium text-foreground mb-2">Select a Company</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
             Choose a company from the sidebar to view and manage tags.
           </p>
         </div>
@@ -404,14 +404,14 @@ export default function TagsPage() {
       {/* Empty State */}
       {!loading && !needsCompanySelection && tags.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Tags className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No tags yet</h3>
-          <p className="text-sm text-zinc-500 max-w-md mb-4">
+          <Tags className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No tags yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-4">
             Create tags to organize and filter your products.
           </p>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Tag
@@ -425,7 +425,7 @@ export default function TagsPage() {
           {filteredTags.map((tag) => (
             <div
               key={tag.id}
-              className="group bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors"
+              className="group bg-card/50 border border-border rounded-xl p-4 hover:border-border transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <span
@@ -441,14 +441,14 @@ export default function TagsPage() {
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => openEditModal(tag)}
-                    className="p-1.5 text-zinc-500 hover:text-white transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                     title="Edit"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeletingTag(tag)}
-                    className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -456,7 +456,7 @@ export default function TagsPage() {
                 </div>
               </div>
 
-              <div className="text-xs text-zinc-500">
+              <div className="text-xs text-muted-foreground">
                 <p>Slug: {tag.slug}</p>
                 <p className="mt-1">{tag.productCount} products</p>
               </div>
@@ -468,9 +468,9 @@ export default function TagsPage() {
       {/* No results */}
       {!loading && tags.length > 0 && filteredTags.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Search className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No matching tags</h3>
-          <p className="text-sm text-zinc-500">
+          <Search className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No matching tags</h3>
+          <p className="text-sm text-muted-foreground">
             Try adjusting your search term.
           </p>
         </div>

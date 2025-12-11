@@ -337,11 +337,11 @@ interface AddSectionModalProps {
 function AddSectionModal({ onClose, onAdd }: AddSectionModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-3xl max-h-[80vh] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-900 z-10">
-          <h2 className="text-lg font-semibold text-white">Add Section</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-800 transition-colors">
-            <X className="h-5 w-5 text-zinc-400" />
+      <div className="w-full max-w-3xl max-h-[80vh] overflow-y-auto bg-card border border-border rounded-xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
+          <h2 className="text-lg font-semibold text-foreground">Add Section</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
         <div className="p-6 grid grid-cols-3 gap-3">
@@ -352,14 +352,14 @@ function AddSectionModal({ onClose, onAdd }: AddSectionModalProps) {
                 onAdd(type);
                 onClose();
               }}
-              className="flex items-start gap-3 p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 hover:border-blue-500 hover:bg-blue-500/10 text-left transition-all group"
+              className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/50 hover:border-blue-500 hover:bg-blue-500/10 text-left transition-all group"
             >
-              <div className="p-2 rounded-lg bg-zinc-700 group-hover:bg-blue-600 transition-colors">
-                <Icon className="h-5 w-5 text-zinc-300 group-hover:text-white" />
+              <div className="p-2 rounded-lg bg-muted group-hover:bg-blue-600 transition-colors">
+                <Icon className="h-5 w-5 text-foreground group-hover:text-foreground" />
               </div>
               <div className="min-w-0">
-                <div className="font-medium text-white">{label}</div>
-                <div className="text-xs text-zinc-400 truncate">{description}</div>
+                <div className="font-medium text-foreground">{label}</div>
+                <div className="text-xs text-muted-foreground truncate">{description}</div>
               </div>
             </button>
           ))}
@@ -392,6 +392,7 @@ function SectionListItem({
   onMove,
   onDelete,
 }: SectionListItemProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const sectionConfig = SECTION_TYPES.find((s) => s.type === section.type);
   const Icon = sectionConfig?.icon || Layout;
 
@@ -401,23 +402,23 @@ function SectionListItem({
         'group flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer',
         isSelected
           ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
-          : 'border-zinc-800 hover:border-zinc-600 bg-zinc-800/50'
+          : 'border-border hover:border-border bg-muted/50'
       )}
       onClick={onSelect}
     >
-      <GripVertical className="h-4 w-4 text-zinc-600 cursor-grab shrink-0" />
+      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab shrink-0" />
       <div className={cn(
         'p-1.5 rounded shrink-0',
-        isSelected ? 'bg-blue-600' : 'bg-zinc-700'
+        isSelected ? 'bg-blue-600' : 'bg-muted'
       )}>
-        <Icon className="h-3.5 w-3.5 text-white" />
+        <Icon className="h-3.5 w-3.5 text-foreground" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-white truncate">
+        <div className="text-sm text-foreground truncate">
           {section.name || getSectionLabel(section.type)}
         </div>
         {!section.enabled && (
-          <div className="flex items-center gap-1 text-xs text-zinc-500">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <EyeOff className="h-3 w-3" />
             Hidden
           </div>
@@ -430,10 +431,10 @@ function SectionListItem({
             onMove('up');
           }}
           disabled={index === 0}
-          className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
           title="Move up"
         >
-          <ChevronUp className="h-3.5 w-3.5 text-zinc-400" />
+          <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
         <button
           onClick={(e) => {
@@ -441,23 +442,60 @@ function SectionListItem({
             onMove('down');
           }}
           disabled={index === total - 1}
-          className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
           title="Move down"
         >
-          <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm('Delete this section?')) {
-              onDelete();
-            }
-          }}
-          className="p-1 rounded hover:bg-red-500/20"
-          title="Delete section"
-        >
-          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteConfirm(true);
+            }}
+            className="p-1 rounded hover:bg-red-500/20"
+            title="Delete section"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+          </button>
+
+          {/* Delete Confirmation Popover */}
+          {showDeleteConfirm && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(false);
+                }}
+              />
+              <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-xl z-50 p-3">
+                <p className="text-xs text-muted-foreground mb-2">Delete this section?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="flex-1 px-2 py-1 text-xs rounded border border-border hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="flex-1 px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -523,35 +561,35 @@ function EditorContent() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Top Bar */}
-      <div className="h-14 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between px-4 shrink-0">
+      <div className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/landing-pages"
-            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
           >
-            <ArrowLeft className="h-5 w-5 text-zinc-400" />
+            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </Link>
           <div>
             <input
               type="text"
               value={page.name}
               onChange={(e) => updatePage({ name: e.target.value })}
-              className="bg-transparent text-white font-medium focus:outline-none border-b border-transparent hover:border-zinc-600 focus:border-blue-500 px-1"
+              className="bg-transparent text-foreground font-medium focus:outline-none border-b border-transparent hover:border-border focus:border-blue-500 px-1"
             />
-            <div className="text-xs text-zinc-500">/{page.slug}</div>
+            <div className="text-xs text-muted-foreground">/{page.slug}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Edit/Preview Toggle */}
-          <div className="flex items-center bg-zinc-800 rounded-lg p-1">
+          <div className="flex items-center bg-muted rounded-lg p-1">
             <button
               onClick={() => setEditorMode('edit')}
               className={cn(
                 'px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2',
-                editorMode === 'edit' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                editorMode === 'edit' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Edit3 className="h-4 w-4" />
@@ -561,7 +599,7 @@ function EditorContent() {
               onClick={() => setEditorMode('preview')}
               className={cn(
                 'px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2',
-                editorMode === 'preview' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                editorMode === 'preview' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Eye className="h-4 w-4" />
@@ -570,12 +608,12 @@ function EditorContent() {
           </div>
 
           {/* Device Toggle */}
-          <div className="flex items-center bg-zinc-800 rounded-lg p-1">
+          <div className="flex items-center bg-muted rounded-lg p-1">
             <button
               onClick={() => setDevicePreview('desktop')}
               className={cn(
                 'p-1.5 rounded transition-colors',
-                devicePreview === 'desktop' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                devicePreview === 'desktop' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
               title="Desktop"
             >
@@ -585,7 +623,7 @@ function EditorContent() {
               onClick={() => setDevicePreview('tablet')}
               className={cn(
                 'p-1.5 rounded transition-colors',
-                devicePreview === 'tablet' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                devicePreview === 'tablet' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
               title="Tablet"
             >
@@ -595,7 +633,7 @@ function EditorContent() {
               onClick={() => setDevicePreview('mobile')}
               className={cn(
                 'p-1.5 rounded transition-colors',
-                devicePreview === 'mobile' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                devicePreview === 'mobile' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
               title="Mobile"
             >
@@ -607,7 +645,7 @@ function EditorContent() {
           <button
             onClick={savePage}
             disabled={saving || !hasChanges}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
           >
             <Save className="h-4 w-4" />
             {saving ? 'Saving...' : 'Save'}
@@ -616,7 +654,7 @@ function EditorContent() {
           <button
             onClick={deployPage}
             disabled={deploying}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-600 text-foreground hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             <Rocket className="h-4 w-4" />
             {deploying ? 'Deploying...' : 'Deploy'}
@@ -627,10 +665,10 @@ function EditorContent() {
               href={page.platformUrl || page.clientUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
               title="View published page"
             >
-              <ExternalLink className="h-4 w-4 text-zinc-400" />
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
           )}
         </div>
@@ -640,7 +678,7 @@ function EditorContent() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Tabs */}
         {editorMode === 'edit' && (
-          <div className="w-12 border-r border-zinc-800 bg-zinc-900 flex flex-col items-center py-2 gap-1 shrink-0">
+          <div className="w-12 border-r border-border bg-card flex flex-col items-center py-2 gap-1 shrink-0">
             {[
               { id: 'sections' as const, icon: Layout, label: 'Sections' },
               { id: 'design' as const, icon: Palette, label: 'Design' },
@@ -653,8 +691,8 @@ function EditorContent() {
                 className={cn(
                   'p-2.5 rounded-lg transition-colors',
                   activeTab === id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                    ? 'bg-blue-600 text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
                 title={label}
               >
@@ -666,14 +704,14 @@ function EditorContent() {
 
         {/* Left Panel */}
         {editorMode === 'edit' && (
-          <div className="w-72 border-r border-zinc-800 bg-zinc-900/50 flex flex-col shrink-0">
+          <div className="w-72 border-r border-border bg-card/50 flex flex-col shrink-0">
             {activeTab === 'sections' && (
               <>
-                <div className="p-3 border-b border-zinc-800 flex items-center justify-between shrink-0">
-                  <h3 className="font-medium text-white text-sm">Sections</h3>
+                <div className="p-3 border-b border-border flex items-center justify-between shrink-0">
+                  <h3 className="font-medium text-foreground text-sm">Sections</h3>
                   <button
                     onClick={() => setShowAddSection(true)}
-                    className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    className="p-1.5 rounded-lg bg-blue-600 text-foreground hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -681,10 +719,10 @@ function EditorContent() {
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {page.sections.length === 0 ? (
                     <div className="text-center py-8">
-                      <div className="text-zinc-500 text-sm mb-3">No sections yet</div>
+                      <div className="text-muted-foreground text-sm mb-3">No sections yet</div>
                       <button
                         onClick={() => setShowAddSection(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-foreground text-sm rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         <Plus className="h-4 w-4" />
                         Add Section
@@ -711,7 +749,7 @@ function EditorContent() {
             {activeTab === 'design' && (
               <div className="p-4 space-y-6 overflow-y-auto">
                 <div>
-                  <h3 className="font-medium text-white text-sm mb-3">Theme</h3>
+                  <h3 className="font-medium text-foreground text-sm mb-3">Theme</h3>
                   <div className="grid grid-cols-3 gap-2">
                     {THEME_OPTIONS.map(({ theme, label, color }) => (
                       <button
@@ -729,21 +767,21 @@ function EditorContent() {
                           'p-2 rounded-lg border text-xs transition-all',
                           page.theme === theme
                             ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-zinc-700 hover:border-zinc-600'
+                            : 'border-border hover:border-border'
                         )}
                       >
                         <div
                           className="w-full h-4 rounded mb-1"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="text-zinc-300">{label}</span>
+                        <span className="text-foreground">{label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-medium text-white text-sm mb-3">Colors</h3>
+                  <h3 className="font-medium text-foreground text-sm mb-3">Colors</h3>
                   <div className="space-y-3">
                     {[
                       { key: 'primary', label: 'Primary', default: '#3B82F6' },
@@ -754,7 +792,7 @@ function EditorContent() {
                       { key: 'muted', label: 'Muted Text', default: '#6B7280' },
                     ].map(({ key, label, default: defaultVal }) => (
                       <div key={key} className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-400">{label}</span>
+                        <span className="text-xs text-muted-foreground">{label}</span>
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
@@ -766,7 +804,7 @@ function EditorContent() {
                             }
                             className="w-8 h-8 rounded cursor-pointer border-0"
                           />
-                          <span className="text-xs text-zinc-500 font-mono">
+                          <span className="text-xs text-muted-foreground font-mono">
                             {(page.colorScheme as any)?.[key] || defaultVal}
                           </span>
                         </div>
@@ -776,10 +814,10 @@ function EditorContent() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium text-white text-sm mb-3">Typography</h3>
+                  <h3 className="font-medium text-foreground text-sm mb-3">Typography</h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs text-zinc-400 mb-1">Heading Font</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Heading Font</label>
                       <select
                         value={page.typography?.headingFont || 'Inter'}
                         onChange={(e) =>
@@ -787,7 +825,7 @@ function EditorContent() {
                             typography: { ...page.typography, headingFont: e.target.value },
                           })
                         }
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                       >
                         <option value="Inter">Inter</option>
                         <option value="Playfair Display">Playfair Display</option>
@@ -802,7 +840,7 @@ function EditorContent() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-zinc-400 mb-1">Body Font</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Body Font</label>
                       <select
                         value={page.typography?.bodyFont || 'Inter'}
                         onChange={(e) =>
@@ -810,7 +848,7 @@ function EditorContent() {
                             typography: { ...page.typography, bodyFont: e.target.value },
                           })
                         }
-                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                       >
                         <option value="Inter">Inter</option>
                         <option value="Lora">Lora</option>
@@ -829,32 +867,32 @@ function EditorContent() {
 
             {activeTab === 'settings' && (
               <div className="p-4 space-y-4 overflow-y-auto">
-                <h3 className="font-medium text-white text-sm">Page Settings</h3>
+                <h3 className="font-medium text-foreground text-sm">Page Settings</h3>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">URL Slug</label>
+                  <label className="block text-xs text-muted-foreground mb-1">URL Slug</label>
                   <input
                     type="text"
                     value={page.slug}
                     onChange={(e) => updatePage({ slug: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Custom CSS</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Custom CSS</label>
                   <textarea
                     value={page.customCss || ''}
                     onChange={(e) => updatePage({ customCss: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
                     rows={5}
                     placeholder="/* Custom styles */"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Custom JavaScript</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Custom JavaScript</label>
                   <textarea
                     value={page.customJs || ''}
                     onChange={(e) => updatePage({ customJs: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
                     rows={5}
                     placeholder="// Custom scripts"
                   />
@@ -864,50 +902,50 @@ function EditorContent() {
 
             {activeTab === 'seo' && (
               <div className="p-4 space-y-4 overflow-y-auto">
-                <h3 className="font-medium text-white text-sm">SEO Settings</h3>
+                <h3 className="font-medium text-foreground text-sm">SEO Settings</h3>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Meta Title</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Meta Title</label>
                   <input
                     type="text"
                     value={page.metaTitle || ''}
                     onChange={(e) => updatePage({ metaTitle: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="Page title for search engines"
                   />
-                  <div className="text-xs text-zinc-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {(page.metaTitle || '').length}/60 characters
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Meta Description</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Meta Description</label>
                   <textarea
                     value={page.metaDescription || ''}
                     onChange={(e) => updatePage({ metaDescription: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm resize-none focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm resize-none focus:border-blue-500 focus:outline-none"
                     rows={3}
                     placeholder="Page description for search results"
                   />
-                  <div className="text-xs text-zinc-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {(page.metaDescription || '').length}/160 characters
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Google Analytics ID</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Google Analytics ID</label>
                   <input
                     type="text"
                     value={page.googleAnalyticsId || ''}
                     onChange={(e) => updatePage({ googleAnalyticsId: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="G-XXXXXXXXX"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Facebook Pixel ID</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Facebook Pixel ID</label>
                   <input
                     type="text"
                     value={page.facebookPixelId || ''}
                     onChange={(e) => updatePage({ facebookPixelId: e.target.value })}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="XXXXXXXXXX"
                   />
                 </div>
@@ -917,7 +955,7 @@ function EditorContent() {
         )}
 
         {/* Preview Area */}
-        <div className="flex-1 bg-zinc-950 overflow-hidden flex flex-col">
+        <div className="flex-1 bg-background overflow-hidden flex flex-col">
           {/* Preview container with proper centering */}
           <div className="flex-1 overflow-auto p-6 flex justify-center">
             <div
@@ -990,10 +1028,10 @@ export default function PageEditorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="h-8 w-8 text-zinc-400 animate-spin" />
-          <p className="text-zinc-400">Loading editor...</p>
+          <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Loading editor...</p>
         </div>
       </div>
     );
@@ -1001,12 +1039,12 @@ export default function PageEditorPage() {
 
   if (error || !page) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-400 mb-4">{error || 'Page not found'}</div>
           <Link
             href="/landing-pages"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Landing Pages

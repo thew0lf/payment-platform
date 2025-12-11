@@ -58,7 +58,7 @@ export function MethodologySelectionStep({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
           Choose Your Marketing Methodology
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-400">
@@ -70,7 +70,7 @@ export function MethodologySelectionStep({
       {recommendedMethodology && (
         <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
           <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-            <SparklesIcon className="h-5 w-5 text-white" />
+            <SparklesIcon className="h-5 w-5 text-foreground" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
@@ -107,7 +107,7 @@ export function MethodologySelectionStep({
               {/* MI Recommended badge */}
               {isRecommended && (
                 <div className="absolute -top-2 -right-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-foreground rounded-full">
                     <SparklesIcon className="h-3 w-3" />
                     MI Pick
                   </span>
@@ -117,13 +117,13 @@ export function MethodologySelectionStep({
               <div className="flex items-start gap-4">
                 {/* Icon */}
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient}`}>
-                  <Icon className="h-6 w-6 text-white" />
+                  <Icon className="h-6 w-6 text-foreground" />
                 </div>
 
                 {/* Content */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-semibold text-gray-900 dark:text-foreground">
                       {methodology.name}
                     </h3>
                     <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
@@ -166,7 +166,7 @@ export function MethodologySelectionStep({
         <button
           onClick={onBack}
           disabled={isLoading}
-          className="px-6 py-3 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+          className="px-6 py-3 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-foreground transition-colors disabled:opacity-50"
         >
           Back
         </button>

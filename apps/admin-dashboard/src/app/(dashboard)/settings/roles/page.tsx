@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import {
   Shield,
   Plus,
@@ -58,6 +60,7 @@ export default function RolesPage() {
   });
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
 
   // Filter roles by search
   const filteredRoles = roles.filter(role =>
@@ -106,18 +109,24 @@ export default function RolesPage() {
     }
   };
 
-  const handleDeleteRole = async (role: Role) => {
+  const handleDeleteRole = (role: Role) => {
     if (role.isSystem) {
-      alert('System roles cannot be deleted');
+      toast.error('System roles cannot be deleted');
       return;
     }
+    setRoleToDelete(role);
+  };
 
-    if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) return;
-
+  const confirmDeleteRole = async () => {
+    if (!roleToDelete) return;
     try {
-      await deleteRole(role.id);
+      await deleteRole(roleToDelete.id);
+      toast.success(`Role "${roleToDelete.name}" deleted`);
     } catch (err) {
       console.error('Failed to delete role:', err);
+      toast.error('Failed to delete role. Please try again.');
+    } finally {
+      setRoleToDelete(null);
     }
   };
 
@@ -176,9 +185,9 @@ export default function RolesPage() {
         <div className="p-6">
           <Card>
             <CardContent className="p-8 text-center">
-              <Lock className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Access Denied</h3>
-              <p className="text-sm text-zinc-400">
+              <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Access Denied</h3>
+              <p className="text-sm text-muted-foreground">
                 You don&apos;t have permission to view roles.
               </p>
             </CardContent>
@@ -206,7 +215,7 @@ export default function RolesPage() {
       <div className="p-4 sm:p-6 space-y-6">
         {/* Search */}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search roles..."
             value={search}
@@ -219,26 +228,26 @@ export default function RolesPage() {
         {rolesLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-48 bg-zinc-800/50 rounded-lg animate-pulse" />
+              <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : rolesError ? (
           <Card>
             <CardContent className="p-8 text-center">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Failed to load roles</h3>
-              <p className="text-sm text-zinc-400 mb-4">{rolesError}</p>
+              <h3 className="text-lg font-medium text-foreground mb-2">Failed to load roles</h3>
+              <p className="text-sm text-muted-foreground mb-4">{rolesError}</p>
               <Button onClick={refreshRoles}>Try Again</Button>
             </CardContent>
           </Card>
         ) : filteredRoles.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <Shield className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+              <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {search ? 'No roles found' : 'No roles yet'}
               </h3>
-              <p className="text-sm text-zinc-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 {search
                   ? 'Try a different search term'
                   : 'Create your first custom role to get started.'}
@@ -270,14 +279,14 @@ export default function RolesPage() {
       {/* Create/Edit Role Modal */}
       {(showCreateModal || showEditModal) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">
                 {showCreateModal ? 'Create Role' : 'Edit Role'}
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 text-zinc-400 hover:text-white"
+                className="p-2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -286,7 +295,7 @@ export default function RolesPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Name */}
               <div>
-                <label className="text-sm text-zinc-400 mb-1.5 block">Name</label>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Name</label>
                 <Input
                   placeholder="e.g., Sales Manager"
                   value={formData.name}
@@ -296,7 +305,7 @@ export default function RolesPage() {
 
               {/* Description */}
               <div>
-                <label className="text-sm text-zinc-400 mb-1.5 block">Description</label>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Description</label>
                 <Input
                   placeholder="Brief description of this role"
                   value={formData.description}
@@ -306,7 +315,7 @@ export default function RolesPage() {
 
               {/* Color */}
               <div>
-                <label className="text-sm text-zinc-400 mb-1.5 block">Color</label>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Color</label>
                 <div className="flex gap-2 flex-wrap">
                   {colorOptions.map((color) => (
                     <button
@@ -314,7 +323,7 @@ export default function RolesPage() {
                       onClick={() => setFormData({ ...formData, color: color.value })}
                       className={`w-8 h-8 rounded-lg transition-all ${
                         formData.color === color.value
-                          ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                          ? 'ring-2 ring-white ring-offset-2 ring-offset-background'
                           : ''
                       }`}
                       style={{ backgroundColor: color.value }}
@@ -326,7 +335,7 @@ export default function RolesPage() {
 
               {/* Permissions */}
               <div>
-                <label className="text-sm text-zinc-400 mb-2 block">Permissions</label>
+                <label className="text-sm text-muted-foreground mb-2 block">Permissions</label>
                 <PermissionMatrix
                   permissions={permissions}
                   roles={roles}
@@ -336,7 +345,7 @@ export default function RolesPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 p-4 border-t border-zinc-800">
+            <div className="flex gap-3 p-4 border-t border-border">
               <Button variant="outline" className="flex-1" onClick={handleCloseModal}>
                 Cancel
               </Button>
@@ -355,23 +364,23 @@ export default function RolesPage() {
       {/* View Role Modal */}
       {showViewModal && selectedRole && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+          <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: selectedRole.color || '#6b7280' }}
                 >
-                  <Shield className="w-5 h-5 text-white" />
+                  <Shield className="w-5 h-5 text-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{selectedRole.name}</h2>
-                  <p className="text-sm text-zinc-400">{selectedRole.slug}</p>
+                  <h2 className="text-lg font-semibold text-foreground">{selectedRole.name}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedRole.slug}</p>
                 </div>
               </div>
               <button
                 onClick={handleCloseModal}
-                className="p-2 text-zinc-400 hover:text-white"
+                className="p-2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -390,12 +399,12 @@ export default function RolesPage() {
               </div>
 
               {selectedRole.description && (
-                <p className="text-sm text-zinc-400">{selectedRole.description}</p>
+                <p className="text-sm text-muted-foreground">{selectedRole.description}</p>
               )}
 
               {/* Permissions (read-only) */}
               <div>
-                <h3 className="text-sm font-medium text-zinc-300 mb-2">Permissions</h3>
+                <h3 className="text-sm font-medium text-foreground mb-2">Permissions</h3>
                 <PermissionMatrix
                   permissions={permissions}
                   roles={roles}
@@ -406,7 +415,7 @@ export default function RolesPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 p-4 border-t border-zinc-800">
+            <div className="flex gap-3 p-4 border-t border-border">
               <Button variant="outline" className="flex-1" onClick={handleCloseModal}>
                 Close
               </Button>
@@ -425,6 +434,27 @@ export default function RolesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete Role Confirmation Modal */}
+      {roleToDelete && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Role?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to delete the role &quot;{roleToDelete.name}&quot;? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setRoleToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteRole}>
+                Delete Role
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 import {
   PaymentPagesController,
   ThemesController,
@@ -22,7 +23,7 @@ import {
 } from './gateways';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, IntegrationsModule],
   controllers: [
     PaymentPagesController,
     ThemesController,

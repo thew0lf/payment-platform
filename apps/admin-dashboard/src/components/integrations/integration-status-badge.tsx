@@ -27,8 +27,8 @@ const statusConfig: Record<IntegrationStatus, { label: string; color: string; bg
   },
   [IntegrationStatus.DISABLED]: {
     label: 'Disabled',
-    color: 'text-zinc-400',
-    bgColor: 'bg-zinc-500/10',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted',
   },
 };
 

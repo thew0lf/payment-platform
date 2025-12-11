@@ -2,39 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 9 9 11;
-  --foreground: 250 250 250;
+@layer base {
+  :root {
+    /* Light mode colors */
+    --background: 255 255 255;
+    --foreground: 9 9 11;
+
+    --card: 255 255 255;
+    --card-foreground: 9 9 11;
+
+    --popover: 255 255 255;
+    --popover-foreground: 9 9 11;
+
+    --primary: 6 182 212;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 244 244 245;
+    --secondary-foreground: 24 24 27;
+
+    --muted: 244 244 245;
+    --muted-foreground: 113 113 122;
+
+    --accent: 244 244 245;
+    --accent-foreground: 24 24 27;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 228 228 231;
+    --input: 228 228 231;
+    --ring: 6 182 212;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode colors */
+    --background: 9 9 11;
+    --foreground: 250 250 250;
+
+    --card: 24 24 27;
+    --card-foreground: 250 250 250;
+
+    --popover: 24 24 27;
+    --popover-foreground: 250 250 250;
+
+    --primary: 34 211 238;
+    --primary-foreground: 9 9 11;
+
+    --secondary: 39 39 42;
+    --secondary-foreground: 250 250 250;
+
+    --muted: 39 39 42;
+    --muted-foreground: 161 161 170;
+
+    --accent: 39 39 42;
+    --accent-foreground: 250 250 250;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 39 39 42;
+    --input: 39 39 42;
+    --ring: 34 211 238;
+  }
 }
 
 @layer base {
   * {
-    @apply border-zinc-800;
+    @apply border-border;
   }
+
   body {
-    @apply bg-zinc-950 text-zinc-50;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
+/* Scrollbar - Light mode */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Scrollbar - Dark mode */
+.dark ::-webkit-scrollbar-track {
   background: rgb(24 24 27);
 }
-::-webkit-scrollbar-thumb {
+
+.dark ::-webkit-scrollbar-thumb {
   background: rgb(63 63 70);
   border-radius: 4px;
 }
-::-webkit-scrollbar-thumb:hover {
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: rgb(82 82 91);
 }
 
+/* Focus styles */
 *:focus-visible {
-  @apply outline-none ring-2 ring-cyan-500 ring-offset-2 ring-offset-zinc-950;
+  @apply outline-none ring-2 ring-cyan-500 ring-offset-2;
 }
 
+.dark *:focus-visible {
+  @apply ring-offset-zinc-950;
+}
+
+/* Selection */
 ::selection {
-  @apply bg-cyan-500/30 text-cyan-50;
+  @apply bg-cyan-500/30;
+}
+
+.dark ::selection {
+  @apply text-cyan-50;
+}
+
+/* Utility classes for theme-aware borders */
+.border-border {
+  border-color: rgb(var(--border));
+}
+
+/* Background utilities */
+.bg-background {
+  background-color: rgb(var(--background));
+}
+
+.bg-foreground {
+  background-color: rgb(var(--foreground));
+}
+
+.bg-card {
+  background-color: rgb(var(--card));
+}
+
+.bg-muted {
+  background-color: rgb(var(--muted));
+}
+
+.bg-muted\/50 {
+  background-color: rgb(var(--muted) / 0.5);
+}
+
+.bg-muted\/30 {
+  background-color: rgb(var(--muted) / 0.3);
+}
+
+.bg-primary {
+  background-color: rgb(var(--primary));
+}
+
+.bg-primary\/10 {
+  background-color: rgb(var(--primary) / 0.1);
+}
+
+/* Text utilities */
+.text-foreground {
+  color: rgb(var(--foreground));
+}
+
+.text-muted-foreground {
+  color: rgb(var(--muted-foreground));
+}
+
+.text-primary {
+  color: rgb(var(--primary));
+}
+
+/* Ring utilities */
+.ring-ring {
+  --tw-ring-color: rgb(var(--ring));
 }

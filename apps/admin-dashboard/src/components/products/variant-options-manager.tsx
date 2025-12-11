@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Plus, Trash2, GripVertical, Edit2, X, Check, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ export function VariantOptionsManager({
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [optionToDelete, setOptionToDelete] = useState<string | null>(null);
 
   // Common option type suggestions
   const optionSuggestions = [
@@ -105,23 +107,26 @@ export function VariantOptionsManager({
     }
   }, [newOptionName, newOptionDisplayName, newOptionValues, companyId, options, onOptionsChange]);
 
-  const handleDeleteOption = useCallback(async (optionId: string) => {
-    if (!confirm('Are you sure you want to delete this option? This will affect all variants using it.')) {
-      return;
-    }
+  const handleDeleteOption = useCallback((optionId: string) => {
+    setOptionToDelete(optionId);
+  }, []);
 
+  const confirmDeleteOption = useCallback(async () => {
+    if (!optionToDelete) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      await variantOptionsApi.delete(optionId);
-      onOptionsChange(options.filter(o => o.id !== optionId));
+      await variantOptionsApi.delete(optionToDelete);
+      onOptionsChange(options.filter(o => o.id !== optionToDelete));
+      toast.success('Option deleted');
     } catch (err: any) {
       setError(err.message || 'Failed to delete option');
     } finally {
       setIsLoading(false);
+      setOptionToDelete(null);
     }
-  }, [options, onOptionsChange]);
+  }, [optionToDelete, options, onOptionsChange]);
 
   const handleAddValue = useCallback(async (optionId: string, value: string, colorCode?: string) => {
     if (!value.trim()) return;
@@ -200,12 +205,12 @@ export function VariantOptionsManager({
 
       {/* Add new option form */}
       {isAddingOption ? (
-        <div className="p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-4">
+        <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-white">New Option</h4>
+            <h4 className="text-sm font-medium text-foreground">New Option</h4>
             <button
               onClick={() => setIsAddingOption(false)}
-              className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white"
+              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -219,7 +224,7 @@ export function VariantOptionsManager({
                 <button
                   key={suggestion.name}
                   onClick={() => handleUseSuggestion(suggestion)}
-                  className="px-2.5 py-1 text-xs rounded-full border border-zinc-600 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-zinc-300"
+                  className="px-2.5 py-1 text-xs rounded-full border border-border hover:border-primary/50 hover:bg-primary/10 text-foreground"
                 >
                   {suggestion.name}
                 </button>
@@ -229,28 +234,28 @@ export function VariantOptionsManager({
           {/* Option name inputs */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Option Name</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Option Name</label>
               <Input
                 value={newOptionName}
                 onChange={(e) => setNewOptionName(e.target.value)}
                 placeholder="e.g., Size, Color"
-                className="bg-zinc-900"
+                className="bg-card"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Display Name (optional)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Display Name (optional)</label>
               <Input
                 value={newOptionDisplayName}
                 onChange={(e) => setNewOptionDisplayName(e.target.value)}
                 placeholder="e.g., Select Size"
-                className="bg-zinc-900"
+                className="bg-card"
               />
             </div>
           </div>
 
           {/* Values */}
           <div>
-            <label className="text-xs text-zinc-400 mb-2 block">Values</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Values</label>
             <div className="space-y-2">
               {newOptionValues.map((value, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -258,7 +263,7 @@ export function VariantOptionsManager({
                     value={value.value}
                     onChange={(e) => handleNewValueChange(index, 'value', e.target.value)}
                     placeholder="e.g., Small, Red"
-                    className="bg-zinc-900 flex-1"
+                    className="bg-card flex-1"
                   />
                   {newOptionName.toLowerCase() === 'color' && (
                     <div className="relative">
@@ -273,7 +278,7 @@ export function VariantOptionsManager({
                   {newOptionValues.length > 1 && (
                     <button
                       onClick={() => handleRemoveNewValue(index)}
-                      className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400 hover:text-red-400"
+                      className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-red-400"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -282,7 +287,7 @@ export function VariantOptionsManager({
               ))}
               <button
                 onClick={handleAddNewValue}
-                className="flex items-center gap-1.5 text-sm text-cyan-400 hover:text-cyan-300"
+                className="flex items-center gap-1.5 text-sm text-primary hover:text-primary"
               >
                 <Plus className="h-4 w-4" />
                 Add Value
@@ -317,6 +322,36 @@ export function VariantOptionsManager({
           <Plus className="h-4 w-4" />
           Add Option
         </Button>
+      )}
+
+      {/* Delete Option Confirmation Modal */}
+      {optionToDelete && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => setOptionToDelete(null)}
+          />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm z-50">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Delete Option</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Are you sure you want to delete this option and all its values? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setOptionToDelete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteOption}
+                  disabled={isLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isLoading ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -357,19 +392,19 @@ function OptionCard({
   };
 
   return (
-    <div className="p-4 rounded-lg border border-zinc-700 bg-zinc-800/50">
+    <div className="p-4 rounded-lg border border-border bg-muted/50">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-4 w-4 text-zinc-600 cursor-move" />
-          <span className="font-medium text-white">{option.displayName || option.name}</span>
-          <span className="text-xs text-zinc-500">({option.name})</span>
+          <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+          <span className="font-medium text-foreground">{option.displayName || option.name}</span>
+          <span className="text-xs text-muted-foreground">({option.name})</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onDelete}
             disabled={isLoading}
-            className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400 hover:text-red-400"
+            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-red-400"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -381,21 +416,21 @@ function OptionCard({
         {option.values.map((value) => (
           <div
             key={value.id}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-zinc-600 bg-zinc-700/50"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted/50"
           >
             {value.colorCode && (
               <div
-                className="w-3 h-3 rounded-full border border-zinc-500"
+                className="w-3 h-3 rounded-full border border-border"
                 style={{ backgroundColor: value.colorCode }}
               />
             )}
-            <span className="text-sm text-zinc-200">
+            <span className="text-sm text-foreground">
               {value.displayValue || value.value}
             </span>
             <button
               onClick={() => onRemoveValue(value.id)}
               disabled={isLoading}
-              className="p-0.5 hover:bg-zinc-600 rounded text-zinc-400 hover:text-red-400"
+              className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-red-400"
             >
               <X className="h-3 w-3" />
             </button>
@@ -409,7 +444,7 @@ function OptionCard({
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
           placeholder="Add value..."
-          className="bg-zinc-900 h-8 text-sm flex-1"
+          className="bg-card h-8 text-sm flex-1"
           onKeyDown={(e) => e.key === 'Enter' && handleAddValue()}
         />
         {isColorOption && (

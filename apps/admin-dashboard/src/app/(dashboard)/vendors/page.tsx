@@ -39,12 +39,12 @@ const STATUS_CONFIG: Record<
   VERIFIED: { label: 'Verified', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: CheckCircle2 },
   ACTIVE: { label: 'Active', color: 'bg-green-500/10 text-green-400 border-green-500/20', icon: CheckCircle2 },
   SUSPENDED: { label: 'Suspended', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: AlertCircle },
-  INACTIVE: { label: 'Inactive', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', icon: AlertCircle },
+  INACTIVE: { label: 'Inactive', color: 'bg-muted text-muted-foreground border-border', icon: AlertCircle },
 };
 
 const TIER_CONFIG: Record<VendorTier, { label: string; color: string }> = {
   BRONZE: { label: 'Bronze', color: 'bg-orange-500/10 text-orange-400' },
-  SILVER: { label: 'Silver', color: 'bg-zinc-500/10 text-zinc-400' },
+  SILVER: { label: 'Silver', color: 'bg-muted text-muted-foreground' },
   GOLD: { label: 'Gold', color: 'bg-yellow-500/10 text-yellow-400' },
   PLATINUM: { label: 'Platinum', color: 'bg-purple-500/10 text-purple-400' },
 };
@@ -97,11 +97,11 @@ function RatingStars({ rating }: { rating: number }) {
               ? 'text-yellow-400 fill-yellow-400'
               : i === fullStars && hasHalfStar
               ? 'text-yellow-400 fill-yellow-400/50'
-              : 'text-zinc-600'
+              : 'text-muted-foreground'
           )}
         />
       ))}
-      <span className="ml-1 text-xs text-zinc-400">{rating.toFixed(1)}</span>
+      <span className="ml-1 text-xs text-muted-foreground">{rating.toFixed(1)}</span>
     </div>
   );
 }
@@ -167,14 +167,14 @@ export default function VendorsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Vendors</h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Vendors</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {total > 0 ? `${total} vendors found` : 'Manage your vendor network'}
           </p>
         </div>
         <Link
           href="/vendors/new"
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Vendor
@@ -186,13 +186,13 @@ export default function VendorsPage() {
         <div className="flex items-center gap-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by name, email, business..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -202,21 +202,21 @@ export default function VendorsPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               showFilters
-                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'bg-card text-muted-foreground border border-border hover:text-foreground'
             )}
           >
             <Filter className="w-4 h-4" />
             Filters
             {(statusFilter || tierFilter || typeFilter) && (
-              <span className="w-2 h-2 bg-cyan-400 rounded-full" />
+              <span className="w-2 h-2 bg-primary rounded-full" />
             )}
           </button>
 
           {/* Refresh */}
           <button
             onClick={fetchVendors}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
             title="Refresh"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -225,14 +225,14 @@ export default function VendorsPage() {
 
         {/* Filter Dropdowns */}
         {showFilters && (
-          <div className="flex flex-wrap gap-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+          <div className="flex flex-wrap gap-4 p-4 bg-card/50 border border-border rounded-lg">
             {/* Status Filter */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Status</label>
+              <label className="text-xs text-muted-foreground">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as VendorStatus | '')}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">All Statuses</option>
                 {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
@@ -245,11 +245,11 @@ export default function VendorsPage() {
 
             {/* Tier Filter */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Tier</label>
+              <label className="text-xs text-muted-foreground">Tier</label>
               <select
                 value={tierFilter}
                 onChange={(e) => setTierFilter(e.target.value as VendorTier | '')}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">All Tiers</option>
                 {Object.entries(TIER_CONFIG).map(([value, { label }]) => (
@@ -262,11 +262,11 @@ export default function VendorsPage() {
 
             {/* Type Filter */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Type</label>
+              <label className="text-xs text-muted-foreground">Type</label>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as VendorType | '')}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">All Types</option>
                 {Object.entries(TYPE_CONFIG).map(([value, { label }]) => (
@@ -285,7 +285,7 @@ export default function VendorsPage() {
                   setTierFilter('');
                   setTypeFilter('');
                 }}
-                className="self-end px-3 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="self-end px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Clear all
               </button>
@@ -304,16 +304,16 @@ export default function VendorsPage() {
       {/* Loading State */}
       {loading && vendors.length === 0 && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
       {!loading && vendors.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Store className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No vendors found</h3>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <Store className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No vendors found</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
             {search || statusFilter || tierFilter || typeFilter
               ? "Try adjusting your search or filters to find what you're looking for."
               : 'Get started by adding your first vendor.'}
@@ -321,7 +321,7 @@ export default function VendorsPage() {
           {!search && !statusFilter && !tierFilter && !typeFilter && (
             <Link
               href="/vendors/new"
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition-colors"
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground rounded-lg text-sm font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Vendor
@@ -338,19 +338,19 @@ export default function VendorsPage() {
               <Link
                 key={vendor.id}
                 href={`/vendors/${vendor.id}`}
-                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:bg-zinc-800/50 transition-colors group"
+                className="bg-card/50 border border-border rounded-xl p-4 hover:bg-muted/50 transition-colors group"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-lg font-bold text-white">
+                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-lg font-bold text-foreground">
                       {vendor.name.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">
+                      <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                         {vendor.name}
                       </h3>
-                      <p className="text-xs text-zinc-500">{vendor.code}</p>
+                      <p className="text-xs text-muted-foreground">{vendor.code}</p>
                     </div>
                   </div>
                   <StatusBadge status={vendor.status} />
@@ -359,13 +359,13 @@ export default function VendorsPage() {
                 {/* Info */}
                 <div className="space-y-2 mb-3">
                   {vendor.businessName && (
-                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Building2 className="w-3 h-3" />
                       {vendor.businessName}
                     </p>
                   )}
                   {vendor.website && (
-                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <ExternalLink className="w-3 h-3" />
                       {vendor.website.replace(/^https?:\/\//, '')}
                     </p>
@@ -373,10 +373,10 @@ export default function VendorsPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
+                <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-2">
                     <TierBadge tier={vendor.tier} />
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {TYPE_CONFIG[vendor.vendorType]?.label}
                     </span>
                   </div>
@@ -384,7 +384,7 @@ export default function VendorsPage() {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-4 mt-3 text-xs text-zinc-500">
+                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                   <span>{vendor._count?.vendorCompanies || 0} companies</span>
                   <span>{vendor._count?.clientConnections || 0} connections</span>
                   <span>{vendor.totalOrders || 0} orders</span>
@@ -395,8 +395,8 @@ export default function VendorsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-              <p className="text-sm text-zinc-500">
+            <div className="flex items-center justify-between px-4 py-3 bg-card/50 border border-border rounded-xl">
+              <p className="text-sm text-muted-foreground">
                 Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total}{' '}
                 vendors
               </p>
@@ -404,17 +404,17 @@ export default function VendorsPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-zinc-400">
+                <span className="text-sm text-muted-foreground">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

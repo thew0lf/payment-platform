@@ -86,8 +86,8 @@ export default function NewVendorPage() {
     }
   };
 
-  const inputClasses = 'w-full px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors';
-  const labelClasses = 'block text-sm font-medium text-zinc-400 mb-1.5';
+  const inputClasses = 'w-full px-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors';
+  const labelClasses = 'block text-sm font-medium text-muted-foreground mb-1.5';
 
   return (
     <div className="p-6 max-w-3xl">
@@ -95,13 +95,13 @@ export default function NewVendorPage() {
       <div className="flex items-center gap-4 mb-6">
         <Link
           href="/vendors"
-          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+          className="p-2 rounded-lg bg-muted hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Add New Vendor</h1>
-          <p className="text-sm text-zinc-500 mt-1">Create a new vendor in your network</p>
+          <h1 className="text-2xl font-bold text-foreground">Add New Vendor</h1>
+          <p className="text-sm text-muted-foreground mt-1">Create a new vendor in your network</p>
         </div>
       </div>
 
@@ -115,9 +115,9 @@ export default function NewVendorPage() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-cyan-400" />
+        <div className="bg-card/50 border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
             Basic Information
           </h2>
 
@@ -148,7 +148,7 @@ export default function NewVendorPage() {
                   placeholder="e.g., premium-suppliers-inc"
                   className={inputClasses}
                 />
-                <p className="text-xs text-zinc-500 mt-1">URL-friendly identifier</p>
+                <p className="text-xs text-muted-foreground mt-1">URL-friendly identifier</p>
               </div>
             </div>
 
@@ -177,7 +177,7 @@ export default function NewVendorPage() {
             <div>
               <label className={labelClasses}>Website</label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="url"
                   value={formData.website || ''}
@@ -202,9 +202,9 @@ export default function NewVendorPage() {
         </div>
 
         {/* Contact Information */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-cyan-400" />
+        <div className="bg-card/50 border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-primary" />
             Contact Information
           </h2>
 
@@ -224,7 +224,7 @@ export default function NewVendorPage() {
               <div>
                 <label className={labelClasses}>Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="email"
                     value={formData.contactEmail || ''}
@@ -237,7 +237,7 @@ export default function NewVendorPage() {
               <div>
                 <label className={labelClasses}>Phone</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="tel"
                     value={formData.contactPhone || ''}
@@ -252,9 +252,9 @@ export default function NewVendorPage() {
         </div>
 
         {/* Vendor Type */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
+        <div className="bg-card/50 border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
             Vendor Type
           </h2>
 
@@ -267,8 +267,8 @@ export default function NewVendorPage() {
                 className={cn(
                   'p-4 rounded-lg border text-left transition-colors',
                   formData.vendorType === type.value
-                    ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                    ? 'bg-primary/10 border-primary/50 text-foreground'
+                    : 'bg-card border-border text-muted-foreground hover:border-border hover:text-foreground'
                 )}
               >
                 <p className="font-medium">{type.label}</p>
@@ -282,14 +282,14 @@ export default function NewVendorPage() {
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/vendors"
-            className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading || !formData.name || !formData.slug}
-            className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary disabled:bg-muted disabled:cursor-not-allowed text-foreground rounded-lg text-sm font-medium transition-colors"
           >
             {loading ? (
               <>

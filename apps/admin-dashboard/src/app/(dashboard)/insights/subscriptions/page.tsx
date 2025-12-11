@@ -76,14 +76,15 @@ function KPICard({
   color?: 'cyan' | 'green' | 'yellow' | 'red' | 'purple';
 }) {
   const colorClasses = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    cyan: 'bg-primary/10 text-primary border-primary/20',
     green: 'bg-green-500/10 text-green-400 border-green-500/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     red: 'bg-red-500/10 text-red-400 border-red-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
 
-  const formatValue = (val: number) => {
+  const formatValue = (val: number | undefined | null) => {
+    const safeVal = val ?? 0;
     switch (format) {
       case 'currency':
         return new Intl.NumberFormat('en-US', {
@@ -91,20 +92,20 @@ function KPICard({
           currency: 'USD',
           minimumFractionDigits: 0,
           maximumFractionDigits: 0,
-        }).format(val);
+        }).format(safeVal);
       case 'percent':
-        return `${val.toFixed(1)}%`;
+        return `${safeVal.toFixed(1)}%`;
       default:
-        return val.toLocaleString();
+        return safeVal.toLocaleString();
     }
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 md:p-5">
+    <div className="bg-card/50 border border-border rounded-xl p-4 md:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs md:text-sm text-zinc-500 mb-1">{title}</p>
-          <p className="text-xl md:text-2xl font-bold text-white">{formatValue(value)}</p>
+          <p className="text-xs md:text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-xl md:text-2xl font-bold text-foreground">{formatValue(value)}</p>
           {change !== undefined && (
             <div className="flex items-center gap-1 mt-1">
               {change >= 0 ? (
@@ -116,7 +117,7 @@ function KPICard({
                 {change >= 0 ? '+' : ''}
                 {change.toFixed(1)}%
               </span>
-              <span className="text-xs text-zinc-500">vs last period</span>
+              <span className="text-xs text-muted-foreground">vs last period</span>
             </div>
           )}
         </div>
@@ -140,13 +141,13 @@ function StatusCard({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg">
+    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
       <div className={cn('p-2 rounded-lg', color)}>
         <Icon className="w-4 h-4" />
       </div>
       <div>
-        <p className="text-lg font-semibold text-white">{count.toLocaleString()}</p>
-        <p className="text-xs text-zinc-500">{label}</p>
+        <p className="text-lg font-semibold text-foreground">{(count ?? 0).toLocaleString()}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </div>
   );
@@ -155,7 +156,7 @@ function StatusCard({
 function MiniChart({ data, label }: { data: TrendDataPoint[]; label: string }) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-20 flex items-center justify-center text-zinc-500 text-sm">No data</div>
+      <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">No data</div>
     );
   }
 
@@ -171,14 +172,14 @@ function MiniChart({ data, label }: { data: TrendDataPoint[]; label: string }) {
           return (
             <div
               key={i}
-              className="flex-1 bg-cyan-500/30 rounded-t hover:bg-cyan-500/50 transition-colors"
+              className="flex-1 bg-primary/30 rounded-t hover:bg-primary/50 transition-colors"
               style={{ height: `${Math.max(height, 5)}%` }}
-              title={`${point.date}: ${point.value.toFixed(2)}`}
+              title={`${point.date}: ${(point.value ?? 0).toFixed(2)}`}
             />
           );
         })}
       </div>
-      <p className="text-xs text-zinc-500 mt-1 text-center">{label}</p>
+      <p className="text-xs text-muted-foreground mt-1 text-center">{label}</p>
     </div>
   );
 }
@@ -266,7 +267,7 @@ export default function SubscriptionAnalyticsPage() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as '7d' | '30d' | '90d')}
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="px-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="7d">Last 7 days</option>
               <option value="30d">Last 30 days</option>
@@ -274,7 +275,7 @@ export default function SubscriptionAnalyticsPage() {
             </select>
             <button
               onClick={fetchData}
-              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
               title="Refresh"
             >
               <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -294,18 +295,18 @@ export default function SubscriptionAnalyticsPage() {
         {/* Loading State */}
         {(loading || authLoading || hierarchyLoading) && !kpis && (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {/* Company Selection Required */}
         {!authLoading && !hierarchyLoading && needsCompanySelection && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="p-4 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4">
-              <Building2 className="w-12 h-12 text-cyan-400" />
+            <div className="p-4 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <Building2 className="w-12 h-12 text-primary" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <h3 className="text-lg font-medium text-foreground mb-2">Select a Company</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               Please select a company from the header to view subscription analytics.
               Analytics are scoped to individual companies.
             </p>
@@ -383,14 +384,14 @@ export default function SubscriptionAnalyticsPage() {
         {!needsCompanySelection && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* MRR Trend */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-zinc-300 mb-4">MRR Trend</h3>
+            <div className="bg-card/50 border border-border rounded-xl p-4">
+              <h3 className="text-sm font-medium text-foreground mb-4">MRR Trend</h3>
               <MiniChart data={mrrTrend} label={`Last ${period === '7d' ? '7' : period === '30d' ? '30' : '90'} days`} />
             </div>
 
             {/* Subscription Count Trend */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-zinc-300 mb-4">Subscription Count Trend</h3>
+            <div className="bg-card/50 border border-border rounded-xl p-4">
+              <h3 className="text-sm font-medium text-foreground mb-4">Subscription Count Trend</h3>
               <MiniChart data={subsTrend} label={`Last ${period === '7d' ? '7' : period === '30d' ? '30' : '90'} days`} />
             </div>
           </div>
@@ -398,8 +399,8 @@ export default function SubscriptionAnalyticsPage() {
 
         {/* Subscription Status Breakdown */}
         {!needsCompanySelection && counts && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-zinc-300 mb-4">Subscription Status Breakdown</h3>
+          <div className="bg-card/50 border border-border rounded-xl p-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Subscription Status Breakdown</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatusCard
                 label="Active"
@@ -411,7 +412,7 @@ export default function SubscriptionAnalyticsPage() {
                 label="Trialing"
                 count={counts.trialing}
                 icon={Clock}
-                color="bg-cyan-500/10 text-cyan-400"
+                color="bg-primary/10 text-primary"
               />
               <StatusCard
                 label="Paused"
@@ -435,7 +436,7 @@ export default function SubscriptionAnalyticsPage() {
                 label="Expired"
                 count={counts.expired}
                 icon={XCircle}
-                color="bg-zinc-500/10 text-zinc-400"
+                color="bg-muted text-muted-foreground"
               />
             </div>
           </div>
@@ -444,9 +445,9 @@ export default function SubscriptionAnalyticsPage() {
         {/* Empty State */}
         {!loading && !kpis && !error && !needsCompanySelection && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <TrendingUp className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No analytics data available</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <TrendingUp className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No analytics data available</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               Analytics will appear here once you have subscription data.
             </p>
           </div>

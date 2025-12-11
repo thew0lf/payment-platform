@@ -229,7 +229,7 @@ export function MediaUpload({
               ) : (
                 <div className="h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
                   <svg
-                    className="h-2.5 w-2.5 text-white"
+                    className="h-2.5 w-2.5 text-foreground"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

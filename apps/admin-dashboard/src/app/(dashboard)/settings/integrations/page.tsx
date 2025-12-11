@@ -38,6 +38,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.FEATURE_FLAGS]: 'Feature Flags',
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
+  [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
 };
 
 export default function ClientIntegrationsPage() {
@@ -178,8 +179,8 @@ export default function ClientIntegrationsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Plug className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-          <p className="text-zinc-400">Please select a client to manage integrations</p>
+          <Plug className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Please select a client to manage integrations</p>
         </div>
       </div>
     );
@@ -190,22 +191,22 @@ export default function ClientIntegrationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Integrations</h1>
-          <p className="text-zinc-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Integrations</h1>
+          <p className="text-muted-foreground mt-1">
             Manage your payment gateways and service integrations
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => loadData()}
-            className="flex items-center gap-2 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Integration
@@ -222,14 +223,14 @@ export default function ClientIntegrationsPage() {
 
       {/* Platform gateway promotion */}
       {platformOptions.length > 0 && integrations.length === 0 && (
-        <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl">
+        <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-primary/20 rounded-xl">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-              <Plug className="w-5 h-5 text-cyan-400" />
+            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+              <Plug className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium text-white">Platform Gateways Available</h3>
-              <p className="text-sm text-zinc-400 mt-1">
+              <h3 className="font-medium text-foreground">Platform Gateways Available</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 You can use pre-configured platform payment gateways without entering your own credentials.
                 This simplifies setup and ensures security best practices.
               </p>
@@ -241,17 +242,17 @@ export default function ClientIntegrationsPage() {
       {/* Loading state */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
         </div>
       ) : integrations.length === 0 ? (
         /* Empty state */
-        <div className="flex flex-col items-center justify-center h-64 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-          <Plug className="w-12 h-12 text-zinc-600 mb-4" />
-          <p className="text-lg font-medium text-zinc-400 mb-2">No integrations configured</p>
-          <p className="text-sm text-zinc-500 mb-4">Add a payment gateway to start processing transactions</p>
+        <div className="flex flex-col items-center justify-center h-64 bg-card/50 border border-border rounded-xl">
+          <Plug className="w-12 h-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium text-muted-foreground mb-2">No integrations configured</p>
+          <p className="text-sm text-muted-foreground mb-4">Add a payment gateway to start processing transactions</p>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary text-foreground font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Integration
@@ -266,7 +267,7 @@ export default function ClientIntegrationsPage() {
 
             return (
               <div key={category}>
-                <h2 className="text-lg font-semibold text-white mb-4">{label}</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-4">{label}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {categoryIntegrations.map((integration) => (
                     <IntegrationCard
@@ -306,32 +307,32 @@ export default function ClientIntegrationsPage() {
       {/* Delete Confirmation Modal */}
       {integrationToDelete && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Delete Integration</h3>
-                <p className="text-sm text-zinc-400">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-foreground">Delete Integration</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone</p>
               </div>
             </div>
-            <p className="text-zinc-300 mb-6">
-              Are you sure you want to delete <span className="font-medium text-white">&quot;{integrationToDelete.name}&quot;</span>?
+            <p className="text-foreground mb-6">
+              Are you sure you want to delete <span className="font-medium text-foreground">&quot;{integrationToDelete.name}&quot;</span>?
               This will remove all associated credentials and settings.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setIntegrationToDelete(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isDeleting ? (
                   <>

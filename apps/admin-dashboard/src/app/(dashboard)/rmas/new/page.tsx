@@ -161,7 +161,7 @@ function CreateRMAFormContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+        <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -171,13 +171,13 @@ function CreateRMAFormContent() {
       <div className="max-w-2xl mx-auto p-6">
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 text-center">
           <AlertCircle className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-white mb-2">Missing Information</h3>
-          <p className="text-sm text-zinc-400 mb-4">
+          <h3 className="text-lg font-medium text-foreground mb-2">Missing Information</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             Please navigate to an order and click "Issue RMA" to create a return.
           </p>
           <Link
             href="/orders"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Orders
@@ -191,28 +191,28 @@ function CreateRMAFormContent() {
     <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
       {/* Order Info */}
       {order && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-card/50 border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-zinc-500">Creating RMA for Order</p>
+              <p className="text-sm text-muted-foreground">Creating RMA for Order</p>
               <Link
                 href={`/orders/${order.id}`}
-                className="text-lg font-medium text-cyan-400 hover:text-cyan-300"
+                className="text-lg font-medium text-primary hover:text-primary"
               >
                 {formatOrderNumber(order.orderNumber)}
               </Link>
             </div>
             <div className="text-right">
-              <p className="text-sm text-zinc-500">Order Total</p>
-              <p className="text-lg font-medium text-white">{formatCurrency(order.total, order.currency)}</p>
+              <p className="text-sm text-muted-foreground">Order Total</p>
+              <p className="text-lg font-medium text-foreground">{formatCurrency(order.total, order.currency)}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* RMA Type */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-        <h3 className="text-sm font-medium text-white mb-4">RMA Type</h3>
+      <div className="bg-card/50 border border-border rounded-xl p-5">
+        <h3 className="text-sm font-medium text-foreground mb-4">RMA Type</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {RMA_TYPES.map((type) => (
             <button
@@ -221,26 +221,26 @@ function CreateRMAFormContent() {
               className={cn(
                 'p-3 rounded-lg border text-left transition-colors',
                 rmaType === type.value
-                  ? 'border-cyan-500 bg-cyan-500/10'
-                  : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-muted/50 hover:border-border'
               )}
             >
-              <p className={cn('text-sm font-medium', rmaType === type.value ? 'text-cyan-400' : 'text-white')}>
+              <p className={cn('text-sm font-medium', rmaType === type.value ? 'text-primary' : 'text-foreground')}>
                 {type.label}
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5">{type.description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{type.description}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* Return Reason */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-        <h3 className="text-sm font-medium text-white mb-4">Return Reason</h3>
+      <div className="bg-card/50 border border-border rounded-xl p-5">
+        <h3 className="text-sm font-medium text-foreground mb-4">Return Reason</h3>
         <select
           value={reason}
           onChange={(e) => setReason(e.target.value as ReturnReason)}
-          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         >
           {RETURN_REASONS.map((r) => (
             <option key={r} value={r}>
@@ -253,17 +253,17 @@ function CreateRMAFormContent() {
           onChange={(e) => setReasonDetails(e.target.value)}
           placeholder="Additional details (optional)"
           rows={3}
-          className="mt-3 w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+          className="mt-3 w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
       </div>
 
       {/* Select Items */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-800">
-          <h3 className="text-sm font-medium text-white">Select Items to Return</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">{selectedCount} of {order?.items?.length || 0} items selected</p>
+      <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-sm font-medium text-foreground">Select Items to Return</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{selectedCount} of {order?.items?.length || 0} items selected</p>
         </div>
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y divide-border">
           {order?.items?.map((item) => {
             const itemState = selectedItems[item.id];
             const isSelected = itemState?.selected || false;
@@ -273,7 +273,7 @@ function CreateRMAFormContent() {
                 key={item.id}
                 className={cn(
                   'flex items-start gap-4 p-4 transition-colors',
-                  isSelected ? 'bg-cyan-500/5' : 'hover:bg-zinc-800/30'
+                  isSelected ? 'bg-primary/5' : 'hover:bg-muted/30'
                 )}
               >
                 <button
@@ -281,29 +281,29 @@ function CreateRMAFormContent() {
                   className={cn(
                     'w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center mt-0.5',
                     isSelected
-                      ? 'bg-cyan-500 border-cyan-500'
-                      : 'border-zinc-600 hover:border-zinc-500'
+                      ? 'bg-primary border-primary'
+                      : 'border-border hover:border-border'
                   )}
                 >
-                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                  {isSelected && <Check className="w-3 h-3 text-foreground" />}
                 </button>
-                <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="w-5 h-5 text-zinc-500" />
+                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Package className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{item.name}</p>
-                  <p className="text-xs text-zinc-500">SKU: {item.sku}</p>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-sm font-medium text-foreground">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {formatCurrency(item.unitPrice, order.currency)} each
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-500">Qty:</span>
+                  <span className="text-xs text-muted-foreground">Qty:</span>
                   <select
                     value={itemState?.quantity || item.quantity}
                     onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
                     disabled={!isSelected}
-                    className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-sm text-white disabled:opacity-50"
+                    className="px-2 py-1 bg-muted border border-border rounded text-sm text-foreground disabled:opacity-50"
                   >
                     {Array.from({ length: item.quantity }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>{n}</option>
@@ -361,7 +361,7 @@ export default function CreateRMAPage() {
       />
       <Suspense fallback={
         <div className="flex items-center justify-center py-24">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       }>
         <CreateRMAFormContent />

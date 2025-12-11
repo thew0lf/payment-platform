@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e8]
+      - generic [ref=e10]: avnz.io
+    - generic [ref=e11]:
+      - heading "Welcome back" [level=1] [ref=e12]
+      - paragraph [ref=e13]: Sign in to your account
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: Email
+          - textbox "you@example.com" [ref=e17]
+        - generic [ref=e18]:
+          - generic [ref=e19]: Password
+          - generic [ref=e20]:
+            - textbox "••••••••" [ref=e21]
+            - button [ref=e22] [cursor=pointer]:
+              - img [ref=e23]
+        - generic [ref=e26]:
+          - button "Remember me" [ref=e27] [cursor=pointer]: Remember me
+          - button "Forgot password?" [ref=e29] [cursor=pointer]
+        - button "Sign in" [ref=e30] [cursor=pointer]
+      - generic [ref=e31]:
+        - paragraph [ref=e32]: "Click to use demo account (password: demo123)"
+        - generic [ref=e33]:
+          - button "O Organization admin@avnz.io" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]:
+              - generic [ref=e36]: O
+              - generic [ref=e37]: Organization
+            - code [ref=e38]: admin@avnz.io
+          - button "C Client owner@velocityagency.com" [ref=e39] [cursor=pointer]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: C
+              - generic [ref=e42]: Client
+            - code [ref=e43]: owner@velocityagency.com
+          - button "C Company manager@coffee-co.com" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]:
+              - generic [ref=e46]: C
+              - generic [ref=e47]: Company
+            - code [ref=e48]: manager@coffee-co.com
+  - region "Notifications alt+T"
+  - alert [ref=e49]
+```

@@ -308,8 +308,8 @@ export function IntegrationCard({
 
   const config = providerConfig[integration.provider] || {
     icon: getProviderInitials(integration.provider),
-    bgColor: 'bg-zinc-700',
-    gradient: 'from-zinc-500 to-zinc-600',
+    bgColor: 'bg-muted',
+    gradient: 'from-muted to-muted',
   };
 
   const categoryLabel = categoryLabels[integration.category] || integration.category;
@@ -325,7 +325,7 @@ export function IntegrationCard({
   }, []);
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors">
+    <div className="bg-card/50 border border-border rounded-xl p-4 hover:border-border transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div
@@ -343,25 +343,25 @@ export function IntegrationCard({
                 className="w-8 h-8 object-contain"
               />
             ) : (
-              <span className="text-white font-bold text-sm">{config.icon}</span>
+              <span className="text-foreground font-bold text-sm">{config.icon}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium text-white truncate">{integration.name}</h3>
+              <h3 className="font-medium text-foreground truncate">{integration.name}</h3>
               {isClientIntegration(integration) && integration.isDefault && (
                 <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               )}
               {isClientIntegration(integration) && integration.mode === IntegrationMode.PLATFORM && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 text-cyan-400 text-xs rounded">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded">
                   <Zap className="w-3 h-3" />
                   Platform
                 </span>
               )}
             </div>
-            <p className="text-sm text-zinc-500 mt-0.5">{categoryLabel}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{categoryLabel}</p>
             {integration.description && (
-              <p className="text-sm text-zinc-400 mt-1 line-clamp-2">{integration.description}</p>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{integration.description}</p>
             )}
           </div>
         </div>
@@ -371,20 +371,20 @@ export function IntegrationCard({
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-muted border border-border rounded-lg shadow-xl z-50 overflow-hidden">
                 {onTest && (
                   <button
                     onClick={() => {
                       onTest(integration.id);
                       setShowMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
                     <TestTube className="w-4 h-4" />
                     Test Connection
@@ -396,7 +396,7 @@ export function IntegrationCard({
                       onEdit(integration);
                       setShowMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
                     <Pencil className="w-4 h-4" />
                     Edit
@@ -408,7 +408,7 @@ export function IntegrationCard({
                       onConfigureSharing(integration);
                       setShowMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
                     <Share2 className="w-4 h-4" />
                     Configure Sharing
@@ -420,7 +420,7 @@ export function IntegrationCard({
                       onSetDefault(integration.id);
                       setShowMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
                     <Star className="w-4 h-4" />
                     Set as Default
@@ -428,13 +428,13 @@ export function IntegrationCard({
                 )}
                 {onDelete && (
                   <>
-                    <div className="border-t border-zinc-700" />
+                    <div className="border-t border-border" />
                     <button
                       onClick={() => {
                         onDelete(integration);
                         setShowMenu(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-zinc-700"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-muted"
                     >
                       <Trash2 className="w-4 h-4" />
                       Delete
@@ -449,22 +449,22 @@ export function IntegrationCard({
 
       {/* Platform sharing info */}
       {isPlatformView && isPlatformIntegration(integration) && (
-        <div className="mt-4 pt-3 border-t border-zinc-800">
+        <div className="mt-4 pt-3 border-t border-border">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-500">Client Sharing</span>
+            <span className="text-muted-foreground">Client Sharing</span>
             {integration.isSharedWithClients ? (
               <span className="flex items-center gap-1 text-emerald-400">
                 <Share2 className="w-3.5 h-3.5" />
                 Enabled
               </span>
             ) : (
-              <span className="text-zinc-500">Disabled</span>
+              <span className="text-muted-foreground">Disabled</span>
             )}
           </div>
           {integration.isSharedWithClients && integration.clientPricing && (
             <div className="flex items-center justify-between text-sm mt-1">
-              <span className="text-zinc-500">Pricing</span>
-              <span className="text-zinc-400">
+              <span className="text-muted-foreground">Pricing</span>
+              <span className="text-muted-foreground">
                 {integration.clientPricing.type === 'percentage'
                   ? `${integration.clientPricing.percentage}%`
                   : `$${(integration.clientPricing.amount / 100).toFixed(2)}`}{' '}
@@ -477,10 +477,10 @@ export function IntegrationCard({
 
       {/* Client usage info */}
       {!isPlatformView && isClientIntegration(integration) && integration.usageThisMonth && (
-        <div className="mt-4 pt-3 border-t border-zinc-800">
+        <div className="mt-4 pt-3 border-t border-border">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-500">This Month</span>
-            <span className="text-zinc-400">
+            <span className="text-muted-foreground">This Month</span>
+            <span className="text-muted-foreground">
               {integration.usageThisMonth.transactionCount.toLocaleString()} txns
             </span>
           </div>
@@ -489,7 +489,7 @@ export function IntegrationCard({
 
       {/* Last tested info */}
       {integration.lastTestedAt && (
-        <div className="mt-2 text-xs text-zinc-600">
+        <div className="mt-2 text-xs text-muted-foreground">
           Last tested: {new Date(integration.lastTestedAt).toLocaleDateString()}
         </div>
       )}

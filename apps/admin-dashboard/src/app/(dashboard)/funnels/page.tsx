@@ -43,7 +43,7 @@ import { Button } from '@/components/ui/button';
 // ═══════════════════════════════════════════════════════════════
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: 'Draft', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20' },
+  DRAFT: { label: 'Draft', color: 'bg-muted text-muted-foreground border-border' },
   PUBLISHED: { label: 'Published', color: 'bg-green-500/10 text-green-400 border-green-500/20' },
   PAUSED: { label: 'Paused', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
   ARCHIVED: { label: 'Archived', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
@@ -202,11 +202,11 @@ export default function FunnelsPage() {
         <Header title="Funnels" subtitle="Select a company to view funnels" />
         <div className="p-4 md:p-6">
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/20 flex items-center justify-center mb-6">
-              <Workflow className="w-8 h-8 text-cyan-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-primary/20 flex items-center justify-center mb-6">
+              <Workflow className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-2xl font-semibold text-white mb-2">Select a Company</h2>
-            <p className="text-zinc-400 max-w-md">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">Select a Company</h2>
+            <p className="text-muted-foreground max-w-md">
               Please select a company from the header dropdown to view and manage funnels.
             </p>
           </div>
@@ -244,13 +244,13 @@ export default function FunnelsPage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search funnels..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -259,7 +259,7 @@ export default function FunnelsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as FunnelStatus | '')}
-              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="px-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">All Status</option>
               <option value="DRAFT">Draft</option>
@@ -271,7 +271,7 @@ export default function FunnelsPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as FunnelType | '')}
-              className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="px-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">All Types</option>
               <option value="DIRECT_CHECKOUT">Direct Checkout</option>
@@ -282,7 +282,7 @@ export default function FunnelsPage() {
 
             <button
               onClick={loadFunnels}
-              className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-2.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
               title="Refresh"
             >
               <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -294,29 +294,29 @@ export default function FunnelsPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 animate-pulse">
-                <div className="h-4 bg-zinc-800 rounded w-2/3 mb-4" />
-                <div className="h-3 bg-zinc-800/50 rounded w-1/2 mb-6" />
+              <div key={i} className="bg-card/50 border border-border rounded-xl p-6 animate-pulse">
+                <div className="h-4 bg-muted rounded w-2/3 mb-4" />
+                <div className="h-3 bg-muted/50 rounded w-1/2 mb-6" />
                 <div className="flex gap-2 mb-6">
                   {[1, 2, 3].map((j) => (
-                    <div key={j} className="w-8 h-8 bg-zinc-800 rounded-lg" />
+                    <div key={j} className="w-8 h-8 bg-muted rounded-lg" />
                   ))}
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   {[1, 2, 3].map((j) => (
-                    <div key={j} className="h-12 bg-zinc-800/50 rounded-lg" />
+                    <div key={j} className="h-12 bg-muted/50 rounded-lg" />
                   ))}
                 </div>
               </div>
             ))}
           </div>
         ) : funnels.length === 0 ? (
-          <div className="text-center py-16 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mx-auto mb-6">
-              <Workflow className="w-8 h-8 text-zinc-500" />
+          <div className="text-center py-16 bg-card/50 border border-border rounded-xl">
+            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
+              <Workflow className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">No funnels yet</h3>
-            <p className="text-zinc-400 mb-6 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-foreground mb-2">No funnels yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
               Create your first funnel to start converting visitors into customers.
             </p>
             <Button onClick={() => router.push('/funnels/builder')}>
@@ -333,16 +333,16 @@ export default function FunnelsPage() {
                 <div
                   key={funnel.id}
                   onClick={() => router.push(`/funnels/${funnel.id}/analytics`)}
-                  className="group bg-zinc-900/50 border border-zinc-800 hover:border-cyan-500/30 rounded-xl transition-all duration-300 overflow-hidden cursor-pointer"
+                  className="group bg-card/50 border border-border hover:border-primary/30 rounded-xl transition-all duration-300 overflow-hidden cursor-pointer"
                 >
                   {/* Card Header */}
                   <div className="p-5 pb-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white truncate group-hover:text-cyan-400 transition-colors">
+                        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                           {funnel.name}
                         </h3>
-                        <p className="text-sm text-zinc-500 mt-0.5">
+                        <p className="text-sm text-muted-foreground mt-0.5">
                           {getFunnelTypeLabel(funnel.type)}
                         </p>
                       </div>
@@ -353,7 +353,7 @@ export default function FunnelsPage() {
                         <button
                           ref={(el) => { menuButtonRefs.current[funnel.id] = el; }}
                           onClick={(e) => handleMenuToggle(funnel, e)}
-                          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                          className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           data-menu-container
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -365,49 +365,49 @@ export default function FunnelsPage() {
                     <div className="flex items-center gap-1.5 mt-4 mb-2">
                       {StageIcons.map((Icon, idx) => (
                         <div key={idx} className="flex items-center">
-                          <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                            <Icon className="w-4 h-4 text-cyan-400" />
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                            <Icon className="w-4 h-4 text-primary" />
                           </div>
                           {idx < StageIcons.length - 1 && (
-                            <ArrowRight className="w-3 h-3 text-zinc-600 mx-0.5" />
+                            <ArrowRight className="w-3 h-3 text-muted-foreground mx-0.5" />
                           )}
                         </div>
                       ))}
                       {funnel.stages.length > 4 && (
-                        <span className="text-xs text-zinc-500 ml-1">+{funnel.stages.length - 4}</span>
+                        <span className="text-xs text-muted-foreground ml-1">+{funnel.stages.length - 4}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Stats Footer */}
-                  <div className="px-5 py-4 bg-zinc-800/30 border-t border-zinc-800">
+                  <div className="px-5 py-4 bg-muted/30 border-t border-border">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-zinc-500 mb-1">
+                        <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                           <Users className="w-3.5 h-3.5" />
                         </div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {funnel.totalVisits.toLocaleString()}
                         </p>
-                        <p className="text-xs text-zinc-500">Visits</p>
+                        <p className="text-xs text-muted-foreground">Visits</p>
                       </div>
-                      <div className="text-center border-x border-zinc-700">
-                        <div className="flex items-center justify-center gap-1 text-zinc-500 mb-1">
+                      <div className="text-center border-x border-border">
+                        <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                           <BarChart3 className="w-3.5 h-3.5" />
                         </div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {funnel.totalConversions.toLocaleString()}
                         </p>
-                        <p className="text-xs text-zinc-500">Conversions</p>
+                        <p className="text-xs text-muted-foreground">Conversions</p>
                       </div>
                       <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-zinc-500 mb-1">
+                        <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                           <TrendingUp className="w-3.5 h-3.5" />
                         </div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {getConversionRate(funnel)}%
                         </p>
-                        <p className="text-xs text-zinc-500">Rate</p>
+                        <p className="text-xs text-muted-foreground">Rate</p>
                       </div>
                     </div>
                   </div>
@@ -422,7 +422,7 @@ export default function FunnelsPage() {
       {mounted && menuOpen && menuPosition && createPortal(
         <div
           data-menu-container
-          className="fixed w-48 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl py-2 z-[9999]"
+          className="fixed w-48 bg-muted border border-border rounded-xl shadow-xl py-2 z-[9999]"
           style={{ top: menuPosition.top, left: menuPosition.left }}
         >
           {(() => {
@@ -436,7 +436,7 @@ export default function FunnelsPage() {
                     setMenuOpen(null);
                     setMenuPosition(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit
@@ -444,7 +444,7 @@ export default function FunnelsPage() {
                 {funnel.status === 'PUBLISHED' ? (
                   <button
                     onClick={() => handlePublish(funnel, false)}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                   >
                     <Pause className="w-4 h-4" />
                     Unpublish
@@ -452,7 +452,7 @@ export default function FunnelsPage() {
                 ) : (
                   <button
                     onClick={() => handlePublish(funnel, true)}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                   >
                     <Play className="w-4 h-4" />
                     Publish
@@ -460,7 +460,7 @@ export default function FunnelsPage() {
                 )}
                 <button
                   onClick={() => handleDuplicate(funnel)}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
                   Duplicate
@@ -471,7 +471,7 @@ export default function FunnelsPage() {
                     setMenuOpen(null);
                     setMenuPosition(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                 >
                   <BarChart3 className="w-4 h-4" />
                   Analytics
@@ -482,12 +482,12 @@ export default function FunnelsPage() {
                     setMenuOpen(null);
                     setMenuPosition(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4" />
                   Preview
                 </button>
-                <div className="border-t border-zinc-700 my-1" />
+                <div className="border-t border-border my-1" />
                 <button
                   onClick={() => handleDeleteClick(funnel)}
                   className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
@@ -505,30 +505,30 @@ export default function FunnelsPage() {
       {/* Delete Confirmation Modal */}
       {mounted && funnelToDelete && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Delete Funnel</h3>
-                <p className="text-sm text-zinc-400">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-foreground">Delete Funnel</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone</p>
               </div>
             </div>
-            <p className="text-zinc-300 mb-6">
-              Are you sure you want to delete <span className="font-semibold text-white">"{funnelToDelete.name}"</span>?
+            <p className="text-foreground mb-6">
+              Are you sure you want to delete <span className="font-semibold text-foreground">"{funnelToDelete.name}"</span>?
               All associated data including stages, variants, and analytics will be permanently removed.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setFunnelToDelete(null)}
-                className="px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                className="px-4 py-2 rounded-lg bg-muted border border-border text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors"
+                className="px-4 py-2 rounded-lg bg-red-600 text-foreground hover:bg-red-500 transition-colors"
               >
                 Delete Funnel
               </button>

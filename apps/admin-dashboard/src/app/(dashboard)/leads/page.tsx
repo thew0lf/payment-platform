@@ -188,11 +188,11 @@ export default function LeadsPage() {
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center gap-3">
         <div className={cn('p-2 rounded-lg', color)}>
-          <Icon className="w-4 h-4 text-white" />
+          <Icon className="w-4 h-4 text-foreground" />
         </div>
         <div>
           <p className="text-xs text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-white">{value}</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-foreground">{value}</p>
         </div>
       </div>
     </div>
@@ -411,7 +411,7 @@ export default function LeadsPage() {
                         >
                           <TableCell>
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">
+                              <p className="font-medium text-gray-900 dark:text-foreground">
                                 {formatLeadName(lead)}
                               </p>
                               {lead.email && (
@@ -448,7 +448,7 @@ export default function LeadsPage() {
                             <ScoreBar score={lead.intentScore} label="Intent" />
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-medium text-gray-900 dark:text-foreground">
                               ${Number(lead.estimatedValue).toLocaleString()}
                             </span>
                             {lead.cartValue > 0 && (

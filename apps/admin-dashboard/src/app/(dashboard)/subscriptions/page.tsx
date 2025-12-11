@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Search,
   Filter,
@@ -19,7 +20,10 @@ import {
   AlertTriangle,
   TrendingUp,
   CalendarClock,
+  MoreHorizontal,
+  User,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   subscriptionsApi,
@@ -40,7 +44,7 @@ const STATUS_CONFIG: Record<SubscriptionStatus, { label: string; color: string; 
   ACTIVE: { label: 'Active', color: 'bg-green-500/10 text-green-400 border-green-500/20', icon: PlayCircle },
   PAUSED: { label: 'Paused', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', icon: PauseCircle },
   CANCELED: { label: 'Canceled', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: XCircle },
-  EXPIRED: { label: 'Expired', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', icon: AlertTriangle },
+  EXPIRED: { label: 'Expired', color: 'bg-muted text-muted-foreground border-border', icon: AlertTriangle },
 };
 
 const INTERVAL_CONFIG: Record<BillingInterval, { label: string; shortLabel: string }> = {
@@ -101,7 +105,7 @@ function getDateRangeForFilter(filter: TimeFilter): { startDate: string; endDate
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: SubscriptionStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400', icon: AlertTriangle };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground', icon: AlertTriangle };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border', config.color)}>
@@ -114,7 +118,7 @@ function StatusBadge({ status }: { status: SubscriptionStatus }) {
 function IntervalBadge({ interval }: { interval: BillingInterval }) {
   const config = INTERVAL_CONFIG[interval] || { label: interval, shortLabel: interval };
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/10 text-cyan-400">
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
       {config.label}
     </span>
   );
@@ -135,7 +139,7 @@ function StatsCard({
   color?: 'cyan' | 'yellow' | 'green' | 'purple' | 'red';
 }) {
   const colorClasses = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    cyan: 'bg-primary/10 text-primary border-primary/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     green: 'bg-green-500/10 text-green-400 border-green-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -143,12 +147,12 @@ function StatsCard({
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 md:p-5">
+    <div className="bg-card/50 border border-border rounded-xl p-4 md:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs md:text-sm text-zinc-500 mb-1">{title}</p>
-          <p className="text-xl md:text-2xl font-bold text-white">{value}</p>
-          {trend && <p className="text-xs text-zinc-500 mt-1">{trend}</p>}
+          <p className="text-xs md:text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
+          {trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>}
         </div>
         <div className={cn('p-2.5 md:p-3 rounded-xl border', colorClasses[color])}>
           <Icon className="w-5 h-5 md:w-6 md:h-6" />
@@ -183,6 +187,13 @@ export default function SubscriptionsPage() {
 
   // Create subscription modal
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Row actions
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [pauseSubscription, setPauseSubscription] = useState<Subscription | null>(null);
+  const [cancelSubscription, setCancelSubscription] = useState<Subscription | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -288,6 +299,47 @@ export default function SubscriptionsPage() {
     return `$${amount.toFixed(0)}`;
   };
 
+  const handlePauseResume = async (subscription: Subscription) => {
+    setActionLoading(true);
+    try {
+      if (subscription.status === 'PAUSED') {
+        await subscriptionsApi.resume(subscription.id);
+        toast.success('Subscription resumed successfully');
+      } else {
+        await subscriptionsApi.pause(subscription.id);
+        toast.success('Subscription paused successfully');
+      }
+      setPauseSubscription(null);
+      fetchSubscriptions();
+    } catch (err) {
+      console.error('Failed to update subscription:', err);
+      toast.error('Failed to update subscription');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelSubscription) return;
+
+    setActionLoading(true);
+    try {
+      await subscriptionsApi.cancel(cancelSubscription.id, {
+        reason: cancelReason || undefined,
+        cancelImmediately: true,
+      });
+      toast.success('Subscription canceled successfully');
+      setCancelSubscription(null);
+      setCancelReason('');
+      fetchSubscriptions();
+    } catch (err) {
+      console.error('Failed to cancel subscription:', err);
+      toast.error('Failed to cancel subscription');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <>
       <Header
@@ -333,7 +385,7 @@ export default function SubscriptionsPage() {
         </div>
 
         {/* Time Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-card/50 border border-border rounded-lg w-fit">
           {TIME_FILTER_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -348,8 +400,8 @@ export default function SubscriptionsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 timeFilter === option.value
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               {option.label}
@@ -359,23 +411,23 @@ export default function SubscriptionsPage() {
 
         {/* Custom Date Picker */}
         {showCustomDatePicker && timeFilter === 'custom' && (
-          <div className="flex flex-wrap items-end gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+          <div className="flex flex-wrap items-end gap-3 p-4 bg-card/50 border border-border rounded-lg">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Start Date</label>
+              <label className="text-xs text-muted-foreground">Start Date</label>
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">End Date</label>
+              <label className="text-xs text-muted-foreground">End Date</label>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <button
@@ -385,7 +437,7 @@ export default function SubscriptionsPage() {
                 setTimeFilter('all');
                 setShowCustomDatePicker(false);
               }}
-              className="p-2 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
               title="Clear custom dates"
             >
               <X className="w-4 h-4" />
@@ -398,13 +450,13 @@ export default function SubscriptionsPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by plan name, customer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
@@ -415,21 +467,21 @@ export default function SubscriptionsPage() {
                 className={cn(
                   'flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   showFilters
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-card text-muted-foreground border border-border hover:text-foreground'
                 )}
               >
                 <Filter className="w-4 h-4" />
                 <span className="sm:inline">Filters</span>
                 {(statusFilter || intervalFilter) && (
-                  <span className="w-2 h-2 bg-cyan-400 rounded-full" />
+                  <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
 
               {/* Refresh */}
               <button
                 onClick={fetchSubscriptions}
-                className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
                 title="Refresh"
               >
                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -439,14 +491,14 @@ export default function SubscriptionsPage() {
 
           {/* Filter Dropdowns */}
           {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-card/50 border border-border rounded-lg">
               {/* Status Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Status</label>
+                <label className="text-xs text-muted-foreground">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Statuses</option>
                   {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
@@ -457,11 +509,11 @@ export default function SubscriptionsPage() {
 
               {/* Interval Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Billing Interval</label>
+                <label className="text-xs text-muted-foreground">Billing Interval</label>
                 <select
                   value={intervalFilter}
                   onChange={(e) => setIntervalFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Intervals</option>
                   {Object.entries(INTERVAL_CONFIG).map(([value, { label }]) => (
@@ -478,7 +530,7 @@ export default function SubscriptionsPage() {
                       setStatusFilter('');
                       setIntervalFilter('');
                     }}
-                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-zinc-400 hover:text-white transition-colors bg-zinc-800/50 rounded-lg"
+                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 rounded-lg"
                   >
                     Clear all
                   </button>
@@ -498,16 +550,16 @@ export default function SubscriptionsPage() {
         {/* Loading State */}
         {loading && subscriptions.length === 0 && (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {/* Empty State */}
         {!loading && subscriptions.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Repeat className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No subscriptions found</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <Repeat className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No subscriptions found</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               {search || statusFilter || intervalFilter
                 ? "Try adjusting your search or filters to find what you're looking for."
                 : 'Subscriptions will appear here once customers subscribe to recurring plans.'}
@@ -517,45 +569,46 @@ export default function SubscriptionsPage() {
 
         {/* Subscriptions Table */}
         {subscriptions.length > 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Interval</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Next Billing</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Amount</th>
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Interval</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Next Billing</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-border">
                   {subscriptions.map((subscription) => (
                     <tr
                       key={subscription.id}
-                      className="hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
                     >
                       <td className="px-4 py-4">
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-foreground">
                           {subscription.planName}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           ID: {subscription.id.slice(0, 8)}...
                         </p>
                       </td>
                       <td className="px-4 py-4">
                         {subscription.customer ? (
                           <div>
-                            <p className="text-sm text-zinc-300">
+                            <p className="text-sm text-foreground">
                               {subscription.customer.firstName} {subscription.customer.lastName}
                             </p>
-                            <p className="text-xs text-zinc-500 mt-0.5">
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               {subscription.customer.email}
                             </p>
                           </div>
                         ) : (
-                          <p className="text-sm text-zinc-500">
+                          <p className="text-sm text-muted-foreground">
                             Customer {subscription.customerId.slice(0, 8)}...
                           </p>
                         )}
@@ -567,7 +620,7 @@ export default function SubscriptionsPage() {
                         <IntervalBadge interval={subscription.interval} />
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-zinc-300">
+                        <p className="text-sm text-foreground">
                           {formatDate(subscription.nextBillingDate)}
                         </p>
                         {subscription.status === 'PAUSED' && subscription.pauseResumeAt && (
@@ -577,12 +630,75 @@ export default function SubscriptionsPage() {
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-foreground">
                           {formatCurrency(subscription.planAmount, subscription.currency)}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           /{INTERVAL_CONFIG[subscription.interval]?.shortLabel || subscription.interval}
                         </p>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === subscription.id ? null : subscription.id);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                          {openMenuId === subscription.id && (
+                            <div className="absolute right-0 mt-1 w-48 bg-card border border-border rounded-lg shadow-lg z-10">
+                              {subscription.customerId && (
+                                <Link
+                                  href={`/customers/${subscription.customerId}`}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                                  onClick={() => setOpenMenuId(null)}
+                                >
+                                  <User className="w-4 h-4" />
+                                  View Customer
+                                </Link>
+                              )}
+                              {subscription.status === 'ACTIVE' && (
+                                <button
+                                  onClick={() => {
+                                    setPauseSubscription(subscription);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-yellow-400 hover:bg-muted transition-colors"
+                                >
+                                  <PauseCircle className="w-4 h-4" />
+                                  Pause Subscription
+                                </button>
+                              )}
+                              {subscription.status === 'PAUSED' && (
+                                <button
+                                  onClick={() => {
+                                    setPauseSubscription(subscription);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-green-400 hover:bg-muted transition-colors"
+                                >
+                                  <PlayCircle className="w-4 h-4" />
+                                  Resume Subscription
+                                </button>
+                              )}
+                              {(subscription.status === 'ACTIVE' || subscription.status === 'PAUSED') && (
+                                <button
+                                  onClick={() => {
+                                    setCancelSubscription(subscription);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-muted transition-colors"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  Cancel Subscription
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -592,25 +708,25 @@ export default function SubscriptionsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800">
-                <p className="text-sm text-zinc-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <p className="text-sm text-muted-foreground">
                   Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} subscriptions
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm text-zinc-400">
+                  <span className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
                   </span>
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -628,29 +744,154 @@ export default function SubscriptionsPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">Create Subscription</h2>
+          <div className="relative bg-card border border-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Create Subscription</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-1 text-zinc-400 hover:text-white transition-colors"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 To create a new subscription, please navigate to a customer&apos;s profile and add a subscription from there.
               </p>
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-muted-foreground">
                 This ensures the subscription is properly linked to the customer and their payment methods.
               </p>
               <div className="flex items-center gap-3 pt-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted transition-colors"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause/Resume Confirmation Modal */}
+      {pauseSubscription && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setPauseSubscription(null)}
+          />
+          <div className="relative bg-card border border-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">
+                {pauseSubscription.status === 'PAUSED' ? 'Resume Subscription' : 'Pause Subscription'}
+              </h2>
+              <button
+                onClick={() => setPauseSubscription(null)}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {pauseSubscription.status === 'PAUSED'
+                  ? `Are you sure you want to resume the subscription for "${pauseSubscription.planName}"?`
+                  : `Are you sure you want to pause the subscription for "${pauseSubscription.planName}"?`}
+              </p>
+              {pauseSubscription.customer && (
+                <p className="text-sm text-foreground">
+                  Customer: {pauseSubscription.customer.firstName} {pauseSubscription.customer.lastName}
+                </p>
+              )}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => setPauseSubscription(null)}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handlePauseResume(pauseSubscription)}
+                  disabled={actionLoading}
+                  className={cn(
+                    'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50',
+                    pauseSubscription.status === 'PAUSED'
+                      ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                      : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                  )}
+                >
+                  {actionLoading ? 'Processing...' : pauseSubscription.status === 'PAUSED' ? 'Resume' : 'Pause'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      {cancelSubscription && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setCancelSubscription(null);
+              setCancelReason('');
+            }}
+          />
+          <div className="relative bg-card border border-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-red-400">Cancel Subscription</h2>
+              <button
+                onClick={() => {
+                  setCancelSubscription(null);
+                  setCancelReason('');
+                }}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to cancel the subscription for &quot;{cancelSubscription.planName}&quot;?
+              </p>
+              {cancelSubscription.customer && (
+                <p className="text-sm text-foreground">
+                  Customer: {cancelSubscription.customer.firstName} {cancelSubscription.customer.lastName}
+                </p>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Reason (optional)</label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Enter a reason for cancellation..."
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  rows={3}
+                />
+              </div>
+              <p className="text-xs text-red-400">
+                This action cannot be undone. The subscription will be immediately canceled.
+              </p>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setCancelSubscription(null);
+                    setCancelReason('');
+                  }}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? 'Canceling...' : 'Cancel Subscription'}
                 </button>
               </div>
             </div>

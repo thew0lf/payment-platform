@@ -103,7 +103,7 @@ function SortableItem({
         {...attributes}
         {...listeners}
         className={cn(
-          'absolute top-2 left-2 z-10 p-1.5 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-grab',
+          'absolute top-2 left-2 z-10 p-1.5 rounded bg-black/50 text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab',
           disabled && 'hidden'
         )}
       >
@@ -121,7 +121,7 @@ function SortableItem({
       <div className="aspect-square bg-muted relative">
         {isProcessing && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <Loader2 className="h-8 w-8 animate-spin text-foreground" />
           </div>
         )}
         {isImage ? (
@@ -147,7 +147,7 @@ function SortableItem({
           <button
             onClick={onSetPrimary}
             disabled={disabled}
-            className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="p-1.5 rounded bg-black/50 text-foreground hover:bg-black/70 transition-colors"
             title="Set as primary"
           >
             <Star className="h-4 w-4" />
@@ -156,7 +156,7 @@ function SortableItem({
         <button
           onClick={onEdit}
           disabled={disabled}
-          className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 transition-colors"
+          className="p-1.5 rounded bg-black/50 text-foreground hover:bg-black/70 transition-colors"
           title="Edit details"
         >
           <Edit2 className="h-4 w-4" />
@@ -166,7 +166,7 @@ function SortableItem({
             <DropdownMenuTrigger asChild>
               <button
                 disabled={disabled || isProcessing}
-                className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 transition-colors"
+                className="p-1.5 rounded bg-black/50 text-foreground hover:bg-black/70 transition-colors"
                 title="Process image"
               >
                 <Wand2 className="h-4 w-4" />
@@ -191,7 +191,7 @@ function SortableItem({
         <button
           onClick={onDelete}
           disabled={disabled}
-          className="p-1.5 rounded bg-destructive/80 text-white hover:bg-destructive transition-colors"
+          className="p-1.5 rounded bg-destructive/80 text-foreground hover:bg-destructive transition-colors"
           title="Delete"
         >
           <Trash2 className="h-4 w-4" />
@@ -345,7 +345,7 @@ export function MediaGallery({
       >
         <div className="space-y-4 p-4">
           {editingMedia && (
-            <div className="aspect-video bg-zinc-800 rounded-lg overflow-hidden">
+            <div className="aspect-video bg-muted rounded-lg overflow-hidden">
               <img
                 src={editingMedia.thumbnailUrl || editingMedia.url}
                 alt={editingMedia.altText || editingMedia.filename}
@@ -354,7 +354,7 @@ export function MediaGallery({
             </div>
           )}
           <div className="space-y-2">
-            <label htmlFor="altText" className="text-sm font-medium text-zinc-300">
+            <label htmlFor="altText" className="text-sm font-medium text-foreground">
               Alt Text
             </label>
             <Input
@@ -365,12 +365,12 @@ export function MediaGallery({
               }
               placeholder="Describe this image for accessibility"
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Alt text helps with SEO and screen readers
             </p>
           </div>
           <div className="space-y-2">
-            <label htmlFor="caption" className="text-sm font-medium text-zinc-300">
+            <label htmlFor="caption" className="text-sm font-medium text-foreground">
               Caption
             </label>
             <textarea
@@ -381,7 +381,7 @@ export function MediaGallery({
               }
               placeholder="Optional caption for this media"
               rows={2}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+              className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
           </div>
         </div>

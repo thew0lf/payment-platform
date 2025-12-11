@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -40,14 +42,14 @@ import { Button } from '@/components/ui/button';
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   ACTIVE: { label: 'Active', color: 'bg-green-500/10 text-green-400 border-green-500/20', icon: CheckCircle2 },
   DRAFT: { label: 'Draft', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', icon: Clock },
-  ARCHIVED: { label: 'Archived', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', icon: Archive },
+  ARCHIVED: { label: 'Archived', color: 'bg-muted text-muted-foreground border-border', icon: Archive },
   DEPRECATED: { label: 'Deprecated', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: AlertTriangle },
 };
 
 const SCOPE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   ORGANIZATION: { label: 'Organization', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: Building2 },
   CLIENT: { label: 'Client', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Users },
-  COMPANY: { label: 'Company', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', icon: Store },
+  COMPANY: { label: 'Company', color: 'bg-primary/10 text-primary border-primary/20', icon: Store },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -55,7 +57,7 @@ const SCOPE_CONFIG: Record<string, { label: string; color: string; icon: React.C
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: SubscriptionPlanStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400', icon: AlertTriangle };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground', icon: AlertTriangle };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border', config.color)}>
@@ -66,7 +68,7 @@ function StatusBadge({ status }: { status: SubscriptionPlanStatus }) {
 }
 
 function ScopeBadge({ scope }: { scope: SubscriptionPlanScope }) {
-  const config = SCOPE_CONFIG[scope] || { label: scope, color: 'bg-zinc-500/10 text-zinc-400', icon: Building2 };
+  const config = SCOPE_CONFIG[scope] || { label: scope, color: 'bg-muted text-muted-foreground', icon: Building2 };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded text-sm font-medium', config.color)}>
@@ -78,9 +80,9 @@ function ScopeBadge({ scope }: { scope: SubscriptionPlanScope }) {
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between py-3 border-b border-zinc-800 last:border-0">
-      <span className="text-sm text-zinc-500">{label}</span>
-      <span className="text-sm text-white text-right">{value}</span>
+    <div className="flex items-start justify-between py-3 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground text-right">{value}</span>
     </div>
   );
 }
@@ -98,6 +100,7 @@ export default function SubscriptionPlanDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     async function fetchPlan() {
@@ -159,18 +162,24 @@ export default function SubscriptionPlanDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!plan) return;
-    if (!confirm('Are you sure you want to delete this plan?')) return;
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!plan) return;
     setActionLoading(true);
     try {
       await subscriptionPlansApi.deletePlan(plan.id);
+      toast.success('Plan deleted successfully');
       router.push('/subscription-plans');
     } catch (err) {
       console.error('Failed to delete plan:', err);
+      toast.error('Failed to delete plan. Please try again.');
     } finally {
       setActionLoading(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -198,7 +207,7 @@ export default function SubscriptionPlanDetailPage() {
           }
         />
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       </>
     );
@@ -269,14 +278,14 @@ export default function SubscriptionPlanDetailPage() {
             <button
               onClick={handleDuplicate}
               disabled={actionLoading}
-              className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
+              className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               title="Duplicate"
             >
               <Copy className="w-4 h-4" />
             </button>
             <button
               onClick={() => {/* TODO: Edit modal */}}
-              className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground transition-colors"
               title="Edit"
             >
               <Edit2 className="w-4 h-4" />
@@ -284,7 +293,7 @@ export default function SubscriptionPlanDetailPage() {
             <button
               onClick={handleDelete}
               disabled={actionLoading}
-              className="p-2 rounded-lg bg-zinc-800 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+              className="p-2 rounded-lg bg-muted text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
@@ -295,9 +304,9 @@ export default function SubscriptionPlanDetailPage() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pricing Section */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-cyan-400" />
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" />
               Pricing
             </h3>
             <div className="space-y-1">
@@ -330,8 +339,8 @@ export default function SubscriptionPlanDetailPage() {
           </div>
 
           {/* Trial Settings */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-yellow-400" />
               Trial Settings
             </h3>
@@ -364,8 +373,8 @@ export default function SubscriptionPlanDetailPage() {
           </div>
 
           {/* Pause & Skip */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">Pause & Skip</h3>
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Pause & Skip</h3>
             <div className="space-y-1">
               <DetailRow
                 label="Pause Enabled"
@@ -391,8 +400,8 @@ export default function SubscriptionPlanDetailPage() {
           </div>
 
           {/* Metadata */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-purple-400" />
               Metadata
             </h3>
@@ -413,24 +422,24 @@ export default function SubscriptionPlanDetailPage() {
 
         {/* Description */}
         {(plan.description || plan.shortDescription) && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">Description</h3>
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Description</h3>
             {plan.shortDescription && (
-              <p className="text-sm text-zinc-400 mb-3">{plan.shortDescription}</p>
+              <p className="text-sm text-muted-foreground mb-3">{plan.shortDescription}</p>
             )}
             {plan.description && (
-              <p className="text-sm text-zinc-300">{plan.description}</p>
+              <p className="text-sm text-foreground">{plan.description}</p>
             )}
           </div>
         )}
 
         {/* Features */}
         {plan.features && plan.features.length > 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white mb-4">Features</h3>
+          <div className="bg-card/50 border border-border rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Features</h3>
             <ul className="space-y-2">
               {plan.features.map((feature, idx) => (
-                <li key={idx} className="flex items-center gap-2 text-sm text-zinc-300">
+                <li key={idx} className="flex items-center gap-2 text-sm text-foreground">
                   <CheckCircle2 className="w-4 h-4 text-green-400" />
                   {feature}
                 </li>
@@ -439,6 +448,34 @@ export default function SubscriptionPlanDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Plan?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to delete &quot;{plan.displayName}&quot;? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? 'Deleting...' : 'Delete Plan'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

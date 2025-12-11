@@ -51,13 +51,13 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerProps>(
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex h-10 w-full items-center justify-between rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white ring-offset-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         {...props}
       >
         {children}
-        <ChevronDown className={cn('h-4 w-4 text-zinc-500 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
     );
   }
@@ -70,7 +70,7 @@ interface SelectValueProps {
 
 function SelectValue({ placeholder }: SelectValueProps) {
   const { value } = useSelectContext();
-  return <span className={cn(!value && 'text-zinc-500')}>{value || placeholder}</span>;
+  return <span className={cn(!value && 'text-muted-foreground')}>{value || placeholder}</span>;
 }
 
 interface SelectContentProps {
@@ -101,7 +101,7 @@ function SelectContent({ children, className }: SelectContentProps) {
     <div
       data-select
       className={cn(
-        'absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border border-zinc-700 bg-zinc-800 shadow-lg',
+        'absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-lg',
         className
       )}
     >
@@ -129,14 +129,14 @@ const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
           setOpen(false);
         }}
         className={cn(
-          'relative flex w-full cursor-pointer select-none items-center px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 focus:bg-zinc-700/50 focus:outline-none',
-          isSelected && 'bg-zinc-700/50',
+          'relative flex w-full cursor-pointer select-none items-center px-3 py-2 text-sm text-popover-foreground hover:bg-muted focus:bg-muted focus:outline-none',
+          isSelected && 'bg-muted',
           className
         )}
         {...props}
       >
         <span className="flex-1 text-left">{children}</span>
-        {isSelected && <Check className="h-4 w-4 text-cyan-400" />}
+        {isSelected && <Check className="h-4 w-4 text-primary" />}
       </button>
     );
   }

@@ -76,7 +76,7 @@ export function DiscoveryQuestionsStep({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
           Tell Us About Your Product
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-400">
@@ -88,7 +88,7 @@ export function DiscoveryQuestionsStep({
       {Object.keys(miSuggestions).length > 0 && (
         <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
           <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-            <SparklesIcon className="h-5 w-5 text-white" />
+            <SparklesIcon className="h-5 w-5 text-foreground" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
@@ -133,7 +133,7 @@ export function DiscoveryQuestionsStep({
                 <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-sm font-medium">
                   {index + 1}
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-gray-900 dark:text-foreground">
                   {question.question}
                   {question.required && (
                     <span className="text-red-500 ml-1">*</span>
@@ -186,7 +186,7 @@ export function DiscoveryQuestionsStep({
                 value={answers[question.id] || ''}
                 onChange={e => handleChange(question.id, e.target.value)}
                 placeholder={question.placeholder}
-                className={`w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                className={`w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-foreground placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   isUsingSuggestion
                     ? 'border-purple-300 dark:border-purple-600'
                     : 'border-gray-300 dark:border-gray-600'
@@ -200,7 +200,7 @@ export function DiscoveryQuestionsStep({
                 onChange={e => handleChange(question.id, e.target.value)}
                 placeholder={question.placeholder}
                 rows={3}
-                className={`w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${
+                className={`w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-foreground placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${
                   isUsingSuggestion
                     ? 'border-purple-300 dark:border-purple-600'
                     : 'border-gray-300 dark:border-gray-600'
@@ -227,7 +227,7 @@ export function DiscoveryQuestionsStep({
                   >
                     {isMISuggested && !isSelected && (
                       <span className="absolute -top-1 -right-1 p-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">
-                        <SparklesIcon className="h-3 w-3 text-white" />
+                        <SparklesIcon className="h-3 w-3 text-foreground" />
                       </span>
                     )}
                     {option.split(' - ')[0]}
@@ -245,7 +245,7 @@ export function DiscoveryQuestionsStep({
       <div className="flex justify-between pt-4">
         <button
           onClick={onBack}
-          className="px-6 py-3 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="px-6 py-3 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-foreground transition-colors"
         >
           Back
         </button>
@@ -262,7 +262,7 @@ export function DiscoveryQuestionsStep({
           )}
           <button
             onClick={handleSubmit}
-            className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-6 py-3 bg-purple-600 text-foreground font-medium rounded-lg hover:bg-purple-700 transition-colors"
           >
             Generate Funnel
           </button>

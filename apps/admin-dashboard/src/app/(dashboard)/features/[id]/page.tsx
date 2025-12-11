@@ -41,7 +41,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: FeatureStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10' };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'text-muted-foreground', bgColor: 'bg-muted' };
   return (
     <span className={cn(
       'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
@@ -54,7 +54,7 @@ function StatusBadge({ status }: { status: FeatureStatus }) {
 }
 
 function SeverityBadge({ severity }: { severity: IssueSeverity }) {
-  const config = SEVERITY_CONFIG[severity] || { label: severity, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10' };
+  const config = SEVERITY_CONFIG[severity] || { label: severity, color: 'text-muted-foreground', bgColor: 'bg-muted' };
   return (
     <span className={cn(
       'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
@@ -71,11 +71,11 @@ function IssueStatusBadge({ status }: { status: IssueStatus }) {
     [IssueStatus.OPEN]: { label: 'Open', color: 'bg-red-500/10 text-red-400' },
     [IssueStatus.IN_PROGRESS]: { label: 'In Progress', color: 'bg-yellow-500/10 text-yellow-400' },
     [IssueStatus.RESOLVED]: { label: 'Resolved', color: 'bg-green-500/10 text-green-400' },
-    [IssueStatus.WONT_FIX]: { label: "Won't Fix", color: 'bg-zinc-500/10 text-zinc-400' },
-    [IssueStatus.DUPLICATE]: { label: 'Duplicate', color: 'bg-zinc-500/10 text-zinc-400' },
-    [IssueStatus.CANNOT_REPRODUCE]: { label: 'Cannot Reproduce', color: 'bg-zinc-500/10 text-zinc-400' },
+    [IssueStatus.WONT_FIX]: { label: "Won't Fix", color: 'bg-muted text-muted-foreground' },
+    [IssueStatus.DUPLICATE]: { label: 'Duplicate', color: 'bg-muted text-muted-foreground' },
+    [IssueStatus.CANNOT_REPRODUCE]: { label: 'Cannot Reproduce', color: 'bg-muted text-muted-foreground' },
   };
-  const c = config[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400' };
+  const c = config[status] || { label: status, color: 'bg-muted text-muted-foreground' };
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', c.color)}>
       {c.label}
@@ -85,13 +85,13 @@ function IssueStatusBadge({ status }: { status: IssueStatus }) {
 
 function InfoCard({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: React.ComponentType<{ className?: string }> }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
+    <div className="bg-card/50 border border-border rounded-lg p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-zinc-500 mb-1">{label}</p>
-          <p className="text-sm text-white">{value}</p>
+          <p className="text-xs text-muted-foreground mb-1">{label}</p>
+          <p className="text-sm text-foreground">{value}</p>
         </div>
-        {Icon && <Icon className="w-4 h-4 text-zinc-500" />}
+        {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
       </div>
     </div>
   );
@@ -117,31 +117,31 @@ function QuestionCard({
       'border rounded-xl p-5 transition-all',
       isAnswered
         ? 'bg-green-500/5 border-green-500/20'
-        : 'bg-zinc-900/50 border-zinc-800'
+        : 'bg-card/50 border-border'
     )}>
       <div className="flex items-start gap-3 mb-4">
         <div className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0',
           isAnswered
             ? 'bg-green-500/20 text-green-400'
-            : 'bg-cyan-500/20 text-cyan-400'
+            : 'bg-primary/20 text-primary'
         )}>
           {isAnswered ? <CheckCircle2 className="w-4 h-4" /> : index + 1}
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-white">{question.question}</p>
+          <p className="text-sm font-medium text-foreground">{question.question}</p>
           {question.context && (
-            <p className="text-xs text-zinc-500 mt-1">{question.context}</p>
+            <p className="text-xs text-muted-foreground mt-1">{question.context}</p>
           )}
         </div>
       </div>
 
       {isAnswered ? (
         <div className="ml-10">
-          <div className="bg-zinc-800/50 rounded-lg p-3">
-            <p className="text-sm text-zinc-300">{question.answer}</p>
+          <div className="bg-muted/50 rounded-lg p-3">
+            <p className="text-sm text-foreground">{question.answer}</p>
             {question.answeredAt && (
-              <p className="text-xs text-zinc-500 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Answered {new Date(question.answeredAt).toLocaleDateString()}
               </p>
             )}
@@ -155,7 +155,7 @@ function QuestionCard({
             disabled={disabled}
             placeholder="Enter your answer..."
             rows={3}
-            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none disabled:opacity-50"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none disabled:opacity-50"
           />
         </div>
       )}
@@ -165,21 +165,21 @@ function QuestionCard({
 
 function IssueCard({ issue }: { issue: FeatureIssue }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-all">
+    <div className="bg-card/50 border border-border rounded-lg p-4 hover:border-border transition-all">
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Bug className="w-4 h-4 text-zinc-400" />
-          <span className="text-xs font-mono text-zinc-500">{issue.code}</span>
+          <Bug className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
         </div>
         <div className="flex items-center gap-2">
           <SeverityBadge severity={issue.severity} />
           <IssueStatusBadge status={issue.status} />
         </div>
       </div>
-      <h4 className="text-sm font-medium text-white mb-1">{issue.title}</h4>
-      <p className="text-xs text-zinc-500 line-clamp-2">{issue.description}</p>
+      <h4 className="text-sm font-medium text-foreground mb-1">{issue.title}</h4>
+      <p className="text-xs text-muted-foreground line-clamp-2">{issue.description}</p>
       {issue.filePath && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
           <FileText className="w-3 h-3" />
           {issue.filePath}
           {issue.lineNumber && `:${issue.lineNumber}`}
@@ -193,7 +193,7 @@ function ActivityItem({ activity }: { activity: FeatureActivity }) {
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'CREATED':
-        return <GitBranch className="w-4 h-4 text-cyan-400" />;
+        return <GitBranch className="w-4 h-4 text-primary" />;
       case 'STATUS_CHANGED':
         return <RefreshCw className="w-4 h-4 text-purple-400" />;
       case 'ISSUE_CREATED':
@@ -203,7 +203,7 @@ function ActivityItem({ activity }: { activity: FeatureActivity }) {
       case 'QUESTION_ANSWERED':
         return <MessageSquare className="w-4 h-4 text-blue-400" />;
       default:
-        return <Clock className="w-4 h-4 text-zinc-400" />;
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -228,8 +228,8 @@ function ActivityItem({ activity }: { activity: FeatureActivity }) {
     <div className="flex items-start gap-3 py-3">
       <div className="mt-0.5">{getActionIcon(activity.action)}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-zinc-300">{formatAction(activity.action, activity.details)}</p>
-        <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
+        <p className="text-sm text-foreground">{formatAction(activity.action, activity.details)}</p>
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
           <span>{activity.performedByName || activity.performedBy}</span>
           <span>&middot;</span>
           <span>{new Date(activity.performedAt).toLocaleString()}</span>
@@ -332,9 +332,9 @@ export default function FeatureDetailPage() {
         <Header title="Feature" backLink={{ href: '/features', label: 'Features' }} />
         <div className="p-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Lock className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">Access Restricted</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">Access Restricted</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               The Feature Management system is only available to organization administrators.
             </p>
           </div>
@@ -349,7 +349,7 @@ export default function FeatureDetailPage() {
       <>
         <Header title="Feature" backLink={{ href: '/features', label: 'Features' }} />
         <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       </>
     );
@@ -394,7 +394,7 @@ export default function FeatureDetailPage() {
 
       <div className="p-4 md:p-6 space-y-6">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
+        <div className="flex items-center gap-1 p-1 bg-card/50 border border-border rounded-lg w-fit">
           {(['overview', 'issues', 'questions', 'activity'] as const).map((tab) => (
             <button
               key={tab}
@@ -402,13 +402,13 @@ export default function FeatureDetailPage() {
               className={cn(
                 'px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize',
                 activeTab === tab
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               {tab}
               {tab === 'issues' && feature.issuesFound > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 rounded text-xs">
+                <span className="ml-2 px-1.5 py-0.5 bg-muted rounded text-xs">
                   {feature.issuesFound}
                 </span>
               )}
@@ -446,26 +446,26 @@ export default function FeatureDetailPage() {
 
             {/* Issue Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-card/50 border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-zinc-500">Issues Found</span>
+                  <span className="text-sm text-muted-foreground">Issues Found</span>
                   <Bug className="w-4 h-4 text-red-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{feature.issuesFound}</p>
+                <p className="text-2xl font-bold text-foreground">{feature.issuesFound}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-card/50 border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-zinc-500">Issues Resolved</span>
+                  <span className="text-sm text-muted-foreground">Issues Resolved</span>
                   <CheckCircle2 className="w-4 h-4 text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">{feature.issuesResolved}</p>
+                <p className="text-2xl font-bold text-foreground">{feature.issuesResolved}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-card/50 border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-zinc-500">Remaining</span>
+                  <span className="text-sm text-muted-foreground">Remaining</span>
                   <AlertTriangle className="w-4 h-4 text-yellow-400" />
                 </div>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-foreground">
                   {feature.issuesFound - feature.issuesResolved}
                 </p>
               </div>
@@ -473,36 +473,36 @@ export default function FeatureDetailPage() {
 
             {/* Description */}
             {feature.description && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-white mb-3">Description</h3>
-                <p className="text-sm text-zinc-400">{feature.description}</p>
+              <div className="bg-card/50 border border-border rounded-xl p-5">
+                <h3 className="text-sm font-medium text-foreground mb-3">Description</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
             )}
 
             {/* Timeline */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-              <h3 className="text-sm font-medium text-white mb-4">Timeline</h3>
+            <div className="bg-card/50 border border-border rounded-xl p-5">
+              <h3 className="text-sm font-medium text-foreground mb-4">Timeline</h3>
               <div className="space-y-3 text-sm">
                 {feature.qaStartedAt && (
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
                     QA Started: {new Date(feature.qaStartedAt).toLocaleString()}
                   </div>
                 )}
                 {feature.reviewStartedAt && (
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <User className="w-4 h-4" />
                     Review Started: {new Date(feature.reviewStartedAt).toLocaleString()}
                   </div>
                 )}
                 {feature.questionsReadyAt && (
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <MessageSquare className="w-4 h-4" />
                     Questions Ready: {new Date(feature.questionsReadyAt).toLocaleString()}
                   </div>
                 )}
                 {feature.answeredAt && (
-                  <div className="flex items-center gap-2 text-zinc-400">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <CheckCircle2 className="w-4 h-4" />
                     Answered: {new Date(feature.answeredAt).toLocaleString()}
                   </div>
@@ -514,7 +514,7 @@ export default function FeatureDetailPage() {
                   </div>
                 )}
                 {feature.mergedAt && (
-                  <div className="flex items-center gap-2 text-cyan-400">
+                  <div className="flex items-center gap-2 text-primary">
                     <GitBranch className="w-4 h-4" />
                     Merged: {new Date(feature.mergedAt).toLocaleString()}
                   </div>
@@ -535,9 +535,9 @@ export default function FeatureDetailPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Bug className="w-12 h-12 text-zinc-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No issues found</h3>
-                <p className="text-sm text-zinc-500">
+                <Bug className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No issues found</h3>
+                <p className="text-sm text-muted-foreground">
                   QA has not identified any issues with this feature yet.
                 </p>
               </div>
@@ -564,8 +564,8 @@ export default function FeatureDetailPage() {
                 </div>
 
                 {hasQuestionsToAnswer && (
-                  <div className="flex items-center justify-end gap-4 pt-4 border-t border-zinc-800">
-                    <p className="text-sm text-zinc-500">
+                  <div className="flex items-center justify-end gap-4 pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground">
                       {Object.values(answers).filter((a) => a.trim()).length} of {pendingQuestions.length} answered
                     </p>
                     <Button
@@ -584,9 +584,9 @@ export default function FeatureDetailPage() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <MessageSquare className="w-12 h-12 text-zinc-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No questions yet</h3>
-                <p className="text-sm text-zinc-500">
+                <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No questions yet</h3>
+                <p className="text-sm text-muted-foreground">
                   Senior review has not generated any questions for this feature yet.
                 </p>
               </div>
@@ -596,9 +596,9 @@ export default function FeatureDetailPage() {
 
         {/* Activity Tab */}
         {activeTab === 'activity' && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl">
+          <div className="bg-card/50 border border-border rounded-xl">
             {feature.activities && feature.activities.length > 0 ? (
-              <div className="divide-y divide-zinc-800">
+              <div className="divide-y divide-border">
                 {feature.activities.map((activity) => (
                   <div key={activity.id} className="px-5">
                     <ActivityItem activity={activity} />
@@ -607,9 +607,9 @@ export default function FeatureDetailPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Clock className="w-12 h-12 text-zinc-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No activity yet</h3>
-                <p className="text-sm text-zinc-500">
+                <Clock className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No activity yet</h3>
+                <p className="text-sm text-muted-foreground">
                   Activity will be recorded as the feature progresses through the pipeline.
                 </p>
               </div>

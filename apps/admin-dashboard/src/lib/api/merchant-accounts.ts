@@ -51,6 +51,8 @@ export enum AccountStatus {
 export enum PaymentProviderType {
   NMI = 'NMI',
   PAYFLOW = 'PAYFLOW',
+  PAYPAL_CLASSIC = 'PAYPAL_CLASSIC',
+  PAYPAL_REST = 'PAYPAL_REST',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
   BRAINTREE = 'BRAINTREE',
@@ -237,6 +239,59 @@ export interface LimitCheckResult {
   limitValue?: number;
 }
 
+// Test Checkout Types
+export interface TestCheckoutCard {
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  cardholderName?: string;
+}
+
+export interface TestCheckoutRequest {
+  merchantAccountId: string;
+  amount: number;
+  currency?: string;
+  card: TestCheckoutCard;
+  description?: string;
+  createOrder?: boolean;
+}
+
+export interface TestCheckoutResponse {
+  success: boolean;
+  transactionId: string;
+  orderId?: string;
+  orderNumber?: string;
+  transactionNumber?: string;
+  amount: number;
+  currency: string;
+  status: string;
+  environment: 'sandbox' | 'production';
+  providerTransactionId?: string;
+  avsResult?: string;
+  cvvResult?: string;
+  errorMessage?: string;
+  errorCode?: string;
+  processingTimeMs: number;
+  createdAt: string;
+}
+
+export interface TestCard {
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  brand: string;
+  description: string;
+}
+
+export interface TestCardsResponse {
+  merchantAccountId: string;
+  providerType: string;
+  environment: 'sandbox' | 'production';
+  testCards: TestCard[];
+}
+
 // API Client
 export const merchantAccountsApi = {
   // List all merchant accounts
@@ -296,6 +351,17 @@ export const merchantAccountsApi = {
     request<LimitCheckResult>(`/api/merchant-accounts/${id}/check-limits`, {
       method: 'POST',
       body: JSON.stringify({ amount }),
+    }),
+
+  // Test Checkout: Get available test cards
+  getTestCards: (id: string) =>
+    request<TestCardsResponse>(`/api/merchant-accounts/${id}/test-cards`),
+
+  // Test Checkout: Process test transaction
+  processTestCheckout: (data: TestCheckoutRequest) =>
+    request<TestCheckoutResponse>(`/api/merchant-accounts/test-checkout`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 

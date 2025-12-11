@@ -123,13 +123,13 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
 
       {/* Modal */}
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-10 md:left-1/2 md:-translate-x-1/2 md:max-w-2xl md:w-full z-50 overflow-hidden">
-        <div className="h-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col">
+        <div className="h-full bg-card border border-border rounded-xl shadow-2xl flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">
               {collection ? 'Edit Collection' : 'Add Collection'}
             </h2>
-            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -140,42 +140,42 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">Name *</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="Collection name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">Slug</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Slug</label>
                   <input
                     type="text"
                     value={formData.slug || ''}
                     onChange={(e) => setFormData((p) => ({ ...p, slug: e.target.value }))}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="collection-slug (auto-generated)"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Description</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
                 <textarea
                   value={formData.description || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
                   rows={2}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   placeholder="Optional description..."
                 />
               </div>
 
               {/* Collection Type */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Collection Type</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Collection Type</label>
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
@@ -183,8 +183,8 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                     className={cn(
                       'flex items-center gap-3 p-4 rounded-lg border transition-colors',
                       formData.type === 'MANUAL'
-                        ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
-                        : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white'
+                        ? 'bg-primary/10 border-primary/50 text-foreground'
+                        : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'
                     )}
                   >
                     <FileStack className="w-5 h-5" />
@@ -199,8 +199,8 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                     className={cn(
                       'flex items-center gap-3 p-4 rounded-lg border transition-colors',
                       formData.type === 'AUTOMATIC'
-                        ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
-                        : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white'
+                        ? 'bg-primary/10 border-primary/50 text-foreground'
+                        : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'
                     )}
                   >
                     <Sparkles className="w-5 h-5" />
@@ -214,13 +214,13 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
 
               {/* Automatic Collection Rules */}
               {formData.type === 'AUTOMATIC' && (
-                <div className="space-y-4 p-4 bg-zinc-800/30 rounded-lg border border-zinc-700">
+                <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-white">Rules</h3>
+                    <h3 className="text-sm font-medium text-foreground">Rules</h3>
                     <select
                       value={matchType}
                       onChange={(e) => setMatchType(e.target.value as 'ALL' | 'ANY')}
-                      className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none"
+                      className="px-2 py-1 bg-muted border border-border rounded text-sm text-foreground focus:outline-none"
                     >
                       <option value="ALL">Match ALL conditions</option>
                       <option value="ANY">Match ANY condition</option>
@@ -228,7 +228,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                   </div>
 
                   {conditions.length === 0 && (
-                    <p className="text-sm text-zinc-500">No conditions added yet.</p>
+                    <p className="text-sm text-muted-foreground">No conditions added yet.</p>
                   )}
 
                   {conditions.map((condition, index) => (
@@ -236,7 +236,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                       <select
                         value={condition.field}
                         onChange={(e) => updateCondition(index, { field: e.target.value as any })}
-                        className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none"
+                        className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none"
                       >
                         {CONDITION_FIELDS.map((f) => (
                           <option key={f.value} value={f.value}>{f.label}</option>
@@ -245,7 +245,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                       <select
                         value={condition.operator}
                         onChange={(e) => updateCondition(index, { operator: e.target.value as any })}
-                        className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none"
+                        className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none"
                       >
                         {CONDITION_OPERATORS.map((o) => (
                           <option key={o.value} value={o.value}>{o.label}</option>
@@ -257,13 +257,13 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                         onChange={(e) => updateCondition(index, {
                           value: condition.field === 'price' ? parseFloat(e.target.value) || 0 : e.target.value
                         })}
-                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none"
+                        className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none"
                         placeholder="Value"
                       />
                       <button
                         type="button"
                         onClick={() => removeCondition(index)}
-                        className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                        className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -273,7 +273,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                   <button
                     type="button"
                     onClick={addCondition}
-                    className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+                    className="flex items-center gap-2 text-sm text-primary hover:text-primary transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     Add Condition
@@ -284,13 +284,13 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
               {/* Sort Order & Active */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">Sort Order</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Sort Order</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.sortOrder}
                     onChange={(e) => setFormData((p) => ({ ...p, sortOrder: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div className="flex items-center gap-3 pt-6">
@@ -298,8 +298,8 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                     type="button"
                     onClick={() => setFormData((p) => ({ ...p, isActive: !p.isActive }))}
                     className={cn(
-                      'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
-                      formData.isActive ? 'bg-cyan-500' : 'bg-zinc-700'
+                      'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/50',
+                      formData.isActive ? 'bg-primary' : 'bg-muted'
                     )}
                   >
                     <span
@@ -309,7 +309,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
                       )}
                     />
                   </button>
-                  <span className="text-sm text-zinc-300">
+                  <span className="text-sm text-foreground">
                     {formData.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -318,11 +318,11 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
@@ -330,7 +330,7 @@ function CollectionModal({ collection, onClose, onSave }: CollectionModalProps) 
               type="submit"
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               {collection ? 'Save Changes' : 'Create Collection'}
@@ -371,21 +371,21 @@ function DeleteModal({ collection, onClose, onConfirm }: DeleteModalProps) {
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full z-50">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6">
+        <div className="bg-card border border-border rounded-xl shadow-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-500/10 rounded-lg">
               <AlertTriangle className="w-6 h-6 text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Delete Collection</h2>
-              <p className="text-sm text-zinc-500">This action cannot be undone</p>
+              <h2 className="text-lg font-semibold text-foreground">Delete Collection</h2>
+              <p className="text-sm text-muted-foreground">This action cannot be undone</p>
             </div>
           </div>
 
-          <p className="text-sm text-zinc-300 mb-6">
+          <p className="text-sm text-foreground mb-6">
             Are you sure you want to delete <strong>{collection.name}</strong>?
             {collection.productCount > 0 && (
-              <span className="block mt-2 text-zinc-400">
+              <span className="block mt-2 text-muted-foreground">
                 This collection has {collection.productCount} products (they won&apos;t be deleted).
               </span>
             )}
@@ -394,14 +394,14 @@ function DeleteModal({ collection, onClose, onConfirm }: DeleteModalProps) {
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-foreground rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               Delete
@@ -504,13 +504,13 @@ export default function CollectionsPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/products"
-            className="p-2 text-zinc-500 hover:text-white transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Collections</h1>
-            <p className="text-sm text-zinc-500 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Collections</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Group products into curated collections
             </p>
           </div>
@@ -518,7 +518,7 @@ export default function CollectionsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchCollections}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
             title="Refresh"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -526,7 +526,7 @@ export default function CollectionsPage() {
           <button
             onClick={openCreateModal}
             disabled={needsCompanySelection}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title={needsCompanySelection ? 'Select a company first' : undefined}
           >
             <Plus className="w-4 h-4" />
@@ -539,13 +539,13 @@ export default function CollectionsPage() {
       {collections.length > 0 && (
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search collections..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </div>
@@ -561,18 +561,18 @@ export default function CollectionsPage() {
       {/* Loading State */}
       {loading && collections.length === 0 && !needsCompanySelection && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       )}
 
       {/* Company Selection Required */}
       {needsCompanySelection && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-zinc-500" />
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <h3 className="text-lg font-medium text-foreground mb-2">Select a Company</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
             Choose a company from the sidebar to view and manage collections.
           </p>
         </div>
@@ -581,14 +581,14 @@ export default function CollectionsPage() {
       {/* Empty State */}
       {!loading && !needsCompanySelection && collections.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Layers className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No collections yet</h3>
-          <p className="text-sm text-zinc-500 max-w-md mb-4">
+          <Layers className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No collections yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-4">
             Create collections to group and showcase your products.
           </p>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Collection
@@ -602,10 +602,10 @@ export default function CollectionsPage() {
           {filteredCollections.map((collection) => (
             <div
               key={collection.id}
-              className="group bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors"
+              className="group bg-card/50 border border-border rounded-xl overflow-hidden hover:border-border transition-colors"
             >
               {/* Image/Banner */}
-              <div className="aspect-video bg-zinc-800 flex items-center justify-center relative">
+              <div className="aspect-video bg-muted flex items-center justify-center relative">
                 {collection.imageUrl ? (
                   <img
                     src={collection.imageUrl}
@@ -613,7 +613,7 @@ export default function CollectionsPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <Layers className="w-10 h-10 text-zinc-600" />
+                  <Layers className="w-10 h-10 text-muted-foreground" />
                 )}
                 {/* Type Badge */}
                 <div className="absolute top-3 left-3">
@@ -622,7 +622,7 @@ export default function CollectionsPage() {
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
                       collection.type === 'AUTOMATIC'
                         ? 'bg-purple-500/10 text-purple-400'
-                        : 'bg-zinc-500/10 text-zinc-400'
+                        : 'bg-muted text-muted-foreground'
                     )}
                   >
                     {collection.type === 'AUTOMATIC' ? (
@@ -648,14 +648,14 @@ export default function CollectionsPage() {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-white truncate">{collection.name}</h3>
-                    <p className="text-xs text-zinc-500">{collection.slug}</p>
+                    <h3 className="text-sm font-medium text-foreground truncate">{collection.name}</h3>
+                    <p className="text-xs text-muted-foreground">{collection.slug}</p>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {collection.type === 'AUTOMATIC' && (
                       <button
                         onClick={() => handleRefreshCollection(collection)}
-                        className="p-1.5 text-zinc-500 hover:text-cyan-400 transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
                         title="Refresh products"
                       >
                         <RefreshCw className="w-4 h-4" />
@@ -663,14 +663,14 @@ export default function CollectionsPage() {
                     )}
                     <button
                       onClick={() => openEditModal(collection)}
-                      className="p-1.5 text-zinc-500 hover:text-white transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                       title="Edit"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeletingCollection(collection)}
-                      className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -679,12 +679,12 @@ export default function CollectionsPage() {
                 </div>
 
                 {collection.description && (
-                  <p className="text-xs text-zinc-400 line-clamp-2 mb-3">
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                     {collection.description}
                   </p>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-zinc-500">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{collection.productCount} products</span>
                   {collection.rules && (
                     <span>
@@ -701,9 +701,9 @@ export default function CollectionsPage() {
       {/* No results */}
       {!loading && collections.length > 0 && filteredCollections.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Search className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No matching collections</h3>
-          <p className="text-sm text-zinc-500">
+          <Search className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No matching collections</h3>
+          <p className="text-sm text-muted-foreground">
             Try adjusting your search term.
           </p>
         </div>

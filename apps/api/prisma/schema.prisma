@@ -89,6 +89,7 @@ model Client {
   cascadeId String?
 
   @@unique([organizationId, slug])
+  @@index([organizationId])
   @@index([deletedAt])
   @@map("clients")
 }
@@ -200,6 +201,7 @@ model Company {
   cascadeId String?
 
   @@unique([clientId, slug])
+  @@index([clientId])
   @@index([deletedAt])
   @@map("companies")
 }
@@ -230,6 +232,7 @@ model Department {
   cascadeId String?
 
   @@unique([companyId, slug])
+  @@index([companyId])
   @@index([deletedAt])
   @@map("departments")
 }
@@ -258,6 +261,8 @@ model Team {
   members    TeamMember[]
 
   @@unique([departmentId, slug])
+  @@index([departmentId])
+  @@index([teamLeadId])
   @@map("teams")
 }
 
@@ -288,6 +293,9 @@ model User {
 
   // Status
   status UserStatus @default(ACTIVE)
+
+  // User Preferences (theme, sidebar, etc.)
+  preferences Json @default("{\"theme\": \"system\", \"sidebarCollapsed\": false}")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -356,6 +364,8 @@ model TeamMember {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
   @@map("team_members")
 }
 
@@ -795,6 +805,9 @@ model Order {
   // Metadata
   metadata Json @default("{}")
 
+  // Environment (sandbox vs production)
+  environment String @default("production") // "sandbox" or "production"
+
   // Continuity tracking
   continuitySessionId String?
   frictionLevel       String?
@@ -881,6 +894,7 @@ model OrderItem {
   product Product? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -1194,6 +1208,8 @@ model Subscription {
   @@index([companyId, status])
   @@index([companyId, interval])
   @@index([companyId, nextBillingDate])
+  @@index([companyId, createdAt]) // For date range analytics queries
+  @@index([companyId, canceledAt]) // For cancellation analytics queries
   @@index([customerId])
   @@index([subscriptionPlanId])
   @@index([trialStatus])
@@ -1708,6 +1724,9 @@ model Transaction {
   frictionLevel       String?
   momentumScore       Int?
 
+  // Environment (sandbox vs production)
+  environment String @default("production") // "sandbox" or "production"
+
   // Timestamps
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1726,6 +1745,10 @@ model Transaction {
   @@index([companyId, status, createdAt])
   @@index([customerId])
   @@index([orderId])
+  @@index([subscriptionId])
+  @@index([paymentProviderId])
+  @@index([paymentVaultId])
+  @@index([parentTransactionId])
   @@index([status])
   @@map("transactions")
 }
@@ -2699,6 +2722,7 @@ model CustomerIntent {
   interventions Intervention[]
 
   @@index([companyId, customerId])
+  @@index([companyId, calculatedAt]) // For date range analytics queries
   @@index([churnRisk, urgency])
   @@map("customer_intents")
 }
@@ -2781,6 +2805,7 @@ model SaveAttempt {
 
   @@index([companyId, customerId])
   @@index([outcome, savedBy])
+  @@index([companyId, createdAt]) // For date range analytics queries
   @@map("save_attempts")
 }
 
@@ -2843,6 +2868,7 @@ model VoiceCall {
   @@index([companyId, customerId])
   @@index([twilioCallSid])
   @@index([status, outcome])
+  @@index([companyId, initiatedAt]) // For date range analytics queries
   @@map("voice_calls")
 }
 
@@ -2888,6 +2914,7 @@ model UpsellOffer {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([companyId, customerId])
+  @@index([companyId, createdAt]) // For date range analytics queries
   @@index([type, moment, accepted])
   @@map("upsell_offers")
 }
@@ -4142,6 +4169,7 @@ model DeliveryMessage {
   updatedAt DateTime @updatedAt
 
   @@index([companyId])
+  @@index([companyId, createdAt]) // For date range analytics queries
   @@index([customerId])
   @@index([status])
   @@index([scheduledFor])

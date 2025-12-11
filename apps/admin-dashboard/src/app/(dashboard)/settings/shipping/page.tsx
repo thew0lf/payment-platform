@@ -155,7 +155,7 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
             </button>
             <button
               onClick={handleSave}
-              className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+              className="p-1.5 rounded-lg bg-indigo-600 text-foreground hover:bg-indigo-700"
             >
               <Check className="w-4 h-4" />
             </button>
@@ -582,7 +582,7 @@ export default function ShippingSettingsPage() {
           disabled={saving || !hasChanges}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
             hasChanges
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              ? 'bg-indigo-600 text-foreground hover:bg-indigo-700'
               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
           }`}
         >
@@ -651,7 +651,7 @@ export default function ShippingSettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900">Shipping Zones</h2>
           <button
             onClick={handleAddZone}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Zone
@@ -665,7 +665,7 @@ export default function ShippingSettingsPage() {
             <p className="text-gray-500 mb-4">Create zones to define where you ship and at what rates</p>
             <button
               onClick={handleAddZone}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create First Zone

@@ -48,6 +48,49 @@ export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ═══════════════════════════════════════════════════════════════
+  // ERROR HANDLING HELPERS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Safely extract values from Promise.allSettled results with logging
+   * Returns the fulfilled value or the provided default for rejected promises
+   */
+  private extractSettledValues(
+    results: PromiseSettledResult<any>[],
+    defaults: any[],
+    context: string,
+  ): any[] {
+    return results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      this.logger.warn(
+        `Query ${index + 1} failed in ${context}: ${result.reason?.message || 'Unknown error'}`,
+      );
+      return defaults[index];
+    });
+  }
+
+  /**
+   * Wrap an analytics method with try-catch and return safe defaults on error
+   */
+  private async safeAnalyticsCall<T>(
+    methodName: string,
+    operation: () => Promise<T>,
+    defaultValue: T,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      this.logger.error(
+        `Analytics method ${methodName} failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return defaultValue;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // DASHBOARD OVERVIEW
   // ═══════════════════════════════════════════════════════════════
 
@@ -63,14 +106,8 @@ export class AnalyticsService {
     const previousStart = new Date(startDate.getTime() - previousPeriodDays * 24 * 60 * 60 * 1000);
     const previousEnd = new Date(startDate.getTime() - 1);
 
-    // Get current period data
-    const [
-      saveAttempts,
-      previousSaveAttempts,
-      intents,
-      deliveryMessages,
-      upsellOffers,
-    ] = await Promise.all([
+    // Get current period data with graceful error handling
+    const dashboardResults = await Promise.allSettled([
       this.prisma.saveAttempt.findMany({
         where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
       }),
@@ -87,6 +124,13 @@ export class AnalyticsService {
         where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
       }),
     ]);
+
+    const [saveAttempts, previousSaveAttempts, intents, deliveryMessages, upsellOffers]: any[] =
+      this.extractSettledValues(
+        dashboardResults,
+        [[], [], [], [], []],
+        'getDashboardOverview',
+      );
 
     // Calculate KPIs
     const currentSaves = saveAttempts.filter(a => a.outcome?.startsWith('SAVED'));
@@ -110,7 +154,9 @@ export class AnalyticsService {
         currentRevenue / Math.max(currentSaves.length, 1),
         previousRevenue / Math.max(previousSaves.length, 1),
       ),
-      netPromoterScore: this.createMetricValue(72, 68), // Placeholder - would calculate from survey data
+      // NPS calculated from voice call satisfaction scores (0-5 scale mapped to NPS)
+      // Promoters: 4-5, Passives: 3, Detractors: 0-2
+      netPromoterScore: await this.calculateNPS(dto.companyId, startDate, endDate)
     };
 
     // Quick stats
@@ -151,7 +197,7 @@ export class AnalyticsService {
       endDate: dto.endDate,
     });
 
-    const [saveAttempts, intents, subscriptions] = await Promise.all([
+    const churnResults = await Promise.allSettled([
       this.prisma.saveAttempt.findMany({
         where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
       }),
@@ -162,6 +208,12 @@ export class AnalyticsService {
         where: { companyId: dto.companyId, updatedAt: { gte: startDate, lte: endDate } },
       }),
     ]);
+
+    const [saveAttempts, intents, subscriptions]: any[] = this.extractSettledValues(
+      churnResults,
+      [[], [], []],
+      'getChurnAnalytics',
+    );
 
     // Calculate churned customers
     const churned = saveAttempts.filter(a =>
@@ -241,7 +293,11 @@ export class AnalyticsService {
         voluntaryChurnRate: this.createMetricValue((voluntaryChurn.length / totalCustomers) * 100, 0),
         involuntaryChurnRate: this.createMetricValue((involuntaryChurn.length / totalCustomers) * 100, 0),
         revenueChurned: this.createMetricValue(revenueChurned, 0),
-        averageTimeToChurn: this.createMetricValue(45, 0), // Placeholder
+        // Calculate average days from subscription start to cancellation
+        averageTimeToChurn: this.createMetricValue(
+          await this.calculateAverageTimeToChurn(dto.companyId, startDate, endDate),
+          0,
+        )
       },
       churnByReason,
       churnBySegment,
@@ -265,6 +321,9 @@ export class AnalyticsService {
 
     const saveAttempts = await this.prisma.saveAttempt.findMany({
       where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
+      include: {
+        customer: true, // Customer metadata may contain segment info
+      },
     });
 
     const successfulSaves = saveAttempts.filter(a => a.outcome?.startsWith('SAVED'));
@@ -283,35 +342,63 @@ export class AnalyticsService {
 
     const stagePerformance = stageNames.map((stageName, index) => {
       const stageNum = index + 1;
-      const entered = saveAttempts.filter(a => {
+      const attemptsAtStage = saveAttempts.filter(a => {
         const history = (a.stageHistory as any[]) || [];
         return history.some(h => h.stage === stageNum) || a.currentStage >= stageNum;
-      }).length;
+      });
+      const entered = attemptsAtStage.length;
 
       const savedAtStage = saveAttempts.filter(a => a.outcome === `SAVED_STAGE_${stageNum}`).length;
       const continued = saveAttempts.filter(a => a.currentStage > stageNum).length;
       const dropped = entered - savedAtStage - continued;
+
+      // Calculate average duration from stage history timestamps
+      let totalDuration = 0;
+      let durationCount = 0;
+      for (const attempt of attemptsAtStage) {
+        const history = (attempt.stageHistory as any[]) || [];
+        const stageEntry = history.find(h => h.stage === stageNum);
+        if (stageEntry?.enteredAt) {
+          // Find when they exited this stage (next stage entry or completion)
+          const nextStageEntry = history.find(h => h.stage === stageNum + 1);
+          const exitTime = nextStageEntry?.enteredAt || attempt.completedAt || attempt.updatedAt;
+          if (exitTime) {
+            const duration = (new Date(exitTime).getTime() - new Date(stageEntry.enteredAt).getTime()) / 1000; // seconds
+            if (duration > 0 && duration < 3600) { // reasonable range: 0-1 hour
+              totalDuration += duration;
+              durationCount++;
+            }
+          }
+        }
+      }
+      const averageDuration = durationCount > 0 ? totalDuration / durationCount : 0;
 
       return {
         stageName,
         stageOrder: stageNum,
         entriesCount: entered,
         completionRate: entered > 0 ? ((savedAtStage + continued) / entered) * 100 : 0,
-        averageDuration: 30, // Placeholder - would calculate from timestamps
+        averageDuration, // seconds - calculated from stage history timestamps
         dropoffRate: entered > 0 ? (dropped / entered) * 100 : 0,
         saveRate: entered > 0 ? (savedAtStage / entered) * 100 : 0,
       };
     });
 
     // Offer performance (from savedBy field)
-    const offerStats = new Map<string, { presented: number; accepted: number; revenue: number }>();
+    const offerStats = new Map<string, { presented: number; accepted: number; revenue: number; totalDiscount: number; discountCount: number }>();
     for (const attempt of saveAttempts) {
       const offer = attempt.savedBy || 'none';
-      const current = offerStats.get(offer) || { presented: 0, accepted: 0, revenue: 0 };
+      const current = offerStats.get(offer) || { presented: 0, accepted: 0, revenue: 0, totalDiscount: 0, discountCount: 0 };
       current.presented++;
       if (attempt.outcome?.startsWith('SAVED')) {
         current.accepted++;
         current.revenue += attempt.revenuePreserved || 0;
+        // Get discount percentage from offer metadata or intervention applied
+        const discount = (attempt as any).discountApplied || (attempt as any).offerDiscount || 0;
+        if (discount > 0) {
+          current.totalDiscount += discount;
+          current.discountCount++;
+        }
       }
       offerStats.set(offer, current);
     }
@@ -326,7 +413,8 @@ export class AnalyticsService {
         timesAccepted: data.accepted,
         acceptanceRate: data.presented > 0 ? (data.accepted / data.presented) * 100 : 0,
         revenueImpact: data.revenue,
-        averageDiscount: 15, // Placeholder
+        // Calculate average discount from actual offer data
+        averageDiscount: data.discountCount > 0 ? data.totalDiscount / data.discountCount : 0,
       }));
 
     // Saves by reason
@@ -350,12 +438,28 @@ export class AnalyticsService {
       topSuccessfulOffer: data.topOffer,
     }));
 
-    // Saves by segment (placeholder)
-    const savesBySegment = [
-      { segment: 'premium', attempts: 100, saves: 45, saveRate: 45, averageValue: 150 },
-      { segment: 'standard', attempts: 200, saves: 60, saveRate: 30, averageValue: 75 },
-      { segment: 'basic', attempts: 150, saves: 30, saveRate: 20, averageValue: 30 },
-    ];
+    // Saves by segment - computed from customer metadata
+    const segmentStats = new Map<string, { attempts: number; saves: number; totalValue: number }>();
+    for (const attempt of saveAttempts) {
+      // Get segment from customer metadata or default to 'unknown'
+      const metadata = (attempt as any).customer?.metadata as Record<string, any> || {};
+      const segment = (metadata.segment || 'unknown').toLowerCase();
+      const current = segmentStats.get(segment) || { attempts: 0, saves: 0, totalValue: 0 };
+      current.attempts++;
+      if (attempt.outcome?.startsWith('SAVED')) {
+        current.saves++;
+        current.totalValue += attempt.revenuePreserved || 0;
+      }
+      segmentStats.set(segment, current);
+    }
+
+    const savesBySegment = Array.from(segmentStats.entries()).map(([segment, data]) => ({
+      segment,
+      attempts: data.attempts,
+      saves: data.saves,
+      saveRate: data.attempts > 0 ? (data.saves / data.attempts) * 100 : 0,
+      averageValue: data.saves > 0 ? data.totalValue / data.saves : 0,
+    }));
 
     // Funnel metrics
     const started = saveAttempts.length;
@@ -376,6 +480,16 @@ export class AnalyticsService {
     const dailySaves = await this.getTimeSeries(dto.companyId, 'saves', startDate, endDate, 'day');
     const weeklySaves = await this.getTimeSeries(dto.companyId, 'saves', startDate, endDate, 'week');
 
+    // Calculate average time to save from actual data (in minutes)
+    const savesWithCompletion = successfulSaves.filter(s => s.completedAt && s.createdAt);
+    const avgTimeToSave = savesWithCompletion.length > 0
+      ? savesWithCompletion.reduce((sum, s) => {
+          const created = new Date(s.createdAt).getTime();
+          const completed = new Date(s.completedAt!).getTime();
+          return sum + (completed - created) / (1000 * 60); // minutes
+        }, 0) / savesWithCompletion.length
+      : 0;
+
     return {
       companyId: dto.companyId,
       period: { startDate, endDate },
@@ -391,7 +505,7 @@ export class AnalyticsService {
           successfulSaves.length > 0 ? totalRevenue / successfulSaves.length : 0,
           0,
         ),
-        averageTimeToSave: this.createMetricValue(5.5, 0), // minutes
+        averageTimeToSave: this.createMetricValue(avgTimeToSave, 0),
       },
       stagePerformance,
       offerPerformance,
@@ -425,17 +539,33 @@ export class AnalyticsService {
       c.outcome === 'SAVED' || c.outcome === 'OFFER_ACCEPTED'
     );
 
+    // Calculate call metrics from actual data
+    const callsWithWaitTime = voiceCalls.filter(c => (c as any).waitTimeSeconds != null);
+    const avgWaitTime = callsWithWaitTime.length > 0
+      ? callsWithWaitTime.reduce((sum, c) => sum + ((c as any).waitTimeSeconds || 0), 0) / callsWithWaitTime.length
+      : 0;
+
+    // Abandoned calls: started but no outcome or disconnected (customer hung up)
+    const abandonedCalls = voiceCalls.filter(c => !c.outcome || c.outcome === 'DISCONNECTED');
+    const callbackCalls = voiceCalls.filter(c => (c as any).isCallback === true);
+
     // Call metrics
     const callMetrics = {
       totalCalls: this.createMetricValue(voiceCalls.length, 0),
       averageCallDuration: this.createMetricValue(avgDuration, 0),
-      averageWaitTime: this.createMetricValue(12, 0), // Placeholder
+      averageWaitTime: this.createMetricValue(avgWaitTime, 0), // seconds
       firstCallResolutionRate: this.createMetricValue(
         voiceCalls.length > 0 ? (resolvedCalls.length / voiceCalls.length) * 100 : 0,
         0,
       ),
-      callAbandonmentRate: this.createMetricValue(5.2, 0), // Placeholder
-      callbackRate: this.createMetricValue(8.5, 0), // Placeholder
+      callAbandonmentRate: this.createMetricValue(
+        voiceCalls.length > 0 ? (abandonedCalls.length / voiceCalls.length) * 100 : 0,
+        0,
+      ),
+      callbackRate: this.createMetricValue(
+        voiceCalls.length > 0 ? (callbackCalls.length / voiceCalls.length) * 100 : 0,
+        0,
+      ),
     };
 
     // Voice AI metrics
@@ -452,8 +582,23 @@ export class AnalyticsService {
         voiceCalls.length > 0 ? (escalatedCalls.length / voiceCalls.length) * 100 : 0,
         0,
       ),
-      averageAIConfidence: this.createMetricValue(85, 0), // Placeholder
-      customerSatisfactionScore: this.createMetricValue(4.2, 0), // out of 5
+      // Calculate average AI confidence from call data
+      averageAIConfidence: this.createMetricValue(
+        aiHandled.length > 0
+          ? aiHandled.reduce((sum, c) => sum + ((c as any).aiConfidence || 0), 0) / aiHandled.length
+          : 0,
+        0,
+      ),
+      // Calculate customer satisfaction from actual ratings (0-5 scale)
+      customerSatisfactionScore: this.createMetricValue(
+        voiceCalls.filter(c => (c as any).satisfactionRating != null).length > 0
+          ? voiceCalls
+              .filter(c => (c as any).satisfactionRating != null)
+              .reduce((sum, c) => sum + ((c as any).satisfactionRating || 0), 0) /
+            voiceCalls.filter(c => (c as any).satisfactionRating != null).length
+          : 0,
+        0,
+      )
     };
 
     // Intent distribution
@@ -482,30 +627,55 @@ export class AnalyticsService {
       negative: voiceCalls.filter(c => c.overallSentiment === 'NEGATIVE').length,
     };
 
+    // Calculate average sentiment score from actual call data
+    const callsWithSentiment = voiceCalls.filter(c => (c as any).sentimentScore != null);
+    const avgSentimentScore = callsWithSentiment.length > 0
+      ? callsWithSentiment.reduce((sum, c) => sum + ((c as any).sentimentScore || 0), 0) / callsWithSentiment.length
+      : 0;
+
     const sentimentAnalysis = {
       positive: sentiments.positive,
       neutral: sentiments.neutral,
       negative: sentiments.negative,
-      averageSentimentScore: 0.65, // Placeholder
+      averageSentimentScore: avgSentimentScore,
       sentimentTrend: await this.getTimeSeries(dto.companyId, 'sentiment', startDate, endDate, 'day'),
     };
 
-    // Escalation reasons
-    const escalationReasons = [
-      { reason: 'Complex billing issue', count: 45, percentage: 35, averageHandleTimeAfterEscalation: 480 },
-      { reason: 'Technical support needed', count: 30, percentage: 23, averageHandleTimeAfterEscalation: 600 },
-      { reason: 'Customer requested', count: 25, percentage: 19, averageHandleTimeAfterEscalation: 360 },
-      { reason: 'AI confidence low', count: 20, percentage: 15, averageHandleTimeAfterEscalation: 420 },
-      { reason: 'Other', count: 10, percentage: 8, averageHandleTimeAfterEscalation: 300 },
-    ];
+    // Escalation reasons - computed from actual call data
+    const escalationStats = new Map<string, { count: number; totalHandleTime: number }>();
+    for (const call of voiceCalls) {
+      if ((call as any).escalatedReason) {
+        const reason = (call as any).escalatedReason;
+        const current = escalationStats.get(reason) || { count: 0, totalHandleTime: 0 };
+        current.count++;
+        if ((call as any).handleTimeAfterEscalation) {
+          current.totalHandleTime += (call as any).handleTimeAfterEscalation;
+        }
+        escalationStats.set(reason, current);
+      }
+    }
+    const totalEscalations = Array.from(escalationStats.values()).reduce((sum, s) => sum + s.count, 0);
+    const escalationReasons = Array.from(escalationStats.entries()).map(([reason, data]) => ({
+      reason,
+      count: data.count,
+      percentage: totalEscalations > 0 ? (data.count / totalEscalations) * 100 : 0,
+      averageHandleTimeAfterEscalation: data.count > 0 ? data.totalHandleTime / data.count : 0,
+    }));
 
-    // Peak hours analysis
+    // Peak hours analysis - calculate wait time from actual call data
     const peakHoursAnalysis = Array.from({ length: 24 }, (_, hour) => {
       const hourCalls = voiceCalls.filter(c => new Date(c.createdAt).getHours() === hour);
+
+      // Calculate average wait time from calls that have wait time data
+      const callsWithWaitTime = hourCalls.filter(c => (c as any).waitTimeSeconds != null);
+      const avgWaitTime = callsWithWaitTime.length > 0
+        ? callsWithWaitTime.reduce((sum, c) => sum + ((c as any).waitTimeSeconds || 0), 0) / callsWithWaitTime.length
+        : 0;
+
       return {
         hour,
         callVolume: hourCalls.length,
-        averageWaitTime: 15 + Math.random() * 30, // Placeholder
+        averageWaitTime: avgWaitTime,
         resolutionRate: hourCalls.length > 0
           ? (hourCalls.filter(c => c.outcome === 'SAVED' || c.outcome === 'OFFER_ACCEPTED').length / hourCalls.length) * 100
           : 0,
@@ -548,11 +718,25 @@ export class AnalyticsService {
       where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
     });
 
+    // Calculate generation metrics from actual data
+    const contentsWithGenTime = contents.filter(c => (c as any).generationTimeMs != null);
+    const avgGenTime = contentsWithGenTime.length > 0
+      ? contentsWithGenTime.reduce((sum, c) => sum + ((c as any).generationTimeMs || 0), 0) / contentsWithGenTime.length
+      : 0;
+
+    // Calculate approval rate from status field
+    const approvedContents = contents.filter(c => (c as any).status === 'APPROVED' || (c as any).isApproved === true);
+
     // Generation metrics
     const generationMetrics = {
       totalContentGenerated: this.createMetricValue(contents.length, 0),
-      averageGenerationTime: this.createMetricValue(250, 0), // ms placeholder
-      contentApprovalRate: this.createMetricValue(92, 0), // Placeholder
+      // Calculate average generation time from actual data (ms)
+      averageGenerationTime: this.createMetricValue(avgGenTime, 0),
+      // Calculate approval rate from content status
+      contentApprovalRate: this.createMetricValue(
+        contents.length > 0 ? (approvedContents.length / contents.length) * 100 : 0,
+        0,
+      ),
       averageContentScore: this.createMetricValue(
         contents.length > 0
           ? contents.reduce((sum, c) => sum + ((c as any).qualityScore || 0), 0) / contents.length
@@ -561,14 +745,19 @@ export class AnalyticsService {
       ),
     };
 
-    // Content by type
-    const typeCounts = new Map<string, { count: number; score: number; engagement: number }>();
+    // Content by type - with engagement from triggerApplications
+    const typeCounts = new Map<string, { count: number; score: number; engagement: number; approved: number }>();
     for (const content of contents) {
       const type = content.type || 'unknown';
-      const current = typeCounts.get(type) || { count: 0, score: 0, engagement: 0 };
+      const current = typeCounts.get(type) || { count: 0, score: 0, engagement: 0, approved: 0 };
       current.count++;
       current.score += (content as any).qualityScore || 0;
-      current.engagement += 0.5; // Placeholder
+      // Calculate engagement from triggerApplications openRate
+      const engagement = (content as any).triggerApplications?.openRate || 0;
+      current.engagement += engagement;
+      if ((content as any).status === 'APPROVED' || (content as any).isApproved === true) {
+        current.approved++;
+      }
       typeCounts.set(type, current);
     }
 
@@ -576,44 +765,155 @@ export class AnalyticsService {
       type,
       count: data.count,
       averageScore: data.count > 0 ? data.score / data.count : 0,
-      approvalRate: 92, // Placeholder
+      // Calculate approval rate per content type
+      approvalRate: data.count > 0 ? (data.approved / data.count) * 100 : 0,
       averageEngagement: data.count > 0 ? data.engagement / data.count : 0,
     }));
 
-    // Template performance
-    const templatePerformance = [
-      { templateId: 'tpl_001', templateName: 'Win-back Email', usageCount: 150, averageEngagement: 0.45, conversionRate: 12.5, averageScore: 85 },
-      { templateId: 'tpl_002', templateName: 'Discount Offer', usageCount: 120, averageEngagement: 0.52, conversionRate: 18.2, averageScore: 88 },
-      { templateId: 'tpl_003', templateName: 'Feature Reminder', usageCount: 90, averageEngagement: 0.38, conversionRate: 8.5, averageScore: 82 },
-    ];
+    // Template performance - single query, no N+1
+    const templates = await this.prisma.contentTemplate.findMany({
+      where: { companyId: dto.companyId },
+      take: 20,
+    });
 
-    // Personalization metrics
-    const personalizationMetrics = {
-      personalizedVsGeneric: {
-        personalized: { engagement: 0.48, conversion: 15.2 },
-        generic: { engagement: 0.32, conversion: 8.5 },
+    // Fetch all generated contents in a single query
+    const templateIds = templates.map(t => t.id);
+    const allGeneratedContents = await this.prisma.generatedContent.findMany({
+      where: {
+        templateId: { in: templateIds },
+        createdAt: { gte: startDate, lte: endDate },
       },
-      topPersonalizationVariables: [
-        { variable: 'first_name', impactScore: 0.85, usageCount: 450 },
-        { variable: 'subscription_plan', impactScore: 0.72, usageCount: 380 },
-        { variable: 'usage_pattern', impactScore: 0.68, usageCount: 250 },
-      ],
+    });
+
+    // Group by templateId in memory
+    const contentsByTemplate = new Map<string, typeof allGeneratedContents>();
+    for (const content of allGeneratedContents) {
+      const existing = contentsByTemplate.get(content.templateId) || [];
+      existing.push(content);
+      contentsByTemplate.set(content.templateId, existing);
+    }
+
+    const templatePerformance = templates.map((template) => {
+      const generatedContents = contentsByTemplate.get(template.id) || [];
+      const usageCount = generatedContents.length;
+      const avgScore = usageCount > 0
+        ? generatedContents.reduce((sum, c) => sum + ((c as any).qualityScore || 0), 0) / usageCount
+        : 0;
+
+      // Calculate engagement from triggerApplications
+      const engagements = generatedContents
+        .map(c => (c as any).triggerApplications)
+        .filter(Boolean);
+      const avgEngagement = engagements.length > 0
+        ? engagements.reduce((sum, e) => sum + (e.openRate || 0), 0) / engagements.length
+        : 0;
+      const avgConversion = engagements.length > 0
+        ? engagements.reduce((sum, e) => sum + (e.conversionRate || 0), 0) / engagements.length
+        : 0;
+
+      return {
+        templateId: template.id,
+        templateName: template.name,
+        usageCount,
+        averageEngagement: avgEngagement,
+        conversionRate: avgConversion,
+        averageScore: avgScore,
+      };
+    });
+
+    // Personalization metrics - calculated from generated content data
+    const personalizedContent = allGeneratedContents.filter(c => (c as any).isPersonalized === true);
+    const genericContent = allGeneratedContents.filter(c => (c as any).isPersonalized !== true);
+
+    // Calculate engagement/conversion for personalized vs generic
+    const calcMetrics = (contents: typeof allGeneratedContents) => {
+      if (contents.length === 0) return { engagement: 0, conversion: 0 };
+      const apps = contents.map(c => (c as any).triggerApplications).filter(Boolean);
+      const engagement = apps.length > 0
+        ? apps.reduce((sum, a) => sum + (a.openRate || 0), 0) / apps.length
+        : 0;
+      const conversion = apps.length > 0
+        ? apps.reduce((sum, a) => sum + (a.conversionRate || 0), 0) / apps.length
+        : 0;
+      return { engagement, conversion };
     };
 
-    // A/B test results
-    const abTestResults = [
-      {
-        testId: 'ab_001',
-        testName: 'Subject Line Test',
-        variants: [
-          { variantId: 'v1', variantName: 'Urgent', sampleSize: 500, conversionRate: 12.5, confidenceLevel: 95, isWinner: false },
-          { variantId: 'v2', variantName: 'Personalized', sampleSize: 500, conversionRate: 18.2, confidenceLevel: 95, isWinner: true },
-        ],
-        status: 'completed' as const,
-        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        endDate: new Date(),
+    // Track personalization variable usage
+    const variableUsage = new Map<string, { count: number; totalEngagement: number }>();
+    for (const content of allGeneratedContents) {
+      const variables = (content as any).personalizationVariables || [];
+      const engagement = (content as any).triggerApplications?.openRate || 0;
+      for (const variable of variables) {
+        const current = variableUsage.get(variable) || { count: 0, totalEngagement: 0 };
+        current.count++;
+        current.totalEngagement += engagement;
+        variableUsage.set(variable, current);
+      }
+    }
+
+    const topPersonalizationVariables = Array.from(variableUsage.entries())
+      .map(([variable, data]) => ({
+        variable,
+        impactScore: data.count > 0 ? data.totalEngagement / data.count : 0,
+        usageCount: data.count,
+      }))
+      .sort((a, b) => b.impactScore - a.impactScore)
+      .slice(0, 5);
+
+    const personalizationMetrics = {
+      personalizedVsGeneric: {
+        personalized: calcMetrics(personalizedContent),
+        generic: calcMetrics(genericContent),
       },
-    ];
+      topPersonalizationVariables,
+    };
+
+    // A/B test results - fetch from database
+    const abTests = await this.prisma.aBTest.findMany({
+      where: {
+        companyId: dto.companyId,
+        OR: [
+          { startedAt: { gte: startDate, lte: endDate } },
+          { endedAt: { gte: startDate, lte: endDate } },
+        ],
+      },
+      include: {
+        variants: true,
+      },
+      take: 10,
+    });
+
+    const abTestResults = abTests.map(test => {
+      // Map DB status to expected type
+      let status: 'completed' | 'running' | 'stopped' = 'stopped';
+      switch (test.status) {
+        case 'RUNNING':
+          status = 'running';
+          break;
+        case 'COMPLETED':
+        case 'ARCHIVED':
+          status = 'completed';
+          break;
+        default:
+          status = 'stopped';
+      }
+
+      return {
+        testId: test.id,
+        testName: test.name,
+        variants: test.variants.map(v => ({
+          variantId: v.id,
+          variantName: v.name,
+          sampleSize: Number(v.visitors),
+          conversionRate: v.conversionRate,
+          confidenceLevel: test.confidenceLevel,
+          isWinner: test.winnerId === v.id,
+        })),
+        status,
+        startDate: test.startedAt || test.scheduledStart || new Date(),
+        endDate: test.endedAt || test.scheduledEnd,
+      };
+    });
 
     return {
       companyId: dto.companyId,
@@ -702,65 +1002,111 @@ export class AnalyticsService {
         clickRate: channelOpened.length > 0 ? (channelClicked.length / channelOpened.length) * 100 : 0,
         converted: channelConverted.length,
         conversionRate: channelClicked.length > 0 ? (channelConverted.length / channelClicked.length) * 100 : 0,
-        cost: channelMsgs.length * (channel === 'SMS' ? 0.02 : 0.001), // Placeholder costs
+        // Calculate cost from actual message cost data or use industry standard rates
+        cost: channelMsgs.reduce((sum, m) => sum + ((m as any).cost || this.getDefaultChannelCost(channel)), 0),
         costPerConversion: channelConverted.length > 0
-          ? (channelMsgs.length * (channel === 'SMS' ? 0.02 : 0.001)) / channelConverted.length
+          ? channelMsgs.reduce((sum, m) => sum + ((m as any).cost || this.getDefaultChannelCost(channel)), 0) / channelConverted.length
           : 0,
       };
     });
 
-    // Automation performance
+    // Automation performance - single query, no N+1
     const automations = await this.prisma.automation.findMany({
       where: { companyId: dto.companyId },
+      take: 10,
     });
 
-    const automationPerformance = await Promise.all(
-      automations.slice(0, 10).map(async automation => {
-        const enrollments = await this.prisma.automationEnrollment.findMany({
-          where: { automationId: automation.id, enrolledAt: { gte: startDate, lte: endDate } },
-        });
+    // Fetch all enrollments for the automations in a single query
+    const automationIds = automations.map(a => a.id);
+    const allEnrollments = await this.prisma.automationEnrollment.findMany({
+      where: {
+        automationId: { in: automationIds },
+        enrolledAt: { gte: startDate, lte: endDate },
+      },
+    });
 
-        const completed = enrollments.filter(e => e.status === 'COMPLETED');
-        const converted = enrollments.filter(e => e.exitReason === 'CONVERTED');
+    // Group enrollments by automationId in memory
+    const enrollmentsByAutomation = new Map<string, typeof allEnrollments>();
+    for (const enrollment of allEnrollments) {
+      const existing = enrollmentsByAutomation.get(enrollment.automationId) || [];
+      existing.push(enrollment);
+      enrollmentsByAutomation.set(enrollment.automationId, existing);
+    }
 
-        return {
-          automationId: automation.id,
-          automationName: automation.name,
-          enrollments: enrollments.length,
-          completionRate: enrollments.length > 0 ? (completed.length / enrollments.length) * 100 : 0,
-          conversionRate: enrollments.length > 0 ? (converted.length / enrollments.length) * 100 : 0,
-          averageTimeToComplete: 48, // hours placeholder
-          revenueGenerated: converted.length * 75, // Placeholder
-        };
-      }),
-    );
+    const automationPerformance = automations.map(automation => {
+      const enrollments = enrollmentsByAutomation.get(automation.id) || [];
+      const completed = enrollments.filter(e => e.status === 'COMPLETED');
+      const converted = enrollments.filter(e => e.exitReason === 'CONVERTED');
 
-    // Send time analysis
+      // Calculate average time to complete from actual data
+      const completedWithTime = completed.filter(e => e.completedAt && e.enrolledAt);
+      const avgTimeToComplete = completedWithTime.length > 0
+        ? completedWithTime.reduce((sum, e) => {
+            const enrolledTime = new Date(e.enrolledAt).getTime();
+            const completedTime = new Date(e.completedAt!).getTime();
+            return sum + (completedTime - enrolledTime) / (1000 * 60 * 60); // hours
+          }, 0) / completedWithTime.length
+        : 0;
+
+      // Calculate revenue from actual conversion data
+      const revenueGenerated = converted.reduce((sum, e) => sum + ((e as any).revenueGenerated || 0), 0);
+
+      return {
+        automationId: automation.id,
+        automationName: automation.name,
+        enrollments: enrollments.length,
+        completionRate: enrollments.length > 0 ? (completed.length / enrollments.length) * 100 : 0,
+        conversionRate: enrollments.length > 0 ? (converted.length / enrollments.length) * 100 : 0,
+        averageTimeToComplete: avgTimeToComplete,
+        revenueGenerated,
+      };
+    });
+
+    // Send time analysis - calculate optimalScore based on actual engagement metrics
     const sendTimeAnalysis = Array.from({ length: 24 }, (_, hour) => {
       const hourMsgs = messages.filter(m => new Date(m.createdAt).getHours() === hour);
       const hourOpened = hourMsgs.filter(m => m.openedAt);
       const hourClicked = hourMsgs.filter(m => m.clickedAt);
       const hourConverted = hourMsgs.filter(m => m.convertedAt);
 
+      const openRate = hourMsgs.length > 0 ? (hourOpened.length / hourMsgs.length) * 100 : 0;
+      const clickRate = hourOpened.length > 0 ? (hourClicked.length / hourOpened.length) * 100 : 0;
+      const conversionRate = hourClicked.length > 0 ? (hourConverted.length / hourClicked.length) * 100 : 0;
+
+      // Calculate optimalScore based on weighted engagement metrics
+      const optimalScore = (openRate * 0.3) + (clickRate * 0.3) + (conversionRate * 0.4);
+
       return {
         hour,
         dayOfWeek: 0, // Would expand to full week
         messagesSent: hourMsgs.length,
-        openRate: hourMsgs.length > 0 ? (hourOpened.length / hourMsgs.length) * 100 : 0,
-        clickRate: hourOpened.length > 0 ? (hourClicked.length / hourOpened.length) * 100 : 0,
-        conversionRate: hourClicked.length > 0 ? (hourConverted.length / hourClicked.length) * 100 : 0,
-        optimalScore: Math.random() * 100, // Would calculate based on engagement
+        openRate,
+        clickRate,
+        conversionRate,
+        optimalScore,
       };
     });
 
-    // Engagement heatmap
+    // Engagement heatmap - calculate from actual message engagement data
     const engagementHeatmap = [];
     for (let day = 0; day < 7; day++) {
       for (let hour = 0; hour < 24; hour++) {
+        const dayHourMsgs = messages.filter(m => {
+          const msgDate = new Date(m.createdAt);
+          return msgDate.getDay() === day && msgDate.getHours() === hour;
+        });
+        const dayHourOpened = dayHourMsgs.filter(m => m.openedAt);
+        const dayHourClicked = dayHourMsgs.filter(m => m.clickedAt);
+
+        // Calculate engagement score based on open and click rates
+        const openRate = dayHourMsgs.length > 0 ? dayHourOpened.length / dayHourMsgs.length : 0;
+        const clickRate = dayHourOpened.length > 0 ? dayHourClicked.length / dayHourOpened.length : 0;
+        const engagementScore = ((openRate + clickRate) / 2) * 100;
+
         engagementHeatmap.push({
           dayOfWeek: day,
           hour,
-          engagementScore: Math.random() * 100,
+          engagementScore,
         });
       }
     }
@@ -814,7 +1160,13 @@ export class AnalyticsService {
         converted.length > 0 ? totalRevenue / converted.length : 0,
         0,
       ),
-      averageUplift: this.createMetricValue(25, 0), // Placeholder percentage
+      // Calculate average uplift from actual order value increase data
+      averageUplift: this.createMetricValue(
+        converted.length > 0
+          ? converted.reduce((sum, o) => sum + ((o as any).upliftPercentage || 0), 0) / converted.length
+          : 0,
+        0,
+      ),
     };
 
     // Opportunity performance by type
@@ -841,15 +1193,21 @@ export class AnalyticsService {
       averageValue: data.converted > 0 ? data.revenue / data.converted : 0,
     }));
 
-    // Product performance
-    const productCounts = new Map<string, { recommended: number; purchased: number; revenue: number }>();
+    // Product performance - track discounts
+    const productCounts = new Map<string, { recommended: number; purchased: number; revenue: number; totalDiscount: number; discountCount: number }>();
     for (const offer of offers) {
       const productId = offer.productId || 'unknown';
-      const current = productCounts.get(productId) || { recommended: 0, purchased: 0, revenue: 0 };
+      const current = productCounts.get(productId) || { recommended: 0, purchased: 0, revenue: 0, totalDiscount: 0, discountCount: 0 };
       current.recommended++;
       if (offer.accepted) {
         current.purchased++;
         current.revenue += offer.revenue || 0;
+        // Track discount percentage from offer
+        const discount = (offer as any).discountPercentage || 0;
+        if (discount > 0) {
+          current.totalDiscount += discount;
+          current.discountCount++;
+        }
       }
       productCounts.set(productId, current);
     }
@@ -861,22 +1219,57 @@ export class AnalyticsService {
       timesPurchased: data.purchased,
       conversionRate: data.recommended > 0 ? (data.purchased / data.recommended) * 100 : 0,
       revenue: data.revenue,
-      averageDiscount: 10, // Placeholder
+      // Calculate average discount from actual offer data
+      averageDiscount: data.discountCount > 0 ? data.totalDiscount / data.discountCount : 0,
     }));
 
-    // Segment performance
-    const segmentPerformance = [
-      { segment: 'premium', opportunities: 80, conversions: 28, conversionRate: 35, averageOrderValue: 120, totalRevenue: 3360 },
-      { segment: 'standard', opportunities: 150, conversions: 30, conversionRate: 20, averageOrderValue: 75, totalRevenue: 2250 },
-      { segment: 'basic', opportunities: 100, conversions: 10, conversionRate: 10, averageOrderValue: 40, totalRevenue: 400 },
-    ];
+    // Segment performance - calculated from actual customer segment data
+    const segmentCounts = new Map<string, { opportunities: number; conversions: number; revenue: number }>();
+    for (const offer of offers) {
+      const segment = (offer as any).customerSegment || 'standard';
+      const current = segmentCounts.get(segment) || { opportunities: 0, conversions: 0, revenue: 0 };
+      current.opportunities++;
+      if (offer.accepted) {
+        current.conversions++;
+        current.revenue += offer.revenue || 0;
+      }
+      segmentCounts.set(segment, current);
+    }
 
-    // Trigger performance
-    const triggerPerformance = [
-      { trigger: 'post_purchase', timesTriggered: 200, conversions: 40, conversionRate: 20, averageTimeToConvert: 2 },
-      { trigger: 'usage_milestone', timesTriggered: 150, conversions: 25, conversionRate: 16.7, averageTimeToConvert: 24 },
-      { trigger: 'renewal_approaching', timesTriggered: 100, conversions: 15, conversionRate: 15, averageTimeToConvert: 48 },
-    ];
+    const segmentPerformance = Array.from(segmentCounts.entries()).map(([segment, data]) => ({
+      segment,
+      opportunities: data.opportunities,
+      conversions: data.conversions,
+      conversionRate: data.opportunities > 0 ? (data.conversions / data.opportunities) * 100 : 0,
+      averageOrderValue: data.conversions > 0 ? data.revenue / data.conversions : 0,
+      totalRevenue: data.revenue,
+    }));
+
+    // Trigger performance - calculated from actual trigger data
+    const triggerCounts = new Map<string, { triggered: number; conversions: number; totalTimeToConvert: number }>();
+    for (const offer of offers) {
+      const trigger = (offer as any).triggerType || 'post_purchase';
+      const current = triggerCounts.get(trigger) || { triggered: 0, conversions: 0, totalTimeToConvert: 0 };
+      current.triggered++;
+      if (offer.accepted) {
+        current.conversions++;
+        // Calculate time to convert from presentedAt to acceptedAt
+        if ((offer as any).presentedAt && (offer as any).acceptedAt) {
+          const presented = new Date((offer as any).presentedAt).getTime();
+          const accepted = new Date((offer as any).acceptedAt).getTime();
+          current.totalTimeToConvert += (accepted - presented) / (1000 * 60 * 60); // hours
+        }
+      }
+      triggerCounts.set(trigger, current);
+    }
+
+    const triggerPerformance = Array.from(triggerCounts.entries()).map(([trigger, data]) => ({
+      trigger,
+      timesTriggered: data.triggered,
+      conversions: data.conversions,
+      conversionRate: data.triggered > 0 ? (data.conversions / data.triggered) * 100 : 0,
+      averageTimeToConvert: data.conversions > 0 ? data.totalTimeToConvert / data.conversions : 0,
+    }));
 
     // Time series
     const dailyUpsells = await this.getTimeSeries(dto.companyId, 'upsells', startDate, endDate, 'day');
@@ -905,7 +1298,7 @@ export class AnalyticsService {
       endDate: dto.endDate,
     });
 
-    const [saveAttempts, upsellOffers, subscriptions] = await Promise.all([
+    const revenueResults = await Promise.allSettled([
       this.prisma.saveAttempt.findMany({
         where: { companyId: dto.companyId, createdAt: { gte: startDate, lte: endDate } },
       }),
@@ -917,24 +1310,57 @@ export class AnalyticsService {
       }),
     ]);
 
+    const [saveAttempts, upsellOffers, subscriptions]: any[] = this.extractSettledValues(
+      revenueResults,
+      [[], [], []],
+      'getRevenueAnalytics',
+    );
+
     const saveRevenue = saveAttempts
       .filter(a => a.outcome?.startsWith('SAVED'))
       .reduce((sum, a) => sum + (a.revenuePreserved || 0), 0);
     const upsellRevenue = upsellOffers.reduce((sum, o) => sum + (o.revenue || 0), 0);
     const totalRevenue = saveRevenue + upsellRevenue;
 
+    // Calculate recurring revenue from active subscriptions MRR
+    const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
+    const recurringRevenue = activeSubscriptions.reduce((sum, s) => {
+      // Get MRR from subscription amount (monthly or converted from annual)
+      const amount = (s as any).amount || 0;
+      const interval = (s as any).billingInterval || 'MONTHLY';
+      return sum + (interval === 'ANNUAL' ? amount / 12 : amount);
+    }, 0);
+
+    // Calculate churned revenue from cancelled subscriptions
+    const churnedRevenue = saveAttempts
+      .filter(a => a.outcome === 'CANCELLED')
+      .reduce((sum, a) => sum + (a.revenuePreserved || 0), 0);
+
+    // Calculate Net Revenue Retention (NRR) = (Start MRR + Expansion - Contraction - Churn) / Start MRR * 100
+    // Expansion = upsell revenue, Contraction = downgrades, Churn = cancelled revenue
+    const startMRR = recurringRevenue || 1; // avoid division by zero
+    const expansion = upsellRevenue;
+    const contraction = saveAttempts
+      .filter(a => a.outcome === 'DOWNGRADED')
+      .reduce((sum, a) => sum + (a.revenuePreserved || 0), 0);
+    const nrr = ((startMRR + expansion - contraction - churnedRevenue) / startMRR) * 100;
+
+    // Gross Revenue Retention = (Start MRR - Contraction - Churn) / Start MRR * 100
+    const grr = ((startMRR - contraction - churnedRevenue) / startMRR) * 100;
+
     // Revenue overview
     const overview = {
       totalRevenue: this.createMetricValue(totalRevenue, 0),
-      recurringRevenue: this.createMetricValue(totalRevenue * 0.85, 0), // Placeholder
+      // Monthly Recurring Revenue from active subscriptions
+      recurringRevenue: this.createMetricValue(recurringRevenue, 0),
       newRevenue: this.createMetricValue(upsellRevenue, 0),
-      expansionRevenue: this.createMetricValue(upsellRevenue * 0.6, 0),
-      churnedRevenue: this.createMetricValue(
-        saveAttempts.filter(a => a.outcome === 'CANCELLED').reduce((sum, a) => sum + (a.revenuePreserved || 0), 0),
-        0,
-      ),
-      netRevenueRetention: this.createMetricValue(115, 0), // Placeholder percentage
-      grossRevenueRetention: this.createMetricValue(95, 0),
+      // Expansion revenue from upsells
+      expansionRevenue: this.createMetricValue(expansion, 0),
+      churnedRevenue: this.createMetricValue(churnedRevenue, 0),
+      // Net Revenue Retention calculated from actual data
+      netRevenueRetention: this.createMetricValue(Math.max(0, Math.min(200, nrr)), 0),
+      // Gross Revenue Retention calculated from actual data
+      grossRevenueRetention: this.createMetricValue(Math.max(0, Math.min(100, grr)), 0),
       averageRevenuePerUser: this.createMetricValue(
         subscriptions.length > 0 ? totalRevenue / subscriptions.length : 0,
         0,
@@ -960,13 +1386,34 @@ export class AnalyticsService {
       ],
     };
 
-    // Momentum Intelligence impact
+    // Momentum Intelligence impact - calculated from actual data
+    // Revenue from retention = saves that continued to pay over time (saved subscriptions still active)
+    const retainedCustomerIds = saveAttempts
+      .filter(a => a.outcome?.startsWith('SAVED') && a.customerId)
+      .map(a => a.customerId);
+    const stillActiveRetained = subscriptions.filter(
+      s => s.status === 'ACTIVE' && retainedCustomerIds.includes(s.customerId)
+    );
+    const revenueFromRetention = stillActiveRetained.reduce((sum, s) => {
+      const amount = (s as any).amount || 0;
+      const interval = (s as any).billingInterval || 'MONTHLY';
+      return sum + (interval === 'ANNUAL' ? amount / 12 : amount);
+    }, 0);
+
+    // Calculate ROI multiplier: total momentum revenue / estimated platform cost
+    // Use simple cost estimation based on activity volume
+    const totalMomentumRevenue = saveRevenue + upsellRevenue;
+    const estimatedMonthlyCost = 500 + (saveAttempts.length * 0.5) + (upsellOffers.length * 0.25); // Base + per-action costs
+    const roiMultiplier = estimatedMonthlyCost > 0 ? totalMomentumRevenue / estimatedMonthlyCost : 0;
+
     const momentumImpact = {
       revenueSavedFromChurn: saveRevenue,
       revenueFromUpsells: upsellRevenue,
-      revenueFromRetention: saveRevenue * 0.8, // Placeholder
-      totalMomentumRevenue: saveRevenue + upsellRevenue,
-      roiMultiplier: 8.5, // Placeholder
+      // Revenue from customers who were saved and remain active
+      revenueFromRetention,
+      totalMomentumRevenue,
+      // ROI multiplier based on revenue vs estimated platform cost
+      roiMultiplier: Math.round(roiMultiplier * 10) / 10,
     };
 
     // Time series
@@ -994,13 +1441,10 @@ export class AnalyticsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [
-      activeSaveFlows,
-      pendingMessages,
-      todaySaves,
-      todayMessages,
-      todayUpsells,
-    ] = await Promise.all([
+    // Calculate "recent" as within the last 15 minutes for active sessions
+    const recentThreshold = new Date(Date.now() - 15 * 60 * 1000);
+
+    const realTimeResults = await Promise.allSettled([
       this.prisma.saveAttempt.count({
         where: { companyId, completedAt: null },
       }),
@@ -1016,19 +1460,47 @@ export class AnalyticsService {
       this.prisma.upsellOffer.findMany({
         where: { companyId, createdAt: { gte: today }, accepted: true },
       }),
+      // Count active voice calls (in progress, not ended)
+      this.prisma.voiceCall.count({
+        where: { companyId, endedAt: null },
+      }),
+      // Count users with recent activity (sessions, save attempts, or calls)
+      this.prisma.saveAttempt.groupBy({
+        by: ['customerId'],
+        where: { companyId, createdAt: { gte: recentThreshold } },
+      }).then(groups => groups.length),
+      // Count today's new subscriptions
+      this.prisma.subscription.count({
+        where: { companyId, createdAt: { gte: today } },
+      }),
     ]);
+
+    const [
+      activeSaveFlows,
+      pendingMessages,
+      todaySaves,
+      todayMessages,
+      todayUpsells,
+      activeVoiceCalls,
+      activeUsers,
+      todayNewSubscriptions,
+    ]: any[] = this.extractSettledValues(
+      realTimeResults,
+      [0, 0, [], 0, [], 0, 0, 0],
+      'getRealTimeMetrics',
+    );
 
     const todaySuccessfulSaves = todaySaves.filter(a => a.outcome?.startsWith('SAVED'));
 
     return {
       companyId,
       timestamp: new Date(),
-      activeUsers: Math.floor(Math.random() * 100) + 50, // Placeholder
+      activeUsers,
       activeSaveFlows,
-      activeVoiceCalls: Math.floor(Math.random() * 5), // Placeholder
+      activeVoiceCalls,
       pendingMessages,
       todayStats: {
-        newSubscriptions: Math.floor(Math.random() * 20) + 5,
+        newSubscriptions: todayNewSubscriptions,
         cancellations: todaySaves.filter(a => a.outcome === 'CANCELLED').length,
         saveAttempts: todaySaves.length,
         successfulSaves: todaySuccessfulSaves.length,
@@ -1839,6 +2311,91 @@ export class AnalyticsService {
     };
   }
 
+  /**
+   * Calculate Net Promoter Score from voice call satisfaction ratings
+   * NPS = (% Promoters - % Detractors) * 100
+   * Promoters: 4-5, Passives: 3, Detractors: 0-2 (on 0-5 scale)
+   */
+  private async calculateNPS(companyId: string, startDate: Date, endDate: Date): Promise<MetricValue> {
+    const voiceCalls = await this.prisma.voiceCall.findMany({
+      where: {
+        companyId,
+        createdAt: { gte: startDate, lte: endDate },
+      },
+      select: { id: true },
+    });
+
+    // Get satisfaction ratings from calls (cast as any for optional fields)
+    const callsWithRating = await this.prisma.voiceCall.findMany({
+      where: {
+        companyId,
+        createdAt: { gte: startDate, lte: endDate },
+      },
+    });
+
+    const ratings = callsWithRating
+      .map(c => (c as any).satisfactionRating)
+      .filter(r => r != null && r >= 0 && r <= 5);
+
+    if (ratings.length === 0) {
+      return this.createMetricValue(0, 0);
+    }
+
+    const promoters = ratings.filter(r => r >= 4).length;
+    const detractors = ratings.filter(r => r <= 2).length;
+    const nps = ((promoters - detractors) / ratings.length) * 100;
+
+    return this.createMetricValue(Math.round(nps), 0);
+  }
+
+  /**
+   * Calculate average time from subscription start to churn (in days)
+   */
+  private async calculateAverageTimeToChurn(companyId: string, startDate: Date, endDate: Date): Promise<number> {
+    // Get canceled subscriptions with their creation and cancellation dates
+    const canceledSubs = await this.prisma.subscription.findMany({
+      where: {
+        companyId,
+        status: 'CANCELED',
+        canceledAt: { gte: startDate, lte: endDate },
+      },
+    });
+
+    if (canceledSubs.length === 0) {
+      return 0;
+    }
+
+    let totalDays = 0;
+    let validCount = 0;
+
+    for (const sub of canceledSubs) {
+      const created = new Date(sub.createdAt).getTime();
+      const canceled = sub.canceledAt ? new Date(sub.canceledAt).getTime() : Date.now();
+      const daysToChurn = (canceled - created) / (1000 * 60 * 60 * 24);
+
+      if (daysToChurn > 0 && daysToChurn < 3650) { // Reasonable range: 0-10 years
+        totalDays += daysToChurn;
+        validCount++;
+      }
+    }
+
+    return validCount > 0 ? Math.round(totalDays / validCount) : 0;
+  }
+
+  /**
+   * Get default cost per message by channel type
+   * These are industry standard rates, actual costs may vary by provider
+   */
+  private getDefaultChannelCost(channel: string): number {
+    const costs: Record<string, number> = {
+      'SMS': 0.02,      // ~$0.02 per SMS
+      'EMAIL': 0.001,   // ~$0.001 per email
+      'PUSH': 0.0005,   // ~$0.0005 per push notification
+      'IN_APP': 0.0001, // ~$0.0001 per in-app message
+    };
+    return costs[channel] || 0.001;
+  }
+
   private async calculateTrends(
     companyId: string,
     startDate: Date,
@@ -1863,9 +2420,142 @@ export class AnalyticsService {
     const current = new Date(startDate);
 
     while (current <= endDate) {
+      const periodEnd = new Date(current);
+      switch (granularity) {
+        case 'hour':
+          periodEnd.setHours(periodEnd.getHours() + 1);
+          break;
+        case 'day':
+          periodEnd.setDate(periodEnd.getDate() + 1);
+          break;
+        case 'week':
+          periodEnd.setDate(periodEnd.getDate() + 7);
+          break;
+        case 'month':
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+          break;
+      }
+
+      // Fetch actual data from database based on metric type
+      let value = 0;
+      switch (metric) {
+        case 'churn':
+          const churned = await this.prisma.saveAttempt.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              outcome: { in: ['CANCELLED', 'PAUSED', 'DOWNGRADED'] },
+            },
+          });
+          value = churned;
+          break;
+        case 'saves':
+          const savedOutcomes = ['SAVED_STAGE_1', 'SAVED_STAGE_2', 'SAVED_STAGE_3', 'SAVED_STAGE_4', 'SAVED_STAGE_5', 'SAVED_VOICE'];
+          const saves = await this.prisma.saveAttempt.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              outcome: { in: savedOutcomes as any },
+            },
+          });
+          value = saves;
+          break;
+        case 'revenue':
+        case 'upsell_revenue':
+          const revenueOutcomes = ['SAVED_STAGE_1', 'SAVED_STAGE_2', 'SAVED_STAGE_3', 'SAVED_STAGE_4', 'SAVED_STAGE_5', 'SAVED_VOICE'];
+          const attempts = await this.prisma.saveAttempt.findMany({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              outcome: { in: revenueOutcomes as any },
+            },
+            select: { revenuePreserved: true },
+          });
+          const upsells = await this.prisma.upsellOffer.findMany({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              accepted: true,
+            },
+            select: { revenue: true },
+          });
+          value = attempts.reduce((sum, a) => sum + (a.revenuePreserved || 0), 0) +
+                  upsells.reduce((sum, u) => sum + (u.revenue || 0), 0);
+          break;
+        case 'calls':
+          const calls = await this.prisma.voiceCall.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+            },
+          });
+          value = calls;
+          break;
+        case 'delivery':
+          const messages = await this.prisma.deliveryMessage.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              status: 'DELIVERED',
+            },
+          });
+          value = messages;
+          break;
+        case 'engagement':
+          const opened = await this.prisma.deliveryMessage.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              openedAt: { not: null },
+            },
+          });
+          value = opened;
+          break;
+        case 'upsells':
+          const upsellCount = await this.prisma.upsellOffer.count({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+              accepted: true,
+            },
+          });
+          value = upsellCount;
+          break;
+        case 'mrr':
+          const activeSubscriptions = await this.prisma.subscription.findMany({
+            where: {
+              companyId,
+              status: 'ACTIVE',
+              createdAt: { lte: periodEnd },
+            },
+            select: { planAmount: true, interval: true },
+          });
+          // Convert to monthly: if yearly, divide by 12; if quarterly, divide by 3
+          value = activeSubscriptions.reduce((sum, s) => {
+            const amount = Number(s.planAmount || 0);
+            if (s.interval === 'YEARLY') return sum + amount / 12;
+            if (s.interval === 'QUARTERLY') return sum + amount / 3;
+            return sum + amount; // MONTHLY, WEEKLY, etc. treated as-is
+          }, 0);
+          break;
+        case 'sentiment':
+          const sentimentCalls = await this.prisma.voiceCall.findMany({
+            where: {
+              companyId,
+              createdAt: { gte: current, lt: periodEnd },
+            },
+            select: { overallSentiment: true },
+          });
+          const positive = sentimentCalls.filter(c => c.overallSentiment === 'POSITIVE').length;
+          value = sentimentCalls.length > 0 ? (positive / sentimentCalls.length) * 100 : 0;
+          break;
+        default:
+          value = 0;
+      }
+
       data.push({
         timestamp: new Date(current),
-        value: Math.random() * 100, // Placeholder - would calculate actual values
+        value,
         label: current.toISOString().split('T')[0],
       });
 

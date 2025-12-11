@@ -78,13 +78,13 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
 
       {/* Modal */}
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-10 md:left-1/2 md:-translate-x-1/2 md:max-w-lg md:w-full z-50">
-        <div className="h-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col">
+        <div className="h-full bg-card border border-border rounded-xl shadow-2xl flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">
               {category ? 'Edit Category' : 'Add Category'}
             </h2>
-            <button onClick={onClose} className="p-2 text-zinc-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -93,34 +93,34 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="Category name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Slug</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Slug</label>
                 <input
                   type="text"
                   value={formData.slug || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, slug: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="category-slug (auto-generated if empty)"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Parent Category</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Parent Category</label>
                 <select
                   value={formData.parentId || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, parentId: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">None (Top Level)</option>
                   {availableParents.map((c) => (
@@ -132,24 +132,24 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Description</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
                 <textarea
                   value={formData.description || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   placeholder="Optional description..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Sort Order</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Sort Order</label>
                 <input
                   type="number"
                   min="0"
                   value={formData.sortOrder}
                   onChange={(e) => setFormData((p) => ({ ...p, sortOrder: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
 
@@ -158,8 +158,8 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
                   type="button"
                   onClick={() => setFormData((p) => ({ ...p, isActive: !p.isActive }))}
                   className={cn(
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
-                    formData.isActive ? 'bg-cyan-500' : 'bg-zinc-700'
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/50',
+                    formData.isActive ? 'bg-primary' : 'bg-muted'
                   )}
                 >
                   <span
@@ -169,7 +169,7 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
                     )}
                   />
                 </button>
-                <span className="text-sm text-zinc-300">
+                <span className="text-sm text-foreground">
                   {formData.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -177,11 +177,11 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
@@ -189,7 +189,7 @@ function CategoryModal({ category, categories, onClose, onSave }: CategoryModalP
               type="submit"
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               {category ? 'Save Changes' : 'Create Category'}
@@ -230,18 +230,18 @@ function DeleteModal({ category, onClose, onConfirm }: DeleteModalProps) {
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-4 md:inset-x-auto md:inset-y-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full z-50">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6">
+        <div className="bg-card border border-border rounded-xl shadow-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-500/10 rounded-lg">
               <AlertTriangle className="w-6 h-6 text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Delete Category</h2>
-              <p className="text-sm text-zinc-500">This action cannot be undone</p>
+              <h2 className="text-lg font-semibold text-foreground">Delete Category</h2>
+              <p className="text-sm text-muted-foreground">This action cannot be undone</p>
             </div>
           </div>
 
-          <p className="text-sm text-zinc-300 mb-6">
+          <p className="text-sm text-foreground mb-6">
             Are you sure you want to delete <strong>{category.name}</strong>?
             {category.productCount > 0 && (
               <span className="block mt-2 text-yellow-400">
@@ -253,14 +253,14 @@ function DeleteModal({ category, onClose, onConfirm }: DeleteModalProps) {
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-foreground rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
             >
               {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
               Delete
@@ -290,13 +290,13 @@ function TreeItem({ node, expandedIds, onToggle, onEdit, onDelete }: TreeItemPro
 
   return (
     <div>
-      <div className="group flex items-center gap-2 py-2 px-3 hover:bg-zinc-800/50 rounded-lg transition-colors">
+      <div className="group flex items-center gap-2 py-2 px-3 hover:bg-muted/50 rounded-lg transition-colors">
         {/* Expand/Collapse Toggle */}
         <button
           onClick={() => onToggle(node.id)}
           className={cn(
             'p-1 rounded transition-colors',
-            hasChildren ? 'hover:bg-zinc-700 text-zinc-400' : 'text-transparent cursor-default'
+            hasChildren ? 'hover:bg-muted text-muted-foreground' : 'text-transparent cursor-default'
           )}
           disabled={!hasChildren}
         >
@@ -313,17 +313,17 @@ function TreeItem({ node, expandedIds, onToggle, onEdit, onDelete }: TreeItemPro
 
         {/* Folder Icon */}
         {isExpanded && hasChildren ? (
-          <FolderOpen className="w-4 h-4 text-cyan-400" />
+          <FolderOpen className="w-4 h-4 text-primary" />
         ) : (
-          <Folder className="w-4 h-4 text-zinc-400" />
+          <Folder className="w-4 h-4 text-muted-foreground" />
         )}
 
         {/* Name */}
-        <span className="flex-1 text-sm text-white">{node.name}</span>
+        <span className="flex-1 text-sm text-foreground">{node.name}</span>
 
         {/* Product Count */}
         {node.productCount > 0 && (
-          <span className="px-2 py-0.5 bg-zinc-800 rounded text-xs text-zinc-400">
+          <span className="px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
             {node.productCount}
           </span>
         )}
@@ -339,14 +339,14 @@ function TreeItem({ node, expandedIds, onToggle, onEdit, onDelete }: TreeItemPro
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit(node)}
-            className="p-1.5 text-zinc-500 hover:text-white transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
             title="Edit"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(node)}
-            className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />
@@ -356,7 +356,7 @@ function TreeItem({ node, expandedIds, onToggle, onEdit, onDelete }: TreeItemPro
 
       {/* Children */}
       {hasChildren && isExpanded && (
-        <div className="ml-6 border-l border-zinc-800 pl-2">
+        <div className="ml-6 border-l border-border pl-2">
           {node.children.map((child) => (
             <TreeItem
               key={child.id}
@@ -492,13 +492,13 @@ export default function CategoriesPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/products"
-            className="p-2 text-zinc-500 hover:text-white transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Categories</h1>
-            <p className="text-sm text-zinc-500 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Categories</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Organize your products with hierarchical categories
             </p>
           </div>
@@ -506,7 +506,7 @@ export default function CategoriesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchCategories}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
             title="Refresh"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -514,7 +514,7 @@ export default function CategoriesPage() {
           <button
             onClick={openCreateModal}
             disabled={needsCompanySelection}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title={needsCompanySelection ? 'Select a company first' : undefined}
           >
             <Plus className="w-4 h-4" />
@@ -533,18 +533,18 @@ export default function CategoriesPage() {
       {/* Loading State */}
       {loading && tree.length === 0 && !needsCompanySelection && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       )}
 
       {/* Company Selection Required */}
       {needsCompanySelection && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-zinc-500" />
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">Select a Company</h3>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <h3 className="text-lg font-medium text-foreground mb-2">Select a Company</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
             Choose a company from the sidebar to view and manage categories.
           </p>
         </div>
@@ -553,14 +553,14 @@ export default function CategoriesPage() {
       {/* Empty State */}
       {!loading && !needsCompanySelection && tree.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FolderTree className="w-12 h-12 text-zinc-600 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No categories yet</h3>
-          <p className="text-sm text-zinc-500 max-w-md mb-4">
+          <FolderTree className="w-12 h-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No categories yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-4">
             Create categories to organize your products hierarchically.
           </p>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Category
@@ -570,23 +570,23 @@ export default function CategoriesPage() {
 
       {/* Category Tree */}
       {tree.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <FolderTree className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">{flatCategories.length} categories</span>
+              <FolderTree className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{flatCategories.length} categories</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={expandAll}
-                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Expand All
               </button>
               <button
                 onClick={collapseAll}
-                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Collapse All
               </button>

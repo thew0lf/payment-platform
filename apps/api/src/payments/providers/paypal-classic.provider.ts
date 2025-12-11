@@ -33,6 +33,54 @@ export interface PayPalClassicCredentials {
   environment: 'sandbox' | 'production';
 }
 
+/**
+ * PayPal Sandbox Test Cards
+ * @see https://developer.paypal.com/tools/sandbox/card-testing/
+ */
+export interface PayPalTestCard {
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  brand: string;
+  description: string;
+}
+
+export const PAYPAL_SANDBOX_TEST_CARDS: PayPalTestCard[] = [
+  {
+    number: '4032036234479689',
+    expiryMonth: '04',
+    expiryYear: '2030',
+    cvv: '288',
+    brand: 'Visa',
+    description: 'PayPal Sandbox Visa - Approved',
+  },
+  {
+    number: '5425233430109903',
+    expiryMonth: '04',
+    expiryYear: '2030',
+    cvv: '123',
+    brand: 'MasterCard',
+    description: 'PayPal Sandbox MasterCard - Approved',
+  },
+  {
+    number: '378282246310005',
+    expiryMonth: '04',
+    expiryYear: '2030',
+    cvv: '1234',
+    brand: 'Amex',
+    description: 'PayPal Sandbox Amex - Approved',
+  },
+  {
+    number: '6011111111111117',
+    expiryMonth: '04',
+    expiryYear: '2030',
+    cvv: '123',
+    brand: 'Discover',
+    description: 'PayPal Sandbox Discover - Approved',
+  },
+];
+
 interface NVPParams { [key: string]: string; }
 interface NVPResponse { ACK: string; TRANSACTIONID?: string; AUTHORIZATIONID?: string; CORRELATIONID: string; VERSION: string; BUILD: string; AMT?: string; CURRENCYCODE?: string; AVSCODE?: string; CVV2MATCH?: string; L_ERRORCODE0?: string; L_SHORTMESSAGE0?: string; L_LONGMESSAGE0?: string; [key: string]: string | undefined; }
 
@@ -52,6 +100,29 @@ export class PayPalClassicProvider extends AbstractPaymentProvider {
   }
 
   getProviderType(): PaymentProviderType { return PaymentProviderType.PAYPAL_CLASSIC; }
+
+  /**
+   * Get sandbox test cards for PayPal Classic testing
+   * Only returns cards when in sandbox environment
+   */
+  static getTestCards(): PayPalTestCard[] {
+    return PAYPAL_SANDBOX_TEST_CARDS;
+  }
+
+  /**
+   * Check if this provider instance is in sandbox mode
+   */
+  isSandbox(): boolean {
+    return this.credentials.environment === 'sandbox';
+  }
+
+  /**
+   * Get available test cards for current environment
+   * Returns empty array for production
+   */
+  getAvailableTestCards(): PayPalTestCard[] {
+    return this.isSandbox() ? PAYPAL_SANDBOX_TEST_CARDS : [];
+  }
 
   async sale(request: TransactionRequest): Promise<TransactionResponse> {
     const startTime = Date.now();

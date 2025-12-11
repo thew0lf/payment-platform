@@ -231,7 +231,7 @@ function FieldConfigRow({ field, label, onUpdate }: FieldConfigRowProps) {
         <button
           onClick={() => onUpdate({ ...field, enabled: !field.enabled })}
           className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-            field.enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'
+            field.enabled ? 'bg-indigo-600 text-foreground' : 'bg-gray-200 text-gray-400'
           }`}
         >
           {field.enabled && <Check className="w-3 h-3" />}
@@ -276,7 +276,7 @@ function PaymentMethodRow({ method, onUpdate }: PaymentMethodRowProps) {
         <button
           onClick={() => onUpdate({ ...method, enabled: !method.enabled })}
           className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-            method.enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'
+            method.enabled ? 'bg-indigo-600 text-foreground' : 'bg-gray-200 text-gray-400'
           }`}
         >
           {method.enabled && <Check className="w-3 h-3" />}
@@ -294,12 +294,28 @@ function PaymentMethodRow({ method, onUpdate }: PaymentMethodRowProps) {
 // LIVE PREVIEW
 // ═══════════════════════════════════════════════════════════════
 
+interface PreviewProduct {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 interface LivePreviewProps {
   config: CheckoutConfig;
   device: 'desktop' | 'tablet' | 'mobile';
+  products?: PreviewProduct[];
 }
 
-const LivePreview = React.memo(function LivePreview({ config, device }: LivePreviewProps) {
+// Default sample product for preview when no products are configured
+const DEFAULT_PREVIEW_PRODUCT: PreviewProduct = {
+  name: 'Preview Product',
+  price: 79.00,
+  quantity: 1,
+};
+
+const LivePreview = React.memo(function LivePreview({ config, device, products = [] }: LivePreviewProps) {
+  // Use provided products or fallback to default
+  const displayProducts = products.length > 0 ? products : [DEFAULT_PREVIEW_PRODUCT];
   const deviceWidths = {
     desktop: 'w-full',
     tablet: 'w-[768px]',
@@ -316,7 +332,7 @@ const LivePreview = React.memo(function LivePreview({ config, device }: LivePrev
 
   const themeClasses = {
     light: 'bg-white text-gray-900',
-    dark: 'bg-gray-900 text-white',
+    dark: 'bg-gray-900 text-foreground',
     minimal: 'bg-gray-50 text-gray-900',
     modern: 'bg-gradient-to-br from-gray-50 to-white text-gray-900',
   };
@@ -334,7 +350,7 @@ const LivePreview = React.memo(function LivePreview({ config, device }: LivePrev
           <div className="p-4 border-b border-gray-200 flex items-center justify-center">
             <div className="flex items-center gap-2">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground text-sm font-bold"
                 style={{ backgroundColor: config.appearance.primaryColor }}
               >
                 S
@@ -527,57 +543,74 @@ const LivePreview = React.memo(function LivePreview({ config, device }: LivePrev
             )}
 
             {/* Pay Button */}
-            <button
-              className={`w-full py-3.5 text-white font-medium ${borderRadiusClass[config.appearance.borderRadius]} transition-colors`}
-              style={{ backgroundColor: config.appearance.primaryColor }}
-              disabled
-            >
-              Pay $99.00
-            </button>
+            {(() => {
+              const subtotal = displayProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+              const shipping = config.payment.showShippingEstimate ? 5.99 : 0;
+              const tax = config.payment.showTaxEstimate ? subtotal * 0.0825 : 0;
+              const total = subtotal + shipping + tax;
+              return (
+                <button
+                  className={`w-full py-3.5 text-foreground font-medium ${borderRadiusClass[config.appearance.borderRadius]} transition-colors`}
+                  style={{ backgroundColor: config.appearance.primaryColor }}
+                  disabled
+                >
+                  Pay ${total.toFixed(2)}
+                </button>
+              );
+            })()}
           </div>
 
           {/* Order Summary (Two Column) */}
-          {config.layout === 'two-column' && device === 'desktop' && config.payment.showOrderSummary && (
-            <div className="col-span-2 bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold mb-4">Order Summary</h3>
+          {config.layout === 'two-column' && device === 'desktop' && config.payment.showOrderSummary && (() => {
+            const subtotal = displayProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+            const shipping = config.payment.showShippingEstimate ? 5.99 : 0;
+            const tax = config.payment.showTaxEstimate ? subtotal * 0.0825 : 0;
+            const total = subtotal + shipping + tax;
 
-              {/* Sample Product */}
-              <div className="flex gap-4 pb-4 border-b border-gray-200">
-                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <Package className="w-6 h-6 text-gray-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Sample Product</p>
-                  <p className="text-xs text-gray-500">Qty: 1</p>
-                </div>
-                <p className="font-medium text-sm">$79.00</p>
-              </div>
+            return (
+              <div className="col-span-2 bg-gray-50 rounded-xl p-6">
+                <h3 className="font-semibold mb-4">Order Summary</h3>
 
-              {/* Totals */}
-              <div className="pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>$79.00</span>
-                </div>
-                {config.payment.showShippingEstimate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
-                    <span>$5.99</span>
+                {/* Products */}
+                {displayProducts.map((product, index) => (
+                  <div key={index} className="flex gap-4 pb-4 border-b border-gray-200 mb-4 last:mb-0">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{product.name}</p>
+                      <p className="text-xs text-gray-500">Qty: {product.quantity}</p>
+                    </div>
+                    <p className="font-medium text-sm">${(product.price * product.quantity).toFixed(2)}</p>
                   </div>
-                )}
-                {config.payment.showTaxEstimate && (
+                ))}
+
+                {/* Totals */}
+                <div className="pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span>$6.51</span>
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
                   </div>
-                )}
-                <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
-                  <span>Total</span>
-                  <span>$91.50</span>
+                  {config.payment.showShippingEstimate && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Shipping</span>
+                      <span>${shipping.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {config.payment.showTaxEstimate && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Tax</span>
+                      <span>${tax.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Test Mode Banner */}
@@ -609,6 +642,7 @@ function CheckoutBuilderContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [previewProducts, setPreviewProducts] = useState<PreviewProduct[]>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -616,6 +650,24 @@ function CheckoutBuilderContent() {
       if (funnelId) {
         const funnelData = await funnelsApi.get(funnelId, selectedCompanyId || undefined);
         setFunnel(funnelData);
+
+        // Extract products from funnel stages (product selection stage contains products)
+        const extractedProducts: PreviewProduct[] = [];
+        for (const s of funnelData.stages) {
+          const stageConfig = s.config as Record<string, unknown> | null;
+          if (stageConfig?.products && Array.isArray(stageConfig.products)) {
+            for (const p of stageConfig.products) {
+              if (p && typeof p === 'object' && 'name' in p && 'price' in p) {
+                extractedProducts.push({
+                  name: String(p.name),
+                  price: Number(p.price) || 0,
+                  quantity: Number(p.quantity) || 1,
+                });
+              }
+            }
+          }
+        }
+        setPreviewProducts(extractedProducts);
 
         if (stageId) {
           const stageData = funnelData.stages.find(s => s.id === stageId);
@@ -741,7 +793,7 @@ function CheckoutBuilderContent() {
             disabled={saving || !hasChanges}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
               hasChanges
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground hover:from-indigo-700 hover:to-purple-700'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
@@ -991,7 +1043,7 @@ function CheckoutBuilderContent() {
               Live Preview - {device.charAt(0).toUpperCase() + device.slice(1)}
             </span>
           </div>
-          <LivePreview config={config} device={device} />
+          <LivePreview config={config} device={device} products={previewProducts} />
         </div>
       </div>
     </div>

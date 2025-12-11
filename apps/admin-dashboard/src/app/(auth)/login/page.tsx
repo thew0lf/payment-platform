@@ -47,16 +47,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background gradient orbs */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
-            <Zap className="w-6 h-6 text-white" />
+            <Zap className="w-6 h-6 text-foreground" />
           </div>
           <span className="font-bold text-2xl bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
             avnz.io
@@ -64,11 +64,11 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card - Glassmorphism */}
-        <div className="backdrop-blur-xl bg-zinc-900/80 border border-zinc-800 rounded-xl p-8">
-          <h1 className="text-xl font-semibold text-white text-center mb-2">
+        <div className="backdrop-blur-xl bg-card/80 border border-border rounded-xl p-8">
+          <h1 className="text-xl font-semibold text-foreground text-center mb-2">
             Welcome back
           </h1>
-          <p className="text-zinc-400 text-center text-sm mb-6">
+          <p className="text-muted-foreground text-center text-sm mb-6">
             Sign in to your account
           </p>
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <Button
                 onClick={handleAuth0Login}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-foreground"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -103,17 +103,17 @@ export default function LoginPage() {
               {/* Option to use local login as fallback */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-zinc-800"></div>
+                  <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="px-2 bg-zinc-900 text-zinc-500">or</span>
+                  <span className="px-2 bg-card text-muted-foreground">or</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowLocalLogin(true)}
-                className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors py-2"
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
               >
                 Sign in with email and password
               </button>
@@ -123,7 +123,7 @@ export default function LoginPage() {
               {/* Local Login Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Email</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">Email</label>
                   <Input
                     type="email"
                     value={email}
@@ -133,7 +133,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Password</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">Password</label>
                   <div className="relative">
                     <Input
                       type={showPassword ? 'text' : 'password'}
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -162,14 +162,14 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setRememberMe(!rememberMe)}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-cyan-500 border-cyan-500' : 'border-zinc-600'} flex items-center justify-center transition-colors`}>
-                      {rememberMe && <Check className="w-3 h-3 text-white" />}
+                    <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-primary border-primary' : 'border-border'} flex items-center justify-center transition-colors`}>
+                      {rememberMe && <Check className="w-3 h-3 text-foreground" />}
                     </div>
                     Remember me
                   </button>
-                  <button type="button" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+                  <button type="button" className="text-sm text-primary hover:text-primary transition-colors">
                     Forgot password?
                   </button>
                 </div>
@@ -192,7 +192,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowLocalLogin(false)}
-                    className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors py-2"
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
                   >
                     Back to SSO login
                   </button>
@@ -201,22 +201,22 @@ export default function LoginPage() {
 
               {/* Demo accounts - Clickable (only show for local login) */}
               {(!auth0Enabled || showLocalLogin) && (
-                <div className="mt-6 pt-6 border-t border-zinc-800">
-                  <p className="text-xs text-zinc-500 text-center mb-3">Click to use demo account (password: demo123)</p>
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-xs text-muted-foreground text-center mb-3">Click to use demo account (password: demo123)</p>
                   <div className="space-y-2">
                     {demoAccounts.map((account) => (
                       <button
                         key={account.email}
                         onClick={() => fillDemoAccount(account.email)}
-                        className="w-full flex items-center justify-between p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-600 transition-all text-sm group"
+                        className="w-full flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted border border-border/50 hover:border-border transition-all text-sm group"
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-white`}>
+                          <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-foreground`}>
                             {account.label.charAt(0)}
                           </div>
-                          <span className="text-zinc-400 group-hover:text-zinc-300">{account.label}</span>
+                          <span className="text-muted-foreground group-hover:text-foreground">{account.label}</span>
                         </div>
-                        <code className="text-cyan-400 text-xs">{account.email}</code>
+                        <code className="text-primary text-xs">{account.email}</code>
                       </button>
                     ))}
                   </div>

@@ -53,14 +53,14 @@ import { useHierarchy } from '@/contexts/hierarchy-context';
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   ACTIVE: { label: 'Active', color: 'bg-green-500/10 text-green-400 border-green-500/20', icon: CheckCircle2 },
   DRAFT: { label: 'Draft', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', icon: Clock },
-  ARCHIVED: { label: 'Archived', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', icon: Archive },
+  ARCHIVED: { label: 'Archived', color: 'bg-muted text-muted-foreground border-border', icon: Archive },
   DEPRECATED: { label: 'Deprecated', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: AlertTriangle },
 };
 
 const SCOPE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   ORGANIZATION: { label: 'Organization', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: Building2 },
   CLIENT: { label: 'Client', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Users },
-  COMPANY: { label: 'Company', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', icon: Store },
+  COMPANY: { label: 'Company', color: 'bg-primary/10 text-primary border-primary/20', icon: Store },
 };
 
 const PAGE_SIZE = 20;
@@ -70,7 +70,7 @@ const PAGE_SIZE = 20;
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: SubscriptionPlanStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-zinc-500/10 text-zinc-400', icon: AlertTriangle };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground', icon: AlertTriangle };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border', config.color)}>
@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: SubscriptionPlanStatus }) {
 }
 
 function ScopeBadge({ scope }: { scope: SubscriptionPlanScope }) {
-  const config = SCOPE_CONFIG[scope] || { label: scope, color: 'bg-zinc-500/10 text-zinc-400', icon: Building2 };
+  const config = SCOPE_CONFIG[scope] || { label: scope, color: 'bg-muted text-muted-foreground', icon: Building2 };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium', config.color)}>
@@ -106,19 +106,19 @@ function StatsCard({
   color?: 'cyan' | 'yellow' | 'green' | 'purple';
 }) {
   const colorClasses = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    cyan: 'bg-primary/10 text-primary border-primary/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     green: 'bg-green-500/10 text-green-400 border-green-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 md:p-5">
+    <div className="bg-card/50 border border-border rounded-xl p-4 md:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs md:text-sm text-zinc-500 mb-1">{title}</p>
-          <p className="text-xl md:text-2xl font-bold text-white">{value}</p>
-          {trend && <p className="text-xs text-zinc-500 mt-1">{trend}</p>}
+          <p className="text-xs md:text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
+          {trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>}
         </div>
         <div className={cn('p-2.5 md:p-3 rounded-xl border', colorClasses[color])}>
           <Icon className="w-5 h-5 md:w-6 md:h-6" />
@@ -328,13 +328,13 @@ export default function SubscriptionPlansPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by plan name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
@@ -345,21 +345,21 @@ export default function SubscriptionPlansPage() {
                 className={cn(
                   'flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   showFilters
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-card text-muted-foreground border border-border hover:text-foreground'
                 )}
               >
                 <Filter className="w-4 h-4" />
                 <span className="sm:inline">Filters</span>
                 {(statusFilter || scopeFilter) && (
-                  <span className="w-2 h-2 bg-cyan-400 rounded-full" />
+                  <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
 
               {/* Refresh */}
               <button
                 onClick={fetchPlans}
-                className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
                 title="Refresh"
               >
                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -369,14 +369,14 @@ export default function SubscriptionPlansPage() {
 
           {/* Filter Dropdowns */}
           {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-card/50 border border-border rounded-lg">
               {/* Status Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Status</label>
+                <label className="text-xs text-muted-foreground">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Statuses</option>
                   {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
@@ -387,11 +387,11 @@ export default function SubscriptionPlansPage() {
 
               {/* Scope Filter */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Scope</label>
+                <label className="text-xs text-muted-foreground">Scope</label>
                 <select
                   value={scopeFilter}
                   onChange={(e) => setScopeFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">All Scopes</option>
                   {Object.entries(SCOPE_CONFIG).map(([value, { label }]) => (
@@ -408,7 +408,7 @@ export default function SubscriptionPlansPage() {
                       setStatusFilter('');
                       setScopeFilter('');
                     }}
-                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-zinc-400 hover:text-white transition-colors bg-zinc-800/50 rounded-lg"
+                    className="w-full sm:w-auto px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 rounded-lg"
                   >
                     Clear all
                   </button>
@@ -428,16 +428,16 @@ export default function SubscriptionPlansPage() {
         {/* Loading State */}
         {loading && plans.length === 0 && (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {/* Empty State */}
         {!loading && plans.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Repeat className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No subscription plans found</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <Repeat className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No subscription plans found</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               {search || statusFilter || scopeFilter
                 ? "Try adjusting your search or filters to find what you're looking for."
                 : 'Create your first subscription plan to offer recurring products to customers.'}
@@ -447,42 +447,42 @@ export default function SubscriptionPlansPage() {
 
         {/* Plans Table */}
         {plans.length > 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Scope</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Interval</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Trial</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Price</th>
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Scope</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Interval</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Trial</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-border">
                   {plans.map((plan) => (
                     <tr
                       key={plan.id}
-                      className="hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
                       onClick={() => router.push(`/subscription-plans/${plan.id}`)}
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-start gap-3">
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-foreground">
                                 {plan.displayName}
                               </p>
                               {plan.isFeatured && (
                                 <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                               )}
                             </div>
-                            <p className="text-xs text-zinc-500 mt-0.5">
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               {plan.name}
                             </p>
                             {plan.shortDescription && (
-                              <p className="text-xs text-zinc-500 mt-1 line-clamp-1">
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                 {plan.shortDescription}
                               </p>
                             )}
@@ -496,29 +496,29 @@ export default function SubscriptionPlansPage() {
                         <ScopeBadge scope={plan.scope} />
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-zinc-300">
+                        <p className="text-sm text-foreground">
                           {formatInterval(plan.defaultInterval)}
                         </p>
                         {plan.availableIntervals.length > 1 && (
-                          <p className="text-xs text-zinc-500 mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             +{plan.availableIntervals.length - 1} more
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-4">
                         {plan.trialEnabled ? (
-                          <p className="text-sm text-cyan-400">
+                          <p className="text-sm text-primary">
                             {plan.trialDays} days
                           </p>
                         ) : (
-                          <p className="text-sm text-zinc-500">-</p>
+                          <p className="text-sm text-muted-foreground">-</p>
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-foreground">
                           {formatPlanPrice(plan.basePriceMonthly, plan.currency)}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground">
                           /{formatInterval(plan.defaultInterval).toLowerCase()}
                         </p>
                       </td>
@@ -530,25 +530,25 @@ export default function SubscriptionPlansPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800">
-                <p className="text-sm text-zinc-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <p className="text-sm text-muted-foreground">
                   Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} plans
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm text-zinc-400">
+                  <span className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
                   </span>
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -566,12 +566,12 @@ export default function SubscriptionPlansPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">Create Subscription Plan</h2>
+          <div className="relative bg-card border border-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Create Subscription Plan</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-1 text-zinc-400 hover:text-white transition-colors"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -583,7 +583,7 @@ export default function SubscriptionPlansPage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Internal Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -591,11 +591,11 @@ export default function SubscriptionPlansPage() {
                   type="text"
                   required
                   placeholder="e.g., monthly-basic"
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Display Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -603,15 +603,15 @@ export default function SubscriptionPlansPage() {
                   type="text"
                   required
                   placeholder="e.g., Monthly Basic Plan"
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Base Price (Monthly) <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input
                     name="basePriceMonthly"
                     type="number"
@@ -619,19 +619,19 @@ export default function SubscriptionPlansPage() {
                     min="0"
                     required
                     placeholder="0.00"
-                    className="w-full pl-7 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    className="w-full pl-7 pr-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Scope <span className="text-red-400">*</span>
                 </label>
                 <select
                   name="scope"
                   required
                   defaultValue={SubscriptionPlanScope.COMPANY}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value={SubscriptionPlanScope.ORGANIZATION}>Organization</option>
                   <option value={SubscriptionPlanScope.CLIENT}>Client</option>
@@ -642,14 +642,14 @@ export default function SubscriptionPlansPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-4 py-2 bg-primary text-foreground rounded-lg text-sm font-medium hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {creating ? 'Creating...' : 'Create Plan'}
                 </button>

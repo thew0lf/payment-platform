@@ -97,7 +97,7 @@ export function AIGenerateButton({
         className={cn('p-2 h-8 w-8', className)}
         title="Generate with AI"
       >
-        <Sparkles className="h-4 w-4 text-cyan-400" />
+        <Sparkles className="h-4 w-4 text-primary" />
       </Button>
     );
   }
@@ -112,7 +112,7 @@ export function AIGenerateButton({
         onClick={onOpenGenerateModal}
         disabled={disabled || !productName}
         className={cn(
-          'gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10',
+          'gap-2 text-primary border-primary/30 hover:bg-primary/10',
           className
         )}
       >
@@ -132,7 +132,7 @@ export function AIGenerateButton({
           size={size}
           disabled={disabled || !productName}
           className={cn(
-            'gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10',
+            'gap-2 text-primary border-primary/30 hover:bg-primary/10',
             className
           )}
         >
@@ -150,7 +150,7 @@ export function AIGenerateButton({
           disabled={!productName}
           className="gap-2"
         >
-          <Sparkles className="h-4 w-4 text-cyan-400" />
+          <Sparkles className="h-4 w-4 text-primary" />
           Generate Description
         </DropdownMenuItem>
 
@@ -253,7 +253,7 @@ export function GrammarCheckInline({
           type="button"
           onClick={handleCheck}
           disabled={isChecking}
-          className="text-xs text-zinc-400 hover:text-cyan-400 flex items-center gap-1.5 transition-colors"
+          className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors"
         >
           {isChecking ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -280,7 +280,7 @@ export function GrammarCheckInline({
 
       {/* Result */}
       {result && (
-        <div className="text-xs space-y-2 p-2 rounded bg-zinc-800/50 border border-zinc-700">
+        <div className="text-xs space-y-2 p-2 rounded bg-muted/50 border border-border">
           {result.issueCount === 0 ? (
             <div className="text-green-400 flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -293,12 +293,12 @@ export function GrammarCheckInline({
               </div>
               <div className="space-y-1">
                 {result.issues.slice(0, 3).map((issue, i) => (
-                  <div key={i} className="text-zinc-400">
+                  <div key={i} className="text-muted-foreground">
                     • {issue.message}
                   </div>
                 ))}
                 {result.issues.length > 3 && (
-                  <div className="text-zinc-500">
+                  <div className="text-muted-foreground">
                     +{result.issues.length - 3} more
                   </div>
                 )}
@@ -307,14 +307,14 @@ export function GrammarCheckInline({
                 <button
                   type="button"
                   onClick={handleApply}
-                  className="text-cyan-400 hover:text-cyan-300"
+                  className="text-primary hover:text-primary"
                 >
                   Apply Fixes
                 </button>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="text-zinc-500 hover:text-zinc-400"
+                  className="text-muted-foreground hover:text-muted-foreground"
                 >
                   Dismiss
                 </button>

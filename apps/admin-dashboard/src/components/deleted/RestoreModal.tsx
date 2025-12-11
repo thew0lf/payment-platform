@@ -74,7 +74,7 @@ export function RestoreModal({
       <div className="p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -88,7 +88,7 @@ export function RestoreModal({
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-red-400">Cannot restore this item</p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-muted-foreground">
                     The retention period has expired or the item was permanently deleted.
                   </p>
                 </div>
@@ -96,39 +96,39 @@ export function RestoreModal({
             )}
 
             {/* Deletion Info */}
-            <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-              <h4 className="text-sm font-medium text-white">Deletion Details</h4>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h4 className="text-sm font-medium text-foreground">Deletion Details</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Deleted</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">Deleted</span>
+                  <span className="text-foreground">
                     {new Date(details.deletedAt).toLocaleDateString()}
                   </span>
                 </div>
                 {details.deletedBy && (
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">By</span>
-                    <span className="text-white">{details.deletedBy.name || details.deletedBy.email}</span>
+                    <span className="text-muted-foreground">By</span>
+                    <span className="text-foreground">{details.deletedBy.name || details.deletedBy.email}</span>
                   </div>
                 )}
                 {details.deleteReason && (
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">Reason</span>
-                    <span className="text-white">{details.deleteReason}</span>
+                    <span className="text-muted-foreground">Reason</span>
+                    <span className="text-foreground">{details.deleteReason}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Expires in</span>
-                  <span className="text-white">{formatTimeUntilExpiration(details.expiresAt)}</span>
+                  <span className="text-muted-foreground">Expires in</span>
+                  <span className="text-foreground">{formatTimeUntilExpiration(details.expiresAt)}</span>
                 </div>
               </div>
             </div>
 
             {/* Cascaded Records */}
             {details.cascadeRecords.length > 0 && (
-              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-white">
+                  <h4 className="text-sm font-medium text-foreground">
                     Related Items ({details.cascadeRecords.length})
                   </h4>
                   <label className="flex items-center gap-2 text-sm">
@@ -136,9 +136,9 @@ export function RestoreModal({
                       type="checkbox"
                       checked={cascade}
                       onChange={(e) => setCascade(e.target.checked)}
-                      className="rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500"
+                      className="rounded border-border bg-muted text-emerald-500 focus:ring-emerald-500"
                     />
-                    <span className="text-zinc-400">Restore all</span>
+                    <span className="text-muted-foreground">Restore all</span>
                   </label>
                 </div>
                 <div className="max-h-40 overflow-y-auto space-y-1">
@@ -147,14 +147,14 @@ export function RestoreModal({
                       key={record.entityId}
                       className="flex items-center justify-between text-xs py-1"
                     >
-                      <span className="text-zinc-400">{record.entityType}</span>
-                      <span className="text-zinc-300 truncate ml-2 max-w-[200px]">
+                      <span className="text-muted-foreground">{record.entityType}</span>
+                      <span className="text-foreground truncate ml-2 max-w-[200px]">
                         {record.entityName || record.entityId}
                       </span>
                     </div>
                   ))}
                   {details.cascadeRecords.length > 10 && (
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted-foreground">
                       ... and {details.cascadeRecords.length - 10} more
                     </p>
                   )}

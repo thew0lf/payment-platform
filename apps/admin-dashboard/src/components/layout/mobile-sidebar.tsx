@@ -54,7 +54,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         <button
           onClick={onClose}
           className={cn(
-            "absolute top-3 right-3 z-50 p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all",
+            "absolute top-3 right-3 z-50 p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
             isOpen ? "opacity-100 delay-150" : "opacity-0"
           )}
           aria-label="Close menu"

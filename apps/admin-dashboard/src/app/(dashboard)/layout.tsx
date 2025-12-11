@@ -1,19 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { MobileTabBar } from '@/components/layout/mobile-tab-bar';
 import { CommandPalette } from '@/components/layout/command-palette';
-import { AuthProvider } from '@/contexts/auth-context';
-import { HierarchyProvider } from '@/contexts/hierarchy-context';
+import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import { HierarchyProvider, useHierarchy } from '@/contexts/hierarchy-context';
 import { MobileMenuProvider, useMobileMenu } from '@/contexts/mobile-menu-context';
+import { PreferencesProvider, usePreferences } from '@/contexts/preferences-context';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { NavBadges } from '@/lib/navigation';
+import { dashboardApi } from '@/lib/api/dashboard';
+import { cn } from '@/lib/utils';
 
-// TODO: Fetch these from the API
-const mockBadges: NavBadges = {
+// Default badges (shown while loading or on error)
+const DEFAULT_BADGES: NavBadges = {
   orders: 0,
   fulfillment: 0,
   lowStock: 0,
@@ -21,7 +24,36 @@ const mockBadges: NavBadges = {
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isOpen, closeMenu } = useMobileMenu();
+  const { sidebarCollapsed } = usePreferences();
+  const { selectedCompanyId, selectedClientId } = useHierarchy();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [badges, setBadges] = useState<NavBadges>(DEFAULT_BADGES);
+
+  // Fetch navigation badges from API
+  const fetchBadges = useCallback(async () => {
+    try {
+      const data = await dashboardApi.getBadges({
+        companyId: selectedCompanyId || undefined,
+        clientId: selectedClientId || undefined,
+      });
+      setBadges({
+        orders: data.orders,
+        fulfillment: data.fulfillment,
+        lowStock: data.lowStock,
+      });
+    } catch (error) {
+      // Silently fail and use default badges - badges are non-critical
+      console.debug('Failed to fetch navigation badges:', error);
+    }
+  }, [selectedCompanyId, selectedClientId]);
+
+  // Fetch badges on mount and when company/client changes
+  useEffect(() => {
+    fetchBadges();
+    // Refresh badges periodically (every 60 seconds)
+    const interval = setInterval(fetchBadges, 60000);
+    return () => clearInterval(interval);
+  }, [fetchBadges]);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts({
@@ -29,10 +61,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    <div className="flex min-h-screen md:h-screen bg-zinc-950">
+    <div className="flex min-h-screen md:h-screen bg-background">
       {/* Desktop Sidebar - hidden on mobile */}
-      <div className="hidden md:block">
-        <Sidebar badges={mockBadges} />
+      <div className={cn('hidden md:block transition-all duration-200', sidebarCollapsed ? 'w-16' : 'w-64')}>
+        <Sidebar badges={badges} collapsed={sidebarCollapsed} />
       </div>
 
       {/* Mobile Sidebar Drawer */}
@@ -41,7 +73,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-auto pb-20 md:pb-0">{children}</main>
 
       {/* Mobile Tab Bar - visible only on mobile */}
-      <MobileTabBar badges={mockBadges} />
+      <MobileTabBar badges={badges} />
 
       {/* Command Palette */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
@@ -54,9 +86,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <AuthProvider>
       <AuthGuard>
         <HierarchyProvider>
-          <MobileMenuProvider>
-            <DashboardContent>{children}</DashboardContent>
-          </MobileMenuProvider>
+          <PreferencesProvider>
+            <MobileMenuProvider>
+              <DashboardContent>{children}</DashboardContent>
+            </MobileMenuProvider>
+          </PreferencesProvider>
         </HierarchyProvider>
       </AuthGuard>
     </AuthProvider>

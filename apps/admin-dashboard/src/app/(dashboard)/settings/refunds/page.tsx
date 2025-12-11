@@ -34,14 +34,14 @@ function SettingSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+    <div className="bg-card/50 border border-border rounded-xl p-6">
       <div className="flex items-start gap-3 mb-6">
-        <div className="p-2 bg-cyan-500/10 rounded-lg">
-          <Icon className="w-5 h-5 text-cyan-400" />
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Icon className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="text-lg font-medium text-white mb-1">{title}</h3>
-          <p className="text-sm text-zinc-500">{description}</p>
+          <h3 className="text-lg font-medium text-foreground mb-1">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       <div className="space-y-4">
@@ -65,21 +65,21 @@ function ToggleSetting({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 p-4 bg-zinc-800/50 rounded-lg">
+    <div className="flex items-start justify-between gap-4 p-4 bg-muted/50 rounded-lg">
       <div className="flex-1">
-        <label className="text-sm font-medium text-white block mb-1">
+        <label className="text-sm font-medium text-foreground block mb-1">
           {label}
         </label>
         {description && (
-          <p className="text-xs text-zinc-500">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         )}
       </div>
       <button
         onClick={() => onChange(!checked)}
         disabled={disabled}
         className={cn(
-          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-zinc-900',
-          checked ? 'bg-cyan-600' : 'bg-zinc-700',
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',
+          checked ? 'bg-primary' : 'bg-muted',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
@@ -118,16 +118,16 @@ function NumberSetting({
   disabled?: boolean;
 }) {
   return (
-    <div className="p-4 bg-zinc-800/50 rounded-lg">
-      <label className="text-sm font-medium text-white block mb-1">
+    <div className="p-4 bg-muted/50 rounded-lg">
+      <label className="text-sm font-medium text-foreground block mb-1">
         {label}
       </label>
       {description && (
-        <p className="text-xs text-zinc-500 mb-3">{description}</p>
+        <p className="text-xs text-muted-foreground mb-3">{description}</p>
       )}
       <div className="flex items-center gap-2">
         {prefix && (
-          <span className="text-sm text-zinc-400">{prefix}</span>
+          <span className="text-sm text-muted-foreground">{prefix}</span>
         )}
         <input
           type="number"
@@ -137,10 +137,10 @@ function NumberSetting({
           max={max}
           step={step}
           disabled={disabled}
-          className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
         />
         {suffix && (
-          <span className="text-sm text-zinc-400">{suffix}</span>
+          <span className="text-sm text-muted-foreground">{suffix}</span>
         )}
       </div>
     </div>
@@ -259,7 +259,7 @@ export default function RefundSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+        <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -270,7 +270,7 @@ export default function RefundSettingsPage() {
       <div className="mb-6">
         <Link
           href="/refunds"
-          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Refunds
@@ -278,8 +278,8 @@ export default function RefundSettingsPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Refund Settings</h1>
-            <p className="text-sm text-zinc-500">Configure refund policies and automation</p>
+            <h1 className="text-2xl font-bold text-foreground mb-1">Refund Settings</h1>
+            <p className="text-sm text-muted-foreground">Configure refund policies and automation</p>
           </div>
 
           <div className="flex gap-2">
@@ -287,7 +287,7 @@ export default function RefundSettingsPage() {
               <button
                 onClick={handleReset}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset
@@ -296,7 +296,7 @@ export default function RefundSettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving || !hasChanges}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {saving ? (
                 <>
@@ -436,34 +436,34 @@ export default function RefundSettingsPage() {
         </SettingSection>
 
         {/* Best Practices */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium text-white mb-4">Best Practices</h3>
-          <div className="space-y-3 text-sm text-zinc-400">
+        <div className="bg-card/50 border border-border rounded-xl p-6">
+          <h3 className="text-lg font-medium text-foreground mb-4">Best Practices</h3>
+          <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-medium mb-1">Set reasonable auto-approval limits</p>
+                <p className="text-foreground font-medium mb-1">Set reasonable auto-approval limits</p>
                 <p>Consider your average order value and fraud risk when setting auto-approval thresholds.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-medium mb-1">Monitor refund trends</p>
+                <p className="text-foreground font-medium mb-1">Monitor refund trends</p>
                 <p>Regularly review refund reasons to identify product or service issues.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-medium mb-1">Keep customers informed</p>
+                <p className="text-foreground font-medium mb-1">Keep customers informed</p>
                 <p>Enable notifications to maintain transparency throughout the refund process.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-medium mb-1">Document your policy</p>
+                <p className="text-foreground font-medium mb-1">Document your policy</p>
                 <p>Make sure your refund policy is clearly stated in your terms of service.</p>
               </div>
             </div>
@@ -473,12 +473,12 @@ export default function RefundSettingsPage() {
 
       {/* Sticky Save Bar (Mobile) */}
       {hasChanges && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-900 border-t border-zinc-800 md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t border-border md:hidden">
           <div className="flex gap-2">
             <button
               onClick={handleReset}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-muted text-foreground rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               Reset
@@ -486,7 +486,7 @@ export default function RefundSettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? (
                 <>

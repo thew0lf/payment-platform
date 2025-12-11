@@ -66,7 +66,7 @@ const STATUS_FILTER_OPTIONS = [
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: FeatureStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10' };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'text-muted-foreground', bgColor: 'bg-muted' };
   return (
     <span className={cn(
       'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
@@ -92,7 +92,7 @@ function PipelineCard({
   href?: string;
 }) {
   const colorClasses = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    cyan: 'bg-primary/10 text-primary border-primary/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     green: 'bg-green-500/10 text-green-400 border-green-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -103,13 +103,13 @@ function PipelineCard({
 
   const content = (
     <div className={cn(
-      'bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 transition-all',
-      href && 'hover:border-zinc-700 cursor-pointer hover:bg-zinc-900/80'
+      'bg-card/50 border border-border rounded-xl p-4 transition-all',
+      href && 'hover:border-border cursor-pointer hover:bg-card/80'
     )}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-zinc-500 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-xs text-muted-foreground mb-1">{title}</p>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
         </div>
         <div className={cn('p-2.5 rounded-xl border', colorClasses[color])}>
           <Icon className="w-5 h-5" />
@@ -132,18 +132,18 @@ function NeedsAttentionCard({ feature }: { feature: Feature }) {
   return (
     <div
       onClick={() => router.push(`/features/${feature.id}`)}
-      className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-all cursor-pointer"
+      className="bg-card/50 border border-border rounded-xl p-4 hover:border-border transition-all cursor-pointer"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           {isQuestionsReady && <MessageSquare className="w-4 h-4 text-red-400" />}
           {isApproved && <CheckCircle2 className="w-4 h-4 text-green-400" />}
-          <span className="text-sm font-medium text-white">{feature.code}</span>
+          <span className="text-sm font-medium text-foreground">{feature.code}</span>
         </div>
         <StatusBadge status={feature.status as FeatureStatus} />
       </div>
-      <h4 className="text-sm text-zinc-300 mb-2 line-clamp-1">{feature.name}</h4>
-      <div className="flex items-center justify-between text-xs text-zinc-500">
+      <h4 className="text-sm text-foreground mb-2 line-clamp-1">{feature.name}</h4>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <GitBranch className="w-3 h-3" />
           {feature.branch}
@@ -166,49 +166,49 @@ function FeatureRow({ feature }: { feature: Feature }) {
 
   return (
     <tr
-      className="hover:bg-zinc-800/50 transition-colors cursor-pointer"
+      className="hover:bg-muted/50 transition-colors cursor-pointer"
       onClick={() => router.push(`/features/${feature.id}`)}
     >
       <td className="px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-zinc-800 rounded-lg">
-            <GitBranch className="w-4 h-4 text-cyan-400" />
+          <div className="p-2 bg-muted rounded-lg">
+            <GitBranch className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{feature.code}</p>
-            <p className="text-xs text-zinc-500">{feature.branch}</p>
+            <p className="text-sm font-medium text-foreground">{feature.code}</p>
+            <p className="text-xs text-muted-foreground">{feature.branch}</p>
           </div>
         </div>
       </td>
       <td className="px-4 py-4">
-        <p className="text-sm text-zinc-300 line-clamp-1 max-w-xs">{feature.name}</p>
+        <p className="text-sm text-foreground line-clamp-1 max-w-xs">{feature.name}</p>
       </td>
       <td className="px-4 py-4">
         <StatusBadge status={feature.status as FeatureStatus} />
       </td>
       <td className="px-4 py-4">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-zinc-400">{feature.issuesResolved}</span>
-          <span className="text-zinc-600">/</span>
+          <span className="text-muted-foreground">{feature.issuesResolved}</span>
+          <span className="text-muted-foreground">/</span>
           <span className={cn(
-            feature.issuesFound > feature.issuesResolved ? 'text-red-400' : 'text-zinc-400'
+            feature.issuesFound > feature.issuesResolved ? 'text-red-400' : 'text-muted-foreground'
           )}>
             {feature.issuesFound}
           </span>
         </div>
       </td>
       <td className="px-4 py-4">
-        <span className="text-sm text-zinc-400">
+        <span className="text-sm text-muted-foreground">
           {feature.qaRounds > 0 ? `Round ${feature.qaRounds}` : '-'}
         </span>
       </td>
       <td className="px-4 py-4">
-        <span className="text-sm text-zinc-500">
+        <span className="text-sm text-muted-foreground">
           {new Date(feature.updatedAt).toLocaleDateString()}
         </span>
       </td>
       <td className="px-4 py-4">
-        <ChevronRight className="w-4 h-4 text-zinc-600" />
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
       </td>
     </tr>
   );
@@ -290,9 +290,9 @@ export default function FeaturesPage() {
         <Header title="Features" />
         <div className="p-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Lock className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">Access Restricted</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">Access Restricted</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               The Feature Management system is only available to organization administrators.
             </p>
           </div>
@@ -324,7 +324,7 @@ export default function FeaturesPage() {
 
         {/* Pipeline Stats - Code Review Phase */}
         <div className="space-y-2">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Code Review Phase</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Code Review Phase</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <PipelineCard
               title="Development"
@@ -355,7 +355,7 @@ export default function FeaturesPage() {
 
         {/* Pipeline Stats - QA Phase */}
         <div className="space-y-2">
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">QA Phase</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">QA Phase</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             <PipelineCard
               title="Ready for QA"
@@ -408,7 +408,7 @@ export default function FeaturesPage() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-yellow-400" />
               <h2 className="text-sm font-medium text-yellow-400">Needs Attention</h2>
-              <span className="text-xs text-zinc-500">({needsAttention.length})</span>
+              <span className="text-xs text-muted-foreground">({needsAttention.length})</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {needsAttention.slice(0, 6).map((feature) => (
@@ -423,13 +423,13 @@ export default function FeaturesPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by code, name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
@@ -440,19 +440,19 @@ export default function FeaturesPage() {
                 className={cn(
                   'flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   showFilters
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-card text-muted-foreground border border-border hover:text-foreground'
                 )}
               >
                 <Filter className="w-4 h-4" />
                 <span>Filters</span>
-                {statusFilter && <span className="w-2 h-2 bg-cyan-400 rounded-full" />}
+                {statusFilter && <span className="w-2 h-2 bg-primary rounded-full" />}
               </button>
 
               {/* Refresh */}
               <button
                 onClick={fetchData}
-                className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
                 title="Refresh"
               >
                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -462,13 +462,13 @@ export default function FeaturesPage() {
 
           {/* Filter Dropdowns */}
           {showFilters && (
-            <div className="flex flex-wrap items-center gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+            <div className="flex flex-wrap items-center gap-3 p-4 bg-card/50 border border-border rounded-lg">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500">Status</label>
+                <label className="text-xs text-muted-foreground">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as FeatureStatus | '')}
-                  className="px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   {STATUS_FILTER_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -479,7 +479,7 @@ export default function FeaturesPage() {
               {statusFilter && (
                 <button
                   onClick={() => setStatusFilter('')}
-                  className="mt-5 px-3 py-2.5 text-sm text-zinc-400 hover:text-white transition-colors bg-zinc-800/50 rounded-lg"
+                  className="mt-5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 rounded-lg"
                 >
                   Clear
                 </button>
@@ -491,16 +491,16 @@ export default function FeaturesPage() {
         {/* Loading State */}
         {loading && features.length === 0 && (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {/* Empty State */}
         {!loading && features.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <GitBranch className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No features found</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <GitBranch className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No features found</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               {search || statusFilter
                 ? 'Try adjusting your search or filters.'
                 : 'Create your first feature to get started with the development workflow.'}
@@ -516,21 +516,21 @@ export default function FeaturesPage() {
 
         {/* Features Table */}
         {features.length > 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Feature</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Issues</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">QA Rounds</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Updated</th>
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Feature</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Issues</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QA Rounds</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Updated</th>
                     <th className="px-4 py-3 w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-border">
                   {features.map((feature) => (
                     <FeatureRow key={feature.id} feature={feature} />
                   ))}
@@ -540,22 +540,22 @@ export default function FeaturesPage() {
 
             {/* Pagination */}
             {total > PAGE_SIZE && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800">
-                <p className="text-sm text-zinc-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <p className="text-sm text-muted-foreground">
                   Showing {offset + 1} to {Math.min(offset + PAGE_SIZE, total)} of {total}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                     disabled={offset === 0}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setOffset(offset + PAGE_SIZE)}
                     disabled={offset + PAGE_SIZE >= total}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                   >
                     Next
                   </button>
@@ -570,8 +570,8 @@ export default function FeaturesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Issues by Severity */}
             {Object.keys(stats.issuesBySeverity).length > 0 && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-white mb-4">Issues by Severity</h3>
+              <div className="bg-card/50 border border-border rounded-xl p-5">
+                <h3 className="text-sm font-medium text-foreground mb-4">Issues by Severity</h3>
                 <div className="space-y-3">
                   {Object.entries(stats.issuesBySeverity).map(([severity, count]) => {
                     const config = SEVERITY_CONFIG[severity as keyof typeof SEVERITY_CONFIG];
@@ -581,12 +581,12 @@ export default function FeaturesPage() {
                     return (
                       <div key={severity} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className={config?.color || 'text-zinc-400'}>{config?.label || severity}</span>
-                          <span className="text-zinc-400">{count}</span>
+                          <span className={config?.color || 'text-muted-foreground'}>{config?.label || severity}</span>
+                          <span className="text-muted-foreground">{count}</span>
                         </div>
-                        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={cn('h-full rounded-full', config?.bgColor || 'bg-zinc-600')}
+                            className={cn('h-full rounded-full', config?.bgColor || 'bg-muted')}
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -599,8 +599,8 @@ export default function FeaturesPage() {
 
             {/* Issues by Category */}
             {Object.keys(stats.issuesByCategory).length > 0 && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-white mb-4">Issues by Category</h3>
+              <div className="bg-card/50 border border-border rounded-xl p-5">
+                <h3 className="text-sm font-medium text-foreground mb-4">Issues by Category</h3>
                 <div className="space-y-3">
                   {Object.entries(stats.issuesByCategory).map(([category, count]) => {
                     const maxCount = Math.max(...Object.values(stats.issuesByCategory));
@@ -609,12 +609,12 @@ export default function FeaturesPage() {
                     return (
                       <div key={category} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-zinc-300">{category.replace(/_/g, ' ')}</span>
-                          <span className="text-zinc-400">{count}</span>
+                          <span className="text-foreground">{category.replace(/_/g, ' ')}</span>
+                          <span className="text-muted-foreground">{count}</span>
                         </div>
-                        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-cyan-500/50 rounded-full"
+                            className="h-full bg-primary/50 rounded-full"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>

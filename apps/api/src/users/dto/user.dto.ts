@@ -172,3 +172,17 @@ export class AssignRoleDto {
   @IsString()
   scopeId: string;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// USER PREFERENCES DTO
+// ═══════════════════════════════════════════════════════════════
+
+export class UpdatePreferencesDto {
+  @IsOptional()
+  @IsString()
+  theme?: 'light' | 'dark' | 'system';
+
+  @IsOptional()
+  @IsBoolean()
+  sidebarCollapsed?: boolean;
+}

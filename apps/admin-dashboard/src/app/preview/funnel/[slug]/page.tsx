@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { funnelTemplatesApi, FunnelTemplate } from '@/lib/api/funnels';
+import { productsApi, Product } from '@/lib/api/products';
 import {
   ArrowLeft,
   Monitor,
@@ -38,14 +39,14 @@ function LandingPreview({ config, onContinue }: LandingPreviewProps) {
 
   return (
     <div className="min-h-[600px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center text-white">
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center text-foreground">
         <h1 className="text-4xl md:text-5xl font-bold mb-6">{headline}</h1>
-        <p className="text-xl md:text-2xl text-white/80 mb-10 max-w-2xl mx-auto">{subheadline}</p>
+        <p className="text-xl md:text-2xl text-foreground/80 mb-10 max-w-2xl mx-auto">{subheadline}</p>
 
         {layout === 'video-hero' && (
           <div className="aspect-video max-w-2xl mx-auto mb-10 bg-black/20 rounded-2xl flex items-center justify-center">
             <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors">
-              <Play className="w-8 h-8 text-white ml-1" />
+              <Play className="w-8 h-8 text-foreground ml-1" />
             </div>
           </div>
         )}
@@ -55,10 +56,10 @@ function LandingPreview({ config, onContinue }: LandingPreviewProps) {
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-4">
-                  <Star className="w-6 h-6 text-white" />
+                  <Star className="w-6 h-6 text-foreground" />
                 </div>
                 <h3 className="font-semibold mb-2">Feature {i}</h3>
-                <p className="text-sm text-white/70">Description of this amazing feature</p>
+                <p className="text-sm text-foreground/70">Description of this amazing feature</p>
               </div>
             ))}
           </div>
@@ -80,19 +81,30 @@ function LandingPreview({ config, onContinue }: LandingPreviewProps) {
 // PRODUCT SELECTION PREVIEW
 // ═══════════════════════════════════════════════════════════════
 
+interface PreviewProduct {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+}
+
 interface ProductSelectionPreviewProps {
   config: Record<string, unknown>;
   onContinue: () => void;
+  products?: PreviewProduct[];
 }
 
-const sampleProducts = [
+// Fallback sample products for preview when no products are available
+const FALLBACK_PRODUCTS: PreviewProduct[] = [
   { id: '1', name: 'Premium Product', price: 79.99, image: '📦' },
   { id: '2', name: 'Standard Product', price: 49.99, image: '📦' },
   { id: '3', name: 'Basic Product', price: 29.99, image: '📦' },
   { id: '4', name: 'Deluxe Product', price: 99.99, image: '📦' },
 ];
 
-function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreviewProps) {
+function ProductSelectionPreview({ config, onContinue, products }: ProductSelectionPreviewProps) {
+  // Use provided products or fall back to sample data for preview
+  const displayProducts = products && products.length > 0 ? products : FALLBACK_PRODUCTS;
   const [selected, setSelected] = useState<string[]>([]);
   const layout = (config.layout as string) || 'grid';
   const display = (config.display as Record<string, boolean>) || { showPrices: true, showDescription: true };
@@ -114,7 +126,7 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-8">Choose Your Plan</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {sampleProducts.slice(0, 3).map((product, index) => (
+            {displayProducts.slice(0, 3).map((product, index) => (
               <div
                 key={product.id}
                 onClick={() => handleSelect(product.id)}
@@ -145,7 +157,7 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
                 <button
                   className={`w-full py-2 rounded-lg font-medium transition-colors ${
                     selected.includes(product.id)
-                      ? 'bg-indigo-600 text-white'
+                      ? 'bg-indigo-600 text-foreground'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -158,7 +170,7 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
             <div className="mt-8 text-center">
               <button
                 onClick={onContinue}
-                className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 text-foreground rounded-full font-semibold hover:bg-indigo-700 transition-colors"
               >
                 Continue to Checkout
                 <ChevronRight className="w-5 h-5" />
@@ -175,7 +187,7 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold text-center mb-8">Select Products</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {sampleProducts.map((product) => (
+          {displayProducts.map((product) => (
             <div
               key={product.id}
               onClick={() => handleSelect(product.id)}
@@ -202,7 +214,7 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
           <div className="mt-8 text-center">
             <button
               onClick={onContinue}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 text-foreground rounded-full font-semibold hover:bg-indigo-700 transition-colors"
             >
               Continue ({selected.length} selected)
               <ChevronRight className="w-5 h-5" />
@@ -221,9 +233,20 @@ function ProductSelectionPreview({ config, onContinue }: ProductSelectionPreview
 interface CheckoutPreviewProps {
   config: Record<string, unknown>;
   onComplete: () => void;
+  products?: PreviewProduct[];
 }
 
-function CheckoutPreview({ config, onComplete }: CheckoutPreviewProps) {
+// Default product for checkout preview when no products selected
+const DEFAULT_CHECKOUT_PRODUCT: PreviewProduct = {
+  id: 'preview',
+  name: 'Preview Product',
+  price: 79.00,
+  image: '📦',
+};
+
+function CheckoutPreview({ config, onComplete, products = [] }: CheckoutPreviewProps) {
+  // Use provided products or fallback to default
+  const displayProducts = products.length > 0 ? products : [DEFAULT_CHECKOUT_PRODUCT];
   const layout = (config.layout as string) || 'two-column';
   const fields = (config.fields as Record<string, unknown>) || {};
   const payment = (config.payment as Record<string, unknown>) || {};
@@ -322,51 +345,72 @@ function CheckoutPreview({ config, onComplete }: CheckoutPreviewProps) {
               </div>
             )}
 
-            <button
-              onClick={onComplete}
-              className="w-full py-3.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              Complete Order - $99.00
-            </button>
+            {(() => {
+              const subtotal = displayProducts.reduce((sum, p) => sum + p.price, 0);
+              const shipping = 5.99;
+              const tax = subtotal * 0.0825;
+              const total = subtotal + shipping + tax;
+              return (
+                <button
+                  onClick={onComplete}
+                  className="w-full py-3.5 bg-indigo-600 text-foreground font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Complete Order - ${total.toFixed(2)}
+                </button>
+              );
+            })()}
           </div>
         </div>
 
         {/* Order Summary */}
-        {layout === 'two-column' && (payment.showOrderSummary as boolean) !== false && (
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="font-semibold mb-4">Order Summary</h3>
-              <div className="flex gap-4 pb-4 border-b border-gray-200">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-6 h-6 text-gray-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Sample Product</p>
-                  <p className="text-xs text-gray-500">Qty: 1</p>
-                </div>
-                <p className="font-medium text-sm">$79.00</p>
-              </div>
-              <div className="pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>$79.00</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Shipping</span>
-                  <span>$5.99</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax</span>
-                  <span>$6.51</span>
-                </div>
-                <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
-                  <span>Total</span>
-                  <span>$91.50</span>
+        {layout === 'two-column' && (payment.showOrderSummary as boolean) !== false && (() => {
+          const subtotal = displayProducts.reduce((sum, p) => sum + p.price, 0);
+          const shipping = 5.99;
+          const tax = subtotal * 0.0825;
+          const total = subtotal + shipping + tax;
+
+          return (
+            <div className="md:col-span-2">
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="font-semibold mb-4">Order Summary</h3>
+                {displayProducts.map((product, index) => (
+                  <div key={index} className="flex gap-4 pb-4 border-b border-gray-200 mb-4 last:mb-0">
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                      {typeof product.image === 'string' && product.image.startsWith('http') ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+                      ) : (
+                        <span className="text-2xl">{product.image || '📦'}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{product.name}</p>
+                      <p className="text-xs text-gray-500">Qty: 1</p>
+                    </div>
+                    <p className="font-medium text-sm">${product.price.toFixed(2)}</p>
+                  </div>
+                ))}
+                <div className="pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping</span>
+                    <span>${shipping.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tax</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
@@ -388,7 +432,7 @@ function ThankYouPreview({ config }: ThankYouPreviewProps) {
     <div className="min-h-[600px] bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center py-12 px-6">
       <div className="text-center max-w-md">
         <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-10 h-10 text-white" />
+          <CheckCircle className="w-10 h-10 text-foreground" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">{headline}</h2>
         <p className="text-lg text-gray-600 mb-8">{message}</p>
@@ -415,6 +459,7 @@ export default function TemplatePreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentStage, setCurrentStage] = useState(0);
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [previewProducts, setPreviewProducts] = useState<PreviewProduct[]>([]);
 
   const loadTemplate = useCallback(async () => {
     try {
@@ -428,9 +473,28 @@ export default function TemplatePreviewPage() {
     }
   }, [slug]);
 
+  // Load products from API for the preview
+  const loadProducts = useCallback(async () => {
+    try {
+      const { products } = await productsApi.list({ limit: 4, status: 'ACTIVE' });
+      // Map API products to preview format
+      const mappedProducts: PreviewProduct[] = products.map((p: Product) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        image: p.images?.[0] || '📦',
+      }));
+      setPreviewProducts(mappedProducts);
+    } catch {
+      // Silently fail - will use fallback products
+      console.debug('Using fallback products for preview');
+    }
+  }, []);
+
   useEffect(() => {
     loadTemplate();
-  }, [loadTemplate]);
+    loadProducts();
+  }, [loadTemplate, loadProducts]);
 
   const handleContinue = () => {
     const stages = (template?.config as { stages?: unknown[] })?.stages;
@@ -496,9 +560,9 @@ export default function TemplatePreviewPage() {
         case 'LANDING':
           return <LandingPreview config={stageConfig} onContinue={() => {}} />;
         case 'PRODUCT_SELECTION':
-          return <ProductSelectionPreview config={stageConfig} onContinue={() => {}} />;
+          return <ProductSelectionPreview config={stageConfig} onContinue={() => {}} products={previewProducts} />;
         case 'CHECKOUT':
-          return <CheckoutPreview config={stageConfig} onComplete={() => {}} />;
+          return <CheckoutPreview config={stageConfig} onComplete={() => {}} products={previewProducts} />;
         case 'THANK_YOU':
           return <ThankYouPreview config={stageConfig} />;
         default:
@@ -510,9 +574,9 @@ export default function TemplatePreviewPage() {
       case 'LANDING':
         return <LandingPreview config={currentStageData.config || {}} onContinue={handleContinue} />;
       case 'PRODUCT_SELECTION':
-        return <ProductSelectionPreview config={currentStageData.config || {}} onContinue={handleContinue} />;
+        return <ProductSelectionPreview config={currentStageData.config || {}} onContinue={handleContinue} products={previewProducts} />;
       case 'CHECKOUT':
-        return <CheckoutPreview config={currentStageData.config || {}} onComplete={handleContinue} />;
+        return <CheckoutPreview config={currentStageData.config || {}} onComplete={handleContinue} products={previewProducts} />;
       case 'THANK_YOU':
         return <ThankYouPreview config={currentStageData.config || {}} />;
       default:
@@ -583,7 +647,7 @@ export default function TemplatePreviewPage() {
 
           <button
             onClick={() => router.push('/funnels/templates')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-indigo-600 text-foreground rounded-lg font-medium hover:bg-indigo-700 transition-colors"
           >
             Use This Template
           </button>
@@ -614,7 +678,7 @@ export default function TemplatePreviewPage() {
             <button
               onClick={handleContinue}
               disabled={currentStage === stages.length - 1}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 text-foreground rounded-lg font-medium disabled:opacity-50"
             >
               Next
             </button>

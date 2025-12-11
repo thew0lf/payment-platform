@@ -69,7 +69,7 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
         {[1, 2].map((i) => (
           <div
             key={i}
-            className="h-24 bg-zinc-800/50 rounded-lg animate-pulse border border-zinc-700/50"
+            className="h-24 bg-muted/50 rounded-lg animate-pulse border border-border/50"
           />
         ))}
       </div>
@@ -93,8 +93,8 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-100">Active Sessions</h3>
-          <p className="text-sm text-zinc-400">
+          <h3 className="text-lg font-semibold text-foreground">Active Sessions</h3>
+          <p className="text-sm text-muted-foreground">
             {sessions.length} active session{sessions.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -124,8 +124,8 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
               className={cn(
                 'p-4 rounded-lg border transition-colors',
                 isCurrent
-                  ? 'bg-cyan-500/10 border-cyan-500/30'
-                  : 'bg-zinc-800/50 border-zinc-700/50'
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-muted/50 border-border/50'
               )}
             >
               <div className="flex items-start justify-between">
@@ -134,7 +134,7 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
                   <div
                     className={cn(
                       'w-10 h-10 rounded-lg flex items-center justify-center',
-                      isCurrent ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-700/50 text-zinc-400'
+                      isCurrent ? 'bg-primary/20 text-primary' : 'bg-muted/50 text-muted-foreground'
                     )}
                   >
                     {device === 'Mobile' ? (
@@ -147,11 +147,11 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
                   <div>
                     {/* Browser & Device */}
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-zinc-100">
+                      <span className="font-medium text-foreground">
                         {browser} on {device}
                       </span>
                       {isCurrent && (
-                        <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                        <Badge className="bg-primary/20 text-primary border-primary/30">
                           Current
                         </Badge>
                       )}
@@ -159,7 +159,7 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
 
                     {/* Location */}
                     {(session.city || session.country) && (
-                      <div className="flex items-center gap-1 text-sm text-zinc-400 mt-1">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                         <MapPin className="h-3.5 w-3.5" />
                         <span>
                           {[session.city, session.country].filter(Boolean).join(', ')}
@@ -169,14 +169,14 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
 
                     {/* IP Address */}
                     {session.ipAddress && (
-                      <div className="flex items-center gap-1 text-sm text-zinc-500 mt-0.5">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
                         <Globe className="h-3.5 w-3.5" />
                         <span>{session.ipAddress}</span>
                       </div>
                     )}
 
                     {/* Timestamps */}
-                    <div className="flex items-center gap-3 text-xs text-zinc-500 mt-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         Last active{' '}
@@ -197,7 +197,7 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
                     size="sm"
                     onClick={() => handleRevokeSession(session.id)}
                     disabled={isRevoking}
-                    className="text-zinc-400 hover:text-red-400"
+                    className="text-muted-foreground hover:text-red-400"
                   >
                     {isRevoking ? (
                       <span className="animate-spin">...</span>
@@ -213,12 +213,12 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
       </div>
 
       {sessions.length === 0 && (
-        <div className="text-center py-8 text-zinc-500">No active sessions found</div>
+        <div className="text-center py-8 text-muted-foreground">No active sessions found</div>
       )}
 
       {/* Revoke All Dialog */}
       <AlertDialog open={showRevokeAll} onOpenChange={setShowRevokeAll}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Sign out all other sessions?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -227,7 +227,7 @@ export function SessionManager({ currentSessionToken }: SessionManagerProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700">
+            <AlertDialogCancel className="bg-muted border-border hover:bg-muted">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

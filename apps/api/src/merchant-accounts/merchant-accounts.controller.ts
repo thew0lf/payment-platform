@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { MerchantAccountService } from './services/merchant-account.service';
+import { TestCheckoutService } from './services/test-checkout.service';
 import {
   CreateMerchantAccountDto,
   UpdateMerchantAccountDto,
@@ -27,6 +28,11 @@ import {
   PaymentProviderType,
   AccountStatus,
 } from './types/merchant-account.types';
+import {
+  TestCheckoutRequestDto,
+  TestCheckoutResponseDto,
+  TestCheckoutTestCardsDto,
+} from './dto/test-checkout.dto';
 
 @ApiTags('Merchant Accounts')
 @ApiBearerAuth()
@@ -36,6 +42,7 @@ export class MerchantAccountsController {
   constructor(
     private readonly service: MerchantAccountService,
     private readonly hierarchyService: HierarchyService,
+    private readonly testCheckoutService: TestCheckoutService,
   ) {}
 
   /**
@@ -168,6 +175,34 @@ export class MerchantAccountsController {
   ) {
     await this.verifyAccountAccess(user, id);
     return this.service.checkLimits(id, amount);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // TEST CHECKOUT ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get(':id/test-cards')
+  @ApiOperation({ summary: 'Get available test cards for a merchant account' })
+  @ApiResponse({ status: 200, description: 'Test cards retrieved successfully' })
+  async getTestCards(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TestCheckoutTestCardsDto> {
+    await this.verifyAccountAccess(user, id);
+    return this.testCheckoutService.getTestCards(id);
+  }
+
+  @Post('test-checkout')
+  @ApiOperation({ summary: 'Process a test checkout transaction' })
+  @ApiResponse({ status: 201, description: 'Transaction processed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 404, description: 'Merchant account not found' })
+  async processTestCheckout(
+    @Body() dto: TestCheckoutRequestDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TestCheckoutResponseDto> {
+    await this.verifyAccountAccess(user, dto.merchantAccountId);
+    return this.testCheckoutService.processTestCheckout(dto, user.id);
   }
 
   private getCompanyId(req: any): string {

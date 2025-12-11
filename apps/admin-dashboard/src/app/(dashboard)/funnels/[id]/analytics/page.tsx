@@ -88,7 +88,7 @@ export default function FunnelAnalyticsPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-foreground">
               {funnel.name} - Analytics
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -154,7 +154,7 @@ export default function FunnelAnalyticsPage() {
 
       {/* Stage Performance */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
           Stage Performance
         </h2>
         <div className="space-y-4">
@@ -165,7 +165,7 @@ export default function FunnelAnalyticsPage() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-gray-900 dark:text-white">
+                  <span className="font-medium text-gray-900 dark:text-foreground">
                     {stage.stageName}
                   </span>
                   <span className="text-sm text-gray-500">
@@ -196,7 +196,7 @@ export default function FunnelAnalyticsPage() {
         {/* Variant Performance */}
         {analytics.variantPerformance.length > 1 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
               A/B Test Performance
             </h2>
             <div className="space-y-4">
@@ -211,7 +211,7 @@ export default function FunnelAnalyticsPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-gray-900 dark:text-foreground">
                         {variant.variantName}
                       </span>
                       {variant.isControl && (
@@ -246,7 +246,7 @@ export default function FunnelAnalyticsPage() {
 
         {/* Traffic Sources */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
             Traffic Sources
           </h2>
           <div className="space-y-3">
@@ -257,7 +257,7 @@ export default function FunnelAnalyticsPage() {
                   className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
                 >
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white capitalize">
+                    <p className="font-medium text-gray-900 dark:text-foreground capitalize">
                       {source.source}
                     </p>
                     <p className="text-sm text-gray-500">
@@ -280,7 +280,7 @@ export default function FunnelAnalyticsPage() {
 
       {/* Daily Chart Placeholder */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground mb-4">
           Daily Performance
         </h2>
         <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
@@ -317,7 +317,7 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
       <div className={`w-10 h-10 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-3`}>
         {icon}
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-foreground">{value}</p>
       <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
     </div>
   );

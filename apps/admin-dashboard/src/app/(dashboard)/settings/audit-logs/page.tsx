@@ -131,33 +131,33 @@ export default function AuditLogsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 Total Events (30d)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-foreground">
                 {stats?.totalLogs.toLocaleString() || 0}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
                 <User className="w-4 h-4" />
                 User Actions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-cyan-400">
+              <p className="text-2xl font-bold text-primary">
                 {Object.values(stats?.logsByAction || {}).reduce((a, b) => a + b, 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 PCI/PII Events
               </CardTitle>
@@ -170,7 +170,7 @@ export default function AuditLogsPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 Entity Types
               </CardTitle>
@@ -184,11 +184,11 @@ export default function AuditLogsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-card/50 border border-border rounded-xl p-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
             <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search logs..."
                 value={search}
@@ -204,7 +204,7 @@ export default function AuditLogsPage() {
                 setSelectedAction(e.target.value || null);
                 setPage(0);
               }}
-              className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="h-9 px-3 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">All Actions</option>
               {filters?.actions.map((action) => (
@@ -221,7 +221,7 @@ export default function AuditLogsPage() {
                 setSelectedEntity(e.target.value || null);
                 setPage(0);
               }}
-              className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="h-9 px-3 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">All Entities</option>
               {filters?.entities.map((entity) => (
@@ -238,7 +238,7 @@ export default function AuditLogsPage() {
                 setSelectedClassification((e.target.value as DataClassification) || null);
                 setPage(0);
               }}
-              className="h-9 px-3 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="h-9 px-3 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">All Classifications</option>
               {filters?.dataClassifications.map((classification) => (
@@ -260,16 +260,16 @@ export default function AuditLogsPage() {
 
         {/* Logs List */}
         {loading ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-12 flex items-center justify-center">
-            <div className="flex items-center gap-3 text-zinc-400">
+          <div className="bg-card/50 border border-border rounded-xl p-12 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>Loading audit logs...</span>
             </div>
           </div>
         ) : logs.length === 0 ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-12 text-center">
-            <Activity className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400">No audit logs found</p>
+          <div className="bg-card/50 border border-border rounded-xl p-12 text-center">
+            <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No audit logs found</p>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="mt-4">
                 Clear filters
@@ -277,10 +277,10 @@ export default function AuditLogsPage() {
             )}
           </div>
         ) : (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="divide-y divide-zinc-800">
+          <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
+            <div className="divide-y divide-border">
               {logs.map((log) => (
-                <div key={log.id} className="p-4 hover:bg-zinc-800/30 transition-colors">
+                <div key={log.id} className="p-4 hover:bg-muted/30 transition-colors">
                   <div
                     className="flex items-start gap-4 cursor-pointer"
                     onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
@@ -288,9 +288,9 @@ export default function AuditLogsPage() {
                     {/* Expand Icon */}
                     <div className="pt-1">
                       {expandedLogId === log.id ? (
-                        <ChevronDown className="w-4 h-4 text-zinc-500" />
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-zinc-500" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
 
@@ -303,10 +303,10 @@ export default function AuditLogsPage() {
                         </span>
 
                         {/* Entity */}
-                        <span className="text-zinc-400">
+                        <span className="text-muted-foreground">
                           {log.entity}
                           {log.entityId && (
-                            <span className="text-zinc-600 ml-1 font-mono text-xs">
+                            <span className="text-muted-foreground ml-1 font-mono text-xs">
                               ({log.entityId.slice(0, 8)}...)
                             </span>
                           )}
@@ -326,7 +326,7 @@ export default function AuditLogsPage() {
                       </div>
 
                       {/* User & Time */}
-                      <div className="flex items-center gap-4 mt-1 text-sm text-zinc-500">
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
                           {log.user
@@ -338,7 +338,7 @@ export default function AuditLogsPage() {
                           {formatRelativeTime(log.createdAt)}
                         </span>
                         {log.ipAddress && (
-                          <span className="font-mono text-xs text-zinc-600">{log.ipAddress}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{log.ipAddress}</span>
                         )}
                       </div>
                     </div>
@@ -346,42 +346,42 @@ export default function AuditLogsPage() {
 
                   {/* Expanded Details */}
                   {expandedLogId === log.id && (
-                    <div className="mt-4 ml-8 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                    <div className="mt-4 ml-8 p-4 bg-muted/50 rounded-lg border border-border">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-zinc-500 mb-1">ID</p>
-                          <p className="font-mono text-zinc-300">{log.id}</p>
+                          <p className="text-muted-foreground mb-1">ID</p>
+                          <p className="font-mono text-foreground">{log.id}</p>
                         </div>
                         <div>
-                          <p className="text-zinc-500 mb-1">Timestamp</p>
-                          <p className="text-zinc-300">{new Date(log.createdAt).toLocaleString()}</p>
+                          <p className="text-muted-foreground mb-1">Timestamp</p>
+                          <p className="text-foreground">{new Date(log.createdAt).toLocaleString()}</p>
                         </div>
                         {log.scopeType && (
                           <div>
-                            <p className="text-zinc-500 mb-1">Scope</p>
-                            <p className="text-zinc-300">
+                            <p className="text-muted-foreground mb-1">Scope</p>
+                            <p className="text-foreground">
                               {log.scopeType}: {log.scopeId}
                             </p>
                           </div>
                         )}
                         {log.userAgent && (
                           <div className="md:col-span-2">
-                            <p className="text-zinc-500 mb-1">User Agent</p>
-                            <p className="text-zinc-400 text-xs font-mono truncate">{log.userAgent}</p>
+                            <p className="text-muted-foreground mb-1">User Agent</p>
+                            <p className="text-muted-foreground text-xs font-mono truncate">{log.userAgent}</p>
                           </div>
                         )}
                         {log.changes && Object.keys(log.changes).length > 0 && (
                           <div className="md:col-span-2">
-                            <p className="text-zinc-500 mb-2">Changes</p>
-                            <pre className="bg-zinc-900 p-3 rounded text-xs text-zinc-300 overflow-x-auto">
+                            <p className="text-muted-foreground mb-2">Changes</p>
+                            <pre className="bg-card p-3 rounded text-xs text-foreground overflow-x-auto">
                               {JSON.stringify(log.changes, null, 2)}
                             </pre>
                           </div>
                         )}
                         {log.metadata && Object.keys(log.metadata).length > 0 && (
                           <div className="md:col-span-2">
-                            <p className="text-zinc-500 mb-2">Metadata</p>
-                            <pre className="bg-zinc-900 p-3 rounded text-xs text-zinc-300 overflow-x-auto">
+                            <p className="text-muted-foreground mb-2">Metadata</p>
+                            <pre className="bg-card p-3 rounded text-xs text-foreground overflow-x-auto">
                               {JSON.stringify(log.metadata, null, 2)}
                             </pre>
                           </div>
@@ -395,8 +395,8 @@ export default function AuditLogsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-zinc-800 flex items-center justify-between">
-                <p className="text-sm text-zinc-500">
+              <div className="p-4 border-t border-border flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
                   Showing {page * pageSize + 1} - {Math.min((page + 1) * pageSize, total)} of {total}
                 </p>
                 <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ export default function AuditLogsPage() {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-zinc-400">
+                  <span className="text-sm text-muted-foreground">
                     Page {page + 1} of {totalPages}
                   </span>
                   <Button

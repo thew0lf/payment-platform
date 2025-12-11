@@ -15,12 +15,12 @@ interface RestrictionsModalProps {
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800">
-      <span className="text-sm text-zinc-300">{label}</span>
+    <label className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted">
+      <span className="text-sm text-foreground">{label}</span>
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-cyan-500' : 'bg-zinc-700'}`}
+        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-muted'}`}
       >
         <span
           className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`}
@@ -64,13 +64,13 @@ function TagInput({ value, onChange, placeholder }: { value: string[]; onChange:
           {value.map(tag => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-800 text-zinc-300 text-xs rounded"
+              className="inline-flex items-center gap-1 px-2 py-1 bg-muted text-foreground text-xs rounded"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="text-zinc-500 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 &times;
               </button>
@@ -134,10 +134,10 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
         )}
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Currency Settings</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Currency Settings</h3>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Primary Currency</label>
+              <label className="block text-sm text-muted-foreground mb-1">Primary Currency</label>
               <Input
                 value={restrictions.primaryCurrency || ''}
                 onChange={e => setRestrictions(prev => ({ ...prev, primaryCurrency: e.target.value.toUpperCase() }))}
@@ -146,7 +146,7 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Allowed Currencies</label>
+              <label className="block text-sm text-muted-foreground mb-1">Allowed Currencies</label>
               <TagInput
                 value={restrictions.allowedCurrencies || []}
                 onChange={v => updateArray('allowedCurrencies', v)}
@@ -157,10 +157,10 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Geographic Restrictions</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Geographic Restrictions</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Allowed Countries</label>
+              <label className="block text-sm text-muted-foreground mb-1">Allowed Countries</label>
               <TagInput
                 value={restrictions.allowedCountries || []}
                 onChange={v => updateArray('allowedCountries', v)}
@@ -168,7 +168,7 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Blocked Countries</label>
+              <label className="block text-sm text-muted-foreground mb-1">Blocked Countries</label>
               <TagInput
                 value={restrictions.blockedCountries || []}
                 onChange={v => updateArray('blockedCountries', v)}
@@ -179,10 +179,10 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Card Restrictions</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Card Restrictions</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Allowed Card Brands</label>
+              <label className="block text-sm text-muted-foreground mb-1">Allowed Card Brands</label>
               <TagInput
                 value={restrictions.allowedCardBrands || []}
                 onChange={v => updateArray('allowedCardBrands', v)}
@@ -190,7 +190,7 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Blocked Card Brands</label>
+              <label className="block text-sm text-muted-foreground mb-1">Blocked Card Brands</label>
               <TagInput
                 value={restrictions.blockedCardBrands || []}
                 onChange={v => updateArray('blockedCardBrands', v)}
@@ -201,7 +201,7 @@ export function RestrictionsModal({ isOpen, onClose, account, onSaved }: Restric
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Feature Toggles</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Feature Toggles</h3>
           <div className="grid grid-cols-2 gap-2">
             <Toggle
               checked={restrictions.achAllowed ?? true}

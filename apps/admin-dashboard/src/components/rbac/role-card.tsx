@@ -37,7 +37,7 @@ export function RoleCard({
 
   if (compact) {
     return (
-      <div className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 hover:border-zinc-600/50 transition-colors">
+      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50 hover:border-border/50 transition-colors">
         <div className="flex items-center gap-3">
           <div
             className={cn(
@@ -47,7 +47,7 @@ export function RoleCard({
             style={role.color ? { backgroundColor: role.color } : undefined}
           />
           <div>
-            <span className="font-medium text-zinc-100">{role.name}</span>
+            <span className="font-medium text-foreground">{role.name}</span>
             {role.isSystem && (
               <Badge variant="outline" className="ml-2 text-xs">
                 System
@@ -56,7 +56,7 @@ export function RoleCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-400">
+          <span className="text-sm text-muted-foreground">
             {permissionCount} permission{permissionCount !== 1 ? 's' : ''}
           </span>
           {onAssign && (
@@ -70,7 +70,7 @@ export function RoleCard({
   }
 
   return (
-    <div className="bg-zinc-800/50 rounded-xl border border-zinc-700/50 overflow-hidden">
+    <div className="bg-muted/50 rounded-xl border border-border/50 overflow-hidden">
       {/* Header */}
       <div className="p-4 flex items-start justify-between">
         <div className="flex items-start gap-3">
@@ -88,7 +88,7 @@ export function RoleCard({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-zinc-100">{role.name}</h3>
+              <h3 className="font-semibold text-foreground">{role.name}</h3>
               {role.isSystem && (
                 <Badge variant="outline" className="text-xs">
                   <Lock className="h-3 w-3 mr-1" />
@@ -96,15 +96,15 @@ export function RoleCard({
                 </Badge>
               )}
               {role.isDefault && (
-                <Badge className="text-xs bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                <Badge className="text-xs bg-primary/20 text-primary border-primary/30">
                   Default
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-zinc-400 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {role.description || 'No description'}
             </p>
-            <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
               <span className="capitalize">{role.scopeType.toLowerCase()} level</span>
               <span>Priority: {role.priority}</span>
             </div>
@@ -117,7 +117,7 @@ export function RoleCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-zinc-400 hover:text-zinc-100"
+              className="text-muted-foreground hover:text-foreground"
               onClick={() => onAssign(role)}
             >
               <Users className="h-4 w-4" />
@@ -127,7 +127,7 @@ export function RoleCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-zinc-400 hover:text-zinc-100"
+              className="text-muted-foreground hover:text-foreground"
               onClick={() => onEdit(role)}
             >
               <Pencil className="h-4 w-4" />
@@ -137,7 +137,7 @@ export function RoleCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-zinc-400 hover:text-red-400"
+              className="text-muted-foreground hover:text-red-400"
               onClick={() => onDelete(role)}
             >
               <Trash2 className="h-4 w-4" />
@@ -148,10 +148,10 @@ export function RoleCard({
 
       {/* Permissions section */}
       {showPermissions && role.permissions && role.permissions.length > 0 && (
-        <div className="border-t border-zinc-700/50">
+        <div className="border-t border-border/50">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full px-4 py-3 flex items-center justify-between text-sm text-zinc-400 hover:bg-zinc-700/30 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between text-sm text-muted-foreground hover:bg-muted/30 transition-colors"
           >
             <span>
               {permissionCount} permission{permissionCount !== 1 ? 's' : ''}
@@ -167,7 +167,7 @@ export function RoleCard({
             <div className="px-4 pb-4 space-y-3">
               {Object.entries(groupedPermissions).map(([category, perms]) => (
                 <div key={category}>
-                  <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                     {category}
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
@@ -175,7 +175,7 @@ export function RoleCard({
                       <Badge
                         key={perm.id}
                         variant="secondary"
-                        className="text-xs bg-zinc-700/50 text-zinc-300 hover:bg-zinc-700"
+                        className="text-xs bg-muted/50 text-foreground hover:bg-muted"
                       >
                         {perm.code}
                       </Badge>

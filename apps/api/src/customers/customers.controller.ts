@@ -51,6 +51,29 @@ export class CustomersController {
     return customer;
   }
 
+  @Post()
+  async createCustomer(
+    @Request() req,
+    @Body() data: { email: string; firstName?: string; lastName?: string; phone?: string; companyId: string; metadata?: Record<string, unknown> },
+  ) {
+    return this.customersService.createCustomer(req.user, data);
+  }
+
+  @Patch(':id')
+  async updateCustomer(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() data: { firstName?: string; lastName?: string; phone?: string; status?: string; metadata?: Record<string, unknown> },
+  ) {
+    return this.customersService.updateCustomer(req.user, id, data);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteCustomer(@Request() req, @Param('id') id: string) {
+    return this.customersService.deleteCustomer(req.user, id);
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // ADDRESSES
   // ═══════════════════════════════════════════════════════════════

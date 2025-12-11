@@ -101,12 +101,12 @@ export function PermissionMatrix({
     <div className="space-y-4">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search permissions..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 bg-zinc-800/50 border-zinc-700"
+          className="pl-9 bg-muted/50 border-border"
         />
       </div>
 
@@ -122,11 +122,11 @@ export function PermissionMatrix({
           return (
             <div
               key={category}
-              className="bg-zinc-800/30 rounded-lg border border-zinc-700/50 overflow-hidden"
+              className="bg-muted/30 rounded-lg border border-border/50 overflow-hidden"
             >
               {/* Category header */}
               <div
-                className="flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-700/30 transition-colors"
+                className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => toggleCategory(category)}
               >
                 <div className="flex items-center gap-3">
@@ -135,24 +135,24 @@ export function PermissionMatrix({
                       checked={allSelected}
                       onCheckedChange={() => toggleAllInCategory(category)}
                       onClick={(e) => e.stopPropagation()}
-                      className={cn(someSelected && 'data-[state=checked]:bg-cyan-500/50')}
+                      className={cn(someSelected && 'data-[state=checked]:bg-primary/50')}
                     />
                   )}
                   <div>
-                    <span className="font-medium text-zinc-100">{categoryInfo.label}</span>
-                    <span className="ml-2 text-sm text-zinc-500">
+                    <span className="font-medium text-foreground">{categoryInfo.label}</span>
+                    <span className="ml-2 text-sm text-muted-foreground">
                       ({selectedCount}/{perms.length})
                     </span>
                   </div>
                 </div>
-                <Badge variant="secondary" className="bg-zinc-700/50">
+                <Badge variant="secondary" className="bg-muted/50">
                   {perms.length} permission{perms.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
 
               {/* Permissions list */}
               {isExpanded && (
-                <div className="border-t border-zinc-700/50 divide-y divide-zinc-700/30">
+                <div className="border-t border-border/50 divide-y divide-border/30">
                   {perms.map((perm) => {
                     const isSelected = selectedPermissions.has(perm.id);
 
@@ -161,8 +161,8 @@ export function PermissionMatrix({
                         key={perm.id}
                         className={cn(
                           'flex items-center justify-between p-3 pl-12 transition-colors',
-                          !readOnly && 'hover:bg-zinc-700/20 cursor-pointer',
-                          isSelected && 'bg-cyan-500/5'
+                          !readOnly && 'hover:bg-muted/20 cursor-pointer',
+                          isSelected && 'bg-primary/5'
                         )}
                         onClick={() => !readOnly && onTogglePermission(perm.id)}
                       >
@@ -179,17 +179,17 @@ export function PermissionMatrix({
                               className={cn(
                                 'w-5 h-5 rounded flex items-center justify-center',
                                 isSelected
-                                  ? 'bg-cyan-500/20 text-cyan-400'
-                                  : 'bg-zinc-700/50 text-zinc-500'
+                                  ? 'bg-primary/20 text-primary'
+                                  : 'bg-muted/50 text-muted-foreground'
                               )}
                             >
                               {isSelected ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                             </div>
                           )}
                           <div>
-                            <div className="font-medium text-zinc-200">{perm.name}</div>
-                            <div className="text-xs text-zinc-500">
-                              <code className="bg-zinc-700/50 px-1 rounded">{perm.code}</code>
+                            <div className="font-medium text-foreground">{perm.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              <code className="bg-muted/50 px-1 rounded">{perm.code}</code>
                               {perm.description && (
                                 <span className="ml-2">{perm.description}</span>
                               )}
@@ -207,7 +207,7 @@ export function PermissionMatrix({
       </div>
 
       {filteredGroups.size === 0 && (
-        <div className="text-center py-8 text-zinc-500">
+        <div className="text-center py-8 text-muted-foreground">
           No permissions found matching "{search}"
         </div>
       )}
@@ -232,7 +232,7 @@ export function PermissionList({ permissions }: { permissions: Permission[] }) {
     <div className="space-y-3">
       {Array.from(grouped).map(([category, perms]) => (
         <div key={category}>
-          <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
             {category}
           </h4>
           <div className="flex flex-wrap gap-1.5">
@@ -240,7 +240,7 @@ export function PermissionList({ permissions }: { permissions: Permission[] }) {
               <Badge
                 key={perm.id}
                 variant="secondary"
-                className="text-xs bg-zinc-700/50 text-zinc-300"
+                className="text-xs bg-muted/50 text-foreground"
               >
                 {perm.code}
               </Badge>

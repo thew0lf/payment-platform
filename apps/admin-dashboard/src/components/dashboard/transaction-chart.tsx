@@ -86,9 +86,9 @@ export function TransactionChart({
 
   if (error) {
     return (
-      <div className={`bg-zinc-900/50 rounded-xl border border-zinc-800 p-6 ${className}`}>
+      <div className={`bg-card/50 rounded-xl border border-border p-6 ${className}`}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Transaction Volume</h2>
+          <h2 className="text-lg font-semibold text-foreground">Transaction Volume</h2>
         </div>
         <div className="flex items-center justify-center h-[300px] text-red-400">
           <p>Error: {error}</p>
@@ -98,13 +98,13 @@ export function TransactionChart({
   }
 
   return (
-    <div className={`bg-zinc-900/50 rounded-xl border border-zinc-800 p-6 ${className}`}>
+    <div className={`bg-card/50 rounded-xl border border-border p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-white">Transaction Volume</h2>
+          <h2 className="text-lg font-semibold text-foreground">Transaction Volume</h2>
           {period && (
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {format(parseISO(period.start), 'MMM d, yyyy')} -{' '}
               {format(parseISO(period.end), 'MMM d, yyyy')}
             </p>
@@ -112,15 +112,15 @@ export function TransactionChart({
         </div>
 
         {/* Day Range Selector */}
-        <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
           {dayOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => setSelectedDays(option.value)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 selectedDays === option.value
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {option.label}
@@ -132,9 +132,9 @@ export function TransactionChart({
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="p-3 bg-zinc-800/50 rounded-lg">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Total Transactions</p>
-            <p className="text-xl font-semibold text-white mt-1">
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Transactions</p>
+            <p className="text-xl font-semibold text-foreground mt-1">
               {summary.totalTransactions.toLocaleString()}
             </p>
           </div>
@@ -150,9 +150,9 @@ export function TransactionChart({
               {summary.failedTransactions.toLocaleString()}
             </p>
           </div>
-          <div className="p-3 bg-cyan-500/10 rounded-lg">
-            <p className="text-xs text-cyan-400 uppercase tracking-wide">Success Rate</p>
-            <p className="text-xl font-semibold text-cyan-400 mt-1">{summary.successRate}%</p>
+          <div className="p-3 bg-primary/10 rounded-lg">
+            <p className="text-xs text-primary uppercase tracking-wide">Success Rate</p>
+            <p className="text-xl font-semibold text-primary mt-1">{summary.successRate}%</p>
           </div>
         </div>
       )}
@@ -161,7 +161,7 @@ export function TransactionChart({
       <div className="h-[300px]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -198,28 +198,28 @@ export function TransactionChart({
                   if (active && payload && payload.length) {
                     const dataPoint = payload[0].payload as ChartDataPoint;
                     return (
-                      <div className="bg-zinc-800 p-3 rounded-lg shadow-lg border border-zinc-700">
-                        <p className="font-medium text-white mb-2">
+                      <div className="bg-muted p-3 rounded-lg shadow-lg border border-border">
+                        <p className="font-medium text-foreground mb-2">
                           {format(parseISO(label), 'MMMM d, yyyy')}
                         </p>
                         <div className="space-y-1 text-sm">
                           <p className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                            <span className="text-zinc-400">Successful:</span>
-                            <span className="font-medium text-white">
+                            <span className="text-muted-foreground">Successful:</span>
+                            <span className="font-medium text-foreground">
                               {dataPoint.successful.toLocaleString()}
                             </span>
                           </p>
                           <p className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-red-500" />
-                            <span className="text-zinc-400">Failed:</span>
-                            <span className="font-medium text-white">
+                            <span className="text-muted-foreground">Failed:</span>
+                            <span className="font-medium text-foreground">
                               {dataPoint.failed.toLocaleString()}
                             </span>
                           </p>
-                          <p className="flex items-center gap-2 pt-1 border-t border-zinc-700 mt-1">
-                            <span className="text-zinc-400">Volume:</span>
-                            <span className="font-medium text-white">
+                          <p className="flex items-center gap-2 pt-1 border-t border-border mt-1">
+                            <span className="text-muted-foreground">Volume:</span>
+                            <span className="font-medium text-foreground">
                               {formatCurrency(dataPoint.volume)}
                             </span>
                           </p>
@@ -235,7 +235,7 @@ export function TransactionChart({
                 align="right"
                 wrapperStyle={{ paddingBottom: 20 }}
                 formatter={(value) => (
-                  <span className="text-sm text-zinc-400">{value}</span>
+                  <span className="text-sm text-muted-foreground">{value}</span>
                 )}
               />
               <Area
@@ -261,17 +261,17 @@ export function TransactionChart({
 
       {/* Volume Summary */}
       {summary && (
-        <div className="mt-4 pt-4 border-t border-zinc-800">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between text-sm">
             <div>
-              <span className="text-zinc-500">Total Volume:</span>{' '}
-              <span className="font-semibold text-white">
+              <span className="text-muted-foreground">Total Volume:</span>{' '}
+              <span className="font-semibold text-foreground">
                 {formatCurrency(summary.totalVolume)}
               </span>
             </div>
             <div>
-              <span className="text-zinc-500">Daily Avg:</span>{' '}
-              <span className="font-semibold text-white">
+              <span className="text-muted-foreground">Daily Avg:</span>{' '}
+              <span className="font-semibold text-foreground">
                 {summary.avgDailyTransactions.toLocaleString()} txns / {formatCurrency(summary.avgDailyVolume)}
               </span>
             </div>

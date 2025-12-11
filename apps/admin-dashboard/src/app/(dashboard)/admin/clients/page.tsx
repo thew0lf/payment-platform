@@ -54,19 +54,19 @@ export default function AdminClientsPage() {
             );
 
             return (
-              <Card key={client.id} className="hover:border-zinc-700 transition-colors cursor-pointer">
+              <Card key={client.id} className="hover:border-border transition-colors cursor-pointer">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-lg font-bold text-white">
+                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-lg font-bold text-foreground">
                         {client.name.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="font-medium text-white">{client.name}</h3>
-                        <p className="text-sm text-zinc-500">{client.contactEmail}</p>
+                        <h3 className="font-medium text-foreground">{client.name}</h3>
+                        <p className="text-sm text-muted-foreground">{client.contactEmail}</p>
                       </div>
                     </div>
-                    <button className="p-1 text-zinc-500 hover:text-white">
+                    <button className="p-1 text-muted-foreground hover:text-foreground">
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                   </div>
@@ -78,27 +78,27 @@ export default function AdminClientsPage() {
                     <Badge variant="outline">{client.plan}</Badge>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-zinc-800">
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
                     <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-zinc-400 mb-1">
+                      <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                         <Building className="w-3 h-3" />
                       </div>
-                      <p className="text-lg font-semibold text-white">{clientCompanies.length}</p>
-                      <p className="text-xs text-zinc-500">Companies</p>
+                      <p className="text-lg font-semibold text-foreground">{clientCompanies.length}</p>
+                      <p className="text-xs text-muted-foreground">Companies</p>
                     </div>
                     <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-zinc-400 mb-1">
+                      <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                         <Users className="w-3 h-3" />
                       </div>
-                      <p className="text-lg font-semibold text-white">{totalCustomers}</p>
-                      <p className="text-xs text-zinc-500">Customers</p>
+                      <p className="text-lg font-semibold text-foreground">{totalCustomers}</p>
+                      <p className="text-xs text-muted-foreground">Customers</p>
                     </div>
                     <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-zinc-400 mb-1">
+                      <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
                         <CreditCard className="w-3 h-3" />
                       </div>
-                      <p className="text-lg font-semibold text-white">{totalTransactions}</p>
-                      <p className="text-xs text-zinc-500">Transactions</p>
+                      <p className="text-lg font-semibold text-foreground">{totalTransactions}</p>
+                      <p className="text-xs text-muted-foreground">Transactions</p>
                     </div>
                   </div>
                 </CardContent>

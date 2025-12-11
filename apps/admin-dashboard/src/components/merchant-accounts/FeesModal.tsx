@@ -111,11 +111,11 @@ export function FeesModal({ isOpen, onClose, account, onSaved }: FeesModalProps)
 
         {feeFields.map(({ section, fields }) => (
           <div key={section}>
-            <h3 className="text-sm font-medium text-zinc-300 mb-3">{section}</h3>
+            <h3 className="text-sm font-medium text-foreground mb-3">{section}</h3>
             <div className="grid grid-cols-2 gap-4">
               {fields.map(({ key, label, hint, isPercentage, isCurrency }) => (
                 <div key={key}>
-                  <label className="block text-sm text-zinc-400 mb-1">{label}</label>
+                  <label className="block text-sm text-muted-foreground mb-1">{label}</label>
                   <Input
                     type="number"
                     step={isPercentage ? '0.01' : '1'}
@@ -124,7 +124,7 @@ export function FeesModal({ isOpen, onClose, account, onSaved }: FeesModalProps)
                     placeholder={hint}
                   />
                   {fees[key] !== undefined && (
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       = {formatValue(fees[key] as number, isPercentage, isCurrency)}
                     </p>
                   )}

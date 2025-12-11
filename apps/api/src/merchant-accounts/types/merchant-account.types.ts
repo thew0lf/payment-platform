@@ -15,6 +15,8 @@ export enum AccountStatus {
 export enum PaymentProviderType {
   NMI = 'NMI',
   PAYFLOW = 'PAYFLOW',
+  PAYPAL_CLASSIC = 'PAYPAL_CLASSIC',
+  PAYPAL_REST = 'PAYPAL_REST',
   AUTHORIZE_NET = 'AUTHORIZE_NET',
   STRIPE = 'STRIPE',
   BRAINTREE = 'BRAINTREE',

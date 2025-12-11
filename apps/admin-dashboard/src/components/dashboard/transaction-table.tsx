@@ -56,10 +56,10 @@ export function TransactionTable({
   };
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-zinc-800">
-        <h2 className="text-lg font-medium text-white">Recent Transactions</h2>
+      <div className="flex items-center justify-between p-5 border-b border-border">
+        <h2 className="text-lg font-medium text-foreground">Recent Transactions</h2>
         <div className="flex items-center gap-2">
           {onFilterClick && (
             <Button variant="outline" size="sm" onClick={onFilterClick}>
@@ -96,20 +96,20 @@ export function TransactionTable({
               <TableCell>
                 <Link
                   href={`/transactions/${txn.id}`}
-                  className="font-mono text-sm text-zinc-300 hover:text-white"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground"
                 >
                   {txn.transactionNumber}
                 </Link>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-zinc-300">
+                <span className="text-sm text-muted-foreground">
                   {txn.customer?.email || '-'}
                 </span>
               </TableCell>
               {showCompany && (
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-sm text-zinc-400">
-                    <span className="w-5 h-5 rounded bg-zinc-700 flex items-center justify-center text-[10px] font-medium">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className="w-5 h-5 rounded bg-muted flex items-center justify-center text-[10px] font-medium">
                       {txn.company?.name?.charAt(0) || '?'}
                     </span>
                     {txn.company?.name || '-'}
@@ -117,7 +117,7 @@ export function TransactionTable({
                 </TableCell>
               )}
               <TableCell>
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-foreground">
                   {formatCurrency(txn.amount, txn.currency)}
                 </span>
               </TableCell>
@@ -125,17 +125,17 @@ export function TransactionTable({
                 <StatusBadge status={txn.status} />
               </TableCell>
               <TableCell>
-                <span className="text-sm text-zinc-400">
+                <span className="text-sm text-muted-foreground">
                   {txn.paymentProvider?.name || '-'}
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-zinc-500">
+                <span className="text-sm text-muted-foreground">
                   {formatRelativeTime(txn.createdAt)}
                 </span>
               </TableCell>
               <TableCell>
-                <button className="p-1 text-zinc-500 hover:text-white rounded transition-colors">
+                <button className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </TableCell>
@@ -145,13 +145,13 @@ export function TransactionTable({
       </Table>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-800">
-        <span className="text-sm text-zinc-500">
+      <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+        <span className="text-sm text-muted-foreground">
           Showing {transactions.length} transactions
         </span>
         <Link
           href="/transactions"
-          className="text-sm text-cyan-400 hover:text-cyan-300"
+          className="text-sm text-primary hover:text-primary/80"
         >
           View all →
         </Link>

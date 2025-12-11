@@ -151,14 +151,14 @@ export default function DeletedItemsPage() {
 
       <div className="p-6 space-y-4">
         {/* Info Banner */}
-        <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4 flex gap-3">
-          <Info className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+        <div className="bg-muted/50 border border-border rounded-lg p-4 flex gap-3">
+          <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-foreground">
               Items in Trash will be automatically permanently deleted after their retention period
               expires.
             </p>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Retention periods vary by item type (90 days - 2 years). Restore items before they
               expire to recover them.
             </p>
@@ -168,7 +168,7 @@ export default function DeletedItemsPage() {
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search deleted items..."
               value={search}
@@ -204,16 +204,16 @@ export default function DeletedItemsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           {loading && items.length === 0 ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Trash2 className="w-12 h-12 text-zinc-600 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-1">Trash is empty</h3>
-              <p className="text-sm text-zinc-500 max-w-sm">
+              <Trash2 className="w-12 h-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-1">Trash is empty</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
                 {search || selectedType
                   ? 'No deleted items match your filters.'
                   : 'Deleted items will appear here and can be restored before their retention period expires.'}
@@ -242,15 +242,15 @@ export default function DeletedItemsPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
-                            <Icon className="w-4 h-4 text-zinc-400" />
+                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                            <Icon className="w-4 h-4 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="font-medium text-white">
+                            <p className="font-medium text-foreground">
                               {item.entityName || item.id.slice(0, 8)}
                             </p>
                             {item.deleteReason && (
-                              <p className="text-xs text-zinc-500 truncate max-w-[200px]">
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                                 {item.deleteReason}
                               </p>
                             )}
@@ -260,10 +260,10 @@ export default function DeletedItemsPage() {
                       <TableCell>
                         <Badge variant="outline">{getEntityTypeLabel(item.entityType)}</Badge>
                       </TableCell>
-                      <TableCell className="text-zinc-400">
+                      <TableCell className="text-muted-foreground">
                         {formatDate(new Date(item.deletedAt))}
                       </TableCell>
-                      <TableCell className="text-zinc-400">
+                      <TableCell className="text-muted-foreground">
                         {item.deletedBy?.name || item.deletedBy?.email || 'System'}
                       </TableCell>
                       <TableCell>
@@ -271,7 +271,7 @@ export default function DeletedItemsPage() {
                           {isExpiringSoon && (
                             <AlertTriangle className="w-4 h-4 text-amber-500" />
                           )}
-                          <span className={isExpiringSoon ? 'text-amber-400' : 'text-zinc-400'}>
+                          <span className={isExpiringSoon ? 'text-amber-400' : 'text-muted-foreground'}>
                             {formatTimeUntilExpiration(item.expiresAt)}
                           </span>
                         </div>
@@ -338,7 +338,7 @@ export default function DeletedItemsPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-2">
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               Showing {page * limit + 1}-{Math.min((page + 1) * limit, total)} of {total}
             </p>
             <div className="flex items-center gap-2">

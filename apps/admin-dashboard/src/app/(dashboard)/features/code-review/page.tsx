@@ -50,7 +50,7 @@ const CATEGORY_CONFIG: Record<
 > = {
   [CodeReviewCategory.CODE_QUALITY]: { label: 'Code Quality', icon: Code, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
   [CodeReviewCategory.ARCHITECTURE]: { label: 'Architecture', icon: GitBranch, color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
-  [CodeReviewCategory.TYPE_SAFETY]: { label: 'Type Safety', icon: FileCode2, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+  [CodeReviewCategory.TYPE_SAFETY]: { label: 'Type Safety', icon: FileCode2, color: 'text-primary', bgColor: 'bg-primary/10' },
   [CodeReviewCategory.ERROR_HANDLING]: { label: 'Error Handling', icon: AlertTriangle, color: 'text-orange-400', bgColor: 'bg-orange-500/10' },
   [CodeReviewCategory.MAINTAINABILITY]: { label: 'Maintainability', icon: FileText, color: 'text-teal-400', bgColor: 'bg-teal-500/10' },
   [CodeReviewCategory.TESTING]: { label: 'Testing', icon: Bug, color: 'text-green-400', bgColor: 'bg-green-500/10' },
@@ -67,14 +67,14 @@ const CATEGORY_CONFIG: Record<
   [CodeReviewCategory.PERFORMANCE]: { label: 'Performance', icon: Zap, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
   [CodeReviewCategory.DATABASE]: { label: 'Database', icon: Database, color: 'text-sky-400', bgColor: 'bg-sky-500/10' },
   [CodeReviewCategory.API_DESIGN]: { label: 'API Design', icon: Globe, color: 'text-lime-400', bgColor: 'bg-lime-500/10' },
-  [CodeReviewCategory.LOGGING]: { label: 'Logging', icon: ClipboardList, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10' },
+  [CodeReviewCategory.LOGGING]: { label: 'Logging', icon: ClipboardList, color: 'text-muted-foreground', bgColor: 'bg-muted' },
 };
 
 const SEVERITY_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
   CRITICAL: { label: 'Critical', color: 'text-red-400', bgColor: 'bg-red-500/10', icon: XCircle },
   HIGH: { label: 'High', color: 'text-orange-400', bgColor: 'bg-orange-500/10', icon: AlertTriangle },
   MEDIUM: { label: 'Medium', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', icon: Info },
-  LOW: { label: 'Low', color: 'text-zinc-400', bgColor: 'bg-zinc-500/10', icon: Info },
+  LOW: { label: 'Low', color: 'text-muted-foreground', bgColor: 'bg-muted', icon: Info },
   SUGGESTION: { label: 'Suggestion', color: 'text-blue-400', bgColor: 'bg-blue-500/10', icon: CheckCircle2 },
 };
 
@@ -108,7 +108,7 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function ComplianceBadge({ complianceRef }: { complianceRef: string }) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-muted text-foreground border border-border">
       {complianceRef}
     </span>
   );
@@ -118,26 +118,26 @@ function ChecklistItemCard({ item }: { item: CodeReviewCheckItem }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="bg-card/50 border border-border rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-start gap-4 p-4 text-left hover:bg-zinc-800/30 transition-colors"
+        className="w-full flex items-start gap-4 p-4 text-left hover:bg-muted/30 transition-colors"
       >
         <div className="mt-0.5">
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-zinc-500" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-zinc-500" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-cyan-400">{item.code}</span>
+            <span className="text-xs font-mono text-primary">{item.code}</span>
             <SeverityBadge severity={item.severity} />
             {item.complianceRef && <ComplianceBadge complianceRef={item.complianceRef} />}
           </div>
-          <h4 className="text-sm font-medium text-white mb-1">{item.title}</h4>
-          <p className="text-xs text-zinc-500 line-clamp-2">{item.description}</p>
+          <h4 className="text-sm font-medium text-foreground mb-1">{item.title}</h4>
+          <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
         </div>
       </button>
 
@@ -145,14 +145,14 @@ function ChecklistItemCard({ item }: { item: CodeReviewCheckItem }) {
         <div className="px-4 pb-4 pt-0 pl-12 space-y-4">
           {/* Check Steps */}
           <div>
-            <h5 className="text-xs font-medium text-zinc-400 mb-2 flex items-center gap-1.5">
+            <h5 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
               <FileCheck2 className="w-3.5 h-3.5" />
               How to Check:
             </h5>
             <ul className="space-y-1.5">
               {item.checkSteps.map((step, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-zinc-300">
-                  <span className="text-zinc-600 text-xs mt-0.5 font-mono">{idx + 1}.</span>
+                <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="text-muted-foreground text-xs mt-0.5 font-mono">{idx + 1}.</span>
                   <span>{step}</span>
                 </li>
               ))}
@@ -165,7 +165,7 @@ function ChecklistItemCard({ item }: { item: CodeReviewCheckItem }) {
               <AlertTriangle className="w-3.5 h-3.5" />
               Impact if Not Addressed:
             </h5>
-            <p className="text-sm text-zinc-400">{item.failureImpact}</p>
+            <p className="text-sm text-muted-foreground">{item.failureImpact}</p>
           </div>
         </div>
       )}
@@ -189,8 +189,8 @@ function CategorySection({
   const config = CATEGORY_CONFIG[category] || {
     label: category,
     icon: Code,
-    color: 'text-zinc-400',
-    bgColor: 'bg-zinc-500/10',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted',
   };
   const Icon = config.icon;
   const isCompliance = COMPLIANCE_CATEGORIES.includes(category);
@@ -203,13 +203,13 @@ function CategorySection({
       className={cn(
         'border rounded-xl overflow-hidden',
         isCompliance
-          ? 'bg-zinc-900/50 border-zinc-700'
-          : 'bg-zinc-900/30 border-zinc-800'
+          ? 'bg-card/50 border-border'
+          : 'bg-card/30 border-border'
       )}
     >
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className={cn('p-2 rounded-lg', config.bgColor, config.color)}>
@@ -217,20 +217,20 @@ function CategorySection({
           </div>
           <div className="text-left">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium text-white">{config.label}</h3>
+              <h3 className="text-sm font-medium text-foreground">{config.label}</h3>
               {isCompliance && (
                 <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">
                   COMPLIANCE
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               {categoryInfo?.description || `${items.length} checks`}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-500">{items.length} checks</span>
+          <span className="text-xs text-muted-foreground">{items.length} checks</span>
           {criticalCount > 0 && (
             <span className="text-xs bg-red-500/10 text-red-400 px-2 py-0.5 rounded flex items-center gap-1">
               <XCircle className="w-3 h-3" />
@@ -244,9 +244,9 @@ function CategorySection({
             </span>
           )}
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-zinc-500" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-zinc-500" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
       </button>
@@ -402,9 +402,9 @@ export default function CodeReviewChecklistPage() {
         <Header title="Code Review Checklist" />
         <div className="p-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Lock className="w-12 h-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">Access Restricted</h3>
-            <p className="text-sm text-zinc-500 max-w-md">
+            <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">Access Restricted</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
               The Code Review Checklist is only available to organization administrators.
             </p>
           </div>
@@ -435,7 +435,7 @@ export default function CodeReviewChecklistPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
@@ -444,30 +444,30 @@ export default function CodeReviewChecklistPage() {
           <>
             {/* Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">Total Checks</p>
-                <p className="text-2xl font-bold text-white">{checklist.totalChecks}</p>
+              <div className="bg-card/50 border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Checks</p>
+                <p className="text-2xl font-bold text-foreground">{checklist.totalChecks}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">Categories</p>
-                <p className="text-2xl font-bold text-white">{checklist.categories.length}</p>
+              <div className="bg-card/50 border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Categories</p>
+                <p className="text-2xl font-bold text-foreground">{checklist.categories.length}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">Critical</p>
+              <div className="bg-card/50 border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Critical</p>
                 <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">High Priority</p>
+              <div className="bg-card/50 border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">High Priority</p>
                 <p className="text-2xl font-bold text-orange-400">{highCount}</p>
               </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">Compliance</p>
+              <div className="bg-card/50 border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Compliance</p>
                 <p className="text-2xl font-bold text-blue-400">{complianceCount}</p>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
+            <div className="flex items-center gap-1 p-1 bg-card/50 border border-border rounded-lg w-fit">
               {[
                 { id: 'all', label: 'All Checks' },
                 { id: 'compliance', label: 'Compliance' },
@@ -480,8 +480,8 @@ export default function CodeReviewChecklistPage() {
                   className={cn(
                     'px-3 py-1.5 text-sm rounded-md transition-colors',
                     activeTab === tab.id
-                      ? 'bg-zinc-800 text-white'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {tab.label}
@@ -493,14 +493,14 @@ export default function CodeReviewChecklistPage() {
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={expandAll}
-                className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Expand All
               </button>
-              <span className="text-zinc-600">|</span>
+              <span className="text-muted-foreground">|</span>
               <button
                 onClick={collapseAll}
-                className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Collapse All
               </button>
@@ -521,15 +521,15 @@ export default function CodeReviewChecklistPage() {
             </div>
 
             {/* Usage Note */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-              <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                <FileCheck2 className="w-4 h-4 text-cyan-400" />
+            <div className="bg-card/50 border border-border rounded-xl p-5">
+              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <FileCheck2 className="w-4 h-4 text-primary" />
                 How to Use This Checklist
               </h3>
-              <div className="space-y-2 text-sm text-zinc-400">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
                   1. Use the{' '}
-                  <code className="px-1.5 py-0.5 bg-zinc-800 rounded text-cyan-400">/review</code>{' '}
+                  <code className="px-1.5 py-0.5 bg-muted rounded text-primary">/review</code>{' '}
                   slash command to run a Senior Developer code review.
                 </p>
                 <p>
@@ -559,7 +559,7 @@ export default function CodeReviewChecklistPage() {
                   <ShieldCheck className="w-5 h-5 text-blue-400" />
                   <h4 className="text-sm font-medium text-blue-400">SOC2</h4>
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Trust Services Criteria covering security, availability, processing integrity,
                   confidentiality, and privacy.
                 </p>
@@ -569,7 +569,7 @@ export default function CodeReviewChecklistPage() {
                   <Scale className="w-5 h-5 text-green-400" />
                   <h4 className="text-sm font-medium text-green-400">ISO 27001</h4>
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   International standard for information security management systems (ISMS).
                 </p>
               </div>
@@ -578,7 +578,7 @@ export default function CodeReviewChecklistPage() {
                   <Shield className="w-5 h-5 text-red-400" />
                   <h4 className="text-sm font-medium text-red-400">PCI-DSS</h4>
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Payment Card Industry Data Security Standard for handling cardholder data.
                 </p>
               </div>
@@ -587,7 +587,7 @@ export default function CodeReviewChecklistPage() {
                   <Globe className="w-5 h-5 text-purple-400" />
                   <h4 className="text-sm font-medium text-purple-400">GDPR</h4>
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   General Data Protection Regulation for EU personal data protection and privacy.
                 </p>
               </div>

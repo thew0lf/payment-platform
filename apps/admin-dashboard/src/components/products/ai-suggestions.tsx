@@ -105,7 +105,7 @@ export function AISuggestions({
           variant="outline"
           size="sm"
           onClick={handleGetSuggestions}
-          className="gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10"
+          className="gap-2 text-primary border-primary/30 hover:bg-primary/10"
         >
           <Sparkles className="h-4 w-4" />
           Suggest Category & Tags
@@ -114,7 +114,7 @@ export function AISuggestions({
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center gap-2 text-sm text-zinc-400">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Getting AI suggestions...
         </div>
@@ -136,16 +136,16 @@ export function AISuggestions({
 
       {/* Suggestions */}
       {suggestions && (
-        <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700 space-y-4">
+        <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+            <span className="text-sm font-medium text-primary flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               AI Suggestions
             </span>
             <button
               type="button"
               onClick={handleDismiss}
-              className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white"
+              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -153,15 +153,15 @@ export function AISuggestions({
 
           {/* Category Suggestion */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Folder className="h-4 w-4" />
               Category
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1">
-                <span className="text-white">{suggestions.category}</span>
+                <span className="text-foreground">{suggestions.category}</span>
                 {suggestions.subcategory && (
-                  <span className="text-zinc-400"> / {suggestions.subcategory}</span>
+                  <span className="text-muted-foreground"> / {suggestions.subcategory}</span>
                 )}
               </div>
               {onApplyCategory && (
@@ -198,7 +198,7 @@ export function AISuggestions({
           {suggestions.tags && suggestions.tags.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Tag className="h-4 w-4" />
                   Tags
                 </div>
@@ -233,8 +233,8 @@ export function AISuggestions({
                         isApplied
                           ? 'border-green-500/30 bg-green-500/10 text-green-400'
                           : isExisting
-                            ? 'border-zinc-600 bg-zinc-700/50 text-zinc-400 cursor-default'
-                            : 'border-zinc-600 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-zinc-300'
+                            ? 'border-border bg-muted/50 text-muted-foreground cursor-default'
+                            : 'border-border hover:border-primary/50 hover:bg-primary/10 text-foreground'
                       )}
                     >
                       {isApplied && <Check className="h-3 w-3" />}

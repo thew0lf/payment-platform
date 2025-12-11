@@ -76,7 +76,7 @@ export function DeleteConfirmModal({
       <div className="p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -91,7 +91,7 @@ export function DeleteConfirmModal({
                 <p className="text-sm font-medium text-amber-400">
                   This action will soft-delete the {getEntityTypeLabel(entityType).toLowerCase()}
                 </p>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-muted-foreground">
                   The item will be moved to Trash and can be restored within {retentionInfo.label}.
                 </p>
               </div>
@@ -99,22 +99,22 @@ export function DeleteConfirmModal({
 
             {/* Cascade Impact */}
             {preview && preview.totalAffected > 1 && (
-              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-medium text-white">Affected Items</h4>
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <h4 className="text-sm font-medium text-foreground">Affected Items</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-400">{entityType}</span>
-                    <span className="text-white">1</span>
+                    <span className="text-muted-foreground">{entityType}</span>
+                    <span className="text-foreground">1</span>
                   </div>
                   {Object.entries(preview.cascadeCount).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-400">{getEntityTypeLabel(type as SoftDeleteModel)}</span>
-                      <span className="text-white">{count}</span>
+                      <span className="text-muted-foreground">{getEntityTypeLabel(type as SoftDeleteModel)}</span>
+                      <span className="text-foreground">{count}</span>
                     </div>
                   ))}
-                  <div className="border-t border-zinc-700 pt-2 flex items-center justify-between text-sm font-medium">
-                    <span className="text-zinc-300">Total Affected</span>
-                    <span className="text-white">{preview.totalAffected}</span>
+                  <div className="border-t border-border pt-2 flex items-center justify-between text-sm font-medium">
+                    <span className="text-foreground">Total Affected</span>
+                    <span className="text-foreground">{preview.totalAffected}</span>
                   </div>
                 </div>
               </div>
@@ -137,7 +137,7 @@ export function DeleteConfirmModal({
 
             {/* Reason Input */}
             <div className="space-y-2">
-              <label htmlFor="deleteReason" className="text-sm font-medium text-zinc-400">
+              <label htmlFor="deleteReason" className="text-sm font-medium text-muted-foreground">
                 Reason for deletion (optional)
               </label>
               <textarea
@@ -145,7 +145,7 @@ export function DeleteConfirmModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Enter reason for audit trail..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
+                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
                 rows={2}
                 maxLength={500}
               />

@@ -41,7 +41,7 @@ const THEME_COLORS: Record<string, string> = {
   FOODIE: 'bg-orange-500',
   PROFESSIONAL: 'bg-sky-500',
   CREATOR: 'bg-pink-500',
-  MARKETPLACE: 'bg-cyan-500',
+  MARKETPLACE: 'bg-primary',
 };
 
 const SORT_OPTIONS = [
@@ -61,20 +61,20 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
-  const themeColor = THEME_COLORS[template.theme] || 'bg-zinc-500';
+  const themeColor = THEME_COLORS[template.theme] || 'bg-muted/500';
 
   return (
-    <div className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 hover:shadow-xl hover:shadow-zinc-900/50 transition-all duration-300">
+    <div className="group relative bg-card/50 border border-border rounded-xl overflow-hidden hover:border-border hover:shadow-xl hover:shadow-lg transition-all duration-300">
       {/* Badges */}
       <div className="absolute top-3 left-3 z-10 flex gap-2">
         {template.isNew && (
-          <span className="px-2 py-0.5 bg-emerald-500/90 text-white text-xs font-medium rounded-full flex items-center gap-1">
+          <span className="px-2 py-0.5 bg-emerald-500/90 text-foreground text-xs font-medium rounded-full flex items-center gap-1">
             <Sparkles className="h-3 w-3" />
             New
           </span>
         )}
         {template.isPremium && (
-          <span className="px-2 py-0.5 bg-amber-500/90 text-white text-xs font-medium rounded-full flex items-center gap-1">
+          <span className="px-2 py-0.5 bg-amber-500/90 text-foreground text-xs font-medium rounded-full flex items-center gap-1">
             <Crown className="h-3 w-3" />
             Premium
           </span>
@@ -83,26 +83,26 @@ function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
 
       {/* Popularity indicator */}
       <div className="absolute top-3 right-3 z-10">
-        <div className="flex items-center gap-1 px-2 py-0.5 bg-zinc-900/80 rounded-full text-xs text-zinc-400">
+        <div className="flex items-center gap-1 px-2 py-0.5 bg-card/80 rounded-full text-xs text-muted-foreground">
           <TrendingUp className="h-3 w-3" />
           {template.popularity}%
         </div>
       </div>
 
       {/* Preview Area */}
-      <div className="aspect-[4/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-[4/3] bg-gradient-to-br from-muted to-card flex items-center justify-center relative overflow-hidden">
         {/* Placeholder gradient based on theme */}
         <div className={cn('absolute inset-0 opacity-20', themeColor)} />
         <div className="relative z-10 text-center p-6">
-          <LayoutGrid className="h-12 w-12 text-zinc-500 mx-auto mb-2" />
-          <span className="text-sm text-zinc-400">{template.sectionCount} sections</span>
+          <LayoutGrid className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+          <span className="text-sm text-muted-foreground">{template.sectionCount} sections</span>
         </div>
 
         {/* Overlay on hover - z-20 to be above badges (z-10) */}
         <div className="absolute inset-0 z-20 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity duration-300">
           <button
             onClick={onSelect}
-            className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 bg-blue-600 text-foreground text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <Check className="h-4 w-4" />
             Use Template
@@ -110,7 +110,7 @@ function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
           {onPreview && (
             <button
               onClick={onPreview}
-              className="p-2.5 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
+              className="p-2.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors"
             >
               <Eye className="h-4 w-4" />
             </button>
@@ -121,33 +121,33 @@ function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
       {/* Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-medium text-white">{template.name}</h3>
-          <span className={cn('px-2 py-0.5 rounded text-xs font-medium text-white', themeColor)}>
+          <h3 className="font-medium text-foreground">{template.name}</h3>
+          <span className={cn('px-2 py-0.5 rounded text-xs font-medium text-foreground', themeColor)}>
             {template.theme.charAt(0) + template.theme.slice(1).toLowerCase()}
           </span>
         </div>
 
-        <p className="text-sm text-zinc-400 mb-3 line-clamp-2">{template.description}</p>
+        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{template.description}</p>
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {template.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs rounded-full"
+              className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full"
             >
               {tag}
             </span>
           ))}
           {template.tags.length > 3 && (
-            <span className="px-2 py-0.5 text-zinc-500 text-xs">
+            <span className="px-2 py-0.5 text-muted-foreground text-xs">
               +{template.tags.length - 3}
             </span>
           )}
         </div>
 
         {/* Features */}
-        <div className="text-xs text-zinc-500">
+        <div className="text-xs text-muted-foreground">
           {template.features.slice(0, 2).join(' • ')}
           {template.features.length > 2 && ` • +${template.features.length - 2} more`}
         </div>
@@ -221,28 +221,28 @@ function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+      <div className="w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-lg font-semibold text-white">Create from Template</h2>
-            <p className="text-sm text-zinc-400 mt-0.5">Using: {template.name}</p>
+            <h2 className="text-lg font-semibold text-foreground">Create from Template</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Using: {template.name}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-800 transition-colors">
-            <X className="h-5 w-5 text-zinc-400" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Page Name</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">Page Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="My Landing Page"
-              className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2.5 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
               required
               autoFocus
             />
@@ -250,26 +250,26 @@ function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProp
 
           {/* Slug */}
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">URL Slug</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">URL Slug</label>
             <input
               type="text"
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               placeholder="my-landing-page"
-              className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2.5 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
               required
             />
           </div>
 
           {/* Template Info */}
-          <div className="bg-zinc-800/50 rounded-lg p-4">
+          <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center', THEME_COLORS[template.theme] + '/20')}>
                 <LayoutGrid className={cn('h-6 w-6', THEME_COLORS[template.theme]?.replace('bg-', 'text-'))} />
               </div>
               <div>
-                <div className="text-sm font-medium text-white">{template.name}</div>
-                <div className="text-xs text-zinc-400">{template.sectionCount} sections • {template.theme}</div>
+                <div className="text-sm font-medium text-foreground">{template.name}</div>
+                <div className="text-xs text-muted-foreground">{template.sectionCount} sections • {template.theme}</div>
               </div>
             </div>
           </div>
@@ -279,14 +279,14 @@ function UseTemplateModal({ template, onClose, onCreated }: UseTemplateModalProp
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors"
+              className="px-4 py-2 rounded-lg border border-border text-foreground hover:bg-muted transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !formData.name || !formData.slug}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-blue-600 text-foreground font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -354,24 +354,24 @@ export default function TemplateGalleryPage() {
   }, [search]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="border-b border-zinc-800 bg-zinc-900/50">
+      <div className="border-b border-border bg-card/50">
         <div className="px-4 md:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push('/landing-pages')}
-                className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
               >
-                <ArrowLeft className="h-5 w-5 text-zinc-400" />
+                <ArrowLeft className="h-5 w-5 text-muted-foreground" />
               </button>
               <div>
                 <h1 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
                   Template Gallery
                   <Sparkles className="h-5 w-5 text-amber-400" />
                 </h1>
-                <p className="text-sm text-zinc-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Choose a professionally designed template to get started
                 </p>
               </div>
@@ -381,17 +381,17 @@ export default function TemplateGalleryPage() {
       </div>
 
       {/* Filters */}
-      <div className="px-4 md:px-6 py-4 border-b border-zinc-800 bg-zinc-900/30">
+      <div className="px-4 md:px-6 py-4 border-b border-border bg-card/30">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search templates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -404,8 +404,8 @@ export default function TemplateGalleryPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                   selectedCategory === category.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
+                    ? 'bg-blue-600 text-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
                 {category.name}
@@ -417,7 +417,7 @@ export default function TemplateGalleryPage() {
           <div className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
             >
               <Filter className="h-4 w-4" />
               {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
@@ -427,7 +427,7 @@ export default function TemplateGalleryPage() {
             {showSortDropdown && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSortDropdown(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-20 py-1">
+                <div className="absolute right-0 top-full mt-1 w-40 bg-muted border border-border rounded-lg shadow-xl z-20 py-1">
                   {SORT_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -438,8 +438,8 @@ export default function TemplateGalleryPage() {
                       className={cn(
                         'w-full px-3 py-2 text-left text-sm transition-colors',
                         sortBy === option.value
-                          ? 'text-white bg-zinc-700'
-                          : 'text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                          ? 'text-foreground bg-muted'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       )}
                     >
                       {option.label}
@@ -454,7 +454,7 @@ export default function TemplateGalleryPage() {
           <button
             onClick={loadTemplates}
             disabled={loading}
-            className="p-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
             <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
           </button>
@@ -465,13 +465,13 @@ export default function TemplateGalleryPage() {
       <div className="px-4 md:px-6 py-6">
         {loading && templates.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <RefreshCw className="h-8 w-8 text-zinc-400 animate-spin" />
+            <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin" />
           </div>
         ) : templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <LayoutGrid className="h-16 w-16 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No templates found</h3>
-            <p className="text-zinc-400 mb-6 max-w-md">
+            <LayoutGrid className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No templates found</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
               Try adjusting your filters or search terms.
             </p>
           </div>

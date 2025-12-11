@@ -146,7 +146,7 @@ function getButtonClasses(theme?: ThemeStyles, variant: 'primary' | 'secondary' 
   const buttonStyle = styles.buttonStyle || 'solid';
 
   if (variant === 'secondary') {
-    return 'bg-transparent border border-zinc-300 text-zinc-700 hover:bg-zinc-50';
+    return 'bg-transparent border border-border text-muted-foreground hover:bg-muted/50';
   }
 
   switch (buttonStyle) {
@@ -156,7 +156,7 @@ function getButtonClasses(theme?: ThemeStyles, variant: 'primary' | 'secondary' 
       return 'bg-transparent hover:bg-opacity-10';
     case 'solid':
     default:
-      return 'text-white';
+      return 'text-foreground';
   }
 }
 
@@ -166,12 +166,12 @@ function getInputClasses(theme?: ThemeStyles) {
 
   switch (inputStyle) {
     case 'filled':
-      return 'bg-zinc-100 border-transparent focus:bg-white';
+      return 'bg-muted border-transparent focus:bg-white';
     case 'underline':
       return 'border-t-0 border-l-0 border-r-0 rounded-none border-b-2';
     case 'outline':
     default:
-      return 'border border-zinc-300 bg-white';
+      return 'border border-border bg-white';
   }
 }
 
@@ -203,7 +203,7 @@ export default function CheckoutPage() {
   const [selectedGateway, setSelectedGateway] = useState<string>('');
   const [promoCode, setPromoCode] = useState('');
 
-  // Sample order data (would come from query params or session)
+  // Order data from query params (set by funnel flow) with fallback for testing
   const orderTotal = parseFloat(searchParams?.get('amount') || '0') || 99.99;
   const currency = searchParams?.get('currency') || 'USD';
 
@@ -305,10 +305,10 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-400 mx-auto" />
-          <p className="mt-2 text-sm text-zinc-500">Loading checkout...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading checkout...</p>
         </div>
       </div>
     );
@@ -320,13 +320,13 @@ export default function CheckoutPage() {
 
   if (error && !page) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-900 mb-2">Page Not Found</h1>
-          <p className="text-zinc-500">{error}</p>
+          <h1 className="text-xl font-semibold text-foreground mb-2">Page Not Found</h1>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
@@ -368,16 +368,16 @@ export default function CheckoutPage() {
             className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
             style={{ backgroundColor: accentColor }}
           >
-            <Check className="h-10 w-10 text-white" />
+            <Check className="h-10 w-10 text-foreground" />
           </div>
           <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
-          <p className="text-zinc-500 mb-6">
+          <p className="text-muted-foreground mb-6">
             {page.successMessage || 'Thank you for your purchase. You will receive a confirmation email shortly.'}
           </p>
           {page.successUrl && (
             <a
               href={page.successUrl}
-              className="inline-flex items-center px-6 py-3 rounded-lg text-white font-medium"
+              className="inline-flex items-center px-6 py-3 rounded-lg text-foreground font-medium"
               style={{ backgroundColor: primaryColor }}
             >
               Continue
@@ -402,14 +402,14 @@ export default function CheckoutPage() {
       }}
     >
       {/* Header */}
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-border bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           {page.logoUrl ? (
             <img src={page.logoUrl} alt={page.companyName} className="h-8" />
           ) : (
             <span className="font-semibold text-lg">{page.companyName}</span>
           )}
-          <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Lock className="h-4 w-4" />
             <span>Secure Checkout</span>
           </div>
@@ -418,7 +418,7 @@ export default function CheckoutPage() {
 
       {/* Progress Bar */}
       {theme.showProgressBar !== false && (
-        <div className="bg-white border-b border-zinc-200">
+        <div className="bg-white border-b border-border">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center justify-center gap-4">
               {steps.map((step, index) => (
@@ -427,8 +427,8 @@ export default function CheckoutPage() {
                     className={`
                       w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
                       ${index <= currentStepIndex
-                        ? 'text-white'
-                        : 'bg-zinc-200 text-zinc-500'}
+                        ? 'text-foreground'
+                        : 'bg-zinc-200 text-muted-foreground'}
                     `}
                     style={index <= currentStepIndex ? { backgroundColor: primaryColor } : {}}
                   >
@@ -462,7 +462,7 @@ export default function CheckoutPage() {
               <div className="mb-6">
                 <h1 className="text-2xl font-bold">{page.headline}</h1>
                 {page.subheadline && (
-                  <p className="text-zinc-500 mt-1">{page.subheadline}</p>
+                  <p className="text-muted-foreground mt-1">{page.subheadline}</p>
                 )}
               </div>
             )}
@@ -650,7 +650,7 @@ export default function CheckoutPage() {
                           key={gateway}
                           className={`
                             flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors
-                            ${selectedGateway === gateway ? 'border-2' : 'border-zinc-200 hover:border-zinc-300'}
+                            ${selectedGateway === gateway ? 'border-2' : 'border-border hover:border-border'}
                           `}
                           style={{
                             borderColor: selectedGateway === gateway ? primaryColor : undefined,
@@ -667,7 +667,7 @@ export default function CheckoutPage() {
                           />
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              selectedGateway === gateway ? '' : 'border-zinc-300'
+                              selectedGateway === gateway ? '' : 'border-border'
                             }`}
                             style={{ borderColor: selectedGateway === gateway ? primaryColor : undefined }}
                           >
@@ -678,15 +678,15 @@ export default function CheckoutPage() {
                               />
                             )}
                           </div>
-                          <CreditCard className="h-5 w-5 text-zinc-500" />
+                          <CreditCard className="h-5 w-5 text-muted-foreground" />
                           <span className="font-medium capitalize">{gateway.replace(/_/g, ' ')}</span>
                         </label>
                       ))}
                   </div>
 
                   {/* Card Details Placeholder */}
-                  <div className="p-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300 mb-6">
-                    <p className="text-sm text-zinc-500 text-center">
+                  <div className="p-4 bg-muted/50 rounded-lg border border-dashed border-border mb-6">
+                    <p className="text-sm text-muted-foreground text-center">
                       Payment form will be loaded here via {selectedGateway} integration
                     </p>
                     {/* This is where Stripe Elements, PayPal buttons, etc. would render */}
@@ -706,7 +706,7 @@ export default function CheckoutPage() {
                           style={{ borderRadius: themeClasses.borderRadius }}
                         />
                         <button
-                          className="px-4 py-2.5 border border-zinc-300 rounded-lg hover:bg-zinc-50"
+                          className="px-4 py-2.5 border border-border rounded-lg hover:bg-muted/50"
                           style={{ borderRadius: themeClasses.borderRadius }}
                         >
                           Apply
@@ -722,10 +722,10 @@ export default function CheckoutPage() {
                         type="checkbox"
                         checked={termsAccepted}
                         onChange={(e) => setTermsAccepted(e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-zinc-300"
+                        className="mt-1 w-4 h-4 rounded border-border"
                         style={{ accentColor: primaryColor }}
                       />
-                      <span className="text-sm text-zinc-600">
+                      <span className="text-sm text-muted-foreground">
                         I agree to the{' '}
                         {page.termsUrl ? (
                           <a href={page.termsUrl} target="_blank" rel="noopener" className="underline" style={{ color: primaryColor }}>
@@ -792,14 +792,14 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 
                 {/* Sample Line Items */}
-                <div className="space-y-3 pb-4 border-b border-zinc-200">
+                <div className="space-y-3 pb-4 border-b border-border">
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-600">Subtotal</span>
+                    <span className="text-muted-foreground">Subtotal</span>
                     <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(orderTotal)}</span>
                   </div>
                   {page.shippingEnabled && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-zinc-600">Shipping</span>
+                      <span className="text-muted-foreground">Shipping</span>
                       <span>Calculated at next step</span>
                     </div>
                   )}
@@ -815,8 +815,8 @@ export default function CheckoutPage() {
 
                 {/* Trust Badges */}
                 {theme.showTrustBadges && (
-                  <div className="pt-4 border-t border-zinc-200">
-                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-500">
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                       <Shield className="h-4 w-4" style={{ color: accentColor }} />
                       <span>100% Secure Checkout</span>
                     </div>
@@ -839,13 +839,13 @@ export default function CheckoutPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white mt-12">
+      <footer className="border-t border-border bg-white mt-12">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               Powered by {page.companyName}
             </p>
-            <div className="flex items-center gap-4 text-sm text-zinc-500">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
               {page.termsUrl && (
                 <a href={page.termsUrl} target="_blank" rel="noopener" className="hover:underline">
                   Terms

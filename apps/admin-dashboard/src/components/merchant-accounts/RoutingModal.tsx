@@ -15,15 +15,15 @@ interface RoutingModalProps {
 
 function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
   return (
-    <label className="flex items-start justify-between p-3 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800">
+    <label className="flex items-start justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted">
       <div>
-        <span className="text-sm text-zinc-300 font-medium">{label}</span>
-        {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
+        <span className="text-sm text-foreground font-medium">{label}</span>
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </div>
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ml-4 ${checked ? 'bg-cyan-500' : 'bg-zinc-700'}`}
+        className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ml-4 ${checked ? 'bg-primary' : 'bg-muted'}`}
       >
         <span
           className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`}
@@ -75,10 +75,10 @@ export function RoutingModal({ isOpen, onClose, account, onSaved }: RoutingModal
         )}
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Priority & Weight</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Priority & Weight</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Priority</label>
+              <label className="block text-sm text-muted-foreground mb-1">Priority</label>
               <Input
                 type="number"
                 min={1}
@@ -86,10 +86,10 @@ export function RoutingModal({ isOpen, onClose, account, onSaved }: RoutingModal
                 value={routing.priority ?? 1}
                 onChange={e => setRouting(prev => ({ ...prev, priority: parseInt(e.target.value, 10) || 1 }))}
               />
-              <p className="text-xs text-zinc-500 mt-1">Lower = higher priority (1 is highest)</p>
+              <p className="text-xs text-muted-foreground mt-1">Lower = higher priority (1 is highest)</p>
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Weight</label>
+              <label className="block text-sm text-muted-foreground mb-1">Weight</label>
               <Input
                 type="number"
                 min={0}
@@ -97,13 +97,13 @@ export function RoutingModal({ isOpen, onClose, account, onSaved }: RoutingModal
                 value={routing.weight ?? 100}
                 onChange={e => setRouting(prev => ({ ...prev, weight: parseInt(e.target.value, 10) || 0 }))}
               />
-              <p className="text-xs text-zinc-500 mt-1">% of traffic when same priority</p>
+              <p className="text-xs text-muted-foreground mt-1">% of traffic when same priority</p>
             </div>
           </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-zinc-300 mb-3">Routing Behavior</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Routing Behavior</h3>
           <div className="space-y-2">
             <Toggle
               checked={routing.isDefault ?? false}
@@ -120,19 +120,19 @@ export function RoutingModal({ isOpen, onClose, account, onSaved }: RoutingModal
           </div>
         </div>
 
-        <div className="p-3 bg-zinc-800/50 rounded-lg">
-          <h4 className="text-sm font-medium text-zinc-300 mb-2">Routing Summary</h4>
-          <ul className="text-xs text-zinc-400 space-y-1">
+        <div className="p-3 bg-muted/50 rounded-lg">
+          <h4 className="text-sm font-medium text-foreground mb-2">Routing Summary</h4>
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li>
-              <span className="text-zinc-500">Priority:</span>{' '}
+              <span className="text-muted-foreground">Priority:</span>{' '}
               {routing.priority === 1 ? 'Highest (1)' : `Level ${routing.priority}`}
             </li>
             <li>
-              <span className="text-zinc-500">Traffic Share:</span>{' '}
+              <span className="text-muted-foreground">Traffic Share:</span>{' '}
               {routing.weight}% of traffic at this priority level
             </li>
             <li>
-              <span className="text-zinc-500">Role:</span>{' '}
+              <span className="text-muted-foreground">Role:</span>{' '}
               {routing.isDefault ? 'Default fallback' : routing.isBackupOnly ? 'Backup only' : 'Standard routing'}
             </li>
           </ul>

@@ -55,7 +55,7 @@ export function MobileTabBar({ badges }: MobileTabBarProps) {
     <>
       {/* Tab Bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border md:hidden"
         role="navigation"
         aria-label="Mobile navigation"
       >
@@ -72,15 +72,15 @@ export function MobileTabBar({ badges }: MobileTabBarProps) {
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[64px]',
                   isActive
-                    ? 'text-cyan-400'
-                    : 'text-zinc-500 hover:text-zinc-300'
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <div className="relative">
                   <Icon className="w-5 h-5" aria-hidden="true" />
                   {badgeValue !== undefined && badgeValue > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 bg-red-500 text-foreground text-[10px] font-medium rounded-full flex items-center justify-center">
                       {badgeValue > 99 ? '99+' : badgeValue}
                     </span>
                   )}
@@ -96,8 +96,8 @@ export function MobileTabBar({ badges }: MobileTabBarProps) {
             className={cn(
               'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[64px]',
               isMoreActive || showMore
-                ? 'text-cyan-400'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             aria-expanded={showMore}
             aria-haspopup="dialog"
@@ -120,22 +120,22 @@ export function MobileTabBar({ badges }: MobileTabBarProps) {
 
           {/* Drawer */}
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 rounded-t-2xl md:hidden animate-slide-up"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl md:hidden animate-slide-up"
             role="dialog"
             aria-modal="true"
             aria-label="More navigation options"
           >
             {/* Handle */}
             <div className="flex justify-center py-2">
-              <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+              <div className="w-10 h-1 bg-muted rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-2 border-b border-zinc-800">
-              <h2 className="text-sm font-medium text-white">More</h2>
+            <div className="flex items-center justify-between px-4 pb-2 border-b border-border">
+              <h2 className="text-sm font-medium text-foreground">More</h2>
               <button
                 onClick={() => setShowMore(false)}
-                className="p-2 text-zinc-500 hover:text-white transition-colors"
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -156,8 +156,8 @@ export function MobileTabBar({ badges }: MobileTabBarProps) {
                     className={cn(
                       'flex flex-col items-center gap-2 p-4 rounded-xl transition-colors',
                       isActive
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
                     <Icon className="w-6 h-6" aria-hidden="true" />

@@ -9,7 +9,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isOpen, close } = useSidebar();
 
   return (
-    <div className="flex h-screen bg-zinc-950">
+    <div className="flex h-screen bg-background">
       <Sidebar isOpen={isOpen} onClose={close} />
       <main className="flex-1 overflow-auto lg:ml-0">
         <div className="min-h-screen">

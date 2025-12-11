@@ -38,6 +38,7 @@ import {
   Bug,
   FileCheck2,
   UserPlus,
+  Palette,
   LucideIcon,
 } from 'lucide-react';
 
@@ -118,6 +119,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Bug,
   FileCheck2,
   UserPlus,
+  Palette,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -253,6 +255,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
+      { id: 'appearance', label: 'Appearance', href: '/settings/appearance', icon: Palette },
       { id: 'billing', label: 'Billing', href: '/settings/billing', icon: Wallet },
       { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
       { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },

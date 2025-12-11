@@ -100,11 +100,11 @@ export function LimitsModal({ isOpen, onClose, account, onSaved }: LimitsModalPr
 
         {limitFields.map(({ section, fields }) => (
           <div key={section}>
-            <h3 className="text-sm font-medium text-zinc-300 mb-3">{section}</h3>
+            <h3 className="text-sm font-medium text-foreground mb-3">{section}</h3>
             <div className="grid grid-cols-2 gap-4">
               {fields.map(({ key, label, hint, isCurrency }) => (
                 <div key={key}>
-                  <label className="block text-sm text-zinc-400 mb-1">{label}</label>
+                  <label className="block text-sm text-muted-foreground mb-1">{label}</label>
                   <Input
                     type="number"
                     value={limits[key] ?? ''}
@@ -112,7 +112,7 @@ export function LimitsModal({ isOpen, onClose, account, onSaved }: LimitsModalPr
                     placeholder={hint}
                   />
                   {isCurrency && limits[key] !== undefined && (
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       = {formatCurrency(limits[key] as number)}
                     </p>
                   )}

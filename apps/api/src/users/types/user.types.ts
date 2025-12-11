@@ -52,4 +52,15 @@ export interface UserStats {
   pending: number;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// USER PREFERENCES
+// ═══════════════════════════════════════════════════════════════
+
+export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface UserPreferences {
+  theme: ThemePreference;
+  sidebarCollapsed: boolean;
+}
+
 export { UserRole, UserStatus, ScopeType };

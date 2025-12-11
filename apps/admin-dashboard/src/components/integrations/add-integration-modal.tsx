@@ -442,22 +442,22 @@ export function AddIntegrationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-3">
             {step !== 'select' && (
-              <button onClick={handleBack} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white">
+              <button onClick={handleBack} className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               {step === 'select' && 'Add Integration'}
               {step === 'configure' && `Configure ${selectedDefinition?.name}`}
               {step === 'credentials' && 'Enter Credentials'}
             </h2>
           </div>
-          <button onClick={handleClose} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white">
+          <button onClick={handleClose} className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -475,20 +475,20 @@ export function AddIntegrationModal({
             <div className="space-y-6">
               {/* Search Input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search integrations..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary text-sm"
                   autoFocus
                 />
               </div>
 
               {/* No Results */}
               {Object.keys(groupedDefinitions).length === 0 && searchQuery && (
-                <div className="text-center py-8 text-zinc-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>No integrations found for &quot;{searchQuery}&quot;</p>
                 </div>
@@ -496,7 +496,7 @@ export function AddIntegrationModal({
 
               {Object.entries(groupedDefinitions).map(([category, defs]) => (
                 <div key={category}>
-                  <h3 className="text-sm font-medium text-zinc-400 mb-3">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
                     {categoryLabels[category as IntegrationCategory] || category}
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -507,15 +507,15 @@ export function AddIntegrationModal({
                       };
                       const config = providerConfig[def.provider] || {
                         icon: getProviderInitials(def.provider),
-                        bgColor: 'bg-zinc-700',
-                        gradient: 'from-zinc-500 to-zinc-600'
+                        bgColor: 'bg-muted',
+                        gradient: 'from-muted to-muted'
                       };
                       const hasPlatformOption = platformOptions.some((p) => p.provider === def.provider);
                       return (
                         <button
                           key={def.provider}
                           onClick={() => handleSelectProvider(def.provider)}
-                          className="flex items-center gap-3 p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg hover:border-zinc-600 hover:bg-zinc-800 transition-colors text-left"
+                          className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-lg hover:border-border hover:bg-muted transition-colors text-left"
                         >
                           <div
                             className={cn(
@@ -532,17 +532,17 @@ export function AddIntegrationModal({
                                 className="w-6 h-6 object-contain"
                               />
                             ) : (
-                              <span className="text-white font-bold text-xs">{config.icon}</span>
+                              <span className="text-foreground font-bold text-xs">{config.icon}</span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-white truncate">{def.name}</span>
+                              <span className="font-medium text-foreground truncate">{def.name}</span>
                               {hasPlatformOption && !isPlatformView && (
-                                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                                <Zap className="w-3.5 h-3.5 text-primary" />
                               )}
                             </div>
-                            <p className="text-xs text-zinc-500 truncate">{def.description}</p>
+                            <p className="text-xs text-muted-foreground truncate">{def.description}</p>
                           </div>
                         </button>
                       );
@@ -559,7 +559,7 @@ export function AddIntegrationModal({
               {/* Mode selection for client view */}
               {!isPlatformView && platformOptionForProvider && (
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">Connection Mode</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Connection Mode</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => {
@@ -569,22 +569,22 @@ export function AddIntegrationModal({
                       className={cn(
                         'flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors',
                         selectedMode === IntegrationMode.PLATFORM
-                          ? 'border-cyan-500 bg-cyan-500/10'
-                          : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-muted/50 hover:border-border'
                       )}
                     >
                       <Zap
-                        className={cn('w-6 h-6', selectedMode === IntegrationMode.PLATFORM ? 'text-cyan-400' : 'text-zinc-400')}
+                        className={cn('w-6 h-6', selectedMode === IntegrationMode.PLATFORM ? 'text-primary' : 'text-muted-foreground')}
                       />
                       <span
                         className={cn(
                           'font-medium',
-                          selectedMode === IntegrationMode.PLATFORM ? 'text-white' : 'text-zinc-300'
+                          selectedMode === IntegrationMode.PLATFORM ? 'text-foreground' : 'text-foreground'
                         )}
                       >
                         Use Platform Gateway
                       </span>
-                      <span className="text-xs text-zinc-500 text-center">No credentials needed</span>
+                      <span className="text-xs text-muted-foreground text-center">No credentials needed</span>
                     </button>
                     <button
                       onClick={() => {
@@ -594,15 +594,15 @@ export function AddIntegrationModal({
                       className={cn(
                         'flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors',
                         selectedMode === IntegrationMode.OWN
-                          ? 'border-cyan-500 bg-cyan-500/10'
-                          : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-muted/50 hover:border-border'
                       )}
                     >
-                      <Key className={cn('w-6 h-6', selectedMode === IntegrationMode.OWN ? 'text-cyan-400' : 'text-zinc-400')} />
-                      <span className={cn('font-medium', selectedMode === IntegrationMode.OWN ? 'text-white' : 'text-zinc-300')}>
+                      <Key className={cn('w-6 h-6', selectedMode === IntegrationMode.OWN ? 'text-primary' : 'text-muted-foreground')} />
+                      <span className={cn('font-medium', selectedMode === IntegrationMode.OWN ? 'text-foreground' : 'text-foreground')}>
                         Own Credentials
                       </span>
-                      <span className="text-xs text-zinc-500 text-center">Enter your own API keys</span>
+                      <span className="text-xs text-muted-foreground text-center">Enter your own API keys</span>
                     </button>
                   </div>
                 </div>
@@ -610,23 +610,23 @@ export function AddIntegrationModal({
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                   placeholder="Integration name"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Description (optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Description (optional)</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 resize-none"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
                   rows={2}
                   placeholder="Optional description"
                 />
@@ -634,11 +634,11 @@ export function AddIntegrationModal({
 
               {/* Environment */}
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Environment</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Environment</label>
                 <select
                   value={formData.environment}
                   onChange={(e) => setFormData((prev) => ({ ...prev, environment: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="sandbox">Sandbox</option>
                   <option value="production">Production</option>
@@ -652,9 +652,9 @@ export function AddIntegrationModal({
                     type="checkbox"
                     checked={formData.isDefault}
                     onChange={(e) => setFormData((prev) => ({ ...prev, isDefault: e.target.checked }))}
-                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                    className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                   />
-                  <span className="text-sm text-zinc-300">Set as default gateway</span>
+                  <span className="text-sm text-foreground">Set as default gateway</span>
                 </label>
               )}
 
@@ -666,19 +666,19 @@ export function AddIntegrationModal({
                       type="checkbox"
                       checked={formData.isSharedWithClients}
                       onChange={(e) => setFormData((prev) => ({ ...prev, isSharedWithClients: e.target.checked }))}
-                      className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                      className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-zinc-300">Share with clients</span>
+                    <span className="text-sm text-foreground">Share with clients</span>
                   </label>
 
                   {formData.isSharedWithClients && (
                     <div className="pl-6 space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-zinc-300 mb-1">Pricing Type</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">Pricing Type</label>
                         <select
                           value={formData.pricingType}
                           onChange={(e) => setFormData((prev) => ({ ...prev, pricingType: e.target.value }))}
-                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
                         >
                           <option value="fixed">Fixed per transaction</option>
                           <option value="percentage">Percentage</option>
@@ -686,25 +686,25 @@ export function AddIntegrationModal({
                       </div>
                       {formData.pricingType === 'fixed' ? (
                         <div>
-                          <label className="block text-sm font-medium text-zinc-300 mb-1">Amount per Transaction ($)</label>
+                          <label className="block text-sm font-medium text-foreground mb-1">Amount per Transaction ($)</label>
                           <input
                             type="number"
                             step="0.01"
                             value={formData.pricingAmount}
                             onChange={(e) => setFormData((prev) => ({ ...prev, pricingAmount: e.target.value }))}
-                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                             placeholder="0.30"
                           />
                         </div>
                       ) : (
                         <div>
-                          <label className="block text-sm font-medium text-zinc-300 mb-1">Percentage</label>
+                          <label className="block text-sm font-medium text-foreground mb-1">Percentage</label>
                           <input
                             type="number"
                             step="0.01"
                             value={formData.pricingPercentage}
                             onChange={(e) => setFormData((prev) => ({ ...prev, pricingPercentage: e.target.value }))}
-                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                             placeholder="2.9"
                           />
                         </div>
@@ -721,7 +721,7 @@ export function AddIntegrationModal({
             <div className="space-y-4">
               {selectedDefinition.authType === AuthType.OAUTH2 ? (
                 <>
-                  <p className="text-sm text-zinc-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Enter your {selectedDefinition.name} OAuth App credentials. These are the Client ID and Client Secret
                     from your OAuth application configuration.
                   </p>
@@ -733,7 +733,7 @@ export function AddIntegrationModal({
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-zinc-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Enter your {selectedDefinition.name} API credentials. These will be encrypted and stored securely.
                 </p>
               )}
@@ -741,18 +741,18 @@ export function AddIntegrationModal({
                 const isRequired = selectedDefinition.credentialSchema.required?.includes(key);
                 return (
                   <div key={key}>
-                    <label className="block text-sm font-medium text-zinc-300 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       {prop.title}
                       {isRequired && <span className="text-red-400 ml-1">*</span>}
                     </label>
                     {prop.description && (
-                      <p className="text-xs text-zinc-500 mb-1">{prop.description}</p>
+                      <p className="text-xs text-muted-foreground mb-1">{prop.description}</p>
                     )}
                     <input
                       type={prop.format === 'password' ? 'password' : 'text'}
                       value={credentials[key] || ''}
                       onChange={(e) => setCredentials((prev) => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                       placeholder={prop.title}
                       required={isRequired}
                     />
@@ -764,15 +764,15 @@ export function AddIntegrationModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800">
-          <button onClick={handleClose} className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-border">
+          <button onClick={handleClose} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
           {step === 'configure' && (
             <button
               onClick={handleNext}
               disabled={!formData.name}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary disabled:bg-muted disabled:text-muted-foreground text-foreground text-sm font-medium rounded-lg transition-colors"
             >
               {selectedMode === IntegrationMode.PLATFORM ? (
                 <>
@@ -791,7 +791,7 @@ export function AddIntegrationModal({
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || (selectedDefinition?.credentialSchema?.required || []).some((key) => !credentials[key])}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary disabled:bg-muted disabled:text-muted-foreground text-foreground text-sm font-medium rounded-lg transition-colors"
             >
               {isSubmitting ? (
                 <>

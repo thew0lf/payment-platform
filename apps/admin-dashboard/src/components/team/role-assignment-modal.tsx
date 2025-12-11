@@ -108,10 +108,10 @@ export function RoleAssignmentModal({
               <Label htmlFor="role">Select role</Label>
               {loadingRoles ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : availableRoles.length === 0 ? (
-                <div className="text-sm text-zinc-500 py-2">
+                <div className="text-sm text-muted-foreground py-2">
                   {roles.length === 0
                     ? 'No roles available. Create roles first.'
                     : 'User already has all available roles.'}
@@ -132,7 +132,7 @@ export function RoleAssignmentModal({
                           <div className="flex flex-col">
                             <span>{role.name}</span>
                             {role.description && (
-                              <span className="text-xs text-zinc-500">{role.description}</span>
+                              <span className="text-xs text-muted-foreground">{role.description}</span>
                             )}
                           </div>
                         </div>
@@ -142,10 +142,10 @@ export function RoleAssignmentModal({
                 </Select>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Link
                 href="/settings/roles"
-                className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
               >
                 Manage roles
                 <ExternalLink className="h-3 w-3" />

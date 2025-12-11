@@ -17,11 +17,40 @@ import {
 import { SessionsService } from '../services/sessions.service';
 import { StripeAdapter } from './stripe.adapter';
 import { PayPalAdapter } from './paypal.adapter';
+import { ClientIntegrationService } from '../../integrations/services/client-integration.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
+import {
+  IntegrationProvider,
+  IntegrationCategory,
+  IntegrationStatus,
+  IntegrationMode,
+  EncryptedCredentials,
+} from '../../integrations/types/integration.types';
 
 // ═══════════════════════════════════════════════════════════════
 // PAYMENT GATEWAY SERVICE
 // Orchestrates payment processing across multiple gateways
 // ═══════════════════════════════════════════════════════════════
+
+// Mapping between PaymentGatewayType and IntegrationProvider
+const GATEWAY_TO_PROVIDER: Record<PaymentGatewayType, IntegrationProvider | null> = {
+  [PaymentGatewayType.STRIPE]: IntegrationProvider.STRIPE,
+  [PaymentGatewayType.PAYPAL]: IntegrationProvider.PAYPAL_REST,
+  [PaymentGatewayType.PAYPAL_REST]: IntegrationProvider.PAYPAL_REST,
+  [PaymentGatewayType.NMI]: IntegrationProvider.NMI,
+  [PaymentGatewayType.AUTHORIZE_NET]: IntegrationProvider.AUTHORIZE_NET,
+  [PaymentGatewayType.SQUARE]: null, // Not yet supported
+  [PaymentGatewayType.OWN_HOSTED]: null, // No provider needed
+};
+
+const PROVIDER_TO_GATEWAY: Record<string, PaymentGatewayType> = {
+  [IntegrationProvider.STRIPE]: PaymentGatewayType.STRIPE,
+  [IntegrationProvider.PAYPAL_REST]: PaymentGatewayType.PAYPAL_REST,
+  [IntegrationProvider.PAYPAL_PAYFLOW]: PaymentGatewayType.PAYPAL,
+  [IntegrationProvider.NMI]: PaymentGatewayType.NMI,
+  [IntegrationProvider.AUTHORIZE_NET]: PaymentGatewayType.AUTHORIZE_NET,
+};
 
 interface GatewayIntegration {
   type: PaymentGatewayType;
@@ -38,6 +67,9 @@ export class PaymentGatewayService {
     private readonly prisma: PrismaService,
     private readonly gatewayFactory: GatewayFactory,
     private readonly sessionsService: SessionsService,
+    private readonly clientIntegrationService: ClientIntegrationService,
+    private readonly encryptionService: CredentialEncryptionService,
+    private readonly platformIntegrationService: PlatformIntegrationService,
   ) {}
 
   // ─────────────────────────────────────────────────────────────
@@ -298,34 +330,134 @@ export class PaymentGatewayService {
 
   /**
    * Get available gateways for a company
+   * Fetches from ClientIntegration table with fallback to environment variables
    */
   async getAvailableGateways(companyId: string): Promise<GatewayIntegration[]> {
-    // TODO: Fetch from ClientIntegration table
-    // For now, return mock data
-    return [
-      {
+    // Get company to find its clientId
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { clientId: true },
+    });
+
+    if (!company) {
+      this.logger.warn(`Company ${companyId} not found, using fallback gateways`);
+      return this.getFallbackGateways();
+    }
+
+    // Fetch payment gateway integrations from ClientIntegration table
+    const integrations = await this.prisma.clientIntegration.findMany({
+      where: {
+        clientId: company.clientId,
+        category: IntegrationCategory.PAYMENT_GATEWAY,
+        status: IntegrationStatus.ACTIVE,
+      },
+      orderBy: [
+        { isDefault: 'desc' },
+        { priority: 'asc' },
+      ],
+    });
+
+    if (integrations.length === 0) {
+      this.logger.debug(`No client integrations found for company ${companyId}, using fallback`);
+      return this.getFallbackGateways();
+    }
+
+    const gateways: GatewayIntegration[] = [];
+
+    for (const integration of integrations) {
+      const gatewayType = PROVIDER_TO_GATEWAY[integration.provider];
+      if (!gatewayType) continue;
+
+      try {
+        let credentials: GatewayCredentials;
+
+        if (integration.mode === IntegrationMode.PLATFORM && integration.platformIntegrationId) {
+          // Using platform shared credentials
+          const decrypted = await this.platformIntegrationService.getDecryptedCredentials(
+            integration.platformIntegrationId,
+          );
+          credentials = {
+            environment: integration.environment as 'sandbox' | 'production',
+            ...decrypted,
+          };
+        } else if (integration.credentials) {
+          // Using own credentials
+          const decrypted = this.encryptionService.decrypt(
+            integration.credentials as unknown as EncryptedCredentials,
+          );
+          credentials = {
+            environment: integration.environment as 'sandbox' | 'production',
+            ...decrypted,
+          };
+        } else {
+          continue; // No credentials available
+        }
+
+        gateways.push({
+          type: gatewayType,
+          credentials,
+          priority: integration.priority,
+          enabled: integration.status === IntegrationStatus.ACTIVE,
+        });
+      } catch (error) {
+        this.logger.warn(`Failed to decrypt credentials for integration ${integration.id}: ${error}`);
+      }
+    }
+
+    // If no gateways were successfully loaded, use fallback
+    if (gateways.length === 0) {
+      return this.getFallbackGateways();
+    }
+
+    return gateways;
+  }
+
+  /**
+   * Get fallback gateways from environment variables (development only)
+   */
+  private getFallbackGateways(): GatewayIntegration[] {
+    const gateways: GatewayIntegration[] = [];
+
+    // Stripe fallback
+    if (process.env.STRIPE_SECRET_KEY) {
+      gateways.push({
         type: PaymentGatewayType.STRIPE,
         credentials: {
-          environment: 'sandbox',
+          environment: (process.env.STRIPE_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production',
           publicKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
           secretKey: process.env.STRIPE_SECRET_KEY || '',
+          webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
         },
         priority: 1,
         enabled: true,
-      },
-    ];
+      });
+    }
+
+    // PayPal fallback
+    if (process.env.PAYPAL_CLIENT_SECRET) {
+      gateways.push({
+        type: PaymentGatewayType.PAYPAL_REST,
+        credentials: {
+          environment: (process.env.PAYPAL_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production',
+          apiKey: process.env.PAYPAL_CLIENT_ID || '',
+          secretKey: process.env.PAYPAL_CLIENT_SECRET || '',
+        },
+        priority: 2,
+        enabled: true,
+      });
+    }
+
+    return gateways;
   }
 
   /**
    * Get gateway configuration for a company and gateway type
+   * Credentials are fetched from ClientIntegration with fallback to environment variables
    */
   private async getGatewayConfig(
     companyId: string,
     gatewayType: PaymentGatewayType,
   ): Promise<GatewayConfig> {
-    // TODO: Fetch credentials from ClientIntegration table using encryption service
-    // For now, use environment variables for development
-
     const credentials = await this.getGatewayCredentials(companyId, gatewayType);
 
     return {
@@ -340,16 +472,77 @@ export class PaymentGatewayService {
   }
 
   /**
-   * Get gateway credentials from integrations
+   * Get gateway credentials from ClientIntegration with decryption
+   * Falls back to environment variables if no integration is configured
    */
   private async getGatewayCredentials(
-    _companyId: string,
+    companyId: string,
     gatewayType: PaymentGatewayType,
   ): Promise<GatewayCredentials> {
-    // TODO: Implement proper credential retrieval from ClientIntegration
-    // with decryption using EncryptionService
+    // Map gateway type to integration provider
+    const provider = GATEWAY_TO_PROVIDER[gatewayType];
+    if (!provider) {
+      throw new NotFoundException(`Gateway type ${gatewayType} not supported`);
+    }
 
-    // Development fallback - use environment variables
+    // Get company to find its clientId
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { clientId: true },
+    });
+
+    if (company) {
+      // Try to find a matching client integration
+      const integration = await this.prisma.clientIntegration.findFirst({
+        where: {
+          clientId: company.clientId,
+          provider: provider,
+          status: IntegrationStatus.ACTIVE,
+        },
+        orderBy: [
+          { isDefault: 'desc' },
+          { priority: 'asc' },
+        ],
+      });
+
+      if (integration) {
+        try {
+          let decrypted: Record<string, unknown>;
+
+          if (integration.mode === IntegrationMode.PLATFORM && integration.platformIntegrationId) {
+            // Using platform shared credentials
+            decrypted = await this.platformIntegrationService.getDecryptedCredentials(
+              integration.platformIntegrationId,
+            ) as Record<string, unknown>;
+          } else if (integration.credentials) {
+            // Using own credentials
+            decrypted = this.encryptionService.decrypt(
+              integration.credentials as unknown as EncryptedCredentials,
+            ) as Record<string, unknown>;
+          } else {
+            throw new Error('No credentials available');
+          }
+
+          this.logger.debug(`Loaded credentials from ClientIntegration for ${provider}`);
+          return {
+            environment: integration.environment as 'sandbox' | 'production',
+            ...decrypted,
+          } as GatewayCredentials;
+        } catch (error) {
+          this.logger.warn(`Failed to decrypt ClientIntegration credentials for ${provider}, using fallback: ${error}`);
+        }
+      }
+    }
+
+    // Fallback to environment variables (development only)
+    this.logger.debug(`Using environment variable fallback for ${gatewayType}`);
+    return this.getEnvironmentFallbackCredentials(gatewayType);
+  }
+
+  /**
+   * Get fallback credentials from environment variables
+   */
+  private getEnvironmentFallbackCredentials(gatewayType: PaymentGatewayType): GatewayCredentials {
     switch (gatewayType) {
       case PaymentGatewayType.STRIPE:
         return {

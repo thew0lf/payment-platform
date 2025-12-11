@@ -45,13 +45,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 const NOTE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   INTERNAL: { label: 'Internal', color: 'bg-blue-500/10 text-blue-400' },
   CUSTOMER_SERVICE: { label: 'Customer Service', color: 'bg-purple-500/10 text-purple-400' },
-  SYSTEM: { label: 'System', color: 'bg-zinc-500/10 text-zinc-400' },
+  SYSTEM: { label: 'System', color: 'bg-muted text-muted-foreground' },
 };
 
 const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   PENDING: { label: 'Pending', color: 'text-yellow-400' },
   CONFIRMED: { label: 'Confirmed', color: 'text-blue-400' },
-  PROCESSING: { label: 'Processing', color: 'text-cyan-400' },
+  PROCESSING: { label: 'Processing', color: 'text-primary' },
   SHIPPED: { label: 'Shipped', color: 'text-purple-400' },
   DELIVERED: { label: 'Delivered', color: 'text-green-400' },
   COMPLETED: { label: 'Completed', color: 'text-emerald-400' },
@@ -64,7 +64,7 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 // ═══════════════════════════════════════════════════════════════
 
 function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] || { label: status, color: 'text-zinc-400', bgColor: 'bg-zinc-500/10 border-zinc-500/20', icon: AlertCircle };
+  const config = STATUS_CONFIG[status] || { label: status, color: 'text-muted-foreground', bgColor: 'bg-muted border-border', icon: AlertCircle };
   const Icon = config.icon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border', config.bgColor, config.color)}>
@@ -76,7 +76,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-zinc-900/50 border border-zinc-800 rounded-xl', className)}>
+    <div className={cn('bg-card/50 border border-border rounded-xl', className)}>
       {children}
     </div>
   );
@@ -84,10 +84,10 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
 
 function CardHeader({ title, icon: Icon, action }: { title: string; icon?: React.ComponentType<{ className?: string }>; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
       <div className="flex items-center gap-2">
-        {Icon && <Icon className="w-4 h-4 text-zinc-500" />}
-        <h3 className="text-base font-semibold text-white">{title}</h3>
+        {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
       </div>
       {action}
     </div>
@@ -110,14 +110,14 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-card/50 border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-zinc-500">{title}</span>
-        <Icon className="w-4 h-4 text-zinc-500" />
+        <span className="text-xs text-muted-foreground">{title}</span>
+        <Icon className="w-4 h-4 text-muted-foreground" />
       </div>
-      <div className="text-lg font-semibold text-white">{value}</div>
+      <div className="text-lg font-semibold text-foreground">{value}</div>
       {subValue && (
-        <div className="text-xs text-zinc-500 mt-1">{subValue}</div>
+        <div className="text-xs text-muted-foreground mt-1">{subValue}</div>
       )}
     </div>
   );
@@ -133,7 +133,7 @@ function CopyButton({ text }: { text: string }) {
   };
 
   return (
-    <button onClick={handleCopy} className="p-1 text-zinc-500 hover:text-white transition-colors">
+    <button onClick={handleCopy} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
@@ -142,8 +142,8 @@ function CopyButton({ text }: { text: string }) {
 function InfoRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between py-2">
-      <span className="text-sm text-zinc-500">{label}</span>
-      <span className={cn('text-sm text-zinc-200 text-right', mono && 'font-mono text-xs')}>{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={cn('text-sm text-foreground text-right', mono && 'font-mono text-xs')}>{value}</span>
     </div>
   );
 }
@@ -248,7 +248,7 @@ export default function CustomerDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
+        <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -257,11 +257,11 @@ export default function CustomerDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-        <h2 className="text-lg font-medium text-white mb-2">Customer Not Found</h2>
-        <p className="text-sm text-zinc-500 mb-4">{error || "The customer you're looking for doesn't exist."}</p>
+        <h2 className="text-lg font-medium text-foreground mb-2">Customer Not Found</h2>
+        <p className="text-sm text-muted-foreground mb-4">{error || "The customer you're looking for doesn't exist."}</p>
         <Link
           href="/customers"
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors"
         >
           Back to Customers
         </Link>
@@ -287,16 +287,16 @@ export default function CustomerDetailPage() {
             </Button>
 
             {showActions && (
-              <div className="absolute right-0 mt-2 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-muted border border-border rounded-lg shadow-xl z-10">
                 <div className="p-1">
                   <Link
                     href={`/orders/new?customerId=${customerId}`}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 rounded-md"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md"
                   >
                     <Plus className="w-4 h-4" />
                     Create Order
                   </Link>
-                  <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 rounded-md">
+                  <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md">
                     <Mail className="w-4 h-4" />
                     Send Email
                   </button>
@@ -341,21 +341,21 @@ export default function CustomerDetailPage() {
               {/* Profile */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <User className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Profile</span>
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Profile</span>
                 </div>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-foreground text-lg font-bold flex-shrink-0">
                     {initials}
                   </div>
                   <div>
-                    <p className="text-base font-medium text-white">{fullName}</p>
-                    <p className="text-xs text-zinc-500 capitalize">{customer.status.toLowerCase()}</p>
+                    <p className="text-base font-medium text-foreground">{fullName}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{customer.status.toLowerCase()}</p>
                   </div>
                 </div>
                 <Link
                   href={`/orders/new?customerId=${customerId}`}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-foreground rounded-lg hover:bg-primary/80 transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Create Order
@@ -365,27 +365,27 @@ export default function CustomerDetailPage() {
               {/* Contact */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Mail className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Contact</span>
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact</span>
                 </div>
                 <div className="space-y-2">
                   {customer.email && (
-                    <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300">
+                    <a href={`mailto:${customer.email}`} className="flex items-center gap-2 text-sm text-primary hover:text-primary">
                       <Mail className="w-3.5 h-3.5" />
                       {customer.email}
                     </a>
                   )}
                   {customer.phone && (
-                    <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white">
+                    <a href={`tel:${customer.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                       <Phone className="w-3.5 h-3.5" />
                       {customer.phone}
                     </a>
                   )}
                   {!customer.email && !customer.phone && (
-                    <p className="text-sm text-zinc-500">No contact info</p>
+                    <p className="text-sm text-muted-foreground">No contact info</p>
                   )}
                 </div>
-                <button className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors text-sm">
+                <button className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors text-sm">
                   <Mail className="w-4 h-4" />
                   Send Email
                 </button>
@@ -394,10 +394,10 @@ export default function CustomerDetailPage() {
               {/* Details */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <FileText className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Details</span>
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Details</span>
                 </div>
-                <div className="space-y-0 divide-y divide-zinc-800/50">
+                <div className="space-y-0 divide-y divide-border/50">
                   <InfoRow
                     label="Customer ID"
                     value={
@@ -422,7 +422,7 @@ export default function CustomerDetailPage() {
             title="Addresses"
             icon={MapPin}
             action={
-              <button className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300">
+              <button className="flex items-center gap-1 text-xs text-primary hover:text-primary">
                 <Plus className="w-3 h-3" /> Add Address
               </button>
             }
@@ -431,20 +431,20 @@ export default function CustomerDetailPage() {
             {addresses.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {addresses.map((address) => (
-                  <div key={address.id} className="p-4 bg-zinc-800/30 rounded-lg">
+                  <div key={address.id} className="p-4 bg-muted/30 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-cyan-400 font-medium uppercase">
+                      <span className="text-xs text-primary font-medium uppercase">
                         {address.type.replace('_', ' ')}
                       </span>
                       {address.isDefault && (
-                        <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded">Default</span>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">Default</span>
                       )}
                     </div>
-                    <div className="text-sm text-zinc-300 space-y-0.5">
-                      <p className="font-medium text-white">
+                    <div className="text-sm text-foreground space-y-0.5">
+                      <p className="font-medium text-foreground">
                         {address.firstName} {address.lastName}
                       </p>
-                      {address.company && <p className="text-zinc-400">{address.company}</p>}
+                      {address.company && <p className="text-muted-foreground">{address.company}</p>}
                       <p>{address.address1}</p>
                       {address.address2 && <p>{address.address2}</p>}
                       <p>
@@ -452,7 +452,7 @@ export default function CustomerDetailPage() {
                       </p>
                       <p>{address.country}</p>
                       {address.phone && (
-                        <p className="text-zinc-500 pt-1">{address.phone}</p>
+                        <p className="text-muted-foreground pt-1">{address.phone}</p>
                       )}
                     </div>
                   </div>
@@ -460,8 +460,8 @@ export default function CustomerDetailPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <MapPin className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                <p className="text-sm text-zinc-500">No addresses on file</p>
+                <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No addresses on file</p>
               </div>
             )}
           </CardContent>
@@ -476,41 +476,41 @@ export default function CustomerDetailPage() {
               orders.length > 0 ? (
                 <Link
                   href={`/orders?customerId=${customerId}`}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                  className="text-xs text-primary hover:text-primary flex items-center gap-1"
                 >
                   View All <ExternalLink className="w-3 h-3" />
                 </Link>
               ) : null
             }
           />
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-border">
             {orders.length > 0 ? (
               orders.map((order) => {
-                const statusConfig = ORDER_STATUS_CONFIG[order.status] || { label: order.status, color: 'text-zinc-400' };
+                const statusConfig = ORDER_STATUS_CONFIG[order.status] || { label: order.status, color: 'text-muted-foreground' };
                 return (
                   <Link
                     key={order.id}
                     href={`/orders/${order.id}`}
-                    className="flex items-center gap-4 p-4 hover:bg-zinc-800/30 transition-colors"
+                    className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors"
                   >
-                    <div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Package className="w-4 h-4 text-zinc-500" />
+                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Package className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-medium text-foreground">
                           {formatOrderNumber(order.orderNumber)}
                         </span>
                         <span className={cn('text-xs font-medium', statusConfig.color)}>
                           {statusConfig.label}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(order.orderedAt)} · {order.items?.length || 0} items
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-foreground">
                         {formatCurrency(order.total, order.currency)}
                       </p>
                     </div>
@@ -519,8 +519,8 @@ export default function CustomerDetailPage() {
               })
             ) : (
               <div className="text-center py-8">
-                <Package className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                <p className="text-sm text-zinc-500">No orders yet</p>
+                <Package className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No orders yet</p>
               </div>
             )}
           </div>
@@ -534,7 +534,7 @@ export default function CustomerDetailPage() {
             action={
               <button
                 onClick={() => setShowAddNote(!showAddNote)}
-                className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary"
               >
                 <Plus className="w-3 h-3" /> Add Note
               </button>
@@ -542,7 +542,7 @@ export default function CustomerDetailPage() {
           />
           <CardContent>
             {showAddNote && (
-              <div className="mb-4 p-4 bg-zinc-800/30 rounded-lg">
+              <div className="mb-4 p-4 bg-muted/30 rounded-lg">
                 <div className="flex gap-2 mb-3">
                   <button
                     onClick={() => setNoteType('INTERNAL')}
@@ -550,7 +550,7 @@ export default function CustomerDetailPage() {
                       'px-3 py-1 rounded text-xs font-medium transition-colors',
                       noteType === 'INTERNAL'
                         ? 'bg-blue-500/20 text-blue-400'
-                        : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                        : 'bg-muted text-muted-foreground hover:bg-muted'
                     )}
                   >
                     Internal
@@ -561,7 +561,7 @@ export default function CustomerDetailPage() {
                       'px-3 py-1 rounded text-xs font-medium transition-colors',
                       noteType === 'CUSTOMER_SERVICE'
                         ? 'bg-purple-500/20 text-purple-400'
-                        : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                        : 'bg-muted text-muted-foreground hover:bg-muted'
                     )}
                   >
                     Customer Service
@@ -571,14 +571,14 @@ export default function CustomerDetailPage() {
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="Add a note..."
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-3"
+                  className="w-full px-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-3"
                   rows={3}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddNote}
                     disabled={addingNote || !newNote.trim()}
-                    className="px-3 py-1.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    className="px-3 py-1.5 bg-primary text-foreground rounded-lg hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {addingNote ? 'Adding...' : 'Add Note'}
                   </button>
@@ -587,7 +587,7 @@ export default function CustomerDetailPage() {
                       setShowAddNote(false);
                       setNewNote('');
                     }}
-                    className="px-3 py-1.5 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 text-sm"
+                    className="px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted text-sm"
                   >
                     Cancel
                   </button>
@@ -598,21 +598,21 @@ export default function CustomerDetailPage() {
             {notes.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {notes.map((note) => (
-                  <div key={note.id} className="p-4 bg-zinc-800/30 rounded-lg">
+                  <div key={note.id} className="p-4 bg-muted/30 rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <span className={cn(
                         'px-2 py-0.5 rounded text-xs font-medium',
-                        NOTE_TYPE_CONFIG[note.type]?.color || 'bg-zinc-500/10 text-zinc-400'
+                        NOTE_TYPE_CONFIG[note.type]?.color || 'bg-muted text-muted-foreground'
                       )}>
                         {NOTE_TYPE_CONFIG[note.type]?.label || note.type}
                       </span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(note.createdAt)}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">{note.content}</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
                     {note.user && (
-                      <p className="text-xs text-zinc-500 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         by {note.user.name || note.user.email}
                       </p>
                     )}
@@ -621,8 +621,8 @@ export default function CustomerDetailPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <FileText className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                <p className="text-sm text-zinc-500">No notes on this customer</p>
+                <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No notes on this customer</p>
               </div>
             )}
           </CardContent>

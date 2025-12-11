@@ -149,7 +149,7 @@ export function ReviewEditStep({
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
                 rows={3}
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-foreground focus:ring-2 focus:ring-purple-500"
                 autoFocus
               />
             ) : (
@@ -157,7 +157,7 @@ export function ReviewEditStep({
                 type="text"
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-foreground focus:ring-2 focus:ring-purple-500"
                 autoFocus
               />
             )}
@@ -176,7 +176,7 @@ export function ReviewEditStep({
           </div>
         ) : (
           <div className="mt-1 flex items-start justify-between gap-2">
-            <p className="text-gray-900 dark:text-white">{value}</p>
+            <p className="text-gray-900 dark:text-foreground">{value}</p>
             <button
               onClick={() => startEditing(path, value)}
               className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
@@ -193,7 +193,7 @@ export function ReviewEditStep({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
           Review Your Funnel
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-400">
@@ -211,7 +211,7 @@ export function ReviewEditStep({
           value={funnelName}
           onChange={e => setFunnelName(e.target.value)}
           placeholder="e.g., Summer Sale Funnel"
-          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-foreground placeholder:text-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         />
       </div>
 
@@ -238,7 +238,7 @@ export function ReviewEditStep({
                     <Icon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
+                    <h3 className="font-medium text-gray-900 dark:text-foreground">
                       {config.label}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -280,7 +280,7 @@ export function ReviewEditStep({
                           <ul className="mt-2 space-y-2">
                             {content.landing.benefits.benefits.map((benefit, i) => (
                               <li key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <span className="font-medium text-gray-900 dark:text-white">{benefit.title}</span>
+                                <span className="font-medium text-gray-900 dark:text-foreground">{benefit.title}</span>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{benefit.description}</p>
                               </li>
                             ))}
@@ -293,7 +293,7 @@ export function ReviewEditStep({
                       <>
                         {content.products.map((product, i) => (
                           <div key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-                            <p className="font-medium text-gray-900 dark:text-white">{product.valueProposition}</p>
+                            <p className="font-medium text-gray-900 dark:text-foreground">{product.valueProposition}</p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{product.enhancedDescription}</p>
                             <ul className="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
                               {product.bulletPoints.map((point, j) => (
@@ -317,7 +317,7 @@ export function ReviewEditStep({
                                 +{email.sendDelayHours}h
                               </span>
                             </div>
-                            <p className="font-medium text-gray-900 dark:text-white">{email.subject}</p>
+                            <p className="font-medium text-gray-900 dark:text-foreground">{email.subject}</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">{email.previewText}</p>
                           </div>
                         ))}
@@ -378,7 +378,7 @@ export function ReviewEditStep({
         <button
           onClick={handleSave}
           disabled={isLoading || !funnelName.trim()}
-          className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+          className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-foreground font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
         >
           {isLoading ? (
             <>
