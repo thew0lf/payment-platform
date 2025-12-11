@@ -39,6 +39,7 @@ import {
   FileCheck2,
   UserPlus,
   Palette,
+  TrendingUp,
   LucideIcon,
 } from 'lucide-react';
 
@@ -120,6 +121,7 @@ export const iconMap: Record<string, LucideIcon> = {
   FileCheck2,
   UserPlus,
   Palette,
+  TrendingUp,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -134,7 +136,11 @@ export const navigationSections: NavSection[] = [
     icon: BarChart3,
     defaultExpanded: true,
     items: [
-      { id: 'main', label: 'Main', href: '/', icon: LayoutDashboard },
+      { id: 'main', label: 'Dashboard', href: '/', icon: LayoutDashboard },
+      { id: 'revenue-analytics', label: 'Revenue', href: '/insights/revenue', icon: TrendingUp },
+      { id: 'orders-analytics', label: 'Orders', href: '/insights/orders', icon: ShoppingCart },
+      { id: 'customers-analytics', label: 'Customers', href: '/insights/customers', icon: Users },
+      { id: 'funnels-analytics', label: 'Funnels', href: '/insights/funnels', icon: Workflow },
       { id: 'subscription-analytics', label: 'Subscriptions', href: '/insights/subscriptions', icon: Repeat },
     ],
   },
