@@ -3,7 +3,8 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+startCommand = "node server.js"
 healthcheckPath = "/"
-healthcheckTimeout = 30
+healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
