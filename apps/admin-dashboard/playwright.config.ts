@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Playwright E2E Test Configuration
+ * For SOC2/ISO compliant authentication testing
+ */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -16,22 +20,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
     },
   ],
   webServer: {

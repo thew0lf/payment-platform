@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -10,6 +11,7 @@ import { Auth0Strategy } from './strategies/auth0.strategy';
 import { Auth0Service } from './services/auth0.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { CombinedAuthGuard } from './guards/combined-auth.guard';
+import { PasswordResetCleanupJob } from './jobs/password-reset-cleanup.job';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -40,6 +42,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     Auth0Service,
     TokenBlacklistService,
     CombinedAuthGuard,
+    PasswordResetCleanupJob,
   ],
   exports: [AuthService, JwtModule, Auth0Service, TokenBlacklistService, CombinedAuthGuard],
 })

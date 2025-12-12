@@ -10,6 +10,7 @@ import { HierarchyProvider, useHierarchy } from '@/contexts/hierarchy-context';
 import { MobileMenuProvider, useMobileMenu } from '@/contexts/mobile-menu-context';
 import { PreferencesProvider, usePreferences } from '@/contexts/preferences-context';
 import { AuthGuard } from '@/components/auth/auth-guard';
+import { SessionTimeoutProvider } from '@/hooks/use-session-timeout';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { NavBadges } from '@/lib/navigation';
 import { dashboardApi } from '@/lib/api/dashboard';
@@ -85,13 +86,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <AuthProvider>
       <AuthGuard>
-        <HierarchyProvider>
-          <PreferencesProvider>
-            <MobileMenuProvider>
-              <DashboardContent>{children}</DashboardContent>
-            </MobileMenuProvider>
-          </PreferencesProvider>
-        </HierarchyProvider>
+        <SessionTimeoutProvider>
+          <HierarchyProvider>
+            <PreferencesProvider>
+              <MobileMenuProvider>
+                <DashboardContent>{children}</DashboardContent>
+              </MobileMenuProvider>
+            </PreferencesProvider>
+          </HierarchyProvider>
+        </SessionTimeoutProvider>
       </AuthGuard>
     </AuthProvider>
   );

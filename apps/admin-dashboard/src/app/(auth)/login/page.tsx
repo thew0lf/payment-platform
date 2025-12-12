@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -171,9 +172,9 @@ export default function LoginPage() {
                     </div>
                     Remember me
                   </button>
-                  <button type="button" className="text-sm text-primary hover:text-primary transition-colors">
+                  <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
