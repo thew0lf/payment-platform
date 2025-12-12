@@ -1,0 +1,207 @@
+# AVNZ Payment Platform - Admin Dashboard Deployment Pipeline
+# Triggers: push to main, manual dispatch
+# Flow: Lint → Build → Deploy → Verify
+#
+# OIDC Authentication: Uses GitHub OIDC to assume AWS IAM role
+# SOC2/ISO27001/PCI-DSS Compliant: Audit trail, secure secrets, no static credentials
+
+name: Deploy Admin Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/admin-dashboard/**'
+      - '.github/workflows/deploy-admin-dashboard.yml'
+  workflow_dispatch:
+    inputs:
+      skip_lint:
+        description: 'Skip linting (use for hotfixes)'
+        required: false
+        default: 'false'
+        type: boolean
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: avnz-admin-dashboard
+  ECS_CLUSTER: avnz-payment-cluster
+  ECS_SERVICE: avnz-admin-dashboard
+  ECS_TASK_DEFINITION: avnz-admin-dashboard
+
+# Required for OIDC token generation
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ============================================
+  # Job 1: Lint and Type Check
+  # ============================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip_lint != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/admin-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin-dashboard
+        run: npm ci
+
+      - name: Run linting
+        working-directory: apps/admin-dashboard
+        run: npm run lint --if-present
+
+      - name: Run type check
+        working-directory: apps/admin-dashboard
+        run: npx tsc --noEmit
+
+  # ============================================
+  # Job 2: Build and Push Docker Image
+  # ============================================
+  build:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    needs: [lint]
+    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+      commit_sha: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # SOC2 CC6.1 - Audit trail for deployments
+      - name: Log Deployment Start
+        run: |
+          echo "::notice::Deployment initiated by ${{ github.actor }} at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Service: Admin Dashboard"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: admin-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/admin-dashboard
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.avnz.io
+            NEXT_PUBLIC_APP_URL=https://app.avnz.io
+            NEXT_PUBLIC_AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }}
+            NEXT_PUBLIC_AUTH0_CLIENT_ID=${{ secrets.AUTH0_CLIENT_ID }}
+            NEXT_PUBLIC_AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
+
+      - name: Output image URI
+        run: |
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # Job 3: Deploy to ECS
+  # ============================================
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: [build]
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: admin-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment \
+            --query 'service.{status:status,runningCount:runningCount,pendingCount:pendingCount}'
+
+      - name: Wait for Deployment
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+          echo "Deployment complete!"
+
+  # ============================================
+  # Job 4: Verify Deployment
+  # ============================================
+  verify:
+    name: Verify Health
+    runs-on: ubuntu-latest
+    needs: [deploy]
+
+    steps:
+      - name: Health Check
+        run: |
+          echo "Checking admin dashboard health..."
+          for i in {1..10}; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://app.avnz.io" || echo "000")
+
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Health check passed! (attempt $i)"
+              exit 0
+            fi
+
+            echo "Health check attempt $i failed (HTTP $RESPONSE), retrying in 10s..."
+            sleep 10
+          done
+
+          echo "❌ Health check failed after 10 attempts"
+          exit 1
+
+      # SOC2 CC6.1/PCI-DSS 10.2 - Audit deployment completion
+      - name: Log Deployment Success
+        if: success()
+        run: |
+          echo "::notice::Deployment completed successfully at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "🚀 Admin Dashboard is live at: https://app.avnz.io"
+
+      - name: Log Deployment Failure
+        if: failure()
+        run: |
+          echo "::error::Deployment failed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"

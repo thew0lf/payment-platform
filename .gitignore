@@ -100,3 +100,18 @@ pnpm-lock.yaml
 # Integration defaults (contains credentials)
 apps/api/prisma/seeds/data/integration-defaults.json
 !apps/api/prisma/seeds/data/integration-defaults.template.json
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/crash.log
+terraform/crash.*.log
+terraform/.terraform.lock.hcl
+terraform/*.tfplan
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+!terraform/terraform.tfvars.example
