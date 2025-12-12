@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { HierarchyService, UserContext } from '../hierarchy/hierarchy.service';
 import {
@@ -332,7 +333,7 @@ export class CustomersService {
         lastName: data.lastName,
         phone: data.phone,
         companyId: data.companyId,
-        metadata: data.metadata || {},
+        metadata: (data.metadata || {}) as Prisma.InputJsonValue,
         status: 'ACTIVE',
       },
       include: {
@@ -367,7 +368,7 @@ export class CustomersService {
         lastName: data.lastName,
         phone: data.phone,
         status: data.status as any,
-        metadata: data.metadata,
+        ...(data.metadata !== undefined && { metadata: data.metadata as Prisma.InputJsonValue }),
       },
       include: {
         company: {

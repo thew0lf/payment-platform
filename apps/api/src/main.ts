@@ -6,7 +6,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import * as Sentry from '@sentry/nestjs';
+import { Sentry } from './instrument';
 import * as crypto from 'crypto';
 
 // Polyfill globalThis.crypto for Node.js 18 (required by some dependencies)
