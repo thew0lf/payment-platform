@@ -1,0 +1,286 @@
+# AVNZ Payment Platform - API Deployment Pipeline
+# Triggers: push to main, manual dispatch
+# Flow: Test → Build → Migrate → Deploy → Verify
+#
+# OIDC Authentication: Uses GitHub OIDC to assume AWS IAM role
+# No static credentials needed - secure, short-lived tokens
+
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'prisma/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (use for hotfixes)'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_migration:
+        description: 'Skip database migration'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: avnz-payment-api
+  ECS_CLUSTER: avnz-payment-cluster
+  ECS_SERVICE: avnz-api
+  ECS_TASK_DEFINITION: avnz-api
+
+# Required for OIDC token generation
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ============================================
+  # Job 1: Run Tests
+  # ============================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Run linting
+        working-directory: apps/api
+        run: npm run lint --if-present
+
+      - name: Run type check
+        working-directory: apps/api
+        run: npx tsc --noEmit
+
+  # ============================================
+  # Job 2: Build and Push Docker Image
+  # ============================================
+  build:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: github-actions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/api
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Output image URI
+        run: |
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # Job 3: Run Database Migration
+  # ============================================
+  migrate:
+    name: Run Migration
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.event.inputs.skip_migration != 'true' }}
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: github-actions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get VPC Configuration
+        id: vpc-config
+        run: |
+          VPC_CONFIG=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)
+
+          SUBNET=$(echo $VPC_CONFIG | jq -r '.subnets[0]')
+          SG=$(echo $VPC_CONFIG | jq -r '.securityGroups[0]')
+
+          echo "subnet=$SUBNET" >> $GITHUB_OUTPUT
+          echo "security_group=$SG" >> $GITHUB_OUTPUT
+
+      - name: Run Migration Task
+        id: run-migration
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.vpc-config.outputs.subnet }}],securityGroups=[${{ steps.vpc-config.outputs.security_group }}],assignPublicIp=ENABLED}" \
+            --overrides '{
+              "containerOverrides": [{
+                "name": "api",
+                "command": ["sh", "-c", "npx prisma db push --accept-data-loss"]
+              }]
+            }' \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Migration task started: $TASK_ARN"
+
+      - name: Wait for Migration
+        run: |
+          echo "Waiting for migration task to complete..."
+          aws ecs wait tasks-stopped \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-migration.outputs.task_arn }}
+
+      - name: Check Migration Status
+        run: |
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-migration.outputs.task_arn }} \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code: $EXIT_CODE"
+
+            # Get logs for debugging
+            TASK_ID=$(echo ${{ steps.run-migration.outputs.task_arn }} | cut -d'/' -f3)
+            aws logs get-log-events \
+              --log-group-name /ecs/avnz-api \
+              --log-stream-name ecs/api/$TASK_ID \
+              --limit 50 || true
+
+            exit 1
+          fi
+
+          echo "Migration completed successfully!"
+
+  # ============================================
+  # Job 4: Deploy to ECS
+  # ============================================
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: [build, migrate]
+    if: always() && needs.build.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: github-actions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment \
+            --query 'service.{status:status,runningCount:runningCount,pendingCount:pendingCount}'
+
+      - name: Wait for Deployment
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+          echo "Deployment complete!"
+
+  # ============================================
+  # Job 5: Verify Deployment
+  # ============================================
+  verify:
+    name: Verify Health
+    runs-on: ubuntu-latest
+    needs: [deploy]
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125754104:role/github-actions-deploy
+          role-session-name: github-actions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get ALB DNS
+        id: alb
+        run: |
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names avnz-api-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text 2>/dev/null || echo "avnz-api-alb-776896238.us-east-1.elb.amazonaws.com")
+          echo "dns=$ALB_DNS" >> $GITHUB_OUTPUT
+
+      - name: Health Check
+        run: |
+          echo "Checking API health..."
+          for i in {1..10}; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://${{ steps.alb.outputs.dns }}/health" || echo "000")
+
+            if [ "$RESPONSE" = "200" ]; then
+              echo "Health check passed! (attempt $i)"
+              exit 0
+            fi
+
+            echo "Health check attempt $i failed (HTTP $RESPONSE), retrying in 10s..."
+            sleep 10
+          done
+
+          echo "Health check failed after 10 attempts"
+          exit 1
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "🚀 Deployment successful!"
+          echo "API is live at: http://${{ steps.alb.outputs.dns }}"

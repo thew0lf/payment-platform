@@ -1,0 +1,47 @@
+# =============================================================================
+# Terraform Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your actual values
+# DO NOT commit terraform.tfvars to version control
+# =============================================================================
+
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "avnz"
+environment  = "production"
+
+# Domain Configuration
+domain_name   = "avnz.io"
+api_subdomain = "api"
+
+# ECS Task Configuration
+api_cpu            = 512
+api_memory         = 1024
+api_container_port = 3001
+api_desired_count  = 1
+api_min_capacity   = 1
+api_max_capacity   = 3
+
+# Application Environment Variables
+# IMPORTANT: Use AWS Secrets Manager or Parameter Store for sensitive values in production
+
+# Database - PostgreSQL connection string
+database_url = "postgresql://user:password@your-rds-instance.rds.amazonaws.com:5432/payment_platform?schema=public"
+
+# Redis - For caching and sessions
+redis_url = "redis://your-elasticache-instance.cache.amazonaws.com:6379"
+
+# Auth0 Configuration
+auth0_domain        = "your-tenant.auth0.com"
+auth0_client_id     = "your-auth0-client-id"
+auth0_client_secret = "your-auth0-client-secret"
+auth0_audience      = "https://api.avnz.io"
+
+# Security
+jwt_secret                 = "your-jwt-secret-at-least-32-characters-long"
+integration_encryption_key = "your-64-character-hex-key-for-aes256-encryption-of-credentials"
+
+# Monitoring (optional)
+sentry_dsn = ""  # Leave empty to disable Sentry
