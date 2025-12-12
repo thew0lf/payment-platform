@@ -10,6 +10,7 @@ import { BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { EmailService } from '../email/services/email.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -41,6 +42,11 @@ describe('AuthService - Password Reset', () => {
     isUserTokenInvalidated: jest.fn().mockResolvedValue(false),
   };
 
+  const mockEmailService = {
+    sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true }),
+    sendTemplatedEmail: jest.fn().mockResolvedValue({ success: true }),
+  };
+
   const mockConfigService = {
     get: jest.fn((key: string) => {
       if (key === 'NODE_ENV') return 'development';
@@ -64,6 +70,7 @@ describe('AuthService - Password Reset', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: TokenBlacklistService, useValue: mockTokenBlacklistService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
