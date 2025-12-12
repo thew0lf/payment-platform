@@ -13,7 +13,9 @@ COPY prisma ./prisma/
 # Install all dependencies (including dev for building)
 RUN npm ci
 
-# Generate Prisma client
+# Generate Prisma client - use library engine type for cross-platform builds
+ENV PRISMA_CLI_QUERY_ENGINE_TYPE=library
+ENV PRISMA_CLIENT_ENGINE_TYPE=library
 RUN npx prisma generate
 
 # Copy source code
@@ -36,23 +38,26 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy Prisma schema and generate client
+# Copy Prisma schema
 COPY prisma ./prisma/
-RUN npx prisma generate
+
+# Copy Prisma client from builder (avoid running prisma generate under emulation)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3001
 
-# Health check
+# Health check (health endpoint is excluded from /api prefix)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health || exit 1
+  CMD wget -qO- http://localhost:3001/health || exit 1
 
-# Start the server
-CMD ["npm", "run", "start:prod"]
+# Start the server (main.js is in dist/src/ due to tsconfig structure)
+CMD ["node", "dist/src/main"]
