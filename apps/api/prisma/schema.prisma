@@ -4,7 +4,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-arm64-openssl-1.1.x", "linux-musl-arm64-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-arm64-openssl-1.1.x", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -340,6 +340,9 @@ model User {
   refundsApproved  Refund[]       @relation("RefundApprover")
   refundsRejected  Refund[]       @relation("RefundRejecter")
 
+  // Password Reset Tokens
+  passwordResetTokens PasswordResetToken[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -347,6 +350,28 @@ model User {
 
   @@index([deletedAt])
   @@map("users")
+}
+
+// Password Reset Token - SOC2 CC6.1, ISO A.9.4.3 compliant
+// Secure password reset with time-limited tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique // Hashed token (SHA-256)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // IP and user agent for audit
+  ipAddress String?
+  userAgent String?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model TeamMember {

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -6,6 +6,14 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeType } from '@prisma/client';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+
+// SOC2 CC6.1 / ISO A.9.4.3 Compliant Password Reset Configuration
+const PASSWORD_RESET_CONFIG = {
+  TOKEN_EXPIRY_MINUTES: 15, // SOC2 requirement: short-lived tokens
+  MIN_PASSWORD_LENGTH: 8,
+  MAX_RESET_ATTEMPTS_PER_HOUR: 3, // Rate limiting for security
+  BCRYPT_ROUNDS: 12,
+};
 
 export interface JwtPayload {
   sub: string;
@@ -249,5 +257,209 @@ export class AuthService {
       companyId: user.companyId,
       departmentId: user.departmentId,
     };
+  }
+
+  // =============================================================================
+  // PASSWORD RESET - SOC2 CC6.1 / ISO A.9.4.3 Compliant
+  // =============================================================================
+
+  /**
+   * Request password reset - generates a secure token and returns it
+   * In production, this would send an email. For now, returns the token for testing.
+   * SOC2 CC6.1: Access control, secure authentication
+   * ISO A.9.4.3: Password management system
+   */
+  async requestPasswordReset(
+    email: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ success: boolean; message: string; token?: string }> {
+    // Check rate limiting - max 3 requests per hour per email
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentAttempts = await this.prisma.passwordResetToken.count({
+      where: {
+        user: { email },
+        createdAt: { gte: oneHourAgo },
+      },
+    });
+
+    if (recentAttempts >= PASSWORD_RESET_CONFIG.MAX_RESET_ATTEMPTS_PER_HOUR) {
+      this.logger.warn(`Password reset rate limit exceeded for email: ${email}`);
+      // Return success to prevent email enumeration attacks
+      return {
+        success: true,
+        message: 'If an account exists with this email, you will receive a password reset link.',
+      };
+    }
+
+    // Find user
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, status: true },
+    });
+
+    // Don't reveal if user exists - always return success
+    if (!user || user.status !== 'ACTIVE') {
+      this.logger.log(`Password reset requested for non-existent/inactive email: ${email}`);
+      return {
+        success: true,
+        message: 'If an account exists with this email, you will receive a password reset link.',
+      };
+    }
+
+    // Invalidate any existing unused tokens
+    await this.prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(), // Mark as used
+      },
+    });
+
+    // Generate secure token (64 bytes = 128 hex chars)
+    const rawToken = crypto.randomBytes(64).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    // Calculate expiry
+    const expiresAt = new Date(
+      Date.now() + PASSWORD_RESET_CONFIG.TOKEN_EXPIRY_MINUTES * 60 * 1000,
+    );
+
+    // Store hashed token
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: hashedToken,
+        expiresAt,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    this.logger.log(`Password reset token created for user: ${user.id}`);
+
+    // In production, send email here
+    // For development, return the raw token
+    const isDevelopment = this.configService.get('NODE_ENV') !== 'production';
+
+    return {
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset link.',
+      ...(isDevelopment && { token: rawToken }), // Only expose token in development
+    };
+  }
+
+  /**
+   * Validate password reset token
+   */
+  async validateResetToken(token: string): Promise<{ valid: boolean; userId?: string }> {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token: hashedToken },
+      select: {
+        id: true,
+        userId: true,
+        expiresAt: true,
+        usedAt: true,
+        user: { select: { status: true } },
+      },
+    });
+
+    if (!resetToken) {
+      return { valid: false };
+    }
+
+    // Check if already used
+    if (resetToken.usedAt) {
+      this.logger.warn(`Attempted to use already-used reset token`);
+      return { valid: false };
+    }
+
+    // Check if expired
+    if (resetToken.expiresAt < new Date()) {
+      this.logger.warn(`Attempted to use expired reset token`);
+      return { valid: false };
+    }
+
+    // Check if user is still active
+    if (resetToken.user.status !== 'ACTIVE') {
+      return { valid: false };
+    }
+
+    return { valid: true, userId: resetToken.userId };
+  }
+
+  /**
+   * Reset password using token
+   * SOC2 CC6.1: Secure password change
+   * ISO A.9.4.3: Password management
+   */
+  async resetPassword(
+    token: string,
+    newPassword: string,
+    ipAddress?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    // Validate password strength
+    if (newPassword.length < PASSWORD_RESET_CONFIG.MIN_PASSWORD_LENGTH) {
+      throw new BadRequestException(
+        `Password must be at least ${PASSWORD_RESET_CONFIG.MIN_PASSWORD_LENGTH} characters`,
+      );
+    }
+
+    // Validate token
+    const validation = await this.validateResetToken(token);
+    if (!validation.valid || !validation.userId) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, PASSWORD_RESET_CONFIG.BCRYPT_ROUNDS);
+
+    // Update password and mark token as used in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Update user password
+      await tx.user.update({
+        where: { id: validation.userId },
+        data: { passwordHash },
+      });
+
+      // Mark token as used
+      await tx.passwordResetToken.update({
+        where: { token: hashedToken },
+        data: { usedAt: new Date() },
+      });
+
+      // Invalidate all user's tokens (force re-login)
+      // Safe assertion: validation.userId is verified above (line 414)
+      await this.invalidateAllTokens(validation.userId as string);
+    });
+
+    this.logger.log(`Password reset completed for user: ${validation.userId}`);
+
+    return {
+      success: true,
+      message: 'Password has been reset successfully. Please log in with your new password.',
+    };
+  }
+
+  /**
+   * Clean up expired tokens (should be run periodically)
+   */
+  async cleanupExpiredTokens(): Promise<number> {
+    const result = await this.prisma.passwordResetToken.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date() } },
+          { usedAt: { not: null } },
+        ],
+      },
+    });
+    this.logger.log(`Cleaned up ${result.count} expired/used password reset tokens`);
+    return result.count;
   }
 }
