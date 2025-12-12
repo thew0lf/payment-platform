@@ -21,6 +21,7 @@ import { seedPricingPlans } from './seeds/core/seed-pricing';
 import { seedRbac } from './seeds/seed-rbac';
 import { seedCodeReviewChecklist } from './seeds/seed-code-review-checklist';
 import { seedQAChecklist } from './seeds/seed-qa-checklist';
+import { seedEmailTemplates } from './seeds/core/seed-email-templates';
 
 // Demo seeds
 import {
@@ -72,6 +73,9 @@ async function main() {
   // Seed Code Review and QA Checklists
   await seedCodeReviewChecklist();
   await seedQAChecklist();
+
+  // Seed email templates (system templates for auth, etc.)
+  await seedEmailTemplates();
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 2: DEMO DATA (demo & development only)
