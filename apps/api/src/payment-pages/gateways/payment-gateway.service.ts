@@ -376,18 +376,20 @@ export class PaymentGatewayService {
           const decrypted = await this.platformIntegrationService.getDecryptedCredentials(
             integration.platformIntegrationId,
           );
+          const env = (integration.environment?.toLowerCase() === 'production' ? 'production' : 'sandbox') as 'sandbox' | 'production';
           credentials = {
-            environment: integration.environment as 'sandbox' | 'production',
             ...decrypted,
+            environment: env,
           };
         } else if (integration.credentials) {
           // Using own credentials
           const decrypted = this.encryptionService.decrypt(
             integration.credentials as unknown as EncryptedCredentials,
           );
+          const env = (integration.environment?.toLowerCase() === 'production' ? 'production' : 'sandbox') as 'sandbox' | 'production';
           credentials = {
-            environment: integration.environment as 'sandbox' | 'production',
             ...decrypted,
+            environment: env,
           };
         } else {
           continue; // No credentials available
