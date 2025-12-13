@@ -1,8 +1,9 @@
 // Email Service - SOC2/ISO27001 Compliant Email Sending with AWS SES
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses';
+// Production-optimized: All emails are queued via SQS for reliability and audit compliance
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TemplateRendererService } from './template-renderer.service';
+import { EmailQueueService } from './email-queue.service';
 import {
   SendEmailOptions,
   SendTemplatedEmailOptions,
@@ -12,24 +13,31 @@ import {
   DEFAULT_FROM_NAME,
   DEFAULT_REPLY_TO,
 } from '../types/email.types';
-import { EmailTemplateCategory, EmailSendStatus } from '@prisma/client';
+import { EmailSendStatus } from '@prisma/client';
+
+// Simple email validation regex (RFC 5322 simplified)
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
-  private sesClient: SESClient;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly templateRenderer: TemplateRendererService,
+    @Inject(forwardRef(() => EmailQueueService))
+    private readonly emailQueueService: EmailQueueService,
   ) {}
 
   async onModuleInit() {
-    // Initialize SES client - credentials come from environment or IAM role
-    this.sesClient = new SESClient({
-      region: process.env.AWS_REGION || 'us-east-1',
-    });
-    this.logger.log('Email service initialized with AWS SES');
+    this.logger.log('Email service initialized (SQS queue-based sending)');
+  }
+
+  /**
+   * Validate email address format
+   */
+  private isValidEmail(email: string): boolean {
+    return EMAIL_REGEX.test(email) && email.length <= 254;
   }
 
   /**
@@ -81,134 +89,20 @@ export class EmailService implements OnModuleInit {
 
   /**
    * Send a raw email (without template)
+   * All emails are queued via SQS for reliability, retry handling, and audit compliance
+   * The EmailQueueProcessorService handles the actual SES sending
    */
   async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {
-    const {
-      to,
-      toName,
-      subject,
-      htmlBody,
-      textBody,
-      fromEmail = DEFAULT_FROM_EMAIL,
-      fromName = DEFAULT_FROM_NAME,
-      replyTo = DEFAULT_REPLY_TO,
-      templateCode,
-      templateId,
-      category,
-      variables,
-      organizationId,
-      clientId,
-      companyId,
-      relatedEntityType,
-      relatedEntityId,
-      ipAddress,
-      userAgent,
-    } = options;
+    const { to } = options;
 
-    // Create send log entry (SOC2/ISO27001 compliance)
-    const sendLog = await this.prisma.emailSendLog.create({
-      data: {
-        templateId,
-        templateCode,
-        organizationId,
-        clientId,
-        companyId,
-        toEmail: to,
-        toName,
-        fromEmail,
-        fromName,
-        replyTo,
-        subject,
-        category,
-        variablesUsed: variables ? JSON.parse(JSON.stringify(variables)) : null,
-        provider: 'ses',
-        status: EmailSendStatus.QUEUED,
-        relatedEntityType,
-        relatedEntityId,
-        ipAddress,
-        userAgent,
-      },
-    });
-
-    try {
-      // Update status to SENDING
-      await this.prisma.emailSendLog.update({
-        where: { id: sendLog.id },
-        data: { status: EmailSendStatus.SENDING },
-      });
-
-      // Build SES email request
-      const fromAddress = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
-      const toAddress = toName ? `${toName} <${to}>` : to;
-
-      const params: SendEmailCommandInput = {
-        Source: fromAddress,
-        Destination: {
-          ToAddresses: [toAddress],
-        },
-        Message: {
-          Subject: {
-            Charset: 'UTF-8',
-            Data: subject,
-          },
-          Body: {
-            Html: {
-              Charset: 'UTF-8',
-              Data: htmlBody,
-            },
-            ...(textBody && {
-              Text: {
-                Charset: 'UTF-8',
-                Data: textBody,
-              },
-            }),
-          },
-        },
-        ReplyToAddresses: replyTo ? [replyTo] : undefined,
-      };
-
-      // Send via SES
-      const command = new SendEmailCommand(params);
-      const response = await this.sesClient.send(command);
-
-      // Update send log with success
-      await this.prisma.emailSendLog.update({
-        where: { id: sendLog.id },
-        data: {
-          status: EmailSendStatus.SENT,
-          messageId: response.MessageId,
-          sentAt: new Date(),
-        },
-      });
-
-      this.logger.log(`Email sent successfully: ${response.MessageId} to ${to}`);
-
-      return {
-        success: true,
-        messageId: response.MessageId,
-        logId: sendLog.id,
-      };
-    } catch (error) {
-      // Update send log with failure
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await this.prisma.emailSendLog.update({
-        where: { id: sendLog.id },
-        data: {
-          status: EmailSendStatus.FAILED,
-          errorMessage,
-          retryCount: { increment: 1 },
-          lastRetryAt: new Date(),
-        },
-      });
-
-      this.logger.error(`Failed to send email to ${to}: ${errorMessage}`);
-
-      return {
-        success: false,
-        logId: sendLog.id,
-        error: errorMessage,
-      };
+    // Validate email address before queuing
+    if (!this.isValidEmail(to)) {
+      this.logger.warn(`Invalid email address: ${to}`);
+      return { success: false, error: `Invalid email address: ${to}` };
     }
+
+    // Delegate to queue service - handles logging, audit trail, and SQS queuing
+    return this.emailQueueService.queueEmail(options);
   }
 
   /**
@@ -366,7 +260,7 @@ export class EmailService implements OnModuleInit {
       userAgent?: string;
     },
   ): Promise<EmailSendResult> {
-    const resetUrl = `${process.env.ADMIN_DASHBOARD_URL || 'https://admin.avnz.io'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.ADMIN_DASHBOARD_URL || 'https://app.avnz.io'}/reset-password?token=${resetToken}`;
 
     return this.sendTemplatedEmail({
       to,
@@ -409,7 +303,7 @@ export class EmailService implements OnModuleInit {
       variables: {
         userName: options.toName || to.split('@')[0],
         companyName: options.companyName || 'AVNZ Platform',
-        loginUrl: options.loginUrl || `${process.env.ADMIN_DASHBOARD_URL || 'https://admin.avnz.io'}/login`,
+        loginUrl: options.loginUrl || `${process.env.ADMIN_DASHBOARD_URL || 'https://app.avnz.io'}/login`,
         supportEmail: DEFAULT_REPLY_TO,
       },
       companyId: options.companyId,
@@ -432,7 +326,7 @@ export class EmailService implements OnModuleInit {
       organizationId?: string;
     },
   ): Promise<EmailSendResult> {
-    const verifyUrl = `${process.env.ADMIN_DASHBOARD_URL || 'https://admin.avnz.io'}/verify-email?token=${verificationToken}`;
+    const verifyUrl = `${process.env.ADMIN_DASHBOARD_URL || 'https://app.avnz.io'}/verify-email?token=${verificationToken}`;
 
     return this.sendTemplatedEmail({
       to,
