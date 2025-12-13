@@ -80,9 +80,19 @@ export const DEFAULT_FROM_EMAIL = 'noreply@avnz.io';
 export const DEFAULT_FROM_NAME = 'AVNZ Platform';
 export const DEFAULT_REPLY_TO = 'support@avnz.io';
 
-// Rate limiting configuration
+// SES Configuration Set for production deliverability tracking
+// This configuration set tracks bounces, complaints, deliveries, and rejections
+// via SNS notifications for reputation management
+export const SES_CONFIGURATION_SET = 'avnz-production';
+
+// Rate limiting configuration (production SES limits after sandbox removal)
 export const EMAIL_RATE_LIMITS = {
+  // Sandbox mode limits (before production access granted):
+  // maxPerDay: 200, maxPerSecond: 1
+
+  // Production limits (after AWS approves production access):
   maxPerMinute: 60,
-  maxPerHour: 1000,
-  maxPerDay: 10000,
+  maxPerHour: 5000,
+  maxPerDay: 50000,
+  maxPerSecond: 14, // Default production rate
 };

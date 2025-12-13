@@ -291,6 +291,25 @@ export const AuditAction = {
   AUTOMATION_TRIGGERED: 'AUTOMATION_TRIGGERED',
   AUTOMATION_COMPLETED: 'AUTOMATION_COMPLETED',
   AUTOMATION_FAILED: 'AUTOMATION_FAILED',
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EMAIL & COMMUNICATION (GDPR Art. 21, CAN-SPAM, CASL)
+  // ─────────────────────────────────────────────────────────────────────────────
+  EMAIL_QUEUED: 'EMAIL_QUEUED', // Email added to SQS queue
+  EMAIL_SENT: 'EMAIL_SENT', // Email successfully sent via SES
+  EMAIL_FAILED: 'EMAIL_FAILED', // Email send permanently failed
+  EMAIL_RETRY: 'EMAIL_RETRY', // Email queued for retry after failure
+  EMAIL_BOUNCED: 'EMAIL_BOUNCED', // Hard/soft bounce received
+  EMAIL_COMPLAINT: 'EMAIL_COMPLAINT', // Spam complaint received
+  EMAIL_DELIVERED: 'EMAIL_DELIVERED', // Delivery confirmation from SES
+  EMAIL_OPENED: 'EMAIL_OPENED', // Email opened (tracking pixel)
+  EMAIL_CLICKED: 'EMAIL_CLICKED', // Link clicked in email
+  EMAIL_UNSUBSCRIBED: 'EMAIL_UNSUBSCRIBED', // User unsubscribed
+  EMAIL_QUEUE_PURGED: 'EMAIL_QUEUE_PURGED', // Admin purged email queue
+  EMAIL_QUEUE_FAILED: 'EMAIL_QUEUE_FAILED', // Failed to queue email
+  EMAIL_TEMPLATE_CREATED: 'EMAIL_TEMPLATE_CREATED',
+  EMAIL_TEMPLATE_UPDATED: 'EMAIL_TEMPLATE_UPDATED',
+  EMAIL_TEMPLATE_DELETED: 'EMAIL_TEMPLATE_DELETED',
 } as const;
 
 export type AuditActionType = (typeof AuditAction)[keyof typeof AuditAction];
