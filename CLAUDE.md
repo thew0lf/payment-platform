@@ -220,17 +220,21 @@ Senior developer review of a product ticket before implementation. Use: `/featur
 payment-platform/
 ├── apps/
 │   ├── api/                 # NestJS backend (port 3001)
-│   ├── founders-landing/    # Coming soon page (founders.avnz.io)
-│   └── admin-dashboard/     # Next.js 14 frontend (port 3000)
+│   ├── admin-dashboard/     # Next.js 14 admin frontend (port 3000)
+│   ├── company-portal/      # Next.js public funnel frontend (port 3003)
+│   └── founders-landing/    # Coming soon page (founders.avnz.io)
 ├── packages/
 │   └── shared/              # Shared types and utilities
-├── docs/roadmap/            # Development plans and specs
+├── docs/
+│   ├── roadmap/             # Development plans and specs
+│   ├── reviews/             # Security and QA reviews
+│   └── guides/              # Implementation guides
 └── prisma/                  # Database schema (in apps/api)
 ```
 
 ---
 
-## Current Status (November 30, 2025)
+## Current Status (December 13, 2025)
 
 | Feature | Backend | Frontend | Notes |
 |---------|---------|----------|-------|
@@ -238,6 +242,12 @@ payment-platform/
 | Feature 02: Dynamic RBAC | ✅ Spec Complete | 🔲 Pending | Hierarchical permissions |
 | Feature 03: Vendor System | ✅ Spec Complete | 🔲 Pending | Two-tier Vendor/VendorCompany |
 | Auth & Auth0 SSO | ✅ Complete | ✅ Complete | JWT-based |
+| Password Reset | ✅ Complete | ✅ Complete | SOC2/ISO compliant |
+| Session Timeout | ✅ Complete | ✅ Complete | 15min timeout, activity detection |
+| Email System | ✅ Complete | ✅ Complete | AWS SES, templating, logging |
+| Funnels | ✅ Complete | ✅ Complete | Multi-stage sales funnels |
+| Leads Module | ✅ Complete | ✅ Complete | Progressive capture, scoring |
+| Company Portal | ✅ Complete | ✅ Complete | Public funnel frontend |
 | Multi-Account Providers | 🔲 Pending | 🔲 Pending | Phase 2 |
 | Gateway Rule Engine | 🔲 Pending | 🔲 Pending | Phase 3 |
 
@@ -1075,14 +1085,20 @@ AI-powered product management services:
 
 ## Key Project Documents
 
-| Document | Purpose |
-|----------|---------|
-| `INTEGRATIONS_FRAMEWORK_SPECIFICATION.md` | Feature 01 spec |
-| `Feature_02_Dynamic_RBAC_System.docx` | Feature 02 spec |
-| `Feature_03_Vendor_System.docx` | Feature 03 spec |
-| `Gateway_Rule_Engine_Complete_Specification.md` | GRE routing rules |
-| `COMPLETE_DEVELOPMENT_PLAN.md` | 24-week roadmap |
-| `MASTER_DEVELOPMENT_CHECKLIST.md` | Task tracker |
+| Document | Location | Purpose |
+|----------|----------|---------|
+| `INTEGRATIONS_FRAMEWORK_SPECIFICATION.md` | `docs/roadmap/` | Feature 01 spec |
+| `Feature_02_Dynamic_RBAC_System.docx` | `docs/` | Feature 02 spec |
+| `Feature_03_Vendor_System.docx` | `docs/` | Feature 03 spec |
+| `Gateway_Rule_Engine_Complete_Specification.md` | `docs/guides/` | GRE routing rules |
+| `FUNNEL_BUILDER_SPECIFICATION.md` | `docs/roadmap/` | Funnels system spec |
+| `funnel-alpha-launch.md` | `docs/roadmap/` | Alpha launch checklist |
+| `railway-deployment-guide.md` | `docs/` | Railway deployment steps |
+| `CI_CD_DEPLOYMENT.md` | `docs/` | CI/CD pipeline setup |
+| `SECURITY_REVIEW_Dec2025.md` | `docs/reviews/` | Security audit |
+| `QA_TEST_CASES_Dec2025.md` | `docs/reviews/` | QA test cases |
+| `COMPLETE_DEVELOPMENT_PLAN.md` | `docs/roadmap/` | 24-week roadmap |
+| `MASTER_DEVELOPMENT_CHECKLIST.md` | `docs/roadmap/` | Task tracker |
 
 ---
 
@@ -1297,6 +1313,304 @@ GET    /api/transactions/stats      # Transaction statistics
 
 ---
 
+## Email System (SOC2/ISO27001 Compliant)
+
+### Overview
+Transactional email system with AWS SES integration, Handlebars templating, and hierarchical template fallback.
+
+### Template Categories
+```typescript
+enum EmailTemplateCategory {
+  AUTHENTICATION,    // Password reset, verification
+  NOTIFICATION,      // Alerts, updates
+  TRANSACTION,       // Order confirmation, receipts
+  MARKETING,         // Promotional emails
+  SYSTEM,            // Admin notifications
+}
+```
+
+### Template Hierarchy (Fallback Order)
+1. **Company** - Most specific, company-branded templates
+2. **Client** - Client-level defaults
+3. **Organization** - Platform-wide templates
+4. **System** - Built-in fallback templates
+
+### Key Features
+- **Handlebars Templating:** `{{userName}}`, `{{#if condition}}`, `{{#each items}}`
+- **Send Logging:** Every email logged to `EmailSendLog` for compliance
+- **Rate Limiting:** 60/min, 1000/hour, 10000/day
+- **Sender Configuration:** Customizable from/reply-to per template
+
+### API Endpoints
+```
+# Template Management (Admin)
+GET    /api/email/templates           # List templates
+POST   /api/email/templates           # Create template
+PATCH  /api/email/templates/:id       # Update template
+DELETE /api/email/templates/:id       # Delete template
+
+# Send Logs (Admin)
+GET    /api/email/logs                # View send history
+```
+
+### Built-in Email Types
+| Method | Purpose | Template Code |
+|--------|---------|---------------|
+| `sendPasswordResetEmail()` | Password reset with token | `password-reset` |
+| `sendWelcomeEmail()` | New user welcome | `welcome` |
+| `sendVerificationEmail()` | Email verification | `email-verification` |
+| `sendTemplatedEmail()` | Generic templated email | any |
+
+### Key Files
+- `apps/api/src/email/email.module.ts` - Module definition
+- `apps/api/src/email/services/email.service.ts` - Core service with AWS SES
+- `apps/api/src/email/services/template-renderer.service.ts` - Handlebars rendering
+- `apps/api/src/email/types/email.types.ts` - TypeScript types
+- `apps/api/prisma/seeds/core/seed-email-templates.ts` - Default templates
+
+---
+
+## Funnels Module (Sales Funnels)
+
+### Overview
+Complete sales funnel system with multi-stage flows, A/B testing variants, session tracking, and integrated checkout.
+
+### Funnel Structure
+```
+Funnel
+├── Stages (ordered)
+│   ├── LANDING - Hero, value prop, CTA
+│   ├── PRODUCT_SELECTION - Product grid, variants
+│   └── CHECKOUT - Address, payment, order
+├── Variants (A/B testing)
+└── Sessions (visitor tracking)
+```
+
+### Stage Types
+```typescript
+enum FunnelStageType {
+  LANDING,            // Landing page with hero
+  PRODUCT_SELECTION,  // Product catalog/selection
+  CHECKOUT,           // Payment and order
+  UPSELL,             // Post-purchase upsell
+  DOWNSELL,           // Alternative offer
+  THANK_YOU,          // Order confirmation
+}
+```
+
+### Funnel Settings
+```typescript
+interface FunnelSettings {
+  branding: {
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+    logoUrl?: string;
+  };
+  behavior: {
+    showProgressBar: boolean;
+    exitIntent: boolean;
+    abandonedCartEmail: boolean;
+  };
+  urls: {
+    termsUrl?: string;
+    privacyUrl?: string;
+  };
+}
+```
+
+### API Endpoints (Authenticated)
+```
+# Funnel CRUD
+POST   /api/funnels                        # Create funnel
+GET    /api/funnels                        # List funnels
+GET    /api/funnels/:id                    # Get funnel
+PATCH  /api/funnels/:id                    # Update funnel
+DELETE /api/funnels/:id                    # Delete funnel
+POST   /api/funnels/:id/publish            # Publish/unpublish
+POST   /api/funnels/:id/duplicate          # Duplicate funnel
+
+# Stage Management
+POST   /api/funnels/:id/stages             # Add stage
+PATCH  /api/funnels/:id/stages/:stageId    # Update stage
+DELETE /api/funnels/:id/stages/:stageId    # Delete stage
+POST   /api/funnels/:id/stages/reorder     # Reorder stages
+
+# Variant Management (A/B Testing)
+POST   /api/funnels/:id/variants           # Create variant
+PATCH  /api/funnels/:id/variants/:variantId  # Update variant
+DELETE /api/funnels/:id/variants/:variantId  # Delete variant
+
+# Analytics
+GET    /api/funnels/stats/overview         # Company funnel stats
+GET    /api/funnels/:id/analytics          # Funnel analytics
+```
+
+### API Endpoints (Public - No Auth)
+```
+# Public Funnel Access
+GET    /api/f/:seoSlug                     # Get funnel by SEO slug
+
+# Session Management
+POST   /api/f/:funnelId/sessions           # Start session
+GET    /api/f/sessions/:sessionToken       # Get session
+PATCH  /api/f/sessions/:sessionToken       # Update session data
+POST   /api/f/sessions/:sessionToken/events     # Track event
+POST   /api/f/sessions/:sessionToken/advance    # Advance stage
+POST   /api/f/sessions/:sessionToken/complete   # Complete session
+POST   /api/f/sessions/:sessionToken/abandon    # Abandon session
+
+# Checkout
+GET    /api/f/sessions/:sessionToken/checkout   # Get checkout summary
+POST   /api/f/sessions/:sessionToken/checkout   # Process payment
+```
+
+### Key Files
+- `apps/api/src/funnels/funnels.module.ts` - Module definition
+- `apps/api/src/funnels/funnels.controller.ts` - Controllers (auth + public)
+- `apps/api/src/funnels/services/funnels.service.ts` - Core CRUD
+- `apps/api/src/funnels/services/funnel-sessions.service.ts` - Session tracking
+- `apps/api/src/funnels/services/funnel-analytics.service.ts` - Analytics
+- `apps/api/src/funnels/services/funnel-payment.service.ts` - Checkout processing
+- `apps/admin-dashboard/src/app/(dashboard)/funnels/page.tsx` - Funnel list UI
+- `docs/roadmap/FUNNEL_BUILDER_SPECIFICATION.md` - Full specification
+
+---
+
+## Leads Module
+
+### Overview
+Progressive lead capture with field-by-field tracking, engagement scoring, and conversion management.
+
+### Lead Status Flow
+```
+NEW → ENGAGED → QUALIFIED → CONVERTED
+                         → ABANDONED
+```
+
+### Lead Scoring
+```typescript
+interface LeadScores {
+  engagementScore: number;  // 0-100 based on interactions
+  intentScore: number;      // 0-100 based on behavior signals
+}
+```
+
+### API Endpoints (Public)
+```
+# Field Capture (called on blur)
+POST   /api/leads/capture/field            # Single field capture
+POST   /api/leads/capture/fields           # Multiple fields capture
+
+# Session-based Operations
+GET    /api/leads/session/:sessionToken    # Get lead by session
+POST   /api/leads/session/:sessionToken/cart     # Update cart data
+POST   /api/leads/session/:sessionToken/abandon  # Mark abandoned
+```
+
+### API Endpoints (Authenticated)
+```
+GET    /api/leads                          # List leads
+GET    /api/leads/stats                    # Lead statistics
+GET    /api/leads/:id                      # Get lead by ID
+PATCH  /api/leads/:id                      # Update lead
+POST   /api/leads/:id/scores               # Recalculate scores
+POST   /api/leads/:id/convert              # Convert to customer
+```
+
+### Key Files
+- `apps/api/src/leads/leads.module.ts` - Module definition
+- `apps/api/src/leads/leads.controller.ts` - Controller
+- `apps/api/src/leads/services/lead-capture.service.ts` - Lead capture logic
+- `apps/api/src/leads/dto/lead.dto.ts` - DTOs
+
+---
+
+## Company Portal (Public Frontend)
+
+### Overview
+Public-facing Next.js application for rendering funnels and processing customer purchases.
+
+### Port
+- **Development:** 3003
+- **Container:** `avnz-payment-portal`
+
+### Key Features
+- Funnel stage rendering (Landing, Product, Checkout, Success)
+- Shopping cart management
+- Address autocomplete
+- Payment processing integration
+- Conversion interventions (urgency, scarcity, social proof)
+
+### Funnel Stages
+| Stage | Component | Purpose |
+|-------|-----------|---------|
+| Landing | `LandingStage` | Hero, value prop, CTA |
+| Product Selection | `ProductSelectionStage` | Product grid with variants |
+| Checkout | `CheckoutStage` | Address, payment form |
+| Success | `SuccessStage` | Order confirmation |
+
+### Intervention Components
+| Component | Purpose |
+|-----------|---------|
+| `UrgencyBanner` | Countdown timer at top |
+| `ScarcityIndicator` | Stock level warnings |
+| `SocialProofPopup` | Recent purchase notifications |
+
+### Key Files
+- `apps/company-portal/src/app/f/[slug]/page.tsx` - Funnel page
+- `apps/company-portal/src/components/funnel/funnel-renderer.tsx` - Main renderer
+- `apps/company-portal/src/components/funnel/stages/` - Stage components
+- `apps/company-portal/src/components/interventions/` - CRO interventions
+- `apps/company-portal/src/contexts/funnel-context.tsx` - Funnel state
+- `apps/company-portal/src/lib/api.ts` - API client
+
+---
+
+## Session Timeout & Security (SOC2 Compliant)
+
+### Session Timeout Configuration
+```typescript
+const SESSION_CONFIG = {
+  INACTIVITY_TIMEOUT: 900,   // 15 min production, 30 min dev
+  WARNING_BEFORE_TIMEOUT: 120,  // 2 min warning
+  ACTIVITY_THROTTLE: 5000,      // 5 sec activity detection throttle
+};
+```
+
+### Features
+- **Activity Detection:** Mouse, keyboard, scroll, touch events
+- **Warning Modal:** Fun, on-brand messaging before logout
+- **Auto-Logout:** Secure session termination on timeout
+- **Session Extension:** User can extend with single click
+
+### Password Reset (SOC2 CC6.1 / ISO A.9.4.3)
+- **Token Security:** SHA-256 hashed storage, 64-byte random tokens
+- **Rate Limiting:** 3 attempts per email per hour
+- **Token Expiry:** 1 hour
+- **User Enumeration Prevention:** Same response for valid/invalid emails
+
+### API Endpoints
+```
+POST   /api/auth/forgot-password           # Request password reset
+POST   /api/auth/validate-reset-token      # Validate token
+POST   /api/auth/reset-password            # Reset with new password
+```
+
+### Password Requirements
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+
+### Key Files
+- `apps/admin-dashboard/src/hooks/use-session-timeout.tsx` - Timeout hook & modal
+- `apps/api/src/auth/auth.service.ts` - Password reset logic
+- `apps/api/src/auth/auth.controller.ts` - Auth endpoints
+- `apps/api/src/auth/services/token-blacklist.service.ts` - Token invalidation
+
+---
+
 ## Seed Data Structure
 
 ### Directory Organization
@@ -1351,6 +1665,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: December 11, 2025*
-*Feature 01: Complete | Feature 02-03: Spec Complete*
+*Last Updated: December 13, 2025*
+*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email: Complete*
 

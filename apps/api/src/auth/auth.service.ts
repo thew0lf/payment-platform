@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeType } from '@prisma/client';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { EmailService } from '../email/services/email.service';
 
 // SOC2 CC6.1 / ISO A.9.4.3 Compliant Password Reset Configuration
 const PASSWORD_RESET_CONFIG = {
@@ -64,6 +65,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly emailService: EmailService,
   ) {
     // Access token: 15 minutes in production, 7 days in development
     this.accessTokenExpiry =
@@ -295,7 +297,7 @@ export class AuthService {
     // Find user
     const user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, status: true },
+      select: { id: true, email: true, firstName: true, status: true },
     });
 
     // Don't reveal if user exists - always return success
@@ -340,8 +342,25 @@ export class AuthService {
 
     this.logger.log(`Password reset token created for user: ${user.id}`);
 
-    // In production, send email here
-    // For development, return the raw token
+    // Send password reset email via AWS SES
+    const emailResult = await this.emailService.sendPasswordResetEmail(
+      user.email,
+      rawToken,
+      {
+        toName: user.firstName || undefined,
+        ipAddress,
+        userAgent,
+      },
+    );
+
+    if (!emailResult.success) {
+      this.logger.error(`Failed to send password reset email to ${user.email}: ${emailResult.error}`);
+      // Still return success to prevent email enumeration
+    } else {
+      this.logger.log(`Password reset email sent to ${user.email}`);
+    }
+
+    // For development, also return the token for testing
     const isDevelopment = this.configService.get('NODE_ENV') !== 'production';
 
     return {

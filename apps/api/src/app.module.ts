@@ -39,6 +39,7 @@ import { CardVaultModule } from './card-vault/card-vault.module';
 import { SettingsModule } from './settings/settings.module';
 import { AddressModule } from './address/address.module';
 import { AIFunnelGeneratorModule } from './ai-funnel-generator/ai-funnel-generator.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { AIFunnelGeneratorModule } from './ai-funnel-generator/ai-funnel-generat
     SettingsModule,
     AddressModule,
     AIFunnelGeneratorModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

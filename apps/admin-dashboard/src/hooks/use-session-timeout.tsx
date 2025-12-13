@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/auth-context';
-import { Clock, AlertTriangle, LogOut, MousePointer } from 'lucide-react';
+import { Clock, Coffee, LogOut, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -179,36 +179,49 @@ export function SessionTimeoutModal({
 
       {/* Modal */}
       <div className="relative bg-card border border-border rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-        {/* Warning header */}
-        <div className={`p-4 ${isUrgent ? 'bg-red-500/10' : 'bg-amber-500/10'}`}>
+        {/* Header */}
+        <div className={`p-4 ${isUrgent ? 'bg-gradient-to-r from-red-500/10 to-orange-500/10' : 'bg-gradient-to-r from-violet-500/10 to-purple-500/10'}`}>
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${isUrgent ? 'bg-red-500/20' : 'bg-amber-500/20'}`}>
-              <AlertTriangle className={`w-6 h-6 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+            <div className={`p-2 rounded-full ${isUrgent ? 'bg-red-500/20' : 'bg-violet-500/20'}`}>
+              {isUrgent ? (
+                <Zap className="w-6 h-6 text-red-500 animate-pulse" />
+              ) : (
+                <Coffee className="w-6 h-6 text-violet-500" />
+              )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Session Timeout Warning</h2>
-              <p className="text-sm text-muted-foreground">SOC2 / ISO 27001 Compliance</p>
+              <h2 className="text-lg font-semibold text-foreground">
+                {isUrgent ? 'Hey! Wake up! ' : 'Still there? '}
+                <span role="img" aria-label="wave">👋</span>
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {isUrgent ? "Quick, your session is about to peace out!" : "Looks like you took a little break"}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-muted-foreground mb-6">
-            Your session is about to expire due to inactivity. For security purposes, you will be
-            logged out automatically.
+          <p className="text-muted-foreground mb-4">
+            {isUrgent
+              ? "We're about to log you out for security (very Mission Impossible, we know). Click below to stay in the action!"
+              : "Your session decided to start a countdown without telling you. Rude, right? 😏 But don't worry—just click to keep the party going!"
+            }
           </p>
 
           {/* Countdown */}
-          <div className={`flex items-center justify-center gap-3 p-4 rounded-lg mb-6 ${
-            isUrgent ? 'bg-red-500/10 border border-red-500/20' : 'bg-muted/50'
+          <div className={`flex items-center justify-center gap-3 p-4 rounded-xl mb-6 ${
+            isUrgent ? 'bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20' : 'bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/20'
           }`}>
-            <Clock className={`w-6 h-6 ${isUrgent ? 'text-red-500 animate-pulse' : 'text-muted-foreground'}`} />
+            <Clock className={`w-6 h-6 ${isUrgent ? 'text-red-500 animate-pulse' : 'text-violet-500'}`} />
             <div className="text-center">
               <div className={`text-3xl font-mono font-bold ${isUrgent ? 'text-red-500' : 'text-foreground'}`}>
                 {timeString}
               </div>
-              <p className="text-xs text-muted-foreground">Time remaining</p>
+              <p className="text-xs text-muted-foreground">
+                {isUrgent ? "⚡ Hurry up!" : "Time remaining"}
+              </p>
             </div>
           </div>
 
@@ -216,10 +229,10 @@ export function SessionTimeoutModal({
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               onClick={onExtend}
-              className="flex-1 bg-primary hover:bg-primary/90"
+              className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg"
             >
-              <MousePointer className="w-4 h-4 mr-2" />
-              Continue Session
+              <Sparkles className="w-4 h-4 mr-2" />
+              I'm Back! ✨
             </Button>
             <Button
               onClick={onLogout}
@@ -227,16 +240,18 @@ export function SessionTimeoutModal({
               className="flex-1"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Log Out Now
+              Log Me Out
             </Button>
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-6 pb-4">
-          <p className="text-xs text-center text-muted-foreground">
-            Sessions timeout after {SESSION_CONFIG.INACTIVITY_TIMEOUT / 60} minutes of inactivity to protect your account.
-          </p>
+          <div className="bg-muted/50 rounded-lg p-3">
+            <p className="text-xs text-center text-muted-foreground">
+              <span role="img" aria-label="shield">🛡️</span> <strong>Security heads up:</strong> Sessions timeout after {SESSION_CONFIG.INACTIVITY_TIMEOUT / 60} minutes of inactivity to keep your account safe. We've got your back!
+            </p>
+          </div>
         </div>
       </div>
     </div>,
