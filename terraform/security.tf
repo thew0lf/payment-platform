@@ -59,6 +59,22 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  ingress {
+    description     = "Allow traffic from ALB to Admin Dashboard"
+    from_port       = var.admin_container_port
+    to_port         = var.admin_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  ingress {
+    description     = "Allow traffic from ALB to Company Portal"
+    from_port       = var.portal_container_port
+    to_port         = var.portal_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   egress {
     description = "Allow all outbound"
     from_port   = 0

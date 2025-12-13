@@ -267,51 +267,241 @@ const WELCOME_HTML = `
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to AVNZ Platform</title>
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>Welcome to the party! 🎉</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+  </style>
+  <![endif]-->
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 40px; margin: 20px 0; }
-    .logo { text-align: center; margin-bottom: 30px; }
-    .logo-text { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #00d4ff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    h1 { color: #1a1a1a; font-size: 24px; margin-bottom: 20px; text-align: center; }
-    p { color: #666; margin-bottom: 20px; }
-    .button { display: inline-block; background: linear-gradient(135deg, #00d4ff, #3b82f6); color: #fff !important; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: 600; text-align: center; margin: 20px 0; }
-    .button:hover { opacity: 0.9; }
-    .button-container { text-align: center; }
-    .features { background: #f8fafc; border-radius: 6px; padding: 20px; margin: 20px 0; }
-    .features h3 { color: #1a1a1a; margin-top: 0; }
-    .features ul { color: #666; margin: 0; padding-left: 20px; }
-    .features li { margin-bottom: 8px; }
-    .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+    /* Reset */
+    body, table, td, p, a, li { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+    /* Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f4f8;
+      width: 100% !important;
+      min-width: 100%;
+    }
+
+    /* Container */
+    .wrapper { width: 100%; table-layout: fixed; background-color: #f0f4f8; padding: 20px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #f0f4f8; }
+
+    /* Card */
+    .card {
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      margin: 10px 16px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .card-body { padding: 32px 24px; }
+
+    /* Logo */
+    .logo-container {
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      display: inline-block;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      border-radius: 12px;
+      vertical-align: middle;
+      text-align: center;
+      line-height: 48px;
+      margin-right: 12px;
+    }
+    .logo-icon-letter {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 800;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .logo-text {
+      display: inline-block;
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border-bottom: none !important;
+      vertical-align: middle;
+      letter-spacing: -0.5px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* Typography */
+    h1 {
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 600;
+      margin: 16px 0 0 0;
+      line-height: 1.3;
+    }
+    .greeting {
+      font-size: 18px;
+      color: #1a1a2e;
+      margin: 0 0 16px 0;
+      font-weight: 600;
+    }
+    p { color: #4a5568; margin: 0 0 16px 0; font-size: 15px; line-height: 1.7; }
+    .fun-text {
+      color: #10b981;
+      font-weight: 500;
+    }
+
+    /* Button */
+    .button-container { text-align: center; padding: 8px 0 24px 0; }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Features box */
+    .features-box {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .features-box h3 {
+      color: #065f46;
+      margin: 0 0 12px 0;
+      font-size: 16px;
+    }
+    .features-box ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .features-box li {
+      color: #047857;
+      font-size: 14px;
+      margin-bottom: 8px;
+      padding-left: 24px;
+      position: relative;
+    }
+    .features-box li:before {
+      content: "✨";
+      position: absolute;
+      left: 0;
+    }
+    .features-box li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Fun fact box */
+    .fun-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .fun-box p {
+      color: #92400e;
+      margin: 0;
+      font-size: 14px;
+    }
+    .fun-box strong {
+      color: #78350f;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 24px 16px;
+    }
+    .footer p {
+      color: #a0aec0;
+      font-size: 12px;
+      margin: 4px 0;
+    }
+    .footer a { color: #10b981; text-decoration: none; }
+
+    /* Mobile responsive */
+    @media only screen and (max-width: 480px) {
+      .card { margin: 10px 12px; }
+      .card-header { padding: 24px 20px; }
+      .card-body { padding: 24px 20px; }
+      .logo-icon { width: 40px; height: 40px; line-height: 40px; border-radius: 10px; margin-right: 10px; }
+      .logo-icon-letter { font-size: 24px; }
+      .logo-text { font-size: 24px; }
+      h1 { font-size: 20px; }
+      .button { padding: 14px 32px; font-size: 15px; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="logo">
-        <span class="logo-text">avnz.io</span>
+  <div class="wrapper">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <div class="logo-container">
+            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
+            --><span class="logo-text" style="color:#ffffff !important;text-decoration:none !important;border:none !important;">avnz<span style="font-size:0;">&#8203;</span>.io</span>
+          </div>
+          <h1>Welcome to the family! 🎉<br>You're officially one of us!</h1>
+        </div>
+        <div class="card-body">
+          <p class="greeting">Hey {{userName}}! 👋</p>
+          <p>We're doing a little happy dance over here because <span class="fun-text">you just joined {{companyName}}</span>! 💃🕺</p>
+          <p>Your account is all set up and ready to rock. We've rolled out the virtual red carpet just for you—time to make some magic happen!</p>
+
+          <div class="button-container">
+            <a href="{{loginUrl}}" class="button">Let's Go! 🚀</a>
+          </div>
+
+          <div class="features-box">
+            <h3>Here's what you can do (it's a lot!):</h3>
+            <ul>
+              <li>Process payments with our super-smart routing</li>
+              <li>Watch your transactions flow in real-time</li>
+              <li>Dive into analytics that actually make sense</li>
+              <li>Manage customers like a total pro</li>
+            </ul>
+          </div>
+
+          <div class="fun-box">
+            <p><strong>🎯 Pro tip:</strong> Bookmark your dashboard now so you can jump right back in. Future you will thank present you!</p>
+          </div>
+
+          <p>Got questions? We've got answers! Hit us up anytime at <a href="mailto:{{supportEmail}}" style="color:#10b981;">{{supportEmail}}</a>. We're basically email ninjas—super fast and always ready to help. 🥷</p>
+        </div>
       </div>
-      <h1>Welcome to {{companyName}}!</h1>
-      <p>Hi {{userName}},</p>
-      <p>Your account has been created and you're ready to get started. We're excited to have you on board!</p>
-      <div class="button-container">
-        <a href="{{loginUrl}}" class="button">Go to Dashboard</a>
+
+      <div class="footer">
+        <p>Need help? We're always here at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
+        <p>© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant</p>
+        <p style="margin-top: 12px; color: #cbd5e0;">Made with 💚 by the AVNZ team</p>
       </div>
-      <div class="features">
-        <h3>What you can do:</h3>
-        <ul>
-          <li>Process payments securely with intelligent routing</li>
-          <li>Monitor transactions in real-time</li>
-          <li>Access detailed analytics and reporting</li>
-          <li>Manage customers and orders efficiently</li>
-        </ul>
-      </div>
-      <p>If you have any questions, our support team is here to help at {{supportEmail}}.</p>
-    </div>
-    <div class="footer">
-      <p>&copy; {{currentYear}} AVNZ Platform. All rights reserved.</p>
-      <p>SOC2 & ISO 27001 Compliant</p>
     </div>
   </div>
 </body>
@@ -319,25 +509,29 @@ const WELCOME_HTML = `
 `;
 
 const WELCOME_TEXT = `
-Welcome to {{companyName}}!
+Hey {{userName}}! 👋
 
-Hi {{userName}},
+Welcome to the family! 🎉 You're officially one of us!
 
-Your account has been created and you're ready to get started. We're excited to have you on board!
+We're doing a little happy dance over here because you just joined {{companyName}}! 💃🕺
 
-Go to your dashboard: {{loginUrl}}
+Your account is all set up and ready to rock. We've rolled out the virtual red carpet just for you—time to make some magic happen!
 
-What you can do:
-- Process payments securely with intelligent routing
-- Monitor transactions in real-time
-- Access detailed analytics and reporting
-- Manage customers and orders efficiently
+🚀 Jump right in: {{loginUrl}}
 
-If you have any questions, our support team is here to help at {{supportEmail}}.
+Here's what you can do (it's a lot!):
+✨ Process payments with our super-smart routing
+✨ Watch your transactions flow in real-time
+✨ Dive into analytics that actually make sense
+✨ Manage customers like a total pro
+
+🎯 Pro tip: Bookmark your dashboard now so you can jump right back in. Future you will thank present you!
+
+Got questions? We've got answers! Hit us up anytime at {{supportEmail}}. We're basically email ninjas—super fast and always ready to help. 🥷
 
 ---
-© {{currentYear}} AVNZ Platform. All rights reserved.
-SOC2 & ISO 27001 Compliant
+© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant
+Made with 💚 by the AVNZ team
 `;
 
 const EMAIL_VERIFICATION_HTML = `
@@ -346,41 +540,230 @@ const EMAIL_VERIFICATION_HTML = `
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify Your Email</title>
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>One quick thing! 📬</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+  </style>
+  <![endif]-->
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 40px; margin: 20px 0; }
-    .logo { text-align: center; margin-bottom: 30px; }
-    .logo-text { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #00d4ff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    h1 { color: #1a1a1a; font-size: 24px; margin-bottom: 20px; text-align: center; }
-    p { color: #666; margin-bottom: 20px; }
-    .button { display: inline-block; background: linear-gradient(135deg, #00d4ff, #3b82f6); color: #fff !important; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: 600; text-align: center; margin: 20px 0; }
-    .button:hover { opacity: 0.9; }
-    .button-container { text-align: center; }
-    .link-text { color: #666; font-size: 12px; word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; margin-top: 20px; }
-    .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+    /* Reset */
+    body, table, td, p, a, li { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+    /* Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f4f8;
+      width: 100% !important;
+      min-width: 100%;
+    }
+
+    /* Container */
+    .wrapper { width: 100%; table-layout: fixed; background-color: #f0f4f8; padding: 20px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #f0f4f8; }
+
+    /* Card */
+    .card {
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      margin: 10px 16px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .card-body { padding: 32px 24px; }
+
+    /* Logo */
+    .logo-container {
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      display: inline-block;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      border-radius: 12px;
+      vertical-align: middle;
+      text-align: center;
+      line-height: 48px;
+      margin-right: 12px;
+    }
+    .logo-icon-letter {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 800;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .logo-text {
+      display: inline-block;
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border-bottom: none !important;
+      vertical-align: middle;
+      letter-spacing: -0.5px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* Typography */
+    h1 {
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 600;
+      margin: 16px 0 0 0;
+      line-height: 1.3;
+    }
+    .greeting {
+      font-size: 18px;
+      color: #1a1a2e;
+      margin: 0 0 16px 0;
+      font-weight: 600;
+    }
+    p { color: #4a5568; margin: 0 0 16px 0; font-size: 15px; line-height: 1.7; }
+    .fun-text {
+      color: #3b82f6;
+      font-weight: 500;
+    }
+
+    /* Button */
+    .button-container { text-align: center; padding: 8px 0 24px 0; }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+
+    /* Link fallback */
+    .link-text {
+      color: #718096;
+      font-size: 12px;
+      word-break: break-all;
+      background: #f7fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border: 1px dashed #e2e8f0;
+    }
+
+    /* Fun fact box */
+    .fun-box {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .fun-box p {
+      color: #1e40af;
+      margin: 0;
+      font-size: 14px;
+    }
+    .fun-box strong {
+      color: #1e3a8a;
+    }
+
+    /* Security notice */
+    .security-notice {
+      background: #fefce8;
+      border-left: 4px solid #eab308;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 24px 0 0 0;
+    }
+    .security-notice p {
+      color: #854d0e;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 24px 16px;
+    }
+    .footer p {
+      color: #a0aec0;
+      font-size: 12px;
+      margin: 4px 0;
+    }
+    .footer a { color: #3b82f6; text-decoration: none; }
+
+    /* Mobile responsive */
+    @media only screen and (max-width: 480px) {
+      .card { margin: 10px 12px; }
+      .card-header { padding: 24px 20px; }
+      .card-body { padding: 24px 20px; }
+      .logo-icon { width: 40px; height: 40px; line-height: 40px; border-radius: 10px; margin-right: 10px; }
+      .logo-icon-letter { font-size: 24px; }
+      .logo-text { font-size: 24px; }
+      h1 { font-size: 20px; }
+      .button { padding: 14px 32px; font-size: 15px; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="logo">
-        <span class="logo-text">avnz.io</span>
+  <div class="wrapper">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <div class="logo-container">
+            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
+            --><span class="logo-text" style="color:#ffffff !important;text-decoration:none !important;border:none !important;">avnz<span style="font-size:0;">&#8203;</span>.io</span>
+          </div>
+          <h1>Just one tiny thing... 📬<br>Let's verify it's really you!</h1>
+        </div>
+        <div class="card-body">
+          <p class="greeting">Hey {{userName}}! 👋</p>
+          <p>Woohoo! You're <span class="fun-text">SO close</span> to unlocking all the awesome stuff we've got waiting for you! 🎁</p>
+          <p>We just need to make sure this email belongs to a real human (you!) and not a sneaky robot. 🤖 One click and you're in!</p>
+
+          <div class="button-container">
+            <a href="{{verifyUrl}}" class="button">Yes, I'm Real! ✅</a>
+          </div>
+
+          <p class="link-text">
+            <strong>Button not working?</strong> Copy this link instead:<br>{{verifyUrl}}
+          </p>
+
+          <div class="fun-box">
+            <p><strong>🎯 Why verify?</strong> It keeps the bots out and the good vibes in! Plus, it means you'll never miss important updates about your account.</p>
+          </div>
+
+          <div class="security-notice">
+            <p><strong>⏰ Heads up:</strong> This link expires in {{expiresIn}}—it's like Cinderella's carriage, but for emails! 🎃 If you didn't sign up for an account, just ignore this message. No harm done!</p>
+          </div>
+        </div>
       </div>
-      <h1>Verify Your Email Address</h1>
-      <p>Hi {{userName}},</p>
-      <p>Thanks for signing up! Please verify your email address by clicking the button below:</p>
-      <div class="button-container">
-        <a href="{{verifyUrl}}" class="button">Verify Email</a>
+
+      <div class="footer">
+        <p>Questions? We're here to help at <a href="mailto:support@avnz.io">support@avnz.io</a></p>
+        <p>© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant</p>
+        <p style="margin-top: 12px; color: #cbd5e0;">Made with 💙 by the AVNZ team</p>
       </div>
-      <p class="link-text">Or copy and paste this link into your browser:<br>{{verifyUrl}}</p>
-      <p>This verification link will expire in {{expiresIn}}.</p>
-      <p>If you didn't create an account with us, please ignore this email.</p>
-    </div>
-    <div class="footer">
-      <p>&copy; {{currentYear}} AVNZ Platform. All rights reserved.</p>
-      <p>SOC2 & ISO 27001 Compliant</p>
     </div>
   </div>
 </body>
@@ -388,21 +771,25 @@ const EMAIL_VERIFICATION_HTML = `
 `;
 
 const EMAIL_VERIFICATION_TEXT = `
-Verify Your Email Address
+Hey {{userName}}! 👋
 
-Hi {{userName}},
+Just one tiny thing... 📬 Let's verify it's really you!
 
-Thanks for signing up! Please verify your email address by visiting the link below:
+Woohoo! You're SO close to unlocking all the awesome stuff we've got waiting for you! 🎁
 
-{{verifyUrl}}
+We just need to make sure this email belongs to a real human (you!) and not a sneaky robot. 🤖 One click and you're in!
 
-This verification link will expire in {{expiresIn}}.
+✅ Verify your email here: {{verifyUrl}}
 
-If you didn't create an account with us, please ignore this email.
+🎯 Why verify? It keeps the bots out and the good vibes in! Plus, it means you'll never miss important updates about your account.
+
+⏰ Heads up: This link expires in {{expiresIn}}—it's like Cinderella's carriage, but for emails! 🎃 If you didn't sign up for an account, just ignore this message. No harm done!
+
+Questions? We're here to help at support@avnz.io
 
 ---
-© {{currentYear}} AVNZ Platform. All rights reserved.
-SOC2 & ISO 27001 Compliant
+© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant
+Made with 💙 by the AVNZ team
 `;
 
 export async function seedEmailTemplates() {

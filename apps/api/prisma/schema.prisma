@@ -48,6 +48,9 @@ model Organization {
   // Feature Development
   features             Feature[]
 
+  // Email Templates
+  emailTemplates       EmailTemplate[]
+
   @@map("organizations")
 }
 
@@ -82,6 +85,9 @@ model Client {
 
   // Integration Usage (for billing)
   integrationUsage IntegrationUsage[]
+
+  // Email Templates
+  emailTemplates EmailTemplate[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -194,6 +200,9 @@ model Company {
   // AI Funnel Generator
   aiMethodologyTemplates AIMethodologyTemplate[]
   aiFunnelGenerations    AIFunnelGeneration[]
+
+  // Email Templates
+  emailTemplates EmailTemplate[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -8898,4 +8907,161 @@ enum GenerationStatus {
   FAILED        // Generation failed
   SAVED         // User saved as funnel
   DISCARDED     // User discarded
+}
+
+// =============================================================================
+// EMAIL TEMPLATES & SENDING
+// SOC2/ISO27001 Compliant Transactional Email System
+// =============================================================================
+
+model EmailTemplate {
+  id              String              @id @default(cuid())
+
+  // Template identification
+  code            String              // Unique code per scope: 'password-reset', 'welcome', 'order-confirmation'
+  name            String              // Display name: "Password Reset Email"
+  description     String?             // Purpose description
+  category        EmailTemplateCategory
+
+  // Content (supports Handlebars syntax)
+  subject         String              // Subject line with variables: "Reset your {{companyName}} password"
+  htmlBody        String              @db.Text // HTML email body
+  textBody        String?             @db.Text // Plain text fallback
+
+  // Sender configuration
+  fromName        String?             // Override from name
+  fromEmail       String?             // Override from email (must be verified)
+  replyTo         String?             // Reply-to address
+
+  // Multi-tenant scoping (exactly one must be set, or none for system templates)
+  organizationId  String?             // Platform-wide system templates
+  clientId        String?             // Client-level templates
+  companyId       String?             // Company-level templates
+
+  // Relations
+  organization    Organization?       @relation(fields: [organizationId], references: [id])
+  client          Client?             @relation(fields: [clientId], references: [id])
+  company         Company?            @relation(fields: [companyId], references: [id])
+
+  // Template status
+  isSystem        Boolean             @default(false) // System-provided, cannot delete
+  isActive        Boolean             @default(true)
+  version         Int                 @default(1)
+
+  // Variables schema (for validation & documentation)
+  variables       Json?               // [{ name: "userName", type: "string", required: true }]
+
+  // Preview
+  previewData     Json?               // Sample data for previewing template
+
+  // Timestamps
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  // Soft delete
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  // Send history
+  emailSendLogs   EmailSendLog[]
+
+  @@unique([organizationId, code], name: "org_template_code")
+  @@unique([clientId, code], name: "client_template_code")
+  @@unique([companyId, code], name: "company_template_code")
+  @@index([category])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("email_templates")
+}
+
+model EmailSendLog {
+  id              String              @id @default(cuid())
+
+  // Template used (optional - could be ad-hoc)
+  templateId      String?
+  template        EmailTemplate?      @relation(fields: [templateId], references: [id])
+  templateCode    String?             // Denormalized for queries
+
+  // Multi-tenant context
+  organizationId  String?
+  clientId        String?
+  companyId       String?
+
+  // Recipient
+  toEmail         String
+  toName          String?
+
+  // Sender
+  fromEmail       String
+  fromName        String?
+  replyTo         String?
+
+  // Content snapshot (for audit/compliance)
+  subject         String
+  category        EmailTemplateCategory
+
+  // Variables used (for debugging/audit - PII should be masked)
+  variablesUsed   Json?
+
+  // Delivery info
+  provider        String              @default("ses") // 'ses', 'sendgrid', etc.
+  messageId       String?             // Provider's message ID
+  status          EmailSendStatus     @default(QUEUED)
+
+  // Delivery tracking
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  complainedAt    DateTime?
+
+  // Error handling
+  errorCode       String?
+  errorMessage    String?
+  retryCount      Int                 @default(0)
+  lastRetryAt     DateTime?
+
+  // Related entity (for linking back)
+  relatedEntityType String?           // 'user', 'order', 'subscription', etc.
+  relatedEntityId   String?
+
+  // Compliance
+  ipAddress       String?             // Requester IP (for abuse detection)
+  userAgent       String?
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([toEmail])
+  @@index([templateCode])
+  @@index([status])
+  @@index([createdAt])
+  @@index([companyId, createdAt])
+  @@index([relatedEntityType, relatedEntityId])
+  @@map("email_send_logs")
+}
+
+enum EmailTemplateCategory {
+  AUTHENTICATION    // Password reset, email verification, 2FA
+  TRANSACTIONAL     // Order confirmation, shipping, receipts
+  SUBSCRIPTION      // Trial ending, renewal, cancellation
+  NOTIFICATION      // Alerts, reminders, updates
+  MARKETING         // Promotional (requires consent)
+  SYSTEM            // Internal system notifications
+}
+
+enum EmailSendStatus {
+  QUEUED            // In queue to be sent
+  SENDING           // Currently being sent
+  SENT              // Successfully sent to provider
+  DELIVERED         // Confirmed delivered
+  OPENED            // Email opened (tracking pixel)
+  CLICKED           // Link clicked
+  BOUNCED           // Hard or soft bounce
+  COMPLAINED        // Marked as spam
+  FAILED            // Send failed
+  REJECTED          // Rejected by provider
 }
