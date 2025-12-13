@@ -1093,7 +1093,6 @@ AI-powered product management services:
 | `Gateway_Rule_Engine_Complete_Specification.md` | `docs/guides/` | GRE routing rules |
 | `FUNNEL_BUILDER_SPECIFICATION.md` | `docs/roadmap/` | Funnels system spec |
 | `funnel-alpha-launch.md` | `docs/roadmap/` | Alpha launch checklist |
-| `railway-deployment-guide.md` | `docs/` | Railway deployment steps |
 | `CI_CD_DEPLOYMENT.md` | `docs/` | CI/CD pipeline setup |
 | `SECURITY_REVIEW_Dec2025.md` | `docs/reviews/` | Security audit |
 | `QA_TEST_CASES_Dec2025.md` | `docs/reviews/` | QA test cases |
@@ -1367,6 +1366,69 @@ GET    /api/email/logs                # View send history
 - `apps/api/src/email/services/template-renderer.service.ts` - Handlebars rendering
 - `apps/api/src/email/types/email.types.ts` - TypeScript types
 - `apps/api/prisma/seeds/core/seed-email-templates.ts` - Default templates
+
+### Email Queue (SQS-Based Production Queue)
+
+The email system uses AWS SQS for production-grade reliability, decoupling email sending from request processing.
+
+#### Architecture
+```
+API Request → EmailQueueService → SQS Queue → EmailQueueProcessor → AWS SES
+                    ↓                              ↓
+              EmailSendLog (QUEUED)         EmailSendLog (SENT/FAILED)
+```
+
+#### Queue Message Structure
+```typescript
+interface EmailQueueMessage {
+  id: string;              // EmailSendLog ID for tracking
+  to: string;
+  subject: string;
+  htmlBody: string;
+  category: EmailTemplateCategory;
+  priority: 'high' | 'normal';  // AUTHENTICATION/TRANSACTIONAL = high
+  retryCount: number;
+  queuedAt: string;
+}
+```
+
+#### Health Status Monitoring
+| Status | Condition |
+|--------|-----------|
+| `healthy` | Queue < 1000 messages AND failure rate < 10% |
+| `degraded` | Queue 1000-10000 messages OR failure rate 10-25% |
+| `critical` | Queue > 10000 messages OR failure rate > 25% |
+
+#### Queue Admin API (Organization Admin Only)
+```
+GET    /api/admin/email-queue/status     # Queue stats & health
+POST   /api/admin/email-queue/process-now  # Manual processing trigger
+POST   /api/admin/email-queue/purge      # Emergency queue purge
+```
+
+#### Environment Variables
+```bash
+EMAIL_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account>/avnz-email-queue
+ENABLE_EMAIL_PROCESSOR=true  # Enable/disable queue processor
+AWS_REGION=us-east-1         # SQS region
+```
+
+#### Audit Logging
+All queue operations are logged for SOC2/ISO27001 compliance:
+- `EMAIL_QUEUED` - Email added to queue (PII classification)
+- `EMAIL_QUEUE_FAILED` - Failed to queue (PII classification)
+- `EMAIL_QUEUE_PURGED` - Queue purged (INTERNAL classification)
+
+#### Queue Service Files
+- `apps/api/src/email/services/email-queue.service.ts` - SQS queue management
+- `apps/api/src/email/services/email-queue-processor.service.ts` - Queue consumer
+- `apps/api/src/email/controllers/email-queue.controller.ts` - Admin endpoints
+- `terraform/sqs.tf` - SQS infrastructure
+- `terraform/iam.tf` - IAM policies for SQS access
+
+#### Unit Tests
+- `apps/api/src/email/services/email-queue.service.spec.ts` - 20 tests
+- `apps/api/src/email/controllers/email-queue.controller.spec.ts` - 17 tests
 
 ---
 
