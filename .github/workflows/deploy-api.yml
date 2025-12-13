@@ -203,6 +203,50 @@ jobs:
 
           echo "Migration completed successfully!"
 
+      - name: Run Production Seed
+        id: run-seed
+        run: |
+          echo "Running production seed (email templates, RBAC, etc.)..."
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.vpc-config.outputs.subnet }}],securityGroups=[${{ steps.vpc-config.outputs.security_group }}],assignPublicIp=ENABLED}" \
+            --overrides '{
+              "containerOverrides": [{
+                "name": "api",
+                "command": ["sh", "-c", "SEED_ENV=production npx prisma db seed"]
+              }]
+            }' \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Seed task started: $TASK_ARN"
+
+      - name: Wait for Seed
+        run: |
+          echo "Waiting for seed task to complete..."
+          aws ecs wait tasks-stopped \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-seed.outputs.task_arn }}
+
+      - name: Check Seed Status
+        run: |
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-seed.outputs.task_arn }} \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Seed failed with exit code: $EXIT_CODE (non-critical, continuing...)"
+            # Seed failures are non-critical - the API can still run
+            # Templates may need to be manually seeded if this fails
+          else
+            echo "Seed completed successfully!"
+          fi
+
   # ============================================
   # Job 4: Deploy to ECS
   # ============================================
@@ -264,8 +308,10 @@ jobs:
       - name: Health Check
         run: |
           echo "Checking API health..."
+          # Use HTTPS via the custom domain (ALB redirects HTTP to HTTPS)
+          API_URL="https://api.avnz.io/health"
           for i in {1..10}; do
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://${{ steps.alb.outputs.dns }}/health" || echo "000")
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" || echo "000")
 
             if [ "$RESPONSE" = "200" ]; then
               echo "Health check passed! (attempt $i)"
@@ -283,4 +329,4 @@ jobs:
         if: success()
         run: |
           echo "🚀 Deployment successful!"
-          echo "API is live at: http://${{ steps.alb.outputs.dns }}"
+          echo "API is live at: https://api.avnz.io"
