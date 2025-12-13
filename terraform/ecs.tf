@@ -79,6 +79,13 @@ resource "aws_ecs_task_definition" "api" {
         { name = "REDIS_URL", value = var.redis_url },
         { name = "SENTRY_DSN", value = var.sentry_dsn },
         { name = "CORS_ORIGINS", value = "https://app.avnz.io,https://founders.avnz.io,https://portal.avnz.io,https://avnz.io,https://www.avnz.io" },
+        # AWS Services Configuration (SES, S3, Bedrock use IAM role credentials automatically)
+        { name = "AWS_REGION", value = var.aws_region },
+        # Admin Dashboard URL for email links
+        { name = "ADMIN_DASHBOARD_URL", value = "https://app.avnz.io" },
+        # Email Queue Configuration (SQS)
+        { name = "EMAIL_QUEUE_URL", value = "https://sqs.${var.aws_region}.amazonaws.com/${data.aws_caller_identity.current.account_id}/${local.name_prefix}-email-queue" },
+        { name = "ENABLE_EMAIL_PROCESSOR", value = "true" },
       ]
 
       logConfiguration = {
