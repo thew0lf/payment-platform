@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, User, LogOut, Sun, Moon, Monitor } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/auth-context';
+import { usePreferences } from '@/contexts/preferences-context';
+import { ThemePreference } from '@/lib/api/profile';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import { useMobileMenu } from '@/contexts/mobile-menu-context';
 import { CommandPalette } from './command-palette';
@@ -32,7 +33,7 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
   const { selectedClient, selectedCompany } = useHierarchy();
   const { openMenu } = useMobileMenu();
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, isLoading: preferencesLoading } = usePreferences();
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch - theme is undefined on server
@@ -127,8 +128,8 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
-              {mounted && (
-                <DropdownMenuRadioGroup value={theme ?? 'system'} onValueChange={setTheme}>
+              {mounted && !preferencesLoading && (
+                <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as ThemePreference)}>
                   <DropdownMenuRadioItem value="light" className="cursor-pointer">
                     <Sun className="mr-2 h-4 w-4" />
                     Light
@@ -143,7 +144,7 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               )}
-              {!mounted && (
+              {(!mounted || preferencesLoading) && (
                 <div className="py-2 px-2">
                   <div className="h-8 bg-muted rounded animate-pulse" />
                 </div>
