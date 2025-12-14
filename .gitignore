@@ -97,6 +97,10 @@ pnpm-lock.yaml
 *.pem
 .npmrc
 
+# Railway (deprecated - no longer using)
+railway.toml
+**/railway.toml
+
 # Integration defaults (contains credentials)
 apps/api/prisma/seeds/data/integration-defaults.json
 !apps/api/prisma/seeds/data/integration-defaults.template.json
