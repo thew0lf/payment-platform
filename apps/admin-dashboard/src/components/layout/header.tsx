@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, User, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -33,6 +33,12 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
   const { openMenu } = useMobileMenu();
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Avoid hydration mismatch - theme is undefined on server
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Build breadcrumb based on hierarchy
   const breadcrumbs: Array<{ label: string; href?: string }> = [];
@@ -121,20 +127,27 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                <DropdownMenuRadioItem value="light" className="cursor-pointer">
-                  <Sun className="mr-2 h-4 w-4" />
-                  Light
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="dark" className="cursor-pointer">
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="system" className="cursor-pointer">
-                  <Monitor className="mr-2 h-4 w-4" />
-                  System
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
+              {mounted && (
+                <DropdownMenuRadioGroup value={theme ?? 'system'} onValueChange={setTheme}>
+                  <DropdownMenuRadioItem value="light" className="cursor-pointer">
+                    <Sun className="mr-2 h-4 w-4" />
+                    Light
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark" className="cursor-pointer">
+                    <Moon className="mr-2 h-4 w-4" />
+                    Dark
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="system" className="cursor-pointer">
+                    <Monitor className="mr-2 h-4 w-4" />
+                    System
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              )}
+              {!mounted && (
+                <div className="py-2 px-2">
+                  <div className="h-8 bg-muted rounded animate-pulse" />
+                </div>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => logout()}

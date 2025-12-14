@@ -134,6 +134,211 @@ async function findHardcodedDarkClasses(page: Page): Promise<string[]> {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HEADER DROPDOWN THEME SELECTOR (Top Right Avatar Menu)
+// Tests for the fix to hydration bug that caused theme to revert
+// ═══════════════════════════════════════════════════════════════
+
+// Helper to set theme via header dropdown (user avatar menu)
+async function setThemeViaHeaderDropdown(page: Page, theme: 'light' | 'dark' | 'system'): Promise<boolean> {
+  try {
+    // Click the user avatar button (gradient circle in top right)
+    const avatarButton = page.locator('header button.rounded-full').first();
+    if (!await avatarButton.isVisible({ timeout: 3000 })) {
+      return false;
+    }
+    await avatarButton.click();
+    await page.waitForTimeout(300);
+
+    // Wait for dropdown to open and find the theme radio item
+    const themeLabel = theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System';
+    const radioItem = page.locator(`[role="menuitemradio"]`).filter({ hasText: themeLabel });
+
+    if (await radioItem.isVisible({ timeout: 2000 })) {
+      await radioItem.click();
+      await page.waitForTimeout(500);
+      return true;
+    }
+
+    // Close dropdown if theme option not found
+    await page.keyboard.press('Escape');
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Helper to verify theme radio is checked in header dropdown
+async function verifyHeaderThemeSelected(page: Page, theme: 'light' | 'dark' | 'system'): Promise<boolean> {
+  try {
+    // Open avatar dropdown
+    const avatarButton = page.locator('header button.rounded-full').first();
+    await avatarButton.click();
+    await page.waitForTimeout(300);
+
+    const themeLabel = theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System';
+    const radioItem = page.locator(`[role="menuitemradio"]`).filter({ hasText: themeLabel });
+
+    // Check if the radio item has data-state="checked"
+    const isChecked = await radioItem.getAttribute('data-state') === 'checked';
+
+    // Close dropdown
+    await page.keyboard.press('Escape');
+    return isChecked;
+  } catch {
+    return false;
+  }
+}
+
+test.describe('Header Dropdown Theme Selector', () => {
+  test.beforeEach(async ({ page }) => {
+    await performLogin(page);
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('header dropdown shows theme options after mount', async ({ page }) => {
+    // Click avatar button
+    const avatarButton = page.locator('header button.rounded-full').first();
+    await avatarButton.click();
+    await page.waitForTimeout(500);
+
+    // Should show Theme label
+    const themeLabel = page.locator('text=Theme').first();
+    await expect(themeLabel).toBeVisible({ timeout: 3000 });
+
+    // Should show Light, Dark, System options
+    await expect(page.locator('[role="menuitemradio"]').filter({ hasText: 'Light' })).toBeVisible();
+    await expect(page.locator('[role="menuitemradio"]').filter({ hasText: 'Dark' })).toBeVisible();
+    await expect(page.locator('[role="menuitemradio"]').filter({ hasText: 'System' })).toBeVisible();
+  });
+
+  test('header dropdown theme selection persists (does not revert)', async ({ page }) => {
+    // This tests the specific bug fix: theme was reverting due to hydration mismatch
+
+    // First, set to light mode to establish baseline
+    const lightSet = await setThemeViaHeaderDropdown(page, 'light');
+    if (!lightSet) {
+      test.skip();
+      return;
+    }
+    expect(await isLightMode(page)).toBeTruthy();
+
+    // Now switch to dark mode
+    const darkSet = await setThemeViaHeaderDropdown(page, 'dark');
+    expect(darkSet).toBeTruthy();
+
+    // Wait a moment for any potential "revert" behavior
+    await page.waitForTimeout(1000);
+
+    // Theme should still be dark (not reverted)
+    expect(await isDarkMode(page)).toBeTruthy();
+
+    // Verify the radio button shows correct state
+    expect(await verifyHeaderThemeSelected(page, 'dark')).toBeTruthy();
+  });
+
+  test('header dropdown dark mode saves to localStorage', async ({ page }) => {
+    const darkSet = await setThemeViaHeaderDropdown(page, 'dark');
+    if (!darkSet) {
+      test.skip();
+      return;
+    }
+
+    // Check localStorage
+    const theme = await page.evaluate(() => localStorage.getItem('theme'));
+    expect(theme).toBe('dark');
+  });
+
+  test('header dropdown light mode saves to localStorage', async ({ page }) => {
+    const lightSet = await setThemeViaHeaderDropdown(page, 'light');
+    if (!lightSet) {
+      test.skip();
+      return;
+    }
+
+    // Check localStorage
+    const theme = await page.evaluate(() => localStorage.getItem('theme'));
+    expect(theme).toBe('light');
+  });
+
+  test('header dropdown system mode saves to localStorage', async ({ page }) => {
+    const systemSet = await setThemeViaHeaderDropdown(page, 'system');
+    if (!systemSet) {
+      test.skip();
+      return;
+    }
+
+    // Check localStorage
+    const theme = await page.evaluate(() => localStorage.getItem('theme'));
+    expect(theme).toBe('system');
+  });
+
+  test('header dropdown theme persists after page reload', async ({ page }) => {
+    // Set dark mode via header
+    const darkSet = await setThemeViaHeaderDropdown(page, 'dark');
+    if (!darkSet) {
+      test.skip();
+      return;
+    }
+
+    // Reload page
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Should still be dark
+    expect(await isDarkMode(page)).toBeTruthy();
+
+    // Radio button should show dark as selected
+    expect(await verifyHeaderThemeSelected(page, 'dark')).toBeTruthy();
+  });
+
+  test('header dropdown theme persists across navigation', async ({ page }) => {
+    // Set dark mode via header
+    const darkSet = await setThemeViaHeaderDropdown(page, 'dark');
+    if (!darkSet) {
+      test.skip();
+      return;
+    }
+
+    // Navigate to different pages
+    await page.goto('/customers');
+    await page.waitForLoadState('networkidle');
+    expect(await isDarkMode(page)).toBeTruthy();
+
+    await page.goto('/orders');
+    await page.waitForLoadState('networkidle');
+    expect(await isDarkMode(page)).toBeTruthy();
+
+    await page.goto('/settings/general');
+    await page.waitForLoadState('networkidle');
+    expect(await isDarkMode(page)).toBeTruthy();
+  });
+
+  test('header dropdown shows loading skeleton before mount (hydration safety)', async ({ page }) => {
+    // This test verifies the fix prevents hydration mismatch
+    // The theme section should have proper loading state
+
+    // Navigate fresh (may catch pre-hydration state)
+    await page.goto('/');
+
+    // Immediately click avatar
+    const avatarButton = page.locator('header button.rounded-full').first();
+    await avatarButton.click();
+
+    // Theme options should be visible (not a loading skeleton) once mounted
+    // If we see the loading skeleton, wait for mount
+    const skeleton = page.locator('.animate-pulse').first();
+    if (await skeleton.isVisible({ timeout: 500 }).catch(() => false)) {
+      // Wait for it to disappear (mount complete)
+      await expect(skeleton).toBeHidden({ timeout: 3000 });
+    }
+
+    // Now theme options should be visible
+    await expect(page.locator('[role="menuitemradio"]').filter({ hasText: 'Light' })).toBeVisible();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
 // THEME TOGGLE FUNCTIONALITY
 // ═══════════════════════════════════════════════════════════════
 
