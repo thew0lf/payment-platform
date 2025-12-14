@@ -8,6 +8,7 @@ import { EmailQueueService } from './email-queue.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 import { EmailTemplateCategory, EmailSendStatus, DataClassification } from '@prisma/client';
+import { SendMessageCommand } from '@aws-sdk/client-sqs';
 
 // Mock AWS SQS Client
 jest.mock('@aws-sdk/client-sqs', () => ({
@@ -116,7 +117,7 @@ describe('EmailQueueService', () => {
       await service.queueEmail(mockEmailOptions);
 
       // Check that SendMessageCommand was called with correct attributes
-      const { SendMessageCommand } = require('@aws-sdk/client-sqs');
+      // SendMessageCommand is imported at top level with mock
       expect(SendMessageCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           MessageAttributes: expect.objectContaining({
@@ -345,7 +346,7 @@ describe('EmailQueueService', () => {
         category: EmailTemplateCategory.AUTHENTICATION,
       });
 
-      const { SendMessageCommand } = require('@aws-sdk/client-sqs');
+      // SendMessageCommand is imported at top level with mock
       expect(SendMessageCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           MessageAttributes: expect.objectContaining({
@@ -367,7 +368,7 @@ describe('EmailQueueService', () => {
         category: EmailTemplateCategory.TRANSACTIONAL,
       });
 
-      const { SendMessageCommand } = require('@aws-sdk/client-sqs');
+      // SendMessageCommand is imported at top level with mock
       expect(SendMessageCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           MessageAttributes: expect.objectContaining({
@@ -389,7 +390,7 @@ describe('EmailQueueService', () => {
         category: EmailTemplateCategory.MARKETING,
       });
 
-      const { SendMessageCommand } = require('@aws-sdk/client-sqs');
+      // SendMessageCommand is imported at top level with mock
       expect(SendMessageCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           MessageAttributes: expect.objectContaining({
