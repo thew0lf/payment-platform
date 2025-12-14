@@ -226,7 +226,7 @@ export default function FunnelsPage() {
               size="sm"
               variant="outline"
               onClick={() => router.push('/funnels/generate')}
-              className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200"
+              className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 border-purple-500/50 hover:border-purple-500/70 text-purple-700 hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200 dark:border-purple-500/30 dark:hover:border-purple-500/50"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Generate with MI
