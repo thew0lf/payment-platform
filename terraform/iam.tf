@@ -108,6 +108,17 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
           "sqs:PurgeQueue"
         ]
         Resource = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${local.name_prefix}-*"
+      },
+      {
+        # ECS Exec permissions - allows shell access to running containers
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
       }
     ]
   })
