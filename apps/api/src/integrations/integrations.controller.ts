@@ -221,7 +221,7 @@ export class OAuthController {
     });
 
     // Determine redirect URL based on result
-    const baseUrl = process.env.ADMIN_DASHBOARD_URL || 'http://admin.dev.avnz.io:3002';
+    const baseUrl = process.env.ADMIN_DASHBOARD_URL || 'https://app.avnz.io';
 
     if (result.success) {
       const redirectUrl = result.redirectUrl || `${baseUrl}/integrations`;
