@@ -38,12 +38,15 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy Prisma schema
+# Copy Prisma schema and migrations
 COPY prisma ./prisma/
 
 # Copy Prisma client from builder (avoid running prisma generate under emulation)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Copy Prisma CLI from builder (needed for migrations in production)
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
