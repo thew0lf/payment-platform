@@ -166,7 +166,7 @@ export class FunnelPricingService {
     // Determine estimated delivery
     let estimatedDays = 5;
     let method = 'Standard Ground';
-    let carrier = 'USPS';
+    const carrier = 'USPS';
 
     if (SHIPPING_ZONES.REMOTE.includes(state)) {
       estimatedDays = 10;

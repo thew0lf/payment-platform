@@ -2,8 +2,9 @@
 
 > **Domain:** `founders.avnz.io`
 > **Purpose:** Pre-launch waitlist with viral referral system using NCI psychology principles
-> **Stack:** Next.js 14 + Vercel Postgres + Tailwind CSS
+> **Stack:** Next.js 14 + PostgreSQL (RDS) + Tailwind CSS
 > **Location:** `apps/founders-landing/`
+> **Deployment:** AWS (ECS Fargate + CloudFront)
 
 ---
 
@@ -12,7 +13,7 @@
 ### Phase 1: Foundation
 - [ ] Create Next.js 14 app in `apps/founders-landing/`
 - [ ] Configure Tailwind CSS with dark mode
-- [ ] Set up Vercel Postgres connection
+- [ ] Set up Prisma with RDS PostgreSQL connection
 - [ ] Create database schema (founders, referrals tables)
 - [ ] Configure environment variables
 
@@ -39,8 +40,9 @@
 ### Phase 5: Growth & Launch
 - [ ] Integrate LaunchDarkly for A/B testing
 - [ ] Configure Route 53 subdomain
-- [ ] Deploy to Vercel
-- [ ] SSL verification
+- [ ] Deploy to AWS (ECS Fargate)
+- [ ] Configure CloudFront distribution
+- [ ] SSL verification (ACM)
 - [ ] Go live
 
 ---
@@ -65,7 +67,7 @@
 
 ## 2. Database Schema
 
-### Vercel Postgres
+### PostgreSQL (RDS)
 
 ```sql
 -- Founders table
@@ -238,11 +240,11 @@ async function processReferral(referrerCode: string, newFounderId: number) {
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Vercel Edge Network                       │
-│                    (Auto SSL via Let's Encrypt)             │
+│                    CloudFront Distribution                   │
+│                    (Auto SSL via ACM)                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│   Next.js 14 App Router                                     │
+│   Next.js 14 App Router (ECS Fargate)                       │
 │   ├── / (landing page)                                      │
 │   ├── /success/[code] (post-signup)                        │
 │   ├── /api/signup (POST)                                   │
@@ -254,7 +256,7 @@ async function processReferral(referrerCode: string, newFounderId: number) {
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │   Integrations (via Platform API)                           │
-│   ├── Vercel Postgres (founders, referrals)                │
+│   ├── PostgreSQL (RDS - founders, referrals)               │
 │   ├── LaunchDarkly (A/B testing)                           │
 │   ├── AWS SES (email notifications)                        │
 │   ├── Twilio (SMS verification)                            │
@@ -263,7 +265,7 @@ async function processReferral(referrerCode: string, newFounderId: number) {
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │   DNS (Route 53)                                            │
-│   founders.avnz.io → CNAME → cname.vercel-dns.com          │
+│   founders.avnz.io → A Record → CloudFront Distribution    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -365,14 +367,8 @@ apps/founders-landing/
 ## 9. Environment Variables
 
 ```bash
-# Vercel Postgres (auto-populated by Vercel)
-POSTGRES_URL=
-POSTGRES_PRISMA_URL=
-POSTGRES_URL_NON_POOLING=
-POSTGRES_USER=
-POSTGRES_HOST=
-POSTGRES_PASSWORD=
-POSTGRES_DATABASE=
+# Database (RDS PostgreSQL)
+DATABASE_URL=postgresql://user:pass@avnz-postgres.xxx.us-east-1.rds.amazonaws.com:5432/founders
 
 # LaunchDarkly
 LAUNCHDARKLY_SDK_KEY=
@@ -385,6 +381,9 @@ PLATFORM_API_KEY=
 # App Config
 NEXT_PUBLIC_BASE_URL=https://founders.avnz.io
 NEXT_PUBLIC_APP_NAME=avnz.io Founders
+
+# AWS (for ECS deployment)
+AWS_REGION=us-east-1
 ```
 
 ---
@@ -397,7 +396,7 @@ NEXT_PUBLIC_APP_NAME=avnz.io Founders
     "next": "14.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "@vercel/postgres": "^0.5.0",
+    "@prisma/client": "^5.0.0",
     "next-themes": "^0.2.1",
     "lucide-react": "^0.294.0",
     "sonner": "^2.0.7",
@@ -411,6 +410,7 @@ NEXT_PUBLIC_APP_NAME=avnz.io Founders
     "@types/react-dom": "^18",
     "autoprefixer": "^10",
     "postcss": "^8",
+    "prisma": "^5.0.0",
     "tailwindcss": "^3",
     "typescript": "^5"
   }
@@ -424,26 +424,32 @@ NEXT_PUBLIC_APP_NAME=avnz.io Founders
 ### DNS Setup (Route 53)
 
 ```
-Record Type: CNAME
+Record Type: A (Alias)
 Name: founders
-Value: cname.vercel-dns.com
-TTL: 300
+Alias Target: CloudFront distribution (dxxxxxxx.cloudfront.net)
 ```
 
-### Vercel Configuration
+### AWS Infrastructure
 
-1. Connect GitHub repo to Vercel
-2. Set root directory: `apps/founders-landing`
-3. Framework preset: Next.js
-4. Add environment variables
-5. Add custom domain: `founders.avnz.io`
-6. SSL: Automatic (Let's Encrypt)
+1. **ECS Fargate** - Container orchestration
+   - Task definition with Next.js container
+   - Service with auto-scaling (min: 2, max: 6)
+2. **CloudFront** - CDN and SSL termination
+   - Origin: ALB pointing to ECS service
+   - SSL Certificate: ACM wildcard (*.avnz.io)
+3. **ALB** - Application Load Balancer
+   - Health checks on `/api/stats`
+   - Target group: ECS Fargate tasks
 
-### CI/CD
+### CI/CD (GitHub Actions)
 
-- Push to `main` → Production deploy
-- Push to any branch → Preview deploy
-- PRs get automatic preview URLs
+```yaml
+# Triggered on push to main
+- Build Docker image
+- Push to ECR
+- Update ECS service
+- Invalidate CloudFront cache
+```
 
 ---
 

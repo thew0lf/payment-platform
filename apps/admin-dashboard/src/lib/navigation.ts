@@ -40,6 +40,7 @@ import {
   UserPlus,
   Palette,
   TrendingUp,
+  Sparkles,
   LucideIcon,
 } from 'lucide-react';
 
@@ -122,6 +123,7 @@ export const iconMap: Record<string, LucideIcon> = {
   UserPlus,
   Palette,
   TrendingUp,
+  Sparkles,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -266,6 +268,7 @@ export const navigationSections: NavSection[] = [
       { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
       { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },
+      { id: 'waitlist', label: 'Founders Waitlist', href: '/settings/waitlist', icon: Sparkles },
       { id: 'audit-logs', label: 'Audit Logs', href: '/settings/audit-logs', icon: ClipboardList },
       { id: 'deleted', label: 'Trash', href: '/deleted', icon: Trash2 },
     ],

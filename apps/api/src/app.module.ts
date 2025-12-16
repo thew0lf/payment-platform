@@ -40,6 +40,7 @@ import { SettingsModule } from './settings/settings.module';
 import { AddressModule } from './address/address.module';
 import { AIFunnelGeneratorModule } from './ai-funnel-generator/ai-funnel-generator.module';
 import { EmailModule } from './email/email.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { EmailModule } from './email/email.module';
     AddressModule,
     AIFunnelGeneratorModule,
     EmailModule,
+    WaitlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],

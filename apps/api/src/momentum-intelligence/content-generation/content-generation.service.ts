@@ -656,7 +656,7 @@ Apply these principles naturally:
 
   private convertToHtml(text: string, type: ContentType): string {
     if (type === ContentType.SMS || type === ContentType.PUSH_NOTIFICATION) return text;
-    let html = text
+    const html = text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/\n\n/g, '</p><p>')

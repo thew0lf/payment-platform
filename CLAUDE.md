@@ -1359,6 +1359,60 @@ GET    /api/email/logs                # View send history
 | `sendWelcomeEmail()` | New user welcome | `welcome` |
 | `sendVerificationEmail()` | Email verification | `email-verification` |
 | `sendTemplatedEmail()` | Generic templated email | any |
+| (via sendTemplatedEmail) | Waitlist member invitation | `waitlist-invite` |
+
+### Email Template Design Standards
+
+**Brand Voice:** Fun, friendly, enthusiastic—never corporate or boring. AVNZ emails should feel like a message from a cool friend who happens to be a payment expert.
+
+#### Tone Guidelines
+| Element | Style | Example |
+|---------|-------|---------|
+| **Greeting** | Personal, emoji | "Hey {{userName}}! 👋" |
+| **Headlines** | Exciting, action-oriented | "You Made It, Founder!" |
+| **Body Copy** | Conversational, relatable | "Looks like your password decided to go on vacation without telling you. Rude, right?" |
+| **CTAs** | Fun, urgent | "Claim My Founder Spot 🎯", "Reset My Password ✨" |
+| **Security Notes** | Light-hearted but clear | "This link will self-destruct in {{expiresIn}} (very Mission Impossible, we know)" |
+
+#### Required Template Elements
+1. **Logo Header** - avnz.io logo with gradient background (color varies by template type)
+2. **Greeting** - Personal greeting with emoji
+3. **Clear CTA Button** - Prominent, gradient button with action text
+4. **Fallback Link** - Plain text link for accessibility
+5. **Fun Tip Box** - Helpful advice with personality
+6. **Footer** - Support email, copyright, compliance badges
+
+#### Color Schemes by Template Type
+| Type | Header Gradient | Accent Color |
+|------|-----------------|--------------|
+| Authentication | Purple-Blue (`#667eea` → `#764ba2`) | Purple |
+| Welcome/Success | Green (`#10b981` → `#059669`) | Green |
+| Verification | Blue (`#3b82f6` → `#1d4ed8`) | Blue |
+| Waitlist/VIP | Purple-Pink-Orange (`#8b5cf6` → `#ec4899` → `#f97316`) | Purple |
+
+#### Handlebars Variables Standard
+```handlebars
+{{userName}}       - User's name or email prefix (always humanized)
+{{currentYear}}    - Auto-populated (e.g., "2025")
+{{supportEmail}}   - Support contact (e.g., "support@avnz.io")
+{{expiresIn}}      - Human-readable expiry (e.g., "7 days")
+{{actionUrl}}      - Primary CTA URL (resetUrl, inviteUrl, etc.)
+```
+
+#### DO's and DON'Ts
+**DO:**
+- Use emojis sparingly but effectively
+- Write like you're talking to a friend
+- Make security info fun but clear
+- Include text-only version for all emails
+- Test across email clients (Gmail, Outlook, Apple Mail)
+
+**DON'T:**
+- Sound robotic or corporate
+- Use generic phrases ("Dear Customer")
+- Skip the mobile-responsive design
+- Forget the unsubscribe link (marketing emails)
+- Use more than 3 emojis per section
 
 ### Key Files
 - `apps/api/src/email/email.module.ts` - Module definition

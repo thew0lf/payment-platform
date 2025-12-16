@@ -324,7 +324,7 @@ export class AccountPoolService {
     }
 
     // Get eligible accounts
-    let eligibleAccounts = await this.getEligibleAccounts(pool, context);
+    const eligibleAccounts = await this.getEligibleAccounts(pool, context);
 
     if (eligibleAccounts.length === 0) {
       throw new BadRequestException('No eligible accounts available in pool');

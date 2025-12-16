@@ -241,9 +241,8 @@ redis-sg:
 | Domain | Service | SSL Certificate |
 |--------|---------|-----------------|
 | `avnz.io` | Marketing site | ACM Wildcard |
-| `app.avnz.io` | Admin Dashboard | ACM Wildcard |
+| `app.avnz.io` | Admin Dashboard + Company Portal | ACM Wildcard |
 | `api.avnz.io` | NestJS API | ACM Wildcard |
-| `portal.avnz.io` | Company Portal | ACM Wildcard |
 | `founders.avnz.io` | Founders Landing | ACM Wildcard |
 | `*.client.avnz.io` | White-label portals | ACM Wildcard |
 

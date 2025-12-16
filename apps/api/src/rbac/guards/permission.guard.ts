@@ -92,8 +92,8 @@ export class PermissionGuard implements CanActivate {
     const params = request.params || {};
 
     // Try to find scopeType/scopeId in request
-    let scopeType = query.scopeType || body.scopeType;
-    let scopeId = query.scopeId || body.scopeId;
+    const scopeType = query.scopeType || body.scopeType;
+    const scopeId = query.scopeId || body.scopeId;
 
     // If not explicit, derive from resource-specific params
     if (!scopeType || !scopeId) {

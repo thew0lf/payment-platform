@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createFounder, getFounderByEmail, getFounderByReferralCode, processReferral, getFounderCount, initDatabase, createVerificationToken } from '@/lib/db';
 import { generateReferralLink } from '@/lib/utils';
-import { sendWelcomeEmail, sendVerificationEmail } from '@/lib/email';
 import type { SignupRequest, SignupResponse } from '@/types';
 
-// Initialize database on first request
-let dbInitialized = false;
+// Main API URL for waitlist
+const API_URL = process.env.MAIN_API_URL || 'http://localhost:3001';
+const ORGANIZATION_ID = process.env.ORGANIZATION_ID || '';
+
+// Offset for display (keeps founder numbers consistent with legacy system)
+const FOUNDER_OFFSET = 832;
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize database if needed
-    if (!dbInitialized) {
-      try {
-        await initDatabase();
-        dbInitialized = true;
-      } catch (error) {
-        console.error('Database initialization error:', error);
-        // Continue anyway - tables might already exist
-      }
-    }
-
     const body: SignupRequest = await request.json();
 
     // Validate email
@@ -30,69 +21,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email already exists
-    const existingFounder = await getFounderByEmail(body.email);
-    if (existingFounder) {
+    // Call main API's waitlist signup endpoint
+    const apiResponse = await fetch(`${API_URL}/api/waitlist/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizationId: ORGANIZATION_ID,
+        email: body.email,
+        phone: body.phone,
+        referralCode: body.referralCode,
+        source: body.metadata?.utm_source,
+        medium: body.metadata?.utm_medium,
+        campaign: body.metadata?.utm_campaign,
+        variant: body.metadata?.variant,
+      }),
+    });
+
+    const apiData = await apiResponse.json();
+
+    if (!apiResponse.ok) {
+      // Handle duplicate email or other errors from main API
+      const message = apiData.message || 'This email is already on the waitlist';
       return NextResponse.json(
-        { success: false, message: 'This email is already registered' },
-        { status: 400 }
+        { success: false, message },
+        { status: apiResponse.status }
       );
     }
 
-    // Validate referral code if provided
-    let referredBy: string | undefined;
-    if (body.referralCode) {
-      const referrer = await getFounderByReferralCode(body.referralCode);
-      if (referrer) {
-        referredBy = body.referralCode;
-      }
-    }
+    // Map API response to SignupResponse format
+    const referralLink = generateReferralLink(apiData.referralCode);
 
-    // Create new founder
-    const founder = await createFounder({
-      email: body.email,
-      phone: body.phone,
-      referredBy,
-      metadata: body.metadata,
-    });
-
-    // Process referral if applicable
-    if (referredBy) {
-      await processReferral(referredBy, founder.id);
-    }
-
-    // Get total count for response
-    const totalFounders = await getFounderCount();
-
-    const referralLink = generateReferralLink(founder.referralCode);
-
-    // Send welcome email (non-blocking)
-    sendWelcomeEmail({
-      email: founder.email,
-      founderNumber: founder.founderNumber,
-      referralCode: founder.referralCode,
-      referralLink,
-      position: founder.currentPosition,
-    }).catch((err) => console.error('Welcome email error:', err));
-
-    // Create and send verification email (non-blocking)
-    createVerificationToken(founder.id, 'email')
-      .then((token) => {
-        sendVerificationEmail({
-          email: founder.email,
-          founderNumber: founder.founderNumber,
-          verificationToken: token,
-        }).catch((err) => console.error('Verification email error:', err));
-      })
-      .catch((err) => console.error('Token creation error:', err));
+    // Calculate display position with offset for consistency
+    const displayPosition = apiData.currentPosition + FOUNDER_OFFSET;
 
     const response: SignupResponse = {
       success: true,
       founder: {
-        founderNumber: founder.founderNumber,
-        referralCode: founder.referralCode,
-        position: founder.currentPosition,
-        totalFounders,
+        founderNumber: apiData.founderNumber,
+        referralCode: apiData.referralCode,
+        position: displayPosition,
+        totalFounders: displayPosition, // Approximate total (position is sequential)
       },
       referralLink,
     };

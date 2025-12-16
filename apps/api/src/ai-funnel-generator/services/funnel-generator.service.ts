@@ -277,7 +277,7 @@ export class FunnelGeneratorService {
    */
   private async runGeneration(generationId: string, primaryProductId?: string): Promise<void> {
     const startTime = Date.now();
-    let totalTokens = 0;
+    const totalTokens = 0;
 
     try {
       // Update status to generating

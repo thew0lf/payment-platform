@@ -538,7 +538,7 @@ export class TwilioService {
 
     try {
       const country = options.country || 'US';
-      let query = client.availablePhoneNumbers(country).local;
+      const query = client.availablePhoneNumbers(country).local;
 
       const params: any = {
         voiceEnabled: options.voiceEnabled ?? true,

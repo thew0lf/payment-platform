@@ -88,6 +88,12 @@ const PASSWORD_RESET_HTML = `
       vertical-align: middle;
       letter-spacing: -0.5px;
     }
+    /* Gmail auto-link prevention: separate spans for avnz, dot, io */
+    .logo-text-part {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border: none !important;
+    }
 
     /* Typography */
     h1 { color: #ffffff; font-size: 22px; font-weight: 600; margin: 16px 0 0 0; line-height: 1.3; }
@@ -164,8 +170,8 @@ const PASSWORD_RESET_HTML = `
       <div class="card">
         <div class="card-header">
           <div class="logo-container">
-            <div class="logo-icon"><span class="logo-icon-letter">A</span></div>
-            <span class="logo-text">avnz.io</span>
+            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
+            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
           </div>
           <h1>Forgot your password?<br>No worries, we've got you!</h1>
         </div>
@@ -757,5 +763,80 @@ describe('Email Template Minimum Requirements', () => {
 
     expect(isProductionReady(PASSWORD_RESET_HTML)).toBe(true);
     expect(isProductionReady(BROKEN_TEMPLATE_HTML)).toBe(false);
+  });
+});
+
+describe('Gmail Auto-Link Prevention Tests', () => {
+  /**
+   * Gmail automatically detects and underlines text that looks like a domain (e.g., "avnz.io").
+   * To prevent this, we must ensure "avnz" and "io" are in SEPARATE span elements.
+   * This breaks the pattern detection and prevents unwanted underlining.
+   */
+
+  const checkLogoSpanSeparation = (html: string): {
+    hasProperSeparation: boolean;
+    hasDomainPattern: boolean;
+    details: string;
+  } => {
+    // Check if "avnz.io" exists as a continuous string (BAD - Gmail will auto-link)
+    const hasDomainPattern = /avnz\.io/i.test(html) || /avnz<[^>]*>\.io/i.test(html);
+
+    // Check for properly separated spans (GOOD - prevents Gmail auto-link)
+    // Pattern: <span...>avnz</span> followed by <span...>.</span> followed by <span...>io</span>
+    const hasAvnzSpan = /<span[^>]*>avnz<\/span>/i.test(html);
+    const hasDotSpan = /<span[^>]*>\.<\/span>/i.test(html);
+    const hasIoSpan = /<span[^>]*>io<\/span>/i.test(html);
+
+    const hasProperSeparation = hasAvnzSpan && hasDotSpan && hasIoSpan;
+
+    return {
+      hasProperSeparation,
+      hasDomainPattern,
+      details: `avnz span: ${hasAvnzSpan}, dot span: ${hasDotSpan}, io span: ${hasIoSpan}, domain pattern: ${hasDomainPattern}`,
+    };
+  };
+
+  it('should have avnz.io logo text in separate spans to prevent Gmail auto-linking', () => {
+    const result = checkLogoSpanSeparation(PASSWORD_RESET_HTML);
+
+    expect(result.hasProperSeparation).toBe(true);
+    expect(result.hasDomainPattern).toBe(false);
+  });
+
+  it('should NOT contain avnz.io as continuous text that Gmail would auto-link', () => {
+    // This regex catches both "avnz.io" and "avnz<hidden-span>.io" patterns
+    const badPatterns = [
+      /avnz\.io/i,                          // Direct domain text
+      /avnz<span[^>]*style="font-size:0[^>]*>.*?<\/span>\.io/i,  // Zero-width space hack
+      />avnz[^<]*\.io</i,                   // Domain inside single element
+    ];
+
+    badPatterns.forEach(pattern => {
+      expect(PASSWORD_RESET_HTML).not.toMatch(pattern);
+    });
+  });
+
+  it('should have separate styled spans for avnz, dot, and io', () => {
+    // Each part should be in its own span with text-decoration:none
+    const avnzSpanMatch = PASSWORD_RESET_HTML.match(/<span[^>]*text-decoration:\s*none[^>]*>avnz<\/span>/i);
+    const dotSpanMatch = PASSWORD_RESET_HTML.match(/<span[^>]*text-decoration:\s*none[^>]*>\.<\/span>/i);
+    const ioSpanMatch = PASSWORD_RESET_HTML.match(/<span[^>]*text-decoration:\s*none[^>]*>io<\/span>/i);
+
+    expect(avnzSpanMatch).not.toBeNull();
+    expect(dotSpanMatch).not.toBeNull();
+    expect(ioSpanMatch).not.toBeNull();
+  });
+
+  it('should apply consistent styling to all logo span parts', () => {
+    // Extract all spans that are part of the logo
+    const logoSpans = PASSWORD_RESET_HTML.match(/<span class="logo-text-part"[^>]*>[^<]+<\/span>/gi) || [];
+
+    // Should have exactly 3 parts: avnz, ., io
+    expect(logoSpans.length).toBe(3);
+
+    // Each should have text-decoration:none
+    logoSpans.forEach(span => {
+      expect(span).toMatch(/text-decoration:\s*none/i);
+    });
   });
 });
