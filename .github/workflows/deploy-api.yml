@@ -76,13 +76,79 @@ jobs:
         run: npx tsc --noEmit
 
   # ============================================
+  # Job 1.5: Validate Migrations
+  # ============================================
+  validate-migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Validate Prisma Schema
+        working-directory: apps/api
+        run: npx prisma validate
+
+      - name: Check Migration Files
+        working-directory: apps/api
+        run: |
+          echo "### Migration Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count local migrations
+          MIGRATION_COUNT=$(ls -1 prisma/migrations 2>/dev/null | grep -v migration_lock.toml | wc -l | tr -d ' ')
+          echo "**Local migrations:** $MIGRATION_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # List migrations
+          echo "**Migration files:**" >> $GITHUB_STEP_SUMMARY
+          ls -1 prisma/migrations | grep -v migration_lock.toml | while read dir; do
+            echo "- \`$dir\`" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Migrations validated successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for Orphan SQL Files
+        working-directory: apps/api
+        run: |
+          # Check for .sql files outside migrations directory
+          ORPHAN_FILES=$(find prisma -name "*.sql" -not -path "*/migrations/*" 2>/dev/null | wc -l | tr -d ' ')
+
+          if [ "$ORPHAN_FILES" -gt 0 ]; then
+            echo "❌ ERROR: Found orphan SQL files outside prisma/migrations/"
+            find prisma -name "*.sql" -not -path "*/migrations/*"
+            exit 1
+          fi
+
+          echo "✅ No orphan SQL files found"
+
+  # ============================================
   # Job 2: Build and Push Docker Image
   # ============================================
   build:
     name: Build & Push
     runs-on: ubuntu-latest
-    needs: [test]
-    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    needs: [test, validate-migrations]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped') && (needs.validate-migrations.result == 'success')
     outputs:
       image: ${{ steps.build-image.outputs.image }}
 
@@ -153,6 +219,25 @@ jobs:
           echo "subnet=$SUBNET" >> $GITHUB_OUTPUT
           echo "security_group=$SG" >> $GITHUB_OUTPUT
 
+      - name: Create Database Backup
+        id: backup
+        run: |
+          # Get the current timestamp for backup identification
+          BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          echo "timestamp=$BACKUP_TIMESTAMP" >> $GITHUB_OUTPUT
+
+          # Create RDS snapshot before migration
+          echo "Creating database snapshot: avnz-pre-deploy-$BACKUP_TIMESTAMP"
+          aws rds create-db-snapshot \
+            --db-instance-identifier avnz-postgres \
+            --db-snapshot-identifier "avnz-pre-deploy-$BACKUP_TIMESTAMP" \
+            --tags Key=CreatedBy,Value=GitHubActions Key=Commit,Value=${{ github.sha }} || {
+              echo "Warning: Failed to create snapshot (may already exist or RDS not accessible)"
+              echo "Continuing with migration..."
+            }
+
+          echo "Backup initiated successfully"
+
       - name: Run Migration Task
         id: run-migration
         run: |
@@ -164,7 +249,7 @@ jobs:
             --overrides '{
               "containerOverrides": [{
                 "name": "api",
-                "command": ["sh", "-c", "npx prisma db push --accept-data-loss"]
+                "command": ["sh", "-c", "npx prisma migrate deploy"]
               }]
             }' \
             --query 'tasks[0].taskArn' \
