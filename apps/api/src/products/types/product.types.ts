@@ -2,7 +2,15 @@
  * Product Types
  */
 
-export { ProductCategory, ProductStatus, RoastLevel } from '@prisma/client';
+export { ProductStatus } from '@prisma/client';
+
+// Dynamic category info for products
+export interface ProductCategoryInfo {
+  id: string;
+  name: string;
+  slug: string;
+  isPrimary?: boolean;
+}
 
 export interface Product {
   id: string;
@@ -11,16 +19,9 @@ export interface Product {
   slug: string;
   name: string;
   description?: string;
-  category: string;
-  subcategory?: string;
 
-  // Coffee-specific
-  roastLevel?: string;
-  origin?: string;
-  flavorNotes: string[];
-  process?: string;
-  altitude?: string;
-  varietal?: string;
+  // Categories - use dynamic categories via categoryAssignments
+  categories?: ProductCategoryInfo[];
 
   // Sizing
   weight?: number;

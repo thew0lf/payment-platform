@@ -9,7 +9,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ProductCategory, ProductStatus, RoastLevel } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════
 // CREATE PRODUCT DTO
@@ -34,43 +34,11 @@ export class CreateProductDto {
   @MaxLength(2000)
   description?: string;
 
-  @IsEnum(ProductCategory)
-  category: ProductCategory;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  subcategory?: string;
-
-  // Coffee-specific
-  @IsOptional()
-  @IsEnum(RoastLevel)
-  roastLevel?: RoastLevel;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  origin?: string;
-
+  // Category assignment - use categoryIds to assign to dynamic categories
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  flavorNotes?: string[];
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  process?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  altitude?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  varietal?: string;
+  categoryIds?: string[];
 
   // Sizing
   @IsOptional()
@@ -170,28 +138,11 @@ export class UpdateProductDto {
   @MaxLength(2000)
   description?: string;
 
-  @IsOptional()
-  @IsEnum(ProductCategory)
-  category?: ProductCategory;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  subcategory?: string;
-
-  @IsOptional()
-  @IsEnum(RoastLevel)
-  roastLevel?: RoastLevel;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  origin?: string;
-
+  // Category assignment - use categoryIds to assign to dynamic categories
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  flavorNotes?: string[];
+  categoryIds?: string[];
 
   @IsOptional()
   @IsNumber()

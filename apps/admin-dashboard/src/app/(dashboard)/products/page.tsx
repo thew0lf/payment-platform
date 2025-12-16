@@ -26,6 +26,7 @@ import { useHierarchy } from '@/contexts/hierarchy-context';
 import {
   productsApi,
   mediaApi,
+  categoriesApi,
   Product,
   ProductMedia,
   ProductQueryParams,
@@ -33,9 +34,8 @@ import {
   UpdateProductInput,
   MediaProcessAction,
   GeneratedDescription,
-  PRODUCT_CATEGORIES,
+  Category,
   PRODUCT_STATUSES,
-  ROAST_LEVELS,
 } from '@/lib/api/products';
 import { MediaUpload, MediaGallery } from '@/components/products';
 import { AIDescriptionModal } from '@/components/products/ai-description-modal';
@@ -68,6 +68,97 @@ interface ProductModalProps {
   onRefresh?: () => void;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// QUICK CATEGORY MODAL (inline for creating categories from products page)
+// ═══════════════════════════════════════════════════════════════
+
+interface QuickCategoryModalProps {
+  onClose: () => void;
+  onCreated: (category: Category) => void;
+  companyId: string;
+}
+
+function QuickCategoryModal({ onClose, onCreated, companyId }: QuickCategoryModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    setLoading(true);
+    try {
+      const newCategory = await categoriesApi.create({ name: name.trim(), description }, companyId);
+      toast.success(`Category "${name}" created`);
+      onCreated(newCategory);
+      onClose();
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      toast.error('Failed to create category');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-4 md:inset-x-auto md:inset-y-20 md:left-1/2 md:-translate-x-1/2 md:max-w-md md:w-full z-[60]">
+        <div className="h-auto bg-card border border-border rounded-xl shadow-2xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">Quick Add Category</h2>
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Name *</label>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Category name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                placeholder="Optional description..."
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !name.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                Create Category
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps) {
   const { selectedCompanyId } = useHierarchy();
   const [loading, setLoading] = useState(false);
@@ -76,9 +167,7 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
     sku: product?.sku || '',
     name: product?.name || '',
     description: product?.description || '',
-    category: product?.category || 'COFFEE',
-    roastLevel: product?.roastLevel || '',
-    origin: product?.origin || '',
+    categoryIds: (product as any)?.categories?.map((c: any) => c.id) || [],
     flavorNotes: product?.flavorNotes || [],
     price: product?.price || 0,
     costPrice: product?.costPrice || 0,
@@ -89,7 +178,38 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
     metaTitle: (product as any)?.metaTitle || '',
     metaDescription: (product as any)?.metaDescription || '',
   });
-  const [flavorInput, setFlavorInput] = useState('');
+  const [noteInput, setNoteInput] = useState('');
+
+  // Dynamic categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [showQuickCategoryModal, setShowQuickCategoryModal] = useState(false);
+
+  // Fetch categories when modal opens
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!selectedCompanyId) return;
+      setCategoriesLoading(true);
+      try {
+        const cats = await categoriesApi.list(false, selectedCompanyId);
+        setCategories(cats);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    loadCategories();
+  }, [selectedCompanyId]);
+
+  // Handle new category created
+  const handleCategoryCreated = (newCategory: Category) => {
+    setCategories((prev) => [...prev, newCategory]);
+    // Auto-select the new category
+    if (!formData.categoryIds?.includes(newCategory.id)) {
+      setFormData((prev) => ({ ...prev, categoryIds: [...(prev.categoryIds || []), newCategory.id] }));
+    }
+  };
 
   // AI state
   const [showAIModal, setShowAIModal] = useState(false);
@@ -175,17 +295,17 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
     }
   };
 
-  const addFlavorNote = () => {
-    if (flavorInput.trim() && !formData.flavorNotes?.includes(flavorInput.trim())) {
+  const addNote = () => {
+    if (noteInput.trim() && !formData.flavorNotes?.includes(noteInput.trim())) {
       setFormData((prev) => ({
         ...prev,
-        flavorNotes: [...(prev.flavorNotes || []), flavorInput.trim()],
+        flavorNotes: [...(prev.flavorNotes || []), noteInput.trim()],
       }));
-      setFlavorInput('');
+      setNoteInput('');
     }
   };
 
-  const removeFlavorNote = (note: string) => {
+  const removeNote = (note: string) => {
     setFormData((prev) => ({
       ...prev,
       flavorNotes: prev.flavorNotes?.filter((n) => n !== note) || [],
@@ -202,9 +322,12 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
     }));
   };
 
-  // Handle AI category suggestions
-  const handleApplyCategory = (category: string) => {
-    setFormData((prev) => ({ ...prev, category }));
+  // Handle AI category suggestions - find matching category by slug
+  const handleApplyCategory = (categorySlug: string) => {
+    const matchingCategory = categories.find((c) => c.slug === categorySlug || c.name.toLowerCase() === categorySlug.toLowerCase());
+    if (matchingCategory && !formData.categoryIds?.includes(matchingCategory.id)) {
+      setFormData((prev) => ({ ...prev, categoryIds: [...(prev.categoryIds || []), matchingCategory.id] }));
+    }
   };
 
   // Handle AI tags (add to flavor notes for now)
@@ -327,33 +450,69 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
                 )}
               </div>
 
-              {/* Category & Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Categories & Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Category *</label>
-                  <select
-                    required
-                    value={formData.category}
-                    onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {PRODUCT_CATEGORIES.map((cat) => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Roast Level</label>
-                  <select
-                    value={formData.roastLevel || ''}
-                    onChange={(e) => setFormData((p) => ({ ...p, roastLevel: e.target.value }))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    <option value="">Select...</option>
-                    {ROAST_LEVELS.map((level) => (
-                      <option key={level.value} value={level.value}>{level.label}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Categories
+                    {categoriesLoading && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
+                  </label>
+                  {categories.length === 0 && !categoriesLoading ? (
+                    <div className="text-sm text-muted-foreground py-2">
+                      No categories found.{' '}
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickCategoryModal(true)}
+                        className="text-primary hover:underline"
+                      >
+                        Create category
+                      </button>{' '}
+                      first.
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const categoryId = e.target.value;
+                          if (categoryId && !formData.categoryIds?.includes(categoryId)) {
+                            setFormData((p) => ({ ...p, categoryIds: [...(p.categoryIds || []), categoryId] }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="">Add a category...</option>
+                        {categories.filter((c) => !formData.categoryIds?.includes(c.id)).map((cat) => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                      {formData.categoryIds && formData.categoryIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.categoryIds.map((catId) => {
+                            const cat = categories.find((c) => c.id === catId);
+                            return cat ? (
+                              <span
+                                key={catId}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs"
+                              >
+                                {cat.name}
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData((p) => ({
+                                    ...p,
+                                    categoryIds: p.categoryIds?.filter((id) => id !== catId) || [],
+                                  }))}
+                                  className="text-primary/70 hover:text-primary"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Status</label>
@@ -369,33 +528,21 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
                 </div>
               </div>
 
-              {/* Origin */}
+              {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Origin</label>
-                <input
-                  type="text"
-                  value={formData.origin || ''}
-                  onChange={(e) => setFormData((p) => ({ ...p, origin: e.target.value }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Ethiopia, Yirgacheffe Region"
-                />
-              </div>
-
-              {/* Flavor Notes */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Flavor Notes</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Notes</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
-                    value={flavorInput}
-                    onChange={(e) => setFlavorInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFlavorNote())}
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNote())}
                     className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder="Add flavor note..."
+                    placeholder="Add note..."
                   />
                   <button
                     type="button"
-                    onClick={addFlavorNote}
+                    onClick={addNote}
                     className="px-3 py-2 bg-muted border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Add
@@ -411,7 +558,7 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
                         {note}
                         <button
                           type="button"
-                          onClick={() => removeFlavorNote(note)}
+                          onClick={() => removeNote(note)}
                           className="text-muted-foreground hover:text-foreground"
                         >
                           <X className="w-3 h-3" />
@@ -430,7 +577,7 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
                   companyId={selectedCompanyId || undefined}
                   onApplyCategory={handleApplyCategory}
                   onApplyTags={handleApplyTags}
-                  currentCategory={formData.category}
+                  currentCategory={categories.find((c) => formData.categoryIds?.includes(c.id))?.slug || ''}
                   currentTags={formData.flavorNotes}
                 />
               )}
@@ -583,16 +730,27 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         productName={formData.name}
-        category={formData.category}
+        category={
+          formData.categoryIds && formData.categoryIds.length > 0
+            ? categories.find((c) => c.id === formData.categoryIds?.[0])?.slug
+            : undefined
+        }
         attributes={{
-          roastLevel: formData.roastLevel,
-          origin: formData.origin,
           flavorNotes: formData.flavorNotes,
         }}
         currentDescription={formData.description}
         onApply={handleAIApply}
         companyId={selectedCompanyId || undefined}
       />
+
+      {/* Quick Category Modal */}
+      {showQuickCategoryModal && selectedCompanyId && (
+        <QuickCategoryModal
+          onClose={() => setShowQuickCategoryModal(false)}
+          onCreated={handleCategoryCreated}
+          companyId={selectedCompanyId}
+        />
+      )}
     </>
   );
 }
@@ -627,8 +785,28 @@ export default function ProductsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  // Dynamic categories for filter
+  const [filterCategories, setFilterCategories] = useState<Category[]>([]);
+
   // Check if user needs to select a company
   const needsCompanySelection = (accessLevel === 'ORGANIZATION' || accessLevel === 'CLIENT') && !selectedCompanyId;
+
+  // Fetch categories for filter dropdown
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!selectedCompanyId) {
+        setFilterCategories([]);
+        return;
+      }
+      try {
+        const cats = await categoriesApi.list(false, selectedCompanyId);
+        setFilterCategories(cats);
+      } catch (err) {
+        console.error('Failed to load categories for filter:', err);
+      }
+    };
+    loadCategories();
+  }, [selectedCompanyId]);
 
   const fetchProducts = useCallback(async () => {
     if (needsCompanySelection) {
@@ -783,8 +961,8 @@ export default function ProductsPage() {
                 className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">All Categories</option>
-                {PRODUCT_CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                {filterCategories.map((cat) => (
+                  <option key={cat.slug} value={cat.slug}>{cat.name}</option>
                 ))}
               </select>
             </div>

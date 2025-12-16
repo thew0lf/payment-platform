@@ -352,7 +352,7 @@ export class SubscriptionLifecycleService {
 
     const now = new Date();
 
-    let updateData: any = {
+    const updateData: any = {
       canceledAt: now,
       cancelReason: dto.reason,
       cancelSource: dto.source || 'customer',
@@ -607,7 +607,7 @@ export class SubscriptionLifecycleService {
     const oldPlanId = subscription.subscriptionPlanId;
     const isUpgrade = Number(newPlan.basePriceMonthly) > Number(subscription.planAmount);
 
-    let updateData: any = {
+    const updateData: any = {
       subscriptionPlanId: dto.newPlanId,
       planName: newPlan.displayName || newPlan.name,
       planAmount: newPlan.basePriceMonthly,

@@ -41,42 +41,51 @@ export class ProductsService {
 
     const slug = dto.slug || this.generateSlug(dto.name);
 
-    const product = await this.prisma.product.create({
-      data: {
-        companyId,
-        sku: dto.sku,
-        slug,
-        name: dto.name,
-        description: dto.description,
-        category: dto.category,
-        subcategory: dto.subcategory,
-        roastLevel: dto.roastLevel,
-        origin: dto.origin,
-        flavorNotes: dto.flavorNotes || [],
-        process: dto.process,
-        altitude: dto.altitude,
-        varietal: dto.varietal,
-        weight: dto.weight,
-        weightUnit: dto.weightUnit || 'oz',
-        price: dto.price,
-        compareAtPrice: dto.compareAtPrice,
-        costPrice: dto.costPrice,
-        currency: dto.currency || 'USD',
-        trackInventory: dto.trackInventory ?? true,
-        stockQuantity: dto.stockQuantity || 0,
-        lowStockThreshold: dto.lowStockThreshold || 10,
-        status: dto.status || 'ACTIVE',
-        isVisible: dto.isVisible ?? true,
-        images: dto.images || [],
-        metaTitle: dto.metaTitle,
-        metaDescription: dto.metaDescription,
-      },
+    // Create product with category assignments in a transaction
+    const product = await this.prisma.$transaction(async (tx) => {
+      const newProduct = await tx.product.create({
+        data: {
+          companyId,
+          sku: dto.sku,
+          slug,
+          name: dto.name,
+          description: dto.description,
+          weight: dto.weight,
+          weightUnit: dto.weightUnit || 'oz',
+          price: dto.price,
+          compareAtPrice: dto.compareAtPrice,
+          costPrice: dto.costPrice,
+          currency: dto.currency || 'USD',
+          trackInventory: dto.trackInventory ?? true,
+          stockQuantity: dto.stockQuantity || 0,
+          lowStockThreshold: dto.lowStockThreshold || 10,
+          status: dto.status || 'ACTIVE',
+          isVisible: dto.isVisible ?? true,
+          images: dto.images || [],
+          metaTitle: dto.metaTitle,
+          metaDescription: dto.metaDescription,
+        },
+      });
+
+      // Create category assignments if categoryIds provided
+      if (dto.categoryIds && dto.categoryIds.length > 0) {
+        await tx.productCategoryAssignment.createMany({
+          data: dto.categoryIds.map((categoryId, index) => ({
+            productId: newProduct.id,
+            categoryId,
+            isPrimary: index === 0, // First category is primary
+          })),
+        });
+      }
+
+      return newProduct;
     });
 
+    const productWithCategories = await this.findById(product.id, companyId);
     this.logger.log(`Created product: ${product.name} (${product.sku}) by user ${userId}`);
-    this.eventEmitter.emit('product.created', { product: this.mapToProduct(product), userId });
+    this.eventEmitter.emit('product.created', { product: productWithCategories, userId });
 
-    return this.mapToProduct(product);
+    return productWithCategories;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -94,7 +103,16 @@ export class ProductsService {
       where.companyId = companyId;
     }
 
-    if (query.category) where.category = query.category as any;
+    // Filter by dynamic category (via categoryAssignments)
+    if (query.category) {
+      where.categoryAssignments = {
+        some: {
+          category: {
+            slug: query.category,
+          },
+        },
+      };
+    }
     if (query.status) where.status = query.status as any;
     if (query.inStock) where.stockQuantity = { gt: 0 };
 
@@ -112,6 +130,13 @@ export class ProductsService {
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
+        include: {
+          categoryAssignments: {
+            include: {
+              category: true,
+            },
+          },
+        },
         orderBy: { name: 'asc' },
         take: limit,
         skip: offset,
@@ -128,6 +153,13 @@ export class ProductsService {
   async findById(id: string, companyId: string): Promise<Product> {
     const product = await this.prisma.product.findFirst({
       where: { id, companyId, deletedAt: null },
+      include: {
+        categoryAssignments: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!product) {
@@ -140,6 +172,13 @@ export class ProductsService {
   async findBySku(companyId: string, sku: string): Promise<Product> {
     const product = await this.prisma.product.findFirst({
       where: { companyId, sku, deletedAt: null },
+      include: {
+        categoryAssignments: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!product) {
@@ -172,36 +211,54 @@ export class ProductsService {
       }
     }
 
-    const product = await this.prisma.product.update({
-      where: { id },
-      data: {
-        sku: dto.sku,
-        slug: dto.slug,
-        name: dto.name,
-        description: dto.description,
-        category: dto.category,
-        subcategory: dto.subcategory,
-        roastLevel: dto.roastLevel,
-        origin: dto.origin,
-        flavorNotes: dto.flavorNotes,
-        price: dto.price,
-        compareAtPrice: dto.compareAtPrice,
-        costPrice: dto.costPrice,
-        trackInventory: dto.trackInventory,
-        stockQuantity: dto.stockQuantity,
-        lowStockThreshold: dto.lowStockThreshold,
-        status: dto.status,
-        isVisible: dto.isVisible,
-        images: dto.images,
-        metaTitle: dto.metaTitle,
-        metaDescription: dto.metaDescription,
-      },
+    // Update product with category assignments in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: {
+          sku: dto.sku,
+          slug: dto.slug,
+          name: dto.name,
+          description: dto.description,
+          price: dto.price,
+          compareAtPrice: dto.compareAtPrice,
+          costPrice: dto.costPrice,
+          trackInventory: dto.trackInventory,
+          stockQuantity: dto.stockQuantity,
+          lowStockThreshold: dto.lowStockThreshold,
+          status: dto.status,
+          isVisible: dto.isVisible,
+          images: dto.images,
+          metaTitle: dto.metaTitle,
+          metaDescription: dto.metaDescription,
+        },
+      });
+
+      // Update category assignments if categoryIds provided
+      if (dto.categoryIds !== undefined) {
+        // Delete existing assignments
+        await tx.productCategoryAssignment.deleteMany({
+          where: { productId: id },
+        });
+
+        // Create new assignments
+        if (dto.categoryIds.length > 0) {
+          await tx.productCategoryAssignment.createMany({
+            data: dto.categoryIds.map((categoryId, index) => ({
+              productId: id,
+              categoryId,
+              isPrimary: index === 0,
+            })),
+          });
+        }
+      }
     });
 
-    this.logger.log(`Updated product: ${product.name} by user ${userId}`);
-    this.eventEmitter.emit('product.updated', { product: this.mapToProduct(product), userId });
+    const productWithCategories = await this.findById(id, companyId);
+    this.logger.log(`Updated product: ${productWithCategories.name} by user ${userId}`);
+    this.eventEmitter.emit('product.updated', { product: productWithCategories, userId });
 
-    return this.mapToProduct(product);
+    return productWithCategories;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -305,6 +362,14 @@ export class ProductsService {
   }
 
   private mapToProduct(data: any): Product {
+    // Map dynamic categories from categoryAssignments
+    const categories = data.categoryAssignments?.map((assignment: any) => ({
+      id: assignment.category.id,
+      name: assignment.category.name,
+      slug: assignment.category.slug,
+      isPrimary: assignment.isPrimary,
+    })) || [];
+
     return {
       id: data.id,
       companyId: data.companyId,
@@ -312,14 +377,7 @@ export class ProductsService {
       slug: data.slug,
       name: data.name,
       description: data.description,
-      category: data.category,
-      subcategory: data.subcategory,
-      roastLevel: data.roastLevel,
-      origin: data.origin,
-      flavorNotes: data.flavorNotes || [],
-      process: data.process,
-      altitude: data.altitude,
-      varietal: data.varietal,
+      categories, // Dynamic categories
       weight: data.weight ? Number(data.weight) : undefined,
       weightUnit: data.weightUnit,
       price: Number(data.price),

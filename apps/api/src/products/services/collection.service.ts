@@ -433,7 +433,16 @@ export class CollectionService {
 
     switch (field) {
       case 'category':
-        return { category: this.buildOperator(operator, value) as any };
+        // Use dynamic categories via categoryAssignments
+        return {
+          categoryAssignments: {
+            some: {
+              category: {
+                slug: String(value),
+              },
+            },
+          },
+        };
       case 'price':
         return { price: this.buildNumericOperator(operator, Number(value)) };
       case 'title':

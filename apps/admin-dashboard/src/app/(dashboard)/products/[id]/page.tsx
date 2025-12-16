@@ -30,6 +30,7 @@ import {
   mediaApi,
   variantsApi,
   variantOptionsApi,
+  categoriesApi,
   Product,
   ProductMedia,
   ProductVariant,
@@ -37,9 +38,8 @@ import {
   UpdateProductInput,
   MediaProcessAction,
   GeneratedDescription,
-  PRODUCT_CATEGORIES,
+  Category,
   PRODUCT_STATUSES,
-  ROAST_LEVELS,
 } from '@/lib/api/products';
 import { MediaUpload, MediaGallery } from '@/components/products';
 import { AIDescriptionModal } from '@/components/products/ai-description-modal';
@@ -98,6 +98,10 @@ export default function ProductDetailPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [flavorInput, setFlavorInput] = useState('');
 
+  // Dynamic categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
   // Media state
   const [media, setMedia] = useState<ProductMedia[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
@@ -118,6 +122,19 @@ export default function ProductDetailPage() {
     }).format(amount);
   }, []);
 
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    try {
+      const data = await categoriesApi.list(false, selectedCompanyId || undefined);
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [selectedCompanyId]);
+
   // Fetch product data
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -129,9 +146,7 @@ export default function ProductDetailPage() {
         sku: data.sku,
         name: data.name,
         description: data.description || '',
-        category: data.category,
-        roastLevel: data.roastLevel || '',
-        origin: data.origin || '',
+        categoryIds: data.categories?.map((c: any) => c.id) || [],
         flavorNotes: data.flavorNotes || [],
         price: data.price,
         costPrice: data.costPrice || undefined,
@@ -183,8 +198,9 @@ export default function ProductDetailPage() {
   }, [productId]);
 
   useEffect(() => {
+    fetchCategories();
     fetchProduct();
-  }, [fetchProduct]);
+  }, [fetchCategories, fetchProduct]);
 
   useEffect(() => {
     if (activeTab === 'media') {
@@ -302,12 +318,37 @@ export default function ProductDetailPage() {
     });
   };
 
-  const handleApplyCategory = (category: string) => {
-    updateFormData({ category });
+  const handleApplyCategory = (categorySlug: string) => {
+    // Find category by slug and add to categoryIds if not already present
+    const category = categories.find((c) => c.slug === categorySlug);
+    if (category && !formData.categoryIds?.includes(category.id)) {
+      updateFormData({
+        categoryIds: [...(formData.categoryIds || []), category.id],
+      });
+    }
   };
 
   const handleApplyTags = (tags: string[]) => {
     updateFormData({ flavorNotes: tags });
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    const currentIds = formData.categoryIds || [];
+    if (currentIds.includes(categoryId)) {
+      updateFormData({
+        categoryIds: currentIds.filter((id) => id !== categoryId),
+      });
+    } else {
+      updateFormData({
+        categoryIds: [...currentIds, categoryId],
+      });
+    }
+  };
+
+  const removeCategory = (categoryId: string) => {
+    updateFormData({
+      categoryIds: (formData.categoryIds || []).filter((id) => id !== categoryId),
+    });
   };
 
   // Loading state
@@ -502,31 +543,60 @@ export default function ProductDetailPage() {
             {/* Category & Status */}
             <div className="bg-card/50 border border-border rounded-xl p-6">
               <h3 className="text-sm font-medium text-foreground mb-4">Category & Status</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Category</label>
-                  <select
-                    value={formData.category || ''}
-                    onChange={(e) => updateFormData({ category: e.target.value })}
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {PRODUCT_CATEGORIES.map((cat) => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Roast Level</label>
-                  <select
-                    value={formData.roastLevel || ''}
-                    onChange={(e) => updateFormData({ roastLevel: e.target.value })}
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    <option value="">Select...</option>
-                    {ROAST_LEVELS.map((level) => (
-                      <option key={level.value} value={level.value}>{level.label}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Categories</label>
+                  {categoriesLoading ? (
+                    <div className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-muted-foreground">
+                      Loading categories...
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <div className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-muted-foreground">
+                      No categories available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="max-h-40 overflow-y-auto border border-border rounded-lg bg-muted p-2">
+                        {categories.map((category) => (
+                          <label
+                            key={category.id}
+                            className="flex items-center gap-2 px-2 py-1 hover:bg-muted-foreground/10 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.categoryIds?.includes(category.id) || false}
+                              onChange={() => toggleCategory(category.id)}
+                              className="rounded border-border text-primary focus:ring-primary"
+                            />
+                            <span className="text-sm text-foreground">{category.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {formData.categoryIds && formData.categoryIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.categoryIds.map((catId) => {
+                            const cat = categories.find((c) => c.id === catId);
+                            if (!cat) return null;
+                            return (
+                              <span
+                                key={catId}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs"
+                              >
+                                {cat.name}
+                                <button
+                                  onClick={() => removeCategory(catId)}
+                                  className="hover:text-primary/80"
+                                >
+                                  <span className="sr-only">Remove</span>
+                                  &times;
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Status</label>
@@ -540,16 +610,6 @@ export default function ProductDetailPage() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Origin</label>
-                <Input
-                  value={formData.origin || ''}
-                  onChange={(e) => updateFormData({ origin: e.target.value })}
-                  placeholder="Ethiopia, Yirgacheffe Region"
-                  className="bg-muted"
-                />
               </div>
 
               {/* Flavor Notes */}
@@ -597,7 +657,11 @@ export default function ProductDetailPage() {
                     companyId={selectedCompanyId || undefined}
                     onApplyCategory={handleApplyCategory}
                     onApplyTags={handleApplyTags}
-                    currentCategory={formData.category}
+                    currentCategory={
+                      formData.categoryIds && formData.categoryIds.length > 0
+                        ? categories.find((c) => c.id === formData.categoryIds?.[0])?.slug
+                        : undefined
+                    }
                     currentTags={formData.flavorNotes}
                   />
                 </div>
@@ -835,10 +899,12 @@ export default function ProductDetailPage() {
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         productName={formData.name || ''}
-        category={formData.category}
+        category={
+          formData.categoryIds && formData.categoryIds.length > 0
+            ? categories.find((c) => c.id === formData.categoryIds?.[0])?.slug
+            : undefined
+        }
         attributes={{
-          roastLevel: formData.roastLevel,
-          origin: formData.origin,
           flavorNotes: formData.flavorNotes,
         }}
         currentDescription={formData.description}

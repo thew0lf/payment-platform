@@ -104,6 +104,14 @@ export class PublicProductsController {
    * Converts Prisma model to our Product interface and strips sensitive data
    */
   private toPublicProduct(product: any): Product {
+    // Map dynamic categories from categoryAssignments
+    const categories = product.categoryAssignments?.map((assignment: any) => ({
+      id: assignment.category.id,
+      name: assignment.category.name,
+      slug: assignment.category.slug,
+      isPrimary: assignment.isPrimary,
+    })) || [];
+
     return {
       id: product.id,
       companyId: product.companyId,
@@ -111,14 +119,7 @@ export class PublicProductsController {
       slug: product.slug,
       name: product.name,
       description: product.description || undefined,
-      category: product.category,
-      subcategory: product.subcategory || undefined,
-      roastLevel: product.roastLevel || undefined,
-      origin: product.origin || undefined,
-      flavorNotes: product.flavorNotes || [],
-      process: product.process || undefined,
-      altitude: product.altitude || undefined,
-      varietal: product.varietal || undefined,
+      categories, // Dynamic categories
       weight: product.weight ? Number(product.weight) : undefined,
       weightUnit: product.weightUnit || 'oz',
       price: Number(product.price),

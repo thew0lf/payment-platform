@@ -4,6 +4,14 @@ import { apiRequest } from '../api';
 // PRODUCT TYPES
 // ═══════════════════════════════════════════════════════════════
 
+// Category info for products (dynamic categories)
+export interface ProductCategoryInfo {
+  id: string;
+  name: string;
+  slug: string;
+  isPrimary?: boolean;
+}
+
 export interface Product {
   id: string;
   companyId: string;
@@ -11,14 +19,8 @@ export interface Product {
   slug: string;
   name: string;
   description?: string;
-  category: string;
-  subcategory?: string;
-  roastLevel?: string;
-  origin?: string;
-  flavorNotes: string[];
-  process?: string;
-  altitude?: string;
-  varietal?: string;
+  categories?: ProductCategoryInfo[];
+  flavorNotes?: string[];
   weight?: number;
   weightUnit: string;
   price: number;
@@ -45,14 +47,8 @@ export interface CreateProductInput {
   slug?: string;
   name: string;
   description?: string;
-  category: string;
-  subcategory?: string;
-  roastLevel?: string;
-  origin?: string;
+  categoryIds?: string[];
   flavorNotes?: string[];
-  process?: string;
-  altitude?: string;
-  varietal?: string;
   weight?: number;
   weightUnit?: string;
   price: number;
@@ -350,8 +346,9 @@ export const categoriesApi = {
   },
 
   // Create category
-  create: async (data: CreateCategoryInput): Promise<Category> => {
-    return apiRequest.post<Category>('/api/products/categories', data);
+  create: async (data: CreateCategoryInput, companyId?: string): Promise<Category> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.post<Category>(`/api/products/categories${params}`, data);
   },
 
   // Update category
@@ -575,15 +572,7 @@ export const mediaApi = {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
-export const PRODUCT_CATEGORIES = [
-  { value: 'COFFEE', label: 'Coffee' },
-  { value: 'EQUIPMENT', label: 'Equipment' },
-  { value: 'ACCESSORIES', label: 'Accessories' },
-  { value: 'MERCHANDISE', label: 'Merchandise' },
-  { value: 'SUBSCRIPTION_BOX', label: 'Subscription Box' },
-  { value: 'GIFT_CARD', label: 'Gift Card' },
-] as const;
-
+// Product statuses (static - doesn't change per company)
 export const PRODUCT_STATUSES = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'DRAFT', label: 'Draft' },
@@ -591,13 +580,8 @@ export const PRODUCT_STATUSES = [
   { value: 'OUT_OF_STOCK', label: 'Out of Stock' },
 ] as const;
 
-export const ROAST_LEVELS = [
-  { value: 'LIGHT', label: 'Light Roast' },
-  { value: 'MEDIUM_LIGHT', label: 'Medium-Light' },
-  { value: 'MEDIUM', label: 'Medium Roast' },
-  { value: 'MEDIUM_DARK', label: 'Medium-Dark' },
-  { value: 'DARK', label: 'Dark Roast' },
-] as const;
+// Note: Categories are now fetched dynamically from the API using categoriesApi.list()
+// This allows each company to define their own categories
 
 export const COLLECTION_TYPES = [
   { value: 'MANUAL', label: 'Manual Collection' },

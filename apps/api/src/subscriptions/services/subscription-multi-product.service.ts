@@ -436,7 +436,7 @@ export class SubscriptionMultiProductService {
       throw new NotFoundException('Current product not found');
     }
 
-    // Get products in same category (or all products if no category)
+    // Get products in same categories (or all products if no categories)
     const where: Prisma.ProductWhereInput = {
       companyId: subscription.companyId,
       status: 'ACTIVE',
@@ -444,8 +444,20 @@ export class SubscriptionMultiProductService {
       deletedAt: null,
     };
 
-    if (currentProduct.category) {
-      where.category = currentProduct.category;
+    // Get the current product with its category assignments
+    const productWithCategories = await this.prisma.product.findUnique({
+      where: { id: currentProductId },
+      include: { categoryAssignments: { include: { category: true } } },
+    });
+
+    // If current product has categories, find products with similar categories
+    if (productWithCategories?.categoryAssignments?.length) {
+      const categoryIds = productWithCategories.categoryAssignments.map(ca => ca.categoryId);
+      where.categoryAssignments = {
+        some: {
+          categoryId: { in: categoryIds },
+        },
+      };
     }
 
     const availableProducts = await this.prisma.product.findMany({

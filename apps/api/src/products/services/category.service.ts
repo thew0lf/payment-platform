@@ -110,7 +110,7 @@ export class CategoryService {
     }
 
     // Handle parent change - rebuild path
-    let updateData: Prisma.CategoryUpdateInput = {
+    const updateData: Prisma.CategoryUpdateInput = {
       name: dto.name,
       slug: dto.slug,
       description: dto.description,
