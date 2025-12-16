@@ -105,6 +105,9 @@ jobs:
 
       - name: Validate Prisma Schema
         working-directory: apps/api
+        env:
+          # Dummy URL for schema validation (doesn't actually connect)
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
         run: npx prisma validate
 
       - name: Check Migration Files
