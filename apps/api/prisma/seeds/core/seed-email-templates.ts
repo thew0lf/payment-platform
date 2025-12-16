@@ -87,6 +87,12 @@ const PASSWORD_RESET_HTML = `
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
     }
+    /* Gmail auto-link prevention: separate spans for avnz, dot, io */
+    .logo-text-part {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border: none !important;
+    }
 
     /* Typography */
     h1 {
@@ -201,7 +207,7 @@ const PASSWORD_RESET_HTML = `
         <div class="card-header">
           <div class="logo-container">
             <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text" style="color:#ffffff !important;text-decoration:none !important;border:none !important;">avnz<span style="font-size:0;">&#8203;</span>.io</span>
+            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
           </div>
           <h1>Forgot your password?<br>No worries, we've got you!</h1>
         </div>
@@ -345,6 +351,12 @@ const WELCOME_HTML = `
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
     }
+    /* Gmail auto-link prevention: separate spans for avnz, dot, io */
+    .logo-text-part {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border: none !important;
+    }
 
     /* Typography */
     h1 {
@@ -466,7 +478,7 @@ const WELCOME_HTML = `
         <div class="card-header">
           <div class="logo-container">
             <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text" style="color:#ffffff !important;text-decoration:none !important;border:none !important;">avnz<span style="font-size:0;">&#8203;</span>.io</span>
+            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
           </div>
           <h1>Welcome to the family! 🎉<br>You're officially one of us!</h1>
         </div>
@@ -618,6 +630,12 @@ const EMAIL_VERIFICATION_HTML = `
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
     }
+    /* Gmail auto-link prevention: separate spans for avnz, dot, io */
+    .logo-text-part {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border: none !important;
+    }
 
     /* Typography */
     h1 {
@@ -732,7 +750,7 @@ const EMAIL_VERIFICATION_HTML = `
         <div class="card-header">
           <div class="logo-container">
             <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text" style="color:#ffffff !important;text-decoration:none !important;border:none !important;">avnz<span style="font-size:0;">&#8203;</span>.io</span>
+            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
           </div>
           <h1>Just one tiny thing... 📬<br>Let's verify it's really you!</h1>
         </div>
@@ -790,6 +808,326 @@ Questions? We're here to help at support@avnz.io
 ---
 © {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant
 Made with 💙 by the AVNZ team
+`;
+
+const WAITLIST_INVITE_HTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>You're In! Welcome, Founding Member! 🚀</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+  </style>
+  <![endif]-->
+  <style>
+    /* Reset */
+    body, table, td, p, a, li { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+    /* Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #0f0f1a;
+      width: 100% !important;
+      min-width: 100%;
+    }
+
+    /* Container */
+    .wrapper { width: 100%; table-layout: fixed; background-color: #0f0f1a; padding: 20px 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #0f0f1a; }
+
+    /* Card */
+    .card {
+      background: linear-gradient(180deg, #1a1a2e 0%, #16162a 100%);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+      margin: 10px 16px;
+      overflow: hidden;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    .card-header {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%);
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .card-body { padding: 32px 24px; }
+
+    /* Logo */
+    .logo-container {
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      display: inline-block;
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      vertical-align: middle;
+      text-align: center;
+      line-height: 56px;
+      margin-right: 12px;
+    }
+    .logo-icon-letter {
+      color: #ffffff;
+      font-size: 32px;
+      font-weight: 800;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .logo-text {
+      display: inline-block;
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border-bottom: none !important;
+      vertical-align: middle;
+      letter-spacing: -0.5px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .logo-text-part {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      border: none !important;
+    }
+
+    /* Typography */
+    h1 {
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 700;
+      margin: 16px 0 0 0;
+      line-height: 1.3;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .greeting {
+      font-size: 20px;
+      color: #ffffff;
+      margin: 0 0 16px 0;
+      font-weight: 600;
+    }
+    p { color: #a0aec0; margin: 0 0 16px 0; font-size: 16px; line-height: 1.7; }
+    .highlight-text {
+      color: #c4b5fd;
+      font-weight: 600;
+    }
+
+    /* Founder number badge */
+    .founder-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 50px;
+      margin: 8px 0 16px 0;
+      letter-spacing: 1px;
+    }
+
+    /* Button */
+    .button-container { text-align: center; padding: 12px 0 28px 0; }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 18px 48px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(139, 92, 246, 0.5);
+    }
+
+    /* Link fallback */
+    .link-text {
+      color: #718096;
+      font-size: 12px;
+      word-break: break-all;
+      background: #1e1e3f;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border: 1px solid #2d2d5a;
+    }
+
+    /* Perks box */
+    .perks-box {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .perks-box h3 {
+      color: #c4b5fd;
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .perks-box ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .perks-box li {
+      color: #d8b4fe;
+      font-size: 15px;
+      margin-bottom: 12px;
+      padding-left: 28px;
+      position: relative;
+    }
+    .perks-box li:before {
+      content: "🔥";
+      position: absolute;
+      left: 0;
+    }
+    .perks-box li:nth-child(2):before { content: "⚡"; }
+    .perks-box li:nth-child(3):before { content: "🎁"; }
+    .perks-box li:nth-child(4):before { content: "💎"; }
+    .perks-box li:last-child { margin-bottom: 0; }
+
+    /* Countdown box */
+    .countdown-box {
+      background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .countdown-box p {
+      color: #ffffff;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 24px 16px;
+    }
+    .footer p {
+      color: #6b7280;
+      font-size: 12px;
+      margin: 4px 0;
+    }
+    .footer a { color: #8b5cf6; text-decoration: none; }
+
+    /* Mobile responsive */
+    @media only screen and (max-width: 480px) {
+      .card { margin: 10px 12px; }
+      .card-header { padding: 32px 20px; }
+      .card-body { padding: 24px 20px; }
+      .logo-icon { width: 48px; height: 48px; line-height: 48px; border-radius: 12px; margin-right: 10px; }
+      .logo-icon-letter { font-size: 28px; }
+      .logo-text { font-size: 28px; }
+      h1 { font-size: 22px; }
+      .button { padding: 16px 36px; font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <div class="logo-container">
+            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
+            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
+          </div>
+          <h1>🎉 You Made It, Founder!<br>Your VIP Pass is Here!</h1>
+        </div>
+        <div class="card-body">
+          <p class="greeting">Hey {{userName}}! 👋</p>
+          <div class="founder-badge">FOUNDER {{founderNumber}}</div>
+          <p>Holy smokes! 🤯 You've been <span class="highlight-text">hand-picked from our waitlist</span> to join the exclusive group of founding members at AVNZ!</p>
+          <p>You were #{{position}} on the waitlist, and now you're about to become part of something <span class="highlight-text">absolutely legendary</span>. We've been building something special, and we want YOU to help shape the future of payment technology! 🚀</p>
+
+          <div class="button-container">
+            <a href="{{inviteUrl}}" class="button">Claim My Founder Spot 🎯</a>
+          </div>
+
+          <p class="link-text">
+            <strong>Link not working?</strong> Copy this instead:<br>{{inviteUrl}}
+          </p>
+
+          <div class="perks-box">
+            <h3>Your Founding Member Perks:</h3>
+            <ul>
+              <li><strong>Founder pricing forever</strong> – locked in, no matter how big we grow</li>
+              <li><strong>Early access</strong> – test new features before anyone else</li>
+              <li><strong>Direct line to our team</strong> – your feedback shapes the product</li>
+              <li><strong>Exclusive founder badge</strong> – flex your early adopter status</li>
+            </ul>
+          </div>
+
+          <div class="countdown-box">
+            <p>⏰ This invite expires in {{expiresIn}} – don't let it slip away!</p>
+          </div>
+
+          <p style="color: #e2e8f0; font-size: 15px;">This is your moment, {{userName}}! Click the button above, set up your account, and let's build the future of payments together. We literally can't do this without founders like you! 💜</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Questions? Hit us up at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
+        <p>© {{currentYear}} AVNZ Platform • For Founders, By Founders</p>
+        <p style="margin-top: 12px; color: #8b5cf6;">Made with 🔥 by the AVNZ team</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+const WAITLIST_INVITE_TEXT = `
+🎉 YOU MADE IT, FOUNDER! YOUR VIP PASS IS HERE!
+
+Hey {{userName}}! 👋
+
+FOUNDER {{founderNumber}}
+
+Holy smokes! 🤯 You've been hand-picked from our waitlist to join the exclusive group of founding members at AVNZ!
+
+You were #{{position}} on the waitlist, and now you're about to become part of something absolutely legendary. We've been building something special, and we want YOU to help shape the future of payment technology! 🚀
+
+🎯 CLAIM YOUR FOUNDER SPOT NOW:
+{{inviteUrl}}
+
+YOUR FOUNDING MEMBER PERKS:
+🔥 Founder pricing forever – locked in, no matter how big we grow
+⚡ Early access – test new features before anyone else
+🎁 Direct line to our team – your feedback shapes the product
+💎 Exclusive founder badge – flex your early adopter status
+
+⏰ HEADS UP: This invite expires in {{expiresIn}} – don't let it slip away!
+
+This is your moment, {{userName}}! Click the link above, set up your account, and let's build the future of payments together. We literally can't do this without founders like you! 💜
+
+Questions? Hit us up at {{supportEmail}}
+
+---
+© {{currentYear}} AVNZ Platform • For Founders, By Founders
+Made with 🔥 by the AVNZ team
 `;
 
 export async function seedEmailTemplates() {
@@ -853,6 +1191,29 @@ export async function seedEmailTemplates() {
         { name: 'userName', type: 'string', required: true, description: 'User\'s name or email prefix' },
         { name: 'verifyUrl', type: 'url', required: true, description: 'Email verification URL with token' },
         { name: 'expiresIn', type: 'string', required: true, description: 'Token expiration time (e.g., "24 hours")' },
+      ],
+    },
+    {
+      code: 'waitlist-invite',
+      name: 'Waitlist Invite',
+      description: 'Email sent to invite waitlist members to register as founding members',
+      category: EmailTemplateCategory.AUTHENTICATION,
+      subject: '🎉 You\'re In! Welcome, Founder {{founderNumber}}!',
+      htmlBody: WAITLIST_INVITE_HTML.trim(),
+      textBody: WAITLIST_INVITE_TEXT.trim(),
+      fromName: 'AVNZ Platform',
+      fromEmail: 'noreply@avnz.io',
+      replyTo: 'support@avnz.io',
+      isSystem: true,
+      isActive: true,
+      variables: [
+        { name: 'userName', type: 'string', required: true, description: 'User\'s name or email prefix' },
+        { name: 'founderNumber', type: 'string', required: true, description: 'Founder number (e.g., FND-0001)' },
+        { name: 'position', type: 'number', required: true, description: 'User\'s position on the waitlist' },
+        { name: 'companyName', type: 'string', required: false, description: 'User\'s company name (if provided)' },
+        { name: 'inviteUrl', type: 'url', required: true, description: 'Registration URL with invite token' },
+        { name: 'expiresIn', type: 'string', required: true, description: 'Token expiration time (e.g., "7 days")' },
+        { name: 'supportEmail', type: 'string', required: true, description: 'Support email address' },
       ],
     },
   ];

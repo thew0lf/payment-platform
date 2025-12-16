@@ -51,6 +51,9 @@ model Organization {
   // Email Templates
   emailTemplates       EmailTemplate[]
 
+  // Waitlist
+  waitlist             Waitlist[]
+
   @@map("organizations")
 }
 
@@ -88,6 +91,9 @@ model Client {
 
   // Email Templates
   emailTemplates EmailTemplate[]
+
+  // Waitlist (link back from completed registration)
+  waitlistEntry        Waitlist?
 
   // Soft delete fields
   deletedAt DateTime?
@@ -659,17 +665,9 @@ model Product {
   slug        String
   description String?
 
-  // Category
-  category    ProductCategory
-  subcategory String?
-
-  // Coffee-specific attributes
-  roastLevel  RoastLevel?
-  origin      String? // "Ethiopia", "Colombia", "Brazil Blend"
-  flavorNotes String[] // ["chocolate", "citrus", "nutty"]
-  process     String? // "washed", "natural", "honey"
-  altitude    String? // "1800-2200m"
-  varietal    String? // "Bourbon", "Typica", "Gesha"
+  // Category (use dynamic categories via categoryAssignments)
+  // Legacy field - will be removed after migration
+  // Products should use the Category model via ProductCategoryAssignment
 
   // Sizing
   weight     Decimal? @db.Decimal(10, 2)
@@ -2397,6 +2395,7 @@ enum BillingStatus {
 }
 
 enum ClientPlan {
+  FOUNDERS    // Early adopters / founding members
   BASIC
   STANDARD
   PREMIUM
@@ -2616,27 +2615,11 @@ enum SubscriptionBundleType {
 }
 
 // Product
-enum ProductCategory {
-  COFFEE
-  EQUIPMENT
-  MERCHANDISE
-  GIFT_CARD
-  SUBSCRIPTION_BOX
-}
-
 enum ProductStatus {
   ACTIVE
   DRAFT
   ARCHIVED
   OUT_OF_STOCK
-}
-
-enum RoastLevel {
-  LIGHT
-  MEDIUM_LIGHT
-  MEDIUM
-  MEDIUM_DARK
-  DARK
 }
 
 // Order
@@ -9064,4 +9047,82 @@ enum EmailSendStatus {
   COMPLAINED        // Marked as spam
   FAILED            // Send failed
   REJECTED          // Rejected by provider
+}
+
+// =============================================================================
+// WAITLIST & FOUNDERS
+// Client registration waitlist with viral referral system
+// =============================================================================
+
+model Waitlist {
+  id              String          @id @default(cuid())
+
+  // Organization scope
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+
+  // Contact info
+  email           String
+  phone           String?
+  companyName     String?         // Prospective company name
+  firstName       String?
+  lastName        String?
+
+  // Founder identity (FND-XXXX format)
+  founderNumber   String          @unique
+
+  // Position tracking (for gamification)
+  basePosition    Int             // Original signup position
+  currentPosition Int             // Position after referral boosts
+
+  // Referral system
+  referralCode    String          @unique  // Their unique referral code
+  referredBy      String?         // Referral code of who referred them
+  referralCount   Int             @default(0)
+
+  // Status
+  status          WaitlistStatus  @default(PENDING)
+  emailVerified   Boolean         @default(false)
+  phoneVerified   Boolean         @default(false)
+
+  // Invite tracking
+  invitedAt       DateTime?
+  inviteToken     String?         @unique
+  inviteExpiresAt DateTime?
+  registeredAt    DateTime?
+
+  // Link to created client (after registration)
+  clientId        String?         @unique
+  client          Client?         @relation(fields: [clientId], references: [id])
+
+  // Marketing & tracking
+  source          String?         // utm_source
+  medium          String?         // utm_medium
+  campaign        String?         // utm_campaign
+  variant         String?         // A/B test variant
+  metadata        Json            @default("{}")
+
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Referral relationships
+  referrer        Waitlist?       @relation("WaitlistReferrals", fields: [referredBy], references: [referralCode])
+  referrals       Waitlist[]      @relation("WaitlistReferrals")
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([status])
+  @@index([currentPosition])
+  @@index([founderNumber])
+  @@index([inviteToken])
+  @@map("waitlist")
+}
+
+enum WaitlistStatus {
+  PENDING           // Signed up, awaiting verification
+  VERIFIED          // Email/phone verified
+  INVITED           // Invite sent
+  REGISTERED        // Completed registration
+  DECLINED          // Opted out
 }

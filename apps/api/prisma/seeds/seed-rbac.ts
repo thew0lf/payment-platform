@@ -270,20 +270,39 @@ async function seedRbac() {
       platformAdminRole = roleRecord;
     }
 
-    // Link permissions
-    await prisma.rolePermission.deleteMany({
+    // Link permissions using upsert pattern (idempotent - safe to run multiple times)
+    // Get existing permissions for this role
+    const existingPermissions = await prisma.rolePermission.findMany({
       where: { roleId: roleRecord.id },
+      select: { permissionId: true },
     });
+    const existingPermissionIds = new Set(existingPermissions.map(p => p.permissionId));
 
-    for (const code of permissionCodes) {
-      const permission = await prisma.permission.findUnique({
-        where: { code },
-      });
-      if (permission) {
+    // Get all permissions we want to link
+    const targetPermissions = await prisma.permission.findMany({
+      where: { code: { in: permissionCodes } },
+    });
+    const targetPermissionIds = new Set(targetPermissions.map(p => p.id));
+
+    // Add missing permissions
+    for (const permission of targetPermissions) {
+      if (!existingPermissionIds.has(permission.id)) {
         await prisma.rolePermission.create({
           data: {
             roleId: roleRecord.id,
             permissionId: permission.id,
+          },
+        });
+      }
+    }
+
+    // Remove permissions that are no longer needed (optional - keeps roles clean)
+    for (const existing of existingPermissions) {
+      if (!targetPermissionIds.has(existing.permissionId)) {
+        await prisma.rolePermission.deleteMany({
+          where: {
+            roleId: roleRecord.id,
+            permissionId: existing.permissionId,
           },
         });
       }

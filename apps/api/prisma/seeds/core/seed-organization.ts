@@ -6,6 +6,28 @@
 import { PrismaClient, ScopeType, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+/**
+ * Get admin password from environment or use demo password for dev/demo
+ * SEED_ADMIN_PASSWORD should be set in production
+ */
+function getAdminPassword(): string {
+  const seedEnv = process.env.SEED_ENV?.toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (seedEnv === 'production' || seedEnv === 'prod') {
+    if (!adminPassword) {
+      throw new Error(
+        'SEED_ADMIN_PASSWORD environment variable is required for production seeding.\n' +
+        'Set a secure password before running production seeds.'
+      );
+    }
+    return adminPassword;
+  }
+
+  // Dev/demo environments use demo password (safe because not production)
+  return adminPassword || 'demo123';
+}
+
 export async function seedOrganization(prisma: PrismaClient) {
   console.log('🏢 Seeding organization...');
 
@@ -24,7 +46,8 @@ export async function seedOrganization(prisma: PrismaClient) {
   console.log('  ✓ Organization:', org.name);
 
   // Create Organization Admin
-  const orgAdminPassword = await bcrypt.hash('demo123', 10);
+  const adminPassword = getAdminPassword();
+  const orgAdminPassword = await bcrypt.hash(adminPassword, 10);
   const orgAdmin = await prisma.user.upsert({
     where: { email: 'admin@avnz.io' },
     update: {},

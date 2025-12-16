@@ -39,8 +39,23 @@ import * as crypto from 'crypto';
 // Path to the defaults file
 const DEFAULTS_FILE = path.join(__dirname, '../data/integration-defaults.json');
 
-// Encryption key from environment
-const ENCRYPTION_KEY = process.env.INTEGRATION_ENCRYPTION_KEY || 'default-dev-key-32-characters!!';
+// Encryption key from environment - MUST be set before seeding integrations
+function getEncryptionKey(): string {
+  const key = process.env.INTEGRATION_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error(
+      'INTEGRATION_ENCRYPTION_KEY environment variable is required to seed integrations.\n' +
+      'Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"\n' +
+      'Add to .env: INTEGRATION_ENCRYPTION_KEY=<your-64-char-hex-key>'
+    );
+  }
+  if (key.length !== 64) {
+    throw new Error(
+      `INTEGRATION_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes). Got ${key.length} characters.`
+    );
+  }
+  return key;
+}
 
 interface IntegrationDefault {
   provider: string;
@@ -75,7 +90,8 @@ function encryptCredentials(credentials: Record<string, unknown>): {
   keyVersion: number;
   encryptedAt: string;
 } {
-  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+  const encryptionKey = getEncryptionKey();
+  const key = crypto.scryptSync(encryptionKey, 'salt', 32);
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
@@ -166,6 +182,13 @@ export async function seedIntegrations(prisma: PrismaClient) {
   if (!fs.existsSync(DEFAULTS_FILE)) {
     console.log('  ⏭️  No integration defaults file found at:', DEFAULTS_FILE);
     console.log('     Create integration-defaults.json to restore integrations on DB reset');
+    return;
+  }
+
+  // Check if encryption key is set before proceeding
+  if (!process.env.INTEGRATION_ENCRYPTION_KEY) {
+    console.log('  ⚠️  INTEGRATION_ENCRYPTION_KEY not set - skipping integration seeding');
+    console.log('     Set this env var to seed integrations from integration-defaults.json');
     return;
   }
 

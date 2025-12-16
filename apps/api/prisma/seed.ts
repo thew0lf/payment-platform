@@ -18,6 +18,7 @@ import { PrismaClient } from '@prisma/client';
 // Core seeds
 import { seedOrganization } from './seeds/core/seed-organization';
 import { seedPricingPlans } from './seeds/core/seed-pricing';
+import { seedIntegrations } from './seeds/core/seed-integrations';
 import { seedRbac } from './seeds/seed-rbac';
 import { seedCodeReviewChecklist } from './seeds/seed-code-review-checklist';
 import { seedQAChecklist } from './seeds/seed-qa-checklist';
@@ -66,6 +67,9 @@ async function main() {
 
   // Seed pricing plans
   await seedPricingPlans(prisma);
+
+  // Seed platform integrations from defaults file (if exists)
+  await seedIntegrations(prisma);
 
   // Seed RBAC permissions and roles
   await seedRbac();
@@ -138,7 +142,7 @@ async function main() {
     console.log('   Manager:      manager@coffeeexplorer.com / demo123\n');
   } else {
     console.log('📋 Production Account:');
-    console.log('   admin@avnz.io / demo123 (change password immediately!)\n');
+    console.log('   admin@avnz.io (password set via SEED_ADMIN_PASSWORD env var)\n');
   }
 }
 

@@ -1,7 +1,8 @@
 /**
  * Demo: Coffee Explorer Seed
  * Seeds the Coffee Explorer demo client with full configuration:
- * - Products (coffee bags with various origins and roast levels)
+ * - Dynamic categories (using Category model)
+ * - Products (coffee bags with various origins)
  * - Review configuration
  * - Sample reviews
  * - Customers
@@ -11,8 +12,6 @@ import {
   PrismaClient,
   ScopeType,
   UserRole,
-  ProductCategory,
-  RoastLevel,
   ReviewStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -188,8 +187,12 @@ export async function seedCoffeeExplorer(
   });
   console.log('  ✓ Payment Provider: Stripe');
 
-  // Seed Products
-  const products = await seedCoffeeProducts(prisma, company.id);
+  // Seed Dynamic Categories
+  const categories = await seedDynamicCategories(prisma, company.id);
+  console.log(`  ✓ Categories: ${Object.keys(categories).length} dynamic categories`);
+
+  // Seed Products with category assignments
+  const products = await seedCoffeeProducts(prisma, company.id, categories);
   console.log(`  ✓ Products: ${products.length} coffee products`);
 
   // Seed Review Config
@@ -207,7 +210,59 @@ export async function seedCoffeeExplorer(
   return { client, company, products };
 }
 
-async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
+/**
+ * Seed dynamic categories for the company
+ */
+async function seedDynamicCategories(
+  prisma: PrismaClient,
+  companyId: string,
+): Promise<Record<string, string>> {
+  const categoryData = [
+    { name: 'Coffee', slug: 'coffee', description: 'All coffee products', sortOrder: 0 },
+    { name: 'Single Origin', slug: 'single-origin', description: 'Single origin coffee beans', sortOrder: 1 },
+    { name: 'Blend', slug: 'blend', description: 'Coffee blends', sortOrder: 2 },
+    { name: 'Decaf', slug: 'decaf', description: 'Decaffeinated coffee', sortOrder: 3 },
+    { name: 'Reserve', slug: 'reserve', description: 'Premium reserve coffees', sortOrder: 4 },
+    { name: 'Light Roast', slug: 'light-roast', description: 'Light roast coffees', sortOrder: 5 },
+    { name: 'Medium Roast', slug: 'medium-roast', description: 'Medium roast coffees', sortOrder: 6 },
+    { name: 'Dark Roast', slug: 'dark-roast', description: 'Dark roast coffees', sortOrder: 7 },
+  ];
+
+  const categories: Record<string, string> = {};
+
+  for (const cat of categoryData) {
+    // Use findFirst since unique constraint includes deletedAt
+    const existing = await prisma.category.findFirst({
+      where: { companyId, slug: cat.slug, deletedAt: null },
+    });
+
+    if (existing) {
+      categories[cat.slug] = existing.id;
+    } else {
+      const created = await prisma.category.create({
+        data: {
+          company: { connect: { id: companyId } },
+          name: cat.name,
+          slug: cat.slug,
+          description: cat.description,
+          path: cat.slug, // Root-level categories use slug as path
+          level: 0,
+          sortOrder: cat.sortOrder,
+          isActive: true,
+        },
+      });
+      categories[cat.slug] = created.id;
+    }
+  }
+
+  return categories;
+}
+
+async function seedCoffeeProducts(
+  prisma: PrismaClient,
+  companyId: string,
+  categories: Record<string, string>,
+) {
   const coffeeProducts = [
     {
       sku: 'CE-ETH-YIR-001',
@@ -216,14 +271,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'A bright, fruity coffee with notes of blueberry, citrus, and jasmine. Light roast to highlight its natural flavors.',
       price: 18.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.LIGHT,
-      origin: 'Ethiopia',
-      flavorNotes: ['Blueberry', 'Citrus', 'Jasmine', 'Honey'],
-      process: 'Washed',
-      altitude: '1700-2200m',
-      varietal: 'Heirloom',
+      categorySlug: 'single-origin',
+      roastSlug: 'light-roast',
     },
     {
       sku: 'CE-COL-HUI-001',
@@ -232,14 +281,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'A well-balanced coffee with caramel sweetness, nutty undertones, and a smooth chocolate finish.',
       price: 16.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.MEDIUM,
-      origin: 'Colombia',
-      flavorNotes: ['Caramel', 'Chocolate', 'Walnut', 'Red Apple'],
-      process: 'Washed',
-      altitude: '1500-1800m',
-      varietal: 'Caturra',
+      categorySlug: 'single-origin',
+      roastSlug: 'medium-roast',
     },
     {
       sku: 'CE-GTM-ANT-001',
@@ -248,14 +291,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'Rich and full-bodied with complex spice notes, dark chocolate, and a smoky finish.',
       price: 17.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.MEDIUM_DARK,
-      origin: 'Guatemala',
-      flavorNotes: ['Dark Chocolate', 'Spice', 'Smoke', 'Brown Sugar'],
-      process: 'Washed',
-      altitude: '1500-1700m',
-      varietal: 'Bourbon',
+      categorySlug: 'single-origin',
+      roastSlug: 'dark-roast',
     },
     {
       sku: 'CE-BRA-MOG-001',
@@ -264,14 +301,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'A classic Brazilian coffee with low acidity, nutty flavors, and rich chocolate notes.',
       price: 14.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.DARK,
-      origin: 'Brazil',
-      flavorNotes: ['Hazelnut', 'Cocoa', 'Toffee', 'Low Acidity'],
-      process: 'Natural',
-      altitude: '900-1100m',
-      varietal: 'Mundo Novo',
+      categorySlug: 'single-origin',
+      roastSlug: 'dark-roast',
     },
     {
       sku: 'CE-KEN-AA-001',
@@ -280,14 +311,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'Bold and complex with wine-like acidity, blackcurrant notes, and a syrupy body.',
       price: 21.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.LIGHT,
-      origin: 'Kenya',
-      flavorNotes: ['Blackcurrant', 'Grapefruit', 'Wine', 'Tomato'],
-      process: 'Washed',
-      altitude: '1700-1900m',
-      varietal: 'SL28',
+      categorySlug: 'single-origin',
+      roastSlug: 'light-roast',
     },
     {
       sku: 'CE-SUM-MAN-001',
@@ -296,14 +321,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'Earthy and full-bodied with herbal notes, dark chocolate, and a long finish.',
       price: 19.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Single Origin',
-      roastLevel: RoastLevel.DARK,
-      origin: 'Indonesia',
-      flavorNotes: ['Earth', 'Herbs', 'Dark Chocolate', 'Tobacco'],
-      process: 'Wet-hulled',
-      altitude: '1100-1600m',
-      varietal: 'Typica',
+      categorySlug: 'single-origin',
+      roastSlug: 'dark-roast',
     },
     {
       sku: 'CE-BLD-SIG-001',
@@ -312,13 +331,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'Our house blend combining coffees from three continents for perfect balance.',
       price: 15.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Blend',
-      roastLevel: RoastLevel.MEDIUM,
-      origin: 'Multi-origin',
-      flavorNotes: ['Chocolate', 'Caramel', 'Citrus', 'Balanced'],
-      process: 'Mixed',
-      altitude: 'Various',
+      categorySlug: 'blend',
+      roastSlug: 'medium-roast',
     },
     {
       sku: 'CE-BLD-ESP-001',
@@ -327,13 +341,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'Crafted for espresso with intense chocolate, caramel, and a thick crema.',
       price: 16.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Blend',
-      roastLevel: RoastLevel.DARK,
-      origin: 'Multi-origin',
-      flavorNotes: ['Espresso Crema', 'Bittersweet Chocolate', 'Caramel'],
-      process: 'Mixed',
-      altitude: 'Various',
+      categorySlug: 'blend',
+      roastSlug: 'dark-roast',
     },
     {
       sku: 'CE-DEC-SWP-001',
@@ -342,13 +351,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'All the flavor, none of the caffeine. Smooth, sweet, and perfect for evenings.',
       price: 17.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Decaf',
-      roastLevel: RoastLevel.MEDIUM,
-      origin: 'Colombia',
-      flavorNotes: ['Milk Chocolate', 'Graham Cracker', 'Stone Fruit'],
-      process: 'Swiss Water',
-      altitude: '1500-1700m',
+      categorySlug: 'decaf',
+      roastSlug: 'medium-roast',
     },
     {
       sku: 'CE-GEI-PAN-001',
@@ -357,14 +361,8 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
       description:
         'The pinnacle of specialty coffee. Floral, tea-like, with exceptional complexity.',
       price: 45.99,
-      category: ProductCategory.COFFEE,
-      subcategory: 'Reserve',
-      roastLevel: RoastLevel.LIGHT,
-      origin: 'Panama',
-      flavorNotes: ['Jasmine', 'Bergamot', 'Peach', 'Tea-like'],
-      process: 'Washed',
-      altitude: '1600-1800m',
-      varietal: 'Gesha',
+      categorySlug: 'reserve',
+      roastSlug: 'light-roast',
     },
   ];
 
@@ -393,14 +391,6 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
           description: product.description,
           price: product.price,
           currency: 'USD',
-          category: product.category,
-          subcategory: product.subcategory,
-          roastLevel: product.roastLevel,
-          origin: product.origin,
-          flavorNotes: product.flavorNotes,
-          process: product.process,
-          altitude: product.altitude,
-          varietal: product.varietal,
           status: 'ACTIVE',
           stockQuantity: Math.floor(Math.random() * 200) + 50,
           weight: 12,
@@ -409,6 +399,25 @@ async function seedCoffeeProducts(prisma: PrismaClient, companyId: string) {
           subscriptionDiscount: 10, // 10% off for subscribers
         },
       });
+
+      // Create category assignments
+      const categoryAssignments = [
+        { categoryId: categories['coffee'], isPrimary: true },
+        { categoryId: categories[product.categorySlug], isPrimary: false },
+        { categoryId: categories[product.roastSlug], isPrimary: false },
+      ].filter((a) => a.categoryId); // Filter out any undefined categories
+
+      for (const assignment of categoryAssignments) {
+        await prisma.productCategoryAssignment.create({
+          data: {
+            productId: created.id,
+            categoryId: assignment.categoryId,
+            isPrimary: assignment.isPrimary,
+          },
+        }).catch(() => {
+          // Ignore duplicate assignment errors
+        });
+      }
     }
     createdProducts.push(created);
   }
@@ -510,7 +519,7 @@ async function seedCoffeeCustomers(
             city: customer.city,
             state: customer.state,
             country: 'US',
-            preferredRoast: ['LIGHT', 'MEDIUM', 'DARK'][
+            preferredRoast: ['light', 'medium', 'dark'][
               Math.floor(Math.random() * 3)
             ],
           },
