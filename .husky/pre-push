@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Pre-push hook: Ensures migrations are in sync before pushing
+echo "Running pre-push checks..."
+
+cd apps/api
+
+# Check if Prisma schema is valid
+echo "Validating Prisma schema..."
+if ! npx prisma validate 2>/dev/null; then
+  echo "ERROR: Prisma schema validation failed!"
+  echo "Please fix schema errors before pushing."
+  exit 1
+fi
+
+# Check migration status
+echo "Checking migration status..."
+MIGRATE_STATUS=$(npx prisma migrate status 2>&1)
+
+# Check for pending migrations
+if echo "$MIGRATE_STATUS" | grep -q "Following migration have not yet been applied"; then
+  echo ""
+  echo "WARNING: You have unapplied migrations locally."
+  echo "Consider running: npx prisma migrate dev"
+  echo ""
+  echo "$MIGRATE_STATUS"
+  echo ""
+fi
+
+# Check for drift
+if echo "$MIGRATE_STATUS" | grep -q "Your database schema is not in sync"; then
+  echo ""
+  echo "ERROR: Database schema is out of sync with migrations!"
+  echo ""
+  echo "$MIGRATE_STATUS"
+  echo ""
+  echo "Run: npx prisma migrate dev"
+  exit 1
+fi
+
+cd - > /dev/null
+
+echo "Pre-push checks passed!"

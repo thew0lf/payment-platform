@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# Pre-commit hook: Validates migration files before commit
+echo "Running pre-commit checks..."
+
+# Check for staged migration files
+STAGED_MIGRATIONS=$(git diff --cached --name-only | grep "prisma/migrations/.*\.sql$" || true)
+
+if [ -n "$STAGED_MIGRATIONS" ]; then
+  echo "Found staged migration files:"
+  echo "$STAGED_MIGRATIONS"
+
+  # Check for corresponding schema.prisma changes
+  SCHEMA_CHANGES=$(git diff --cached --name-only | grep "prisma/schema.prisma" || true)
+
+  if [ -z "$SCHEMA_CHANGES" ]; then
+    echo ""
+    echo "WARNING: Migration files staged but no schema.prisma changes detected."
+    echo "Did you forget to stage prisma/schema.prisma?"
+    echo ""
+  fi
+fi
+
+# Validate Prisma schema if it was modified
+if git diff --cached --name-only | grep -q "prisma/schema.prisma"; then
+  echo "Validating Prisma schema..."
+  cd apps/api
+
+  if ! npx prisma validate 2>/dev/null; then
+    echo "ERROR: Prisma schema validation failed!"
+    echo "Please fix the schema errors before committing."
+    exit 1
+  fi
+
+  echo "Prisma schema is valid."
+  cd - > /dev/null
+fi
+
+echo "Pre-commit checks passed!"
