@@ -48,6 +48,10 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 # Copy Prisma CLI from builder (needed for migrations in production)
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
+# Copy ts-node and typescript from builder (needed for seed scripts)
+COPY --from=builder /app/node_modules/ts-node ./node_modules/ts-node
+COPY --from=builder /app/node_modules/typescript ./node_modules/typescript
+
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
