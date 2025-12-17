@@ -291,6 +291,15 @@ jobs:
 
           echo "Migration completed successfully!"
 
+      - name: Get Seed Admin Password
+        id: get-seed-password
+        run: |
+          SEED_PASSWORD=$(aws secretsmanager get-secret-value \
+            --secret-id payment-platform/seed-admin-password \
+            --query 'SecretString' --output text)
+          echo "::add-mask::$SEED_PASSWORD"
+          echo "password=$SEED_PASSWORD" >> $GITHUB_OUTPUT
+
       - name: Run Production Seed
         id: run-seed
         run: |
@@ -303,9 +312,10 @@ jobs:
             --overrides '{
               "containerOverrides": [{
                 "name": "api",
-                "command": ["sh", "-c", "SEED_ENV=production INTEGRATION_DEFAULTS_SECRET_NAME=payment-platform/integration-defaults npx prisma db seed"],
+                "command": ["sh", "-c", "SEED_ENV=production INTEGRATION_DEFAULTS_SECRET_NAME=payment-platform/integration-defaults SEED_ADMIN_PASSWORD=$SEED_ADMIN_PASSWORD npx prisma db seed"],
                 "environment": [
-                  {"name": "AWS_REGION", "value": "us-east-1"}
+                  {"name": "AWS_REGION", "value": "us-east-1"},
+                  {"name": "SEED_ADMIN_PASSWORD", "value": "${{ steps.get-seed-password.outputs.password }}"}
                 ]
               }]
             }' \
