@@ -48,9 +48,19 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 # Copy Prisma CLI from builder (needed for migrations in production)
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Copy ts-node and typescript from builder (needed for seed scripts)
+# Copy ts-node, typescript, and related deps from builder (needed for seed scripts)
 COPY --from=builder /app/node_modules/ts-node ./node_modules/ts-node
 COPY --from=builder /app/node_modules/typescript ./node_modules/typescript
+COPY --from=builder /app/node_modules/tsconfig-paths ./node_modules/tsconfig-paths
+COPY --from=builder /app/node_modules/@tsconfig ./node_modules/@tsconfig
+COPY --from=builder /app/node_modules/arg ./node_modules/arg
+COPY --from=builder /app/node_modules/create-require ./node_modules/create-require
+COPY --from=builder /app/node_modules/diff ./node_modules/diff
+COPY --from=builder /app/node_modules/make-error ./node_modules/make-error
+COPY --from=builder /app/node_modules/v8-compile-cache-lib ./node_modules/v8-compile-cache-lib
+COPY --from=builder /app/node_modules/yn ./node_modules/yn
+COPY --from=builder /app/node_modules/acorn ./node_modules/acorn
+COPY --from=builder /app/node_modules/acorn-walk ./node_modules/acorn-walk
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
