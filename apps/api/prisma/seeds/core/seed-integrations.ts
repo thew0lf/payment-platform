@@ -5,6 +5,9 @@
  * when the database is wiped. Store your integration credentials in the
  * integration-defaults.json file (gitignored) to persist them across DB resets.
  *
+ * PRODUCTION: Set INTEGRATION_DEFAULTS_SECRET_NAME env var to read from AWS Secrets Manager
+ * instead of the local file (which won't exist in Docker/ECS).
+ *
  * Usage:
  * 1. Create a file at apps/api/prisma/seeds/data/integration-defaults.json
  * 2. Add your integration configurations (see template below)
@@ -35,9 +38,11 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
 // Path to the defaults file
 const DEFAULTS_FILE = path.join(__dirname, '../data/integration-defaults.json');
+const INTEGRATION_DEFAULTS_SECRET_NAME = process.env.INTEGRATION_DEFAULTS_SECRET_NAME;
 
 // Encryption key from environment - MUST be set before seeding integrations
 function getEncryptionKey(): string {
@@ -78,6 +83,51 @@ interface IntegrationDefault {
 interface IntegrationDefaults {
   organizationId: string;
   platformIntegrations: IntegrationDefault[];
+}
+
+/**
+ * Fetch integration defaults from AWS Secrets Manager (for production)
+ */
+async function fetchDefaultsFromSecretsManager(): Promise<IntegrationDefaults | null> {
+  if (!INTEGRATION_DEFAULTS_SECRET_NAME) {
+    return null;
+  }
+
+  try {
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const client = new SecretsManagerClient({ region });
+    const command = new GetSecretValueCommand({ SecretId: INTEGRATION_DEFAULTS_SECRET_NAME });
+    const response = await client.send(command);
+
+    if (response.SecretString) {
+      console.log('  📦 Loading integration defaults from AWS Secrets Manager...');
+      return JSON.parse(response.SecretString) as IntegrationDefaults;
+    }
+    return null;
+  } catch (error) {
+    console.log(`  ⚠️  Failed to fetch from Secrets Manager: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Load integration defaults from file (local) or Secrets Manager (production)
+ */
+async function loadIntegrationDefaults(): Promise<IntegrationDefaults | null> {
+  // Priority 1: Local file (for development)
+  if (fs.existsSync(DEFAULTS_FILE)) {
+    console.log('  📦 Loading integration defaults from local file...');
+    const rawData = fs.readFileSync(DEFAULTS_FILE, 'utf8');
+    return JSON.parse(rawData) as IntegrationDefaults;
+  }
+
+  // Priority 2: AWS Secrets Manager (for production)
+  const secretDefaults = await fetchDefaultsFromSecretsManager();
+  if (secretDefaults) {
+    return secretDefaults;
+  }
+
+  return null;
 }
 
 /**
@@ -178,25 +228,23 @@ function getCategory(provider: string): string {
 }
 
 export async function seedIntegrations(prisma: PrismaClient) {
-  // Check if defaults file exists
-  if (!fs.existsSync(DEFAULTS_FILE)) {
-    console.log('  ⏭️  No integration defaults file found at:', DEFAULTS_FILE);
-    console.log('     Create integration-defaults.json to restore integrations on DB reset');
-    return;
-  }
-
   // Check if encryption key is set before proceeding
   if (!process.env.INTEGRATION_ENCRYPTION_KEY) {
     console.log('  ⚠️  INTEGRATION_ENCRYPTION_KEY not set - skipping integration seeding');
-    console.log('     Set this env var to seed integrations from integration-defaults.json');
+    console.log('     Set this env var to seed integrations');
     return;
   }
 
-  console.log('  📦 Loading integration defaults...');
-
   try {
-    const rawData = fs.readFileSync(DEFAULTS_FILE, 'utf8');
-    const defaults: IntegrationDefaults = JSON.parse(rawData);
+    // Load defaults from file or Secrets Manager
+    const defaults = await loadIntegrationDefaults();
+
+    if (!defaults) {
+      console.log('  ⏭️  No integration defaults found');
+      console.log('     Local: Create integration-defaults.json');
+      console.log('     Production: Set INTEGRATION_DEFAULTS_SECRET_NAME env var');
+      return;
+    }
 
     if (!defaults.organizationId || !defaults.platformIntegrations) {
       console.log('  ⚠️  Invalid integration defaults file format');

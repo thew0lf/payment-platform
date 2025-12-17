@@ -294,7 +294,7 @@ jobs:
       - name: Run Production Seed
         id: run-seed
         run: |
-          echo "Running production seed (email templates, RBAC, etc.)..."
+          echo "Running production seed (email templates, RBAC, integrations, etc.)..."
           TASK_ARN=$(aws ecs run-task \
             --cluster ${{ env.ECS_CLUSTER }} \
             --task-definition ${{ env.ECS_TASK_DEFINITION }} \
@@ -303,7 +303,10 @@ jobs:
             --overrides '{
               "containerOverrides": [{
                 "name": "api",
-                "command": ["sh", "-c", "SEED_ENV=production npx prisma db seed"]
+                "command": ["sh", "-c", "SEED_ENV=production INTEGRATION_DEFAULTS_SECRET_NAME=payment-platform/integration-defaults npx prisma db seed"],
+                "environment": [
+                  {"name": "AWS_REGION", "value": "us-east-1"}
+                ]
               }]
             }' \
             --query 'tasks[0].taskArn' \
@@ -328,12 +331,60 @@ jobs:
             --output text)
 
           if [ "$EXIT_CODE" != "0" ]; then
-            echo "Seed failed with exit code: $EXIT_CODE (non-critical, continuing...)"
-            # Seed failures are non-critical - the API can still run
-            # Templates may need to be manually seeded if this fails
-          else
-            echo "Seed completed successfully!"
+            echo "::error::Seed failed with exit code: $EXIT_CODE"
+
+            # Get logs for debugging
+            TASK_ID=$(echo ${{ steps.run-seed.outputs.task_arn }} | cut -d'/' -f3)
+            echo "=== Seed Task Logs ==="
+            aws logs get-log-events \
+              --log-group-name /ecs/avnz-api \
+              --log-stream-name ecs/api/$TASK_ID \
+              --limit 50 || true
+
+            exit 1
           fi
+
+          echo "Seed completed successfully!"
+
+      - name: Verify Seed Data
+        run: |
+          echo "Verifying seed data was applied..."
+
+          # Run a verification task to check required data exists
+          VERIFY_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.vpc-config.outputs.subnet }}],securityGroups=[${{ steps.vpc-config.outputs.security_group }}],assignPublicIp=ENABLED}" \
+            --overrides '{
+              "containerOverrides": [{
+                "name": "api",
+                "command": ["sh", "-c", "npx prisma db execute --stdin <<EOF
+SELECT
+  CASE WHEN (SELECT COUNT(*) FROM organizations) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as org_check,
+  CASE WHEN (SELECT COUNT(*) FROM permissions) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as perm_check,
+  CASE WHEN (SELECT COUNT(*) FROM roles) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as role_check;
+EOF"]
+              }]
+            }' \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks $VERIFY_ARN
+
+          VERIFY_EXIT=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks $VERIFY_ARN \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "$VERIFY_EXIT" != "0" ]; then
+            echo "::error::Seed verification failed - required data missing!"
+            echo "Please check that the seed script creates: organizations, permissions, and roles"
+            exit 1
+          fi
+
+          echo "✅ Seed data verified successfully!"
 
   # ============================================
   # Job 4: Deploy to ECS
