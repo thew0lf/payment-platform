@@ -1,73 +1,53 @@
 {
+  "_note": "TEMPLATE: Copy to integration-defaults.json and fill in real credentials",
+  "_note_production": "For production, change AUTH0 audience to: https://api.avnz.io",
   "organizationId": "YOUR_ORGANIZATION_ID",
   "platformIntegrations": [
     {
+      "_comment": "=== AUTHENTICATION PROVIDERS (Org-only) ===",
       "provider": "AUTH0",
       "name": "Auth0 Authentication",
       "description": "Primary authentication provider",
       "environment": "PRODUCTION",
       "isSharedWithClients": false,
       "credentials": {
-        "domain": "your-tenant.auth0.com",
-        "clientId": "YOUR_CLIENT_ID",
-        "clientSecret": "YOUR_CLIENT_SECRET",
-        "audience": "https://api.yourdomain.com"
+        "domain": "YOUR_AUTH0_DOMAIN.auth0.com",
+        "clientId": "YOUR_AUTH0_CLIENT_ID",
+        "clientSecret": "YOUR_AUTH0_CLIENT_SECRET",
+        "audience": "YOUR_AUTH0_AUDIENCE"
       }
     },
     {
-      "provider": "AWS_S3",
-      "name": "AWS S3 Storage",
-      "description": "Primary file storage",
+      "provider": "OKTA",
+      "name": "Okta SSO",
+      "description": "Enterprise SSO authentication",
       "environment": "PRODUCTION",
-      "isSharedWithClients": true,
+      "isSharedWithClients": false,
+      "credentials": {
+        "domain": "YOUR_OKTA_DOMAIN.okta.com",
+        "clientId": "YOUR_OKTA_CLIENT_ID",
+        "clientSecret": "YOUR_OKTA_CLIENT_SECRET",
+        "issuer": "https://YOUR_OKTA_DOMAIN.okta.com/oauth2/default"
+      }
+    },
+    {
+      "provider": "COGNITO",
+      "name": "AWS Cognito",
+      "description": "AWS Cognito user pool",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
       "credentials": {
         "region": "us-east-1",
-        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
-        "secretAccessKey": "YOUR_AWS_SECRET_KEY",
-        "bucketName": "your-bucket-name"
+        "userPoolId": "YOUR_USER_POOL_ID",
+        "clientId": "YOUR_COGNITO_CLIENT_ID",
+        "clientSecret": "YOUR_COGNITO_CLIENT_SECRET"
       }
     },
     {
-      "provider": "AWS_SES",
-      "name": "AWS SES Email",
-      "description": "Transactional email service",
-      "environment": "PRODUCTION",
-      "isSharedWithClients": true,
-      "credentials": {
-        "region": "us-east-1",
-        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
-        "secretAccessKey": "YOUR_AWS_SECRET_KEY",
-        "fromEmail": "noreply@yourdomain.com"
-      }
-    },
-    {
-      "provider": "AWS_BEDROCK",
-      "name": "AWS Bedrock AI",
-      "description": "AI/ML services for content generation",
-      "environment": "PRODUCTION",
-      "isSharedWithClients": true,
-      "credentials": {
-        "region": "us-east-1",
-        "accessKeyId": "YOUR_AWS_ACCESS_KEY",
-        "secretAccessKey": "YOUR_AWS_SECRET_KEY"
-      }
-    },
-    {
-      "provider": "CLOUDINARY",
-      "name": "Cloudinary Image Processing",
-      "description": "Image transformation and optimization",
-      "environment": "PRODUCTION",
-      "isSharedWithClients": true,
-      "credentials": {
-        "cloudName": "your-cloud-name",
-        "apiKey": "YOUR_API_KEY",
-        "apiSecret": "YOUR_API_SECRET"
-      }
-    },
-    {
+      "_comment": "=== PAYMENT GATEWAYS (Client-configurable) ===",
       "provider": "STRIPE",
       "name": "Stripe Payments",
-      "description": "Payment gateway for card processing",
+      "description": "Stripe payment gateway",
       "environment": "SANDBOX",
       "isSharedWithClients": true,
       "clientPricing": {
@@ -77,46 +57,432 @@
         "description": "Platform fee on top of Stripe fees"
       },
       "credentials": {
-        "secretKey": "sk_test_YOUR_SECRET_KEY",
-        "publishableKey": "pk_test_YOUR_PUBLISHABLE_KEY",
-        "webhookSecret": "whsec_YOUR_WEBHOOK_SECRET"
+        "secretKey": "sk_test_YOUR_STRIPE_SECRET_KEY",
+        "publishableKey": "pk_test_YOUR_STRIPE_PUBLISHABLE_KEY",
+        "webhookSecret": "whsec_YOUR_STRIPE_WEBHOOK_SECRET"
       }
     },
     {
+      "provider": "PAYPAL_PAYFLOW",
+      "name": "PayPal Payflow Pro",
+      "description": "PayPal Payflow gateway for direct card processing",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee"
+      },
+      "credentials": {
+        "partner": "PayPal",
+        "vendor": "YOUR_PAYFLOW_VENDOR_ID",
+        "user": "YOUR_PAYFLOW_API_USER",
+        "password": "YOUR_PAYFLOW_PASSWORD"
+      }
+    },
+    {
+      "provider": "PAYPAL_REST",
+      "name": "PayPal REST API",
+      "description": "PayPal REST API for modern integrations",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee"
+      },
+      "credentials": {
+        "clientId": "YOUR_PAYPAL_CLIENT_ID",
+        "clientSecret": "YOUR_PAYPAL_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "PAYPAL_CLASSIC",
+      "name": "PayPal Classic NVP",
+      "description": "PayPal legacy NVP/SOAP API",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee"
+      },
+      "credentials": {
+        "apiUsername": "YOUR_PAYPAL_API_USERNAME",
+        "apiPassword": "YOUR_PAYPAL_API_PASSWORD",
+        "apiSignature": "YOUR_PAYPAL_API_SIGNATURE"
+      }
+    },
+    {
+      "provider": "NMI",
+      "name": "NMI Gateway",
+      "description": "NMI payment gateway",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee"
+      },
+      "credentials": {
+        "securityKey": "YOUR_NMI_SECURITY_KEY"
+      }
+    },
+    {
+      "provider": "AUTHORIZE_NET",
+      "name": "Authorize.Net",
+      "description": "Authorize.Net payment gateway",
+      "environment": "SANDBOX",
+      "isSharedWithClients": true,
+      "clientPricing": {
+        "type": "per_transaction",
+        "percentageFee": 0.5,
+        "flatFee": 0.10,
+        "description": "Platform fee"
+      },
+      "credentials": {
+        "apiLoginId": "YOUR_AUTHNET_API_LOGIN_ID",
+        "transactionKey": "YOUR_AUTHNET_TRANSACTION_KEY"
+      }
+    },
+    {
+      "_comment": "=== EMAIL PROVIDERS ===",
+      "provider": "AWS_SES",
+      "name": "AWS SES Email",
+      "description": "Transactional email service",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "fromEmail": "noreply@yourdomain.com"
+      }
+    },
+    {
+      "provider": "SENDGRID",
+      "name": "SendGrid Email",
+      "description": "SendGrid transactional email",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "apiKey": "YOUR_SENDGRID_API_KEY",
+        "fromEmail": "noreply@yourdomain.com",
+        "fromName": "Your Company"
+      }
+    },
+    {
+      "provider": "KLAVIYO",
+      "name": "Klaviyo Email Marketing",
+      "description": "Email marketing automation",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "privateApiKey": "YOUR_KLAVIYO_PRIVATE_API_KEY",
+        "publicApiKey": "YOUR_KLAVIYO_PUBLIC_API_KEY",
+        "listId": "YOUR_KLAVIYO_DEFAULT_LIST_ID"
+      }
+    },
+    {
+      "_comment": "=== SMS PROVIDERS ===",
       "provider": "TWILIO",
       "name": "Twilio SMS",
       "description": "SMS messaging service",
       "environment": "PRODUCTION",
       "isSharedWithClients": true,
       "credentials": {
-        "accountSid": "YOUR_ACCOUNT_SID",
-        "authToken": "YOUR_AUTH_TOKEN",
+        "accountSid": "YOUR_TWILIO_ACCOUNT_SID",
+        "authToken": "YOUR_TWILIO_AUTH_TOKEN",
         "fromNumber": "+1234567890"
       }
     },
     {
-      "provider": "SENTRY",
-      "name": "Sentry Error Tracking",
-      "description": "Application monitoring and error tracking",
+      "provider": "AWS_SNS",
+      "name": "AWS SNS SMS",
+      "description": "AWS SMS messaging",
       "environment": "PRODUCTION",
-      "isSharedWithClients": false,
+      "isSharedWithClients": true,
       "credentials": {
-        "dsn": "https://YOUR_DSN@sentry.io/PROJECT_ID",
-        "organization": "your-org",
-        "project": "your-project",
-        "authToken": "YOUR_AUTH_TOKEN"
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "smsType": "Transactional"
       }
     },
     {
+      "_comment": "=== AI/ML PROVIDERS ===",
+      "provider": "AWS_BEDROCK",
+      "name": "AWS Bedrock AI",
+      "description": "AI/ML services for content generation",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0"
+      }
+    },
+    {
+      "provider": "OPENAI",
+      "name": "OpenAI",
+      "description": "OpenAI GPT models",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "apiKey": "YOUR_OPENAI_API_KEY",
+        "organizationId": "YOUR_OPENAI_ORG_ID",
+        "defaultModel": "gpt-4-turbo-preview"
+      }
+    },
+    {
+      "provider": "LANGUAGETOOL",
+      "name": "LanguageTool",
+      "description": "Grammar and spell checking",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "apiKey": "YOUR_LANGUAGETOOL_API_KEY",
+        "username": "YOUR_LANGUAGETOOL_USERNAME",
+        "baseUrl": "https://api.languagetool.org/v2"
+      }
+    },
+    {
+      "_comment": "=== STORAGE PROVIDERS ===",
+      "provider": "AWS_S3",
+      "name": "AWS S3 Storage",
+      "description": "Primary file storage",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "region": "us-east-1",
+        "bucket": "your-bucket-name",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "cloudfrontDomain": "",
+        "keyPrefix": "uploads/"
+      }
+    },
+    {
+      "_comment": "=== CDN PROVIDERS ===",
+      "provider": "AWS_CLOUDFRONT",
+      "name": "AWS CloudFront CDN",
+      "description": "Content delivery network",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "originAccessIdentity": "YOUR_CLOUDFRONT_OAI",
+        "priceClass": "PriceClass_100"
+      }
+    },
+    {
+      "_comment": "=== DNS PROVIDERS ===",
+      "provider": "AWS_ROUTE53",
+      "name": "AWS Route53 DNS",
+      "description": "DNS management",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "hostedZoneId": "YOUR_HOSTED_ZONE_ID",
+        "platformDomain": "yourdomain.com"
+      }
+    },
+    {
+      "_comment": "=== IMAGE PROCESSING PROVIDERS ===",
+      "provider": "CLOUDINARY",
+      "name": "Cloudinary Image Processing",
+      "description": "Image transformation and optimization",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "cloudName": "YOUR_CLOUDINARY_CLOUD_NAME",
+        "apiKey": "YOUR_CLOUDINARY_API_KEY",
+        "apiSecret": "YOUR_CLOUDINARY_API_SECRET",
+        "uploadPreset": "YOUR_CLOUDINARY_UPLOAD_PRESET"
+      }
+    },
+    {
+      "_comment": "=== VIDEO GENERATION PROVIDERS ===",
+      "provider": "RUNWAY",
+      "name": "Runway ML",
+      "description": "AI video generation",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "apiKey": "YOUR_RUNWAY_API_KEY",
+        "apiVersion": "2024-11-06"
+      }
+    },
+    {
+      "_comment": "=== MONITORING PROVIDERS ===",
       "provider": "DATADOG",
       "name": "Datadog Monitoring",
       "description": "Infrastructure and APM monitoring",
       "environment": "PRODUCTION",
       "isSharedWithClients": false,
       "credentials": {
-        "apiKey": "YOUR_API_KEY",
-        "appKey": "YOUR_APP_KEY",
-        "site": "datadoghq.com"
+        "apiKey": "YOUR_DATADOG_API_KEY",
+        "appKey": "YOUR_DATADOG_APP_KEY",
+        "site": "datadoghq.com",
+        "env": "production",
+        "service": "payment-platform"
+      }
+    },
+    {
+      "provider": "SENTRY",
+      "name": "Sentry Error Tracking",
+      "description": "Application error tracking",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "dsn": "https://YOUR_SENTRY_DSN@sentry.io/PROJECT_ID",
+        "authToken": "YOUR_SENTRY_AUTH_TOKEN",
+        "org": "your-org",
+        "project": "your-project",
+        "environment": "production"
+      }
+    },
+    {
+      "provider": "CLOUDWATCH",
+      "name": "AWS CloudWatch",
+      "description": "AWS logging and metrics",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "logGroupName": "/payment-platform",
+        "metricsNamespace": "PaymentPlatform"
+      }
+    },
+    {
+      "_comment": "=== FEATURE FLAGS PROVIDERS ===",
+      "provider": "LAUNCHDARKLY",
+      "name": "LaunchDarkly",
+      "description": "Feature flags management",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "apiKey": "YOUR_LAUNCHDARKLY_ACCESS_TOKEN",
+        "sdkKey": "YOUR_LAUNCHDARKLY_SDK_KEY",
+        "clientSideId": "YOUR_LAUNCHDARKLY_CLIENT_SIDE_ID",
+        "mobileKey": "YOUR_LAUNCHDARKLY_MOBILE_KEY"
+      }
+    },
+    {
+      "provider": "AWS_APPCONFIG",
+      "name": "AWS AppConfig",
+      "description": "AWS feature flags and configuration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "region": "us-east-1",
+        "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+        "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+        "applicationId": "YOUR_APPCONFIG_APPLICATION_ID",
+        "environmentId": "YOUR_APPCONFIG_ENVIRONMENT_ID",
+        "configurationProfileId": "YOUR_APPCONFIG_PROFILE_ID"
+      }
+    },
+    {
+      "_comment": "=== DEPLOYMENT PROVIDERS ===",
+      "provider": "VERCEL",
+      "name": "Vercel Deployment",
+      "description": "Frontend deployment platform",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "apiToken": "YOUR_VERCEL_API_TOKEN",
+        "teamId": "YOUR_VERCEL_TEAM_ID"
+      }
+    },
+    {
+      "_comment": "=== OAUTH PROVIDERS (App Configuration) ===",
+      "provider": "GOOGLE",
+      "name": "Google OAuth",
+      "description": "Google OAuth integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_GOOGLE_CLIENT_ID",
+        "clientSecret": "YOUR_GOOGLE_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "MICROSOFT",
+      "name": "Microsoft OAuth",
+      "description": "Microsoft/Azure AD OAuth integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_MICROSOFT_CLIENT_ID",
+        "clientSecret": "YOUR_MICROSOFT_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "SLACK",
+      "name": "Slack OAuth",
+      "description": "Slack workspace integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_SLACK_CLIENT_ID",
+        "clientSecret": "YOUR_SLACK_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "HUBSPOT",
+      "name": "HubSpot OAuth",
+      "description": "HubSpot CRM integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_HUBSPOT_CLIENT_ID",
+        "clientSecret": "YOUR_HUBSPOT_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "SALESFORCE",
+      "name": "Salesforce OAuth",
+      "description": "Salesforce CRM integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_SALESFORCE_CLIENT_ID",
+        "clientSecret": "YOUR_SALESFORCE_CLIENT_SECRET"
+      }
+    },
+    {
+      "provider": "QUICKBOOKS",
+      "name": "QuickBooks OAuth",
+      "description": "QuickBooks accounting integration",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": false,
+      "credentials": {
+        "clientId": "YOUR_QUICKBOOKS_CLIENT_ID",
+        "clientSecret": "YOUR_QUICKBOOKS_CLIENT_SECRET"
+      }
+    },
+    {
+      "_comment": "=== LOCATION SERVICES PROVIDERS ===",
+      "provider": "GOOGLE_PLACES",
+      "name": "Google Places API",
+      "description": "Address autocomplete and geocoding",
+      "environment": "PRODUCTION",
+      "isSharedWithClients": true,
+      "credentials": {
+        "apiKey": "YOUR_GOOGLE_PLACES_API_KEY",
+        "sessionTokenTTL": 180
       }
     }
   ]
