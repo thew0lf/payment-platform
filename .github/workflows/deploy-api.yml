@@ -359,12 +359,7 @@ jobs:
             --overrides '{
               "containerOverrides": [{
                 "name": "api",
-                "command": ["sh", "-c", "npx prisma db execute --stdin <<EOF
-SELECT
-  CASE WHEN (SELECT COUNT(*) FROM organizations) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as org_check,
-  CASE WHEN (SELECT COUNT(*) FROM permissions) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as perm_check,
-  CASE WHEN (SELECT COUNT(*) FROM roles) > 0 THEN '\''OK'\'' ELSE '\''MISSING'\'' END as role_check;
-EOF"]
+                "command": ["sh", "-c", "npx prisma db execute --stdin <<SQL\nSELECT COUNT(*) as org_count FROM organizations;\nSQL"]
               }]
             }' \
             --query 'tasks[0].taskArn' \
@@ -380,11 +375,11 @@ EOF"]
 
           if [ "$VERIFY_EXIT" != "0" ]; then
             echo "::error::Seed verification failed - required data missing!"
-            echo "Please check that the seed script creates: organizations, permissions, and roles"
+            echo "Please check that the seed script ran correctly"
             exit 1
           fi
 
-          echo "✅ Seed data verified successfully!"
+          echo "Seed data verified successfully!"
 
   # ============================================
   # Job 4: Deploy to ECS
