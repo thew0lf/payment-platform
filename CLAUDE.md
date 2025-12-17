@@ -234,7 +234,7 @@ payment-platform/
 
 ---
 
-## Current Status (December 13, 2025)
+## Current Status (December 17, 2025)
 
 | Feature | Backend | Frontend | Notes |
 |---------|---------|----------|-------|
@@ -248,6 +248,7 @@ payment-platform/
 | Funnels | ✅ Complete | ✅ Complete | Multi-stage sales funnels |
 | Leads Module | ✅ Complete | ✅ Complete | Progressive capture, scoring |
 | Company Portal | ✅ Complete | ✅ Complete | Public funnel frontend |
+| Mobile Responsiveness | N/A | ✅ Complete | Touch-optimized, card views |
 | Multi-Account Providers | 🔲 Pending | 🔲 Pending | Phase 2 |
 | Gateway Rule Engine | 🔲 Pending | 🔲 Pending | Phase 3 |
 
@@ -818,18 +819,95 @@ await productsApi.update(id, data, selectedCompanyId || undefined);
 | Desktop | > 1024px | Laptops |
 | Large | > 1280px | Monitors |
 
+### Mobile-First Principles
+
+The admin dashboard follows mobile-first responsive design. All new components must:
+
+1. **Work on mobile first** - Start with mobile layout, enhance for desktop
+2. **Use responsive padding** - `p-4 md:p-6` (16px mobile, 24px desktop)
+3. **Meet touch targets** - Minimum 44px height for interactive elements
+4. **Hide complex tables on mobile** - Show card-based views instead
+
 ### Key Patterns
 
-- **Touch targets:** Min 44px
-- **Padding:** `px-4 md:px-6`
-- **Typography:** `text-xl md:text-2xl`
-- **Grids:** `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
-- **Mobile nav:** `MobileMenuProvider` in layout, `useMobileMenu()` hook
+| Pattern | Implementation |
+|---------|---------------|
+| **Touch targets** | `min-h-[44px]` on buttons, `touch-manipulation` class |
+| **Page padding** | `p-4 md:p-6` or `px-4 md:px-6` |
+| **Card padding** | Handled by Card components automatically |
+| **Typography** | `text-xl md:text-2xl` for headings |
+| **Grids** | `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` |
+| **Tables → Cards** | `hidden md:block` for table, `md:hidden` for cards |
+| **Dialog width** | `w-[calc(100%-2rem)] sm:w-full max-w-lg` |
+| **Dialog height** | `max-h-[calc(100vh-4rem)] overflow-y-auto` |
 
-**Key files:**
-- `apps/admin-dashboard/src/components/layout/sidebar.tsx`
-- `apps/admin-dashboard/src/components/layout/mobile-sidebar.tsx`
-- `apps/admin-dashboard/src/contexts/mobile-menu-context.tsx`
+### Mobile Navigation
+
+- **Tab bar**: Fixed bottom navigation on mobile (`MobileTabBar`)
+- **More drawer**: Slide-up drawer for additional nav items
+- **Back navigation**: `MobileBackHeader` component for detail pages
+- **Sidebar**: Hidden on mobile, visible on tablet+
+
+### Responsive Table/Card Pattern
+
+Tables should transform to card views on mobile:
+
+```tsx
+{/* Desktop Table - hidden on mobile */}
+<div className="hidden md:block">
+  <Table>...</Table>
+</div>
+
+{/* Mobile Card View - hidden on desktop */}
+<div className="md:hidden divide-y divide-border">
+  {items.map(item => (
+    <div className="p-4 active:bg-muted/50" onClick={() => navigate(item.id)}>
+      {/* Card content with ChevronRight indicator */}
+    </div>
+  ))}
+</div>
+```
+
+Use the `ResponsiveTable` component for new list pages:
+```tsx
+import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
+
+const columns: Column<Item>[] = [
+  { key: 'name', header: 'Name', render: (item) => item.name, isPrimary: true },
+  { key: 'status', header: 'Status', render: (item) => <Badge>{item.status}</Badge> },
+];
+
+<ResponsiveTable
+  data={items}
+  columns={columns}
+  keyExtractor={(item) => item.id}
+  onRowClick={(item) => router.push(`/items/${item.id}`)}
+/>
+```
+
+### Button Touch Optimization
+
+Buttons include touch-optimized styles by default:
+- `touch-manipulation` - Prevents 300ms tap delay
+- `active:scale-[0.98]` - Visual feedback on tap
+- `min-h-[44px]` - WCAG-compliant touch target
+
+### Key Files
+
+- `apps/admin-dashboard/src/components/layout/sidebar.tsx` - Desktop sidebar
+- `apps/admin-dashboard/src/components/layout/mobile-sidebar.tsx` - Mobile drawer
+- `apps/admin-dashboard/src/components/layout/mobile-tab-bar.tsx` - Bottom tab navigation
+- `apps/admin-dashboard/src/components/layout/mobile-back-header.tsx` - Back navigation
+- `apps/admin-dashboard/src/components/ui/responsive-table.tsx` - Table/card switcher
+- `apps/admin-dashboard/src/contexts/mobile-menu-context.tsx` - Menu state
+
+### E2E Tests
+
+Mobile responsiveness tests: `apps/admin-dashboard/e2e/mobile-responsiveness.spec.ts`
+
+Test viewports:
+- Mobile: 375x812 (iPhone X)
+- Tablet: 768x1024 (iPad)
 
 ---
 
@@ -1781,6 +1859,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: December 13, 2025*
-*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email: Complete*
+*Last Updated: December 17, 2025*
+*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email, Mobile Responsiveness: Complete*
 

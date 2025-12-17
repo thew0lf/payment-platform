@@ -74,7 +74,7 @@ export default function DashboardPage() {
             </Button>
           }
         />
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]">
           <div className="flex items-center gap-3 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span>Loading dashboard...</span>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard

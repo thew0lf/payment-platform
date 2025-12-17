@@ -24,10 +24,10 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster
-            position="top-right"
+            position="top-center"
             toastOptions={{
               classNames: {
-                toast: 'bg-white dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100',
+                toast: 'bg-white dark:bg-card border-gray-200 dark:border-border text-gray-900 dark:text-gray-100 max-w-[calc(100vw-2rem)] sm:max-w-md',
                 title: 'text-gray-900 dark:text-gray-100',
                 description: 'text-gray-600 dark:text-gray-400',
                 success: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
