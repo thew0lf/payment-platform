@@ -222,9 +222,12 @@ function getCategory(provider: string): string {
     HUBSPOT: 'OAUTH',
     SALESFORCE: 'OAUTH',
     QUICKBOOKS: 'OAUTH',
+
+    // Location/Address
+    GOOGLE_PLACES: 'LOCATION',
   };
 
-  return categoryMap[provider] || 'PAYMENT_GATEWAY';
+  return categoryMap[provider] || 'OTHER';
 }
 
 export async function seedIntegrations(prisma: PrismaClient) {
