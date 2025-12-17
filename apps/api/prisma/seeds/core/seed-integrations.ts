@@ -246,20 +246,30 @@ export async function seedIntegrations(prisma: PrismaClient) {
       return;
     }
 
-    if (!defaults.organizationId || !defaults.platformIntegrations) {
+    if (!defaults.platformIntegrations) {
       console.log('  ⚠️  Invalid integration defaults file format');
       return;
     }
 
-    // Check if organization exists
-    const organization = await prisma.organization.findUnique({
-      where: { id: defaults.organizationId },
-    });
+    // Try to find organization - first by ID from defaults, then fallback to first org
+    let organization = defaults.organizationId
+      ? await prisma.organization.findUnique({ where: { id: defaults.organizationId } })
+      : null;
 
     if (!organization) {
-      console.log(`  ⚠️  Organization ${defaults.organizationId} not found`);
+      // Fallback: find the first organization (for production where org ID may differ)
+      organization = await prisma.organization.findFirst();
+      if (organization) {
+        console.log(`  📋 Using organization: ${organization.name} (${organization.id})`);
+      }
+    }
+
+    if (!organization) {
+      console.log('  ⚠️  No organization found in database');
       return;
     }
+
+    const organizationId = organization.id;
 
     let created = 0;
     let skipped = 0;
@@ -268,7 +278,7 @@ export async function seedIntegrations(prisma: PrismaClient) {
       // Check if integration already exists
       const existing = await prisma.platformIntegration.findFirst({
         where: {
-          organizationId: defaults.organizationId,
+          organizationId,
           provider: integration.provider,
           environment: integration.environment,
         },
@@ -285,7 +295,7 @@ export async function seedIntegrations(prisma: PrismaClient) {
       // Create the integration
       await prisma.platformIntegration.create({
         data: {
-          organizationId: defaults.organizationId,
+          organizationId,
           provider: integration.provider,
           category: getCategory(integration.provider),
           name: integration.name,
