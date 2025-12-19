@@ -5,10 +5,12 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MomentumIntelligenceController } from './momentum-intelligence.controller';
 import { IntentDetectionService } from './intent-detection/intent-detection.service';
 import { CustomerSaveService } from './customer-save/customer-save.service';
+import { CustomerSaveController } from './customer-save/customer-save.controller';
 import { VoiceAIService } from './voice-ai/voice-ai.service';
 import { VoiceAIController } from './voice-ai/voice-ai.controller';
 import { ContentGenerationService } from './content-generation/content-generation.service';
 import { TriggerLibraryService } from './behavioral-triggers/trigger-library.service';
+import { TriggersController } from './behavioral-triggers/triggers.controller';
 import { UpsellService } from './upsell/upsell.service';
 import { UpsellController } from './upsell/upsell.controller';
 import { AnalyticsService } from './analytics/analytics.service';
@@ -40,6 +42,8 @@ import { IntegrationsModule } from '../integrations/integrations.module';
   ],
   controllers: [
     MomentumIntelligenceController,
+    CustomerSaveController,
+    TriggersController,
     UpsellController,
     DeliveryController,
     AnalyticsController,
