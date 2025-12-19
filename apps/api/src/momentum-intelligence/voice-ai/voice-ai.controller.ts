@@ -147,8 +147,23 @@ export class VoiceAIController {
 
     const totalMinutes = completedCalls.reduce((sum, c) => sum + (c.duration || 0), 0) / 60;
 
-    // Estimate revenue (simplified - would use actual pricing)
-    const estRevenue = totalMinutes * 0.15; // $0.15/min example rate
+    // Get pricing from database - find company's organization for pricing lookup
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { client: { select: { organizationId: true } } },
+    });
+
+    let voicePerMinuteRate = 0.50; // Default rate in dollars ($0.50/min)
+    if (company?.client?.organizationId) {
+      const pricing = await this.prisma.cSAIPricing.findFirst({
+        where: { organizationId: company.client.organizationId },
+      });
+      if (pricing) {
+        voicePerMinuteRate = pricing.voicePerMinuteCents / 100; // Convert cents to dollars
+      }
+    }
+
+    const estRevenue = totalMinutes * voicePerMinuteRate;
 
     return {
       totalCalls,

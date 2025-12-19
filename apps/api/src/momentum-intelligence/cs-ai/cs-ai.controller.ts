@@ -283,11 +283,30 @@ export class CSAIController {
       tierCounts[t.currentTier] = t._count.id;
     });
 
+    // Calculate avg wait time from session data
+    const recentSessions = await this.prisma.cSSession.findMany({
+      where: {
+        companyId,
+        status: 'ACTIVE',
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Last 24 hours
+      },
+      select: { createdAt: true },
+    });
+
+    const avgWaitTime = recentSessions.length > 0
+      ? Math.round(
+          recentSessions.reduce((sum, s) => {
+            const waitMs = Date.now() - s.createdAt.getTime();
+            return sum + waitMs / 1000; // Convert to seconds
+          }, 0) / recentSessions.length
+        )
+      : 0;
+
     return {
       activeSessions,
-      queuedSessions: 0, // Would track queued sessions separately
-      avgWaitTime: 45, // Would calculate from session data
-      activeAgents: 3, // Would track from agent presence system
+      queuedSessions: 0,
+      avgWaitTime,
+      activeAgents: tierCounts.HUMAN_AGENT, // Count of sessions with human agents
       byTier: tierCounts,
     };
   }
