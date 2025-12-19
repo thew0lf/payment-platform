@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreHorizontal, Mail, Shield, Building2, Clock, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, Mail, Shield, ShieldCheck, Building2, Clock, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ interface TeamMemberCardProps {
   onStatusChange?: (user: User, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') => void;
   onAssignRole?: (user: User) => void;
   onRemoveRole?: (user: User, roleId: string) => void;
+  onViewPermissions?: (user: User) => void;
 }
 
 export function TeamMemberCard({
@@ -38,6 +39,7 @@ export function TeamMemberCard({
   onStatusChange,
   onAssignRole,
   onRemoveRole,
+  onViewPermissions,
 }: TeamMemberCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -74,10 +76,15 @@ export function TeamMemberCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onViewPermissions?.(user)}>
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                View permissions
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEdit?.(user)}>
                 Edit user
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onAssignRole?.(user)}>
+                <Shield className="w-4 h-4 mr-2" />
                 Assign role
               </DropdownMenuItem>
               <DropdownMenuSeparator />

@@ -101,8 +101,8 @@ export class RbacController {
   @Put('roles/:id')
   @UseGuards(PermissionGuard)
   @RequirePermissions('roles:manage')
-  async updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.roleService.update(id, dto);
+  async updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto, @Request() req: any) {
+    return this.roleService.update(id, dto, req.user?.id);
   }
 
   @Delete('roles/:id')
@@ -146,8 +146,9 @@ export class RbacController {
     @Query('roleId') roleId: string,
     @Query('scopeType') scopeType: ScopeType,
     @Query('scopeId') scopeId: string,
+    @Request() req: any,
   ) {
-    await this.roleService.unassignRole(userId, roleId, scopeType, scopeId);
+    await this.roleService.unassignRole(userId, roleId, scopeType, scopeId, req.user?.id);
   }
 
   @Get('users/:userId/roles')

@@ -244,6 +244,24 @@ export interface UpdateVendorCompanyInput {
   settings?: Record<string, unknown>;
 }
 
+export interface CreateVendorProductInput {
+  vendorCompanyId: string;
+  sku: string;
+  name: string;
+  description?: string;
+  wholesalePrice: number;
+  retailPrice: number;
+  currency?: string;
+  stockQuantity?: number;
+  lowStockThreshold?: number;
+  weight?: number;
+  dimensions?: Record<string, unknown>;
+  images?: string[];
+  categories?: string[];
+  leadTimeDays?: number;
+  isActive?: boolean;
+}
+
 export interface CreateConnectionInput {
   vendorId: string;
   vendorCompanyId: string;

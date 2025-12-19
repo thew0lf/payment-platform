@@ -44,6 +44,10 @@ import {
   Building,
   Building2,
   LucideIcon,
+  Brain,
+  AlertTriangle,
+  Target,
+  Activity,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -128,6 +132,10 @@ export const iconMap: Record<string, LucideIcon> = {
   Sparkles,
   Building,
   Building2,
+  Brain,
+  AlertTriangle,
+  Target,
+  Activity,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -163,7 +171,6 @@ export const navigationSections: NavSection[] = [
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
       { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
-      { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: Package },
     ],
   },
 
@@ -193,6 +200,20 @@ export const navigationSections: NavSection[] = [
       { id: 'funnels', label: 'Funnels', href: '/funnels', icon: Workflow },
       { id: 'leads', label: 'Leads', href: '/leads', icon: UserPlus },
       { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
+    ],
+  },
+
+  // Momentum Intelligence
+  {
+    id: 'momentum',
+    label: 'Momentum Intelligence',
+    icon: Brain,
+    defaultExpanded: false,
+    items: [
+      { id: 'churn-risk', label: 'Churn Risk', href: '/momentum/churn', icon: AlertTriangle },
+      { id: 'save-flows', label: 'Save Flows', href: '/momentum/save-flows', icon: Target },
+      { id: 'triggers', label: 'Behavioral Triggers', href: '/momentum/triggers', icon: Sparkles },
+      { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: RotateCcw },
     ],
   },
 
@@ -229,6 +250,8 @@ export const navigationSections: NavSection[] = [
     requiredScopes: ['ORGANIZATION'],
     items: [
       { id: 'all-vendors', label: 'All Vendors', href: '/vendors', icon: Store },
+      { id: 'vendor-companies', label: 'Companies', href: '/vendors/companies', icon: Building2 },
+      { id: 'vendor-products', label: 'Products', href: '/vendors/products', icon: Package },
       { id: 'connections', label: 'Connections', href: '/vendors/connections', icon: Link2 },
     ],
   },

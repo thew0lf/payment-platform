@@ -6,11 +6,16 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ScopeType } from '@prisma/client';
+import { DataClassification, ScopeType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Role, CreateRoleDto, UpdateRoleDto, AssignRoleDto } from '../types/rbac.types';
 import { PermissionService } from './permission.service';
+import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 
+/**
+ * Role management service with audit logging.
+ * SOC2 CC6.1/CC6.2: Access control with full audit trail
+ */
 @Injectable()
 export class RoleService {
   private readonly logger = new Logger(RoleService.name);
@@ -19,6 +24,7 @@ export class RoleService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly permissionService: PermissionService,
+    private readonly auditService: AuditLogsService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════
@@ -63,6 +69,19 @@ export class RoleService {
 
     this.logger.log(`Created role: ${role.name} (${role.slug}) in ${dto.scopeType}`);
     this.eventEmitter.emit('rbac.role.created', { role });
+
+    // Audit log: Role created
+    await this.auditService.log('ROLE_CREATED', 'Role', role.id, {
+      userId: createdBy,
+      scopeType: dto.scopeType,
+      scopeId: dto.scopeId,
+      metadata: {
+        roleName: role.name,
+        roleSlug: role.slug,
+        permissionCount: dto.permissionIds?.length || 0,
+      },
+      dataClassification: DataClassification.INTERNAL,
+    });
 
     return this.findById(role.id);
   }
@@ -134,9 +153,10 @@ export class RoleService {
     return this.mapToRole(role);
   }
 
-  async update(id: string, dto: UpdateRoleDto): Promise<Role> {
+  async update(id: string, dto: UpdateRoleDto, updatedBy?: string): Promise<Role> {
     const existing = await this.prisma.role.findFirst({
       where: { id, deletedAt: null },
+      include: { permissions: { include: { permission: true } } },
     });
 
     if (!existing) {
@@ -145,6 +165,18 @@ export class RoleService {
 
     if (existing.isSystem && (dto.name || dto.permissionIds)) {
       throw new BadRequestException('Cannot modify system role name or permissions');
+    }
+
+    // Track changes for audit
+    const changes: Record<string, { before: unknown; after: unknown }> = {};
+    if (dto.name !== undefined && dto.name !== existing.name) {
+      changes.name = { before: existing.name, after: dto.name };
+    }
+    if (dto.description !== undefined && dto.description !== existing.description) {
+      changes.description = { before: existing.description, after: dto.description };
+    }
+    if (dto.color !== undefined && dto.color !== existing.color) {
+      changes.color = { before: existing.color, after: dto.color };
     }
 
     await this.prisma.role.update({
@@ -160,7 +192,15 @@ export class RoleService {
 
     // Update permissions if provided
     if (dto.permissionIds !== undefined) {
+      const oldPermissions = existing.permissions.map((p: any) => p.permission.code);
       await this.setRolePermissions(id, dto.permissionIds);
+
+      // Fetch new permissions for audit
+      const newRole = await this.findById(id);
+      const newPermissions = newRole.permissions?.map(p => p.permission?.code) || [];
+      if (JSON.stringify(oldPermissions.sort()) !== JSON.stringify(newPermissions.sort())) {
+        changes.permissions = { before: oldPermissions, after: newPermissions };
+      }
     }
 
     // Invalidate cache for all users with this role
@@ -168,6 +208,18 @@ export class RoleService {
 
     this.logger.log(`Updated role: ${existing.name}`);
     this.eventEmitter.emit('rbac.role.updated', { roleId: id });
+
+    // Audit log: Role updated (only if changes were made)
+    if (Object.keys(changes).length > 0) {
+      await this.auditService.log('ROLE_UPDATED', 'Role', id, {
+        userId: updatedBy,
+        scopeType: existing.scopeType,
+        scopeId: existing.scopeId,
+        changes,
+        metadata: { roleName: existing.name },
+        dataClassification: DataClassification.INTERNAL,
+      });
+    }
 
     return this.findById(id);
   }
@@ -185,6 +237,9 @@ export class RoleService {
       throw new BadRequestException('Cannot delete system role');
     }
 
+    // Get affected users before deletion
+    const affectedUsers = await this.getUsersWithRole(id);
+
     // Soft delete
     await this.prisma.role.update({
       where: { id },
@@ -199,6 +254,19 @@ export class RoleService {
 
     this.logger.log(`Deleted role: ${role.name}`);
     this.eventEmitter.emit('rbac.role.deleted', { roleId: id });
+
+    // Audit log: Role deleted
+    await this.auditService.log('ROLE_DELETED', 'Role', id, {
+      userId: deletedBy,
+      scopeType: role.scopeType,
+      scopeId: role.scopeId,
+      metadata: {
+        roleName: role.name,
+        roleSlug: role.slug,
+        affectedUsers: affectedUsers.length,
+      },
+      dataClassification: DataClassification.INTERNAL,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -314,9 +382,23 @@ export class RoleService {
       scopeType: dto.scopeType,
       scopeId: dto.scopeId,
     });
+
+    // Audit log: Role assigned
+    await this.auditService.log('ROLE_ASSIGNED', 'UserRoleAssignment', undefined, {
+      userId: assignedBy,
+      scopeType: dto.scopeType,
+      scopeId: dto.scopeId,
+      metadata: {
+        targetUserId: dto.userId,
+        roleName: role.name,
+        roleId: dto.roleId,
+        expiresAt: dto.expiresAt?.toISOString(),
+      },
+      dataClassification: DataClassification.INTERNAL,
+    });
   }
 
-  async unassignRole(userId: string, roleId: string, scopeType: ScopeType, scopeId: string): Promise<void> {
+  async unassignRole(userId: string, roleId: string, scopeType: ScopeType, scopeId: string, unassignedBy?: string): Promise<void> {
     const assignment = await this.prisma.userRoleAssignment.findUnique({
       where: {
         userId_roleId_scopeType_scopeId: {
@@ -326,6 +408,7 @@ export class RoleService {
           scopeId,
         },
       },
+      include: { role: true },
     });
 
     if (!assignment) {
@@ -345,6 +428,19 @@ export class RoleService {
       roleId,
       scopeType,
       scopeId,
+    });
+
+    // Audit log: Role unassigned
+    await this.auditService.log('ROLE_UNASSIGNED', 'UserRoleAssignment', undefined, {
+      userId: unassignedBy,
+      scopeType,
+      scopeId,
+      metadata: {
+        targetUserId: userId,
+        roleName: assignment.role.name,
+        roleId,
+      },
+      dataClassification: DataClassification.INTERNAL,
     });
   }
 

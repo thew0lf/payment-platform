@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Mail,
   Shield,
+  ShieldCheck,
   Building2,
   Clock,
   MoreHorizontal,
@@ -48,7 +49,9 @@ import { ViewToggle, ViewMode } from '@/components/ui/view-toggle';
 import { TeamMemberCard } from '@/components/team/team-member-card';
 import { InviteUserModal } from '@/components/team/invite-user-modal';
 import { RoleAssignmentModal } from '@/components/team/role-assignment-modal';
+import { UserPermissionsViewer } from '@/components/rbac';
 import { useRbac } from '@/hooks/use-rbac';
+import { ScopeType as RbacScopeType } from '@/lib/api/rbac';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import { useAuth } from '@/contexts/auth-context';
 import {
@@ -107,6 +110,7 @@ export default function TeamPage() {
   // Modals
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showPermissionsViewer, setShowPermissionsViewer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Save view preference
@@ -175,6 +179,11 @@ export default function TeamPage() {
   const handleAssignRole = (user: User) => {
     setSelectedUser(user);
     setShowRoleModal(true);
+  };
+
+  const handleViewPermissions = (user: User) => {
+    setSelectedUser(user);
+    setShowPermissionsViewer(true);
   };
 
   const handleRemoveRole = (user: User, roleId: string) => {
@@ -388,6 +397,7 @@ export default function TeamPage() {
                 onStatusChange={canManageUsers ? handleStatusChange : undefined}
                 onAssignRole={canManageUsers ? handleAssignRole : undefined}
                 onRemoveRole={canManageUsers ? handleRemoveRole : undefined}
+                onViewPermissions={handleViewPermissions}
               />
             ))}
           </div>
@@ -442,6 +452,10 @@ export default function TeamPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleViewPermissions(u)}>
+                              <ShieldCheck className="w-4 h-4 mr-2" />
+                              View permissions
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleAssignRole(u)}>
                               <Shield className="w-4 h-4 mr-2" />
                               Assign role
@@ -521,6 +535,19 @@ export default function TeamPage() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* User Permissions Viewer */}
+      {selectedUser && (
+        <UserPermissionsViewer
+          userId={selectedUser.id}
+          userName={getUserFullName(selectedUser)}
+          userEmail={selectedUser.email}
+          scopeType={scopeType as RbacScopeType}
+          scopeId={scopeId}
+          isOpen={showPermissionsViewer}
+          onClose={() => setShowPermissionsViewer(false)}
+        />
       )}
     </>
   );

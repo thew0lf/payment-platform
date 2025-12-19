@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
@@ -49,6 +50,7 @@ import { CompaniesModule } from './companies/companies.module';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.local', '.env'] }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    RedisModule,
     CommonModule,
     AuthModule,
     HierarchyModule,

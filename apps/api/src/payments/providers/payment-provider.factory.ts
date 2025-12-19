@@ -45,6 +45,8 @@ export class PaymentProviderFactory implements OnModuleInit {
   /**
    * Load client integrations from the database for a specific company.
    * Maps integrations to payment providers and registers them.
+   *
+   * OPTIMIZED: Batch loads platform integrations to avoid N+1 queries
    */
   async loadCompanyIntegrations(companyId: string): Promise<void> {
     if (this.loadedCompanies.has(companyId)) {
@@ -77,15 +79,28 @@ export class PaymentProviderFactory implements OnModuleInit {
 
     this.logger.log(`Found ${integrations.length} payment integrations for client ${company.clientId}`);
 
+    // OPTIMIZATION: Batch load all platform integrations in one query to avoid N+1
+    const platformIntegrationIds = integrations
+      .filter(i => i.mode === IntegrationMode.PLATFORM && i.platformIntegrationId)
+      .map(i => i.platformIntegrationId as string);
+
+    const platformIntegrationsMap = new Map<string, any>();
+    if (platformIntegrationIds.length > 0) {
+      const platformIntegrations = await this.prisma.platformIntegration.findMany({
+        where: { id: { in: platformIntegrationIds } },
+      });
+      for (const pi of platformIntegrations) {
+        platformIntegrationsMap.set(pi.id, pi);
+      }
+    }
+
     for (const integration of integrations) {
       try {
         let credentials: any;
 
         if (integration.mode === IntegrationMode.PLATFORM && integration.platformIntegrationId) {
-          // Load credentials from platform integration
-          const platformInt = await this.prisma.platformIntegration.findUnique({
-            where: { id: integration.platformIntegrationId },
-          });
+          // Use cached platform integration instead of querying
+          const platformInt = platformIntegrationsMap.get(integration.platformIntegrationId);
           if (platformInt?.credentials) {
             credentials = this.encryptionService.decrypt(platformInt.credentials as any);
           } else {

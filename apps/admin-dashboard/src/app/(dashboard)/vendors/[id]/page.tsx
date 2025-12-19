@@ -427,6 +427,46 @@ export default function VendorDetailPage() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Link
+          href={`/vendors/companies?vendorId=${vendorId}`}
+          className="flex items-center gap-3 p-4 bg-card/50 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-purple-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Manage Companies</p>
+            <p className="text-xs text-muted-foreground">{vendor._count?.vendorCompanies || vendorCompanies.length} companies</p>
+          </div>
+        </Link>
+        <Link
+          href={`/vendors/products?vendorId=${vendorId}`}
+          className="flex items-center gap-3 p-4 bg-card/50 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+            <Package className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">View Products</p>
+            <p className="text-xs text-muted-foreground">All vendor products</p>
+          </div>
+        </Link>
+        <Link
+          href={`/vendors/connections?vendorId=${vendorId}`}
+          className="flex items-center gap-3 p-4 bg-card/50 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <Link2 className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">View Connections</p>
+            <p className="text-xs text-muted-foreground">{vendor._count?.clientConnections || 0} active</p>
+          </div>
+        </Link>
+      </div>
+
       {/* Vendor Companies */}
       <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
