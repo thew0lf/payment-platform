@@ -35,6 +35,7 @@ import {
   seedDemoClientSubscription,
   seedCoffeeExplorer,
   seedCoffeeFunnel,
+  seedCSAI,
 } from './seeds/demo';
 
 const prisma = new PrismaClient();
@@ -122,6 +123,9 @@ async function main() {
 
     // Seed Coffee Explorer funnel
     await seedCoffeeFunnel(prisma);
+
+    // Seed CS AI demo data
+    await seedCSAI(prisma);
   }
 
   // ═══════════════════════════════════════════════════════════════

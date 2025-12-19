@@ -54,6 +54,9 @@ model Organization {
   // Waitlist
   waitlist             Waitlist[]
 
+  // CS AI Pricing
+  csAIPricing          CSAIPricing?
+
   @@map("organizations")
 }
 
@@ -209,6 +212,10 @@ model Company {
 
   // Email Templates
   emailTemplates EmailTemplate[]
+
+  // CS AI Usage Tracking
+  csAIUsage        CSAIUsage[]
+  csAIUsageSummary CSAIUsageSummary[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -2881,6 +2888,7 @@ model VoiceCall {
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   intervention Intervention? @relation(fields: [interventionId], references: [id])
+  csAIUsage    CSAIUsage[]
 
   @@index([companyId, customerId])
   @@index([twilioCallSid])
@@ -3428,9 +3436,10 @@ model CSSession {
   resolvedAt DateTime?
 
   // Relations
-  messages CSMessage[]
-  refunds  Refund[]
-  rmas     RMA[]
+  messages   CSMessage[]
+  refunds    Refund[]
+  rmas       RMA[]
+  csAIUsage  CSAIUsage[]
 
   @@index([companyId])
   @@index([customerId])
@@ -3488,6 +3497,173 @@ model CSConfig {
   updatedAt DateTime @updatedAt
 
   @@map("cs_configs")
+}
+
+// =============================================================================
+// CS AI BILLING & USAGE TRACKING
+// =============================================================================
+
+model CSAIUsage {
+  id        String @id @default(cuid())
+  companyId String
+  clientId  String
+
+  // Session/Call Reference
+  csSessionId String?
+  voiceCallId String?
+
+  // Usage Type
+  usageType CSAIUsageType
+  tier      CSTier
+  channel   String // voice, chat, email, sms
+
+  // Duration Tracking (for voice/chat)
+  durationSeconds Int?
+
+  // Message/Token Tracking (for chat/AI)
+  messageCount   Int @default(0)
+  aiMessageCount Int @default(0)
+  inputTokens    Int @default(0)
+  outputTokens   Int @default(0)
+
+  // Twilio Costs (for voice)
+  twilioMinutes   Decimal? @db.Decimal(10, 4)
+  twilioCostCents Int?
+
+  // Cost Calculation (in cents)
+  baseCost   Int @default(0)
+  markupCost Int @default(0)
+  totalCost  Int @default(0)
+
+  // Billing Status
+  billingPeriod String? // '2025-12'
+  invoiced      Boolean   @default(false)
+  invoicedAt    DateTime?
+  invoiceId     String?
+
+  // Metadata
+  metadata Json?
+
+  // Timestamps
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  // Relations
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  csSession CSSession? @relation(fields: [csSessionId], references: [id])
+  voiceCall VoiceCall? @relation(fields: [voiceCallId], references: [id])
+
+  @@index([companyId, occurredAt])
+  @@index([clientId, billingPeriod])
+  @@index([usageType, occurredAt])
+  @@index([invoiced])
+  @@map("cs_ai_usage")
+}
+
+model CSAIPricing {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  // Voice Call Pricing (per minute, in cents)
+  voicePerMinuteCents Int @default(50) // $0.50/min
+
+  // Chat Session Pricing
+  chatPerMessageCents Int @default(5) // $0.05/message
+  chatPerSessionCents Int @default(100) // $1.00/session base
+
+  // AI Token Pricing (per 1000 tokens, in cents)
+  inputTokenPrice  Int @default(3) // $0.03 per 1K
+  outputTokenPrice Int @default(15) // $0.15 per 1K
+
+  // Tier Multipliers
+  aiRepMultiplier      Float @default(1.0) // Base rate
+  aiManagerMultiplier  Float @default(1.5) // 50% more
+  humanAgentMultiplier Float @default(3.0) // 3x rate
+
+  // Monthly Allowances (included in base plan)
+  monthlyMinutesAllowance  Int @default(100) // 100 minutes/month
+  monthlyMessagesAllowance Int @default(500) // 500 messages/month
+
+  // Overage Pricing (after allowance)
+  overageVoicePerMinuteCents Int @default(75) // $0.75/min overage
+  overageChatPerMessageCents Int @default(8) // $0.08/message overage
+
+  // Feature Flags
+  csAIEnabled Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("cs_ai_pricing")
+}
+
+model CSAIUsageSummary {
+  id        String @id @default(cuid())
+  companyId String
+  clientId  String
+
+  // Billing Period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Voice Usage
+  totalVoiceMinutes Decimal @db.Decimal(10, 2) @default(0)
+  totalVoiceCalls   Int     @default(0)
+  voiceCostCents    Int     @default(0)
+
+  // Chat Usage
+  totalChatSessions Int @default(0)
+  totalChatMessages Int @default(0)
+  chatCostCents     Int @default(0)
+
+  // AI Token Usage
+  totalInputTokens  Int @default(0)
+  totalOutputTokens Int @default(0)
+  aiTokenCostCents  Int @default(0)
+
+  // Usage by Tier
+  aiRepMinutes      Decimal @db.Decimal(10, 2) @default(0)
+  aiManagerMinutes  Decimal @db.Decimal(10, 2) @default(0)
+  humanAgentMinutes Decimal @db.Decimal(10, 2) @default(0)
+
+  // Costs
+  totalBaseCost   Int @default(0)
+  totalMarkupCost Int @default(0)
+  totalCost       Int @default(0)
+
+  // Allowances
+  allowanceUsedMinutes  Int @default(0)
+  allowanceUsedMessages Int @default(0)
+  overageMinutes        Int @default(0)
+  overageMessages       Int @default(0)
+
+  // Billing Status
+  invoiced   Boolean   @default(false)
+  invoicedAt DateTime?
+  invoiceId  String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, periodStart])
+  @@index([clientId, periodStart])
+  @@index([invoiced])
+  @@map("cs_ai_usage_summary")
+}
+
+enum CSAIUsageType {
+  VOICE_CALL
+  CHAT_SESSION
+  EMAIL_SUPPORT
+  SMS_SUPPORT
 }
 
 // =============================================================================
