@@ -48,6 +48,10 @@ import {
   AlertTriangle,
   Target,
   Activity,
+  Bot,
+  MessageSquare,
+  Phone,
+  Headphones,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -136,6 +140,10 @@ export const iconMap: Record<string, LucideIcon> = {
   AlertTriangle,
   Target,
   Activity,
+  Bot,
+  MessageSquare,
+  Phone,
+  Headphones,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -214,6 +222,20 @@ export const navigationSections: NavSection[] = [
       { id: 'save-flows', label: 'Save Flows', href: '/momentum/save-flows', icon: Target },
       { id: 'triggers', label: 'Behavioral Triggers', href: '/momentum/triggers', icon: Sparkles },
       { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: RotateCcw },
+    ],
+  },
+
+  // CS AI - AI-powered Customer Service
+  {
+    id: 'cs-ai',
+    label: 'CS AI',
+    icon: Bot,
+    defaultExpanded: false,
+    items: [
+      { id: 'cs-dashboard', label: 'Dashboard', href: '/cs-ai', icon: BarChart3 },
+      { id: 'cs-conversations', label: 'Conversations', href: '/cs-ai/conversations', icon: MessageSquare },
+      { id: 'cs-voice', label: 'Voice Calls', href: '/cs-ai/voice', icon: Phone },
+      { id: 'cs-analytics', label: 'Analytics', href: '/cs-ai/analytics', icon: TrendingUp },
     ],
   },
 
