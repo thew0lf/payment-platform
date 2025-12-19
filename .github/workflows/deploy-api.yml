@@ -182,7 +182,8 @@ jobs:
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-          no-cache: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64
 
       - name: Output image URI
