@@ -110,114 +110,6 @@ function formatTimeAgo(date: string): string {
   return `${days}d ago`;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const MOCK_SESSIONS: CSSession[] = [
-  {
-    id: 'cs_001',
-    companyId: 'comp_1',
-    customerId: 'cust_1',
-    channel: 'chat',
-    currentTier: 'AI_REP',
-    status: 'ACTIVE',
-    issueCategory: 'SHIPPING',
-    customerSentiment: 'NEUTRAL',
-    sentimentHistory: [],
-    escalationHistory: [],
-    messages: [],
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'cust_1', firstName: 'John', lastName: 'Smith', email: 'john@example.com' },
-  },
-  {
-    id: 'cs_002',
-    companyId: 'comp_1',
-    customerId: 'cust_2',
-    channel: 'chat',
-    currentTier: 'AI_MANAGER',
-    status: 'ESCALATED',
-    issueCategory: 'REFUND',
-    customerSentiment: 'FRUSTRATED',
-    sentimentHistory: [],
-    escalationHistory: [
-      { fromTier: 'AI_REP', toTier: 'AI_MANAGER', reason: 'Refund request exceeds threshold', timestamp: new Date(Date.now() - 10 * 60000).toISOString() },
-    ],
-    messages: [],
-    createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'cust_2', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@example.com' },
-  },
-  {
-    id: 'cs_003',
-    companyId: 'comp_1',
-    customerId: 'cust_3',
-    channel: 'email',
-    currentTier: 'HUMAN_AGENT',
-    status: 'ESCALATED',
-    issueCategory: 'BILLING',
-    customerSentiment: 'ANGRY',
-    sentimentHistory: [],
-    escalationHistory: [
-      { fromTier: 'AI_REP', toTier: 'AI_MANAGER', reason: 'High sentiment escalation', timestamp: new Date(Date.now() - 45 * 60000).toISOString() },
-      { fromTier: 'AI_MANAGER', toTier: 'HUMAN_AGENT', reason: 'Customer requested human agent', timestamp: new Date(Date.now() - 30 * 60000).toISOString() },
-    ],
-    messages: [],
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    customer: { id: 'cust_3', firstName: 'Michael', lastName: 'Brown', email: 'michael@example.com' },
-  },
-  {
-    id: 'cs_004',
-    companyId: 'comp_1',
-    customerId: 'cust_4',
-    channel: 'chat',
-    currentTier: 'AI_REP',
-    status: 'RESOLVED',
-    issueCategory: 'GENERAL',
-    customerSentiment: 'HAPPY',
-    sentimentHistory: [],
-    escalationHistory: [],
-    messages: [],
-    resolution: {
-      type: 'ISSUE_RESOLVED',
-      summary: 'Customer inquiry about product availability answered.',
-      actionsTaken: ['Provided product information', 'Shared stock availability'],
-      followUpRequired: false,
-    },
-    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 3600000 + 8 * 60000).toISOString(),
-    resolvedAt: new Date(Date.now() - 2 * 3600000 + 8 * 60000).toISOString(),
-    customer: { id: 'cust_4', firstName: 'Emily', lastName: 'Davis', email: 'emily@example.com' },
-  },
-  {
-    id: 'cs_005',
-    companyId: 'comp_1',
-    customerId: 'cust_5',
-    channel: 'chat',
-    currentTier: 'AI_MANAGER',
-    status: 'RESOLVED',
-    issueCategory: 'CANCELLATION',
-    customerSentiment: 'SATISFIED',
-    sentimentHistory: [],
-    escalationHistory: [
-      { fromTier: 'AI_REP', toTier: 'AI_MANAGER', reason: 'Cancellation save flow triggered', timestamp: new Date(Date.now() - 4 * 3600000).toISOString() },
-    ],
-    messages: [],
-    resolution: {
-      type: 'ISSUE_RESOLVED',
-      summary: 'Cancellation prevented with discount offer.',
-      actionsTaken: ['Applied 20% retention discount', 'Extended subscription 1 month free'],
-      followUpRequired: true,
-      followUpDate: new Date(Date.now() + 30 * 24 * 3600000).toISOString(),
-    },
-    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 4 * 3600000 + 25 * 60000).toISOString(),
-    resolvedAt: new Date(Date.now() - 4 * 3600000 + 25 * 60000).toISOString(),
-    customer: { id: 'cust_5', firstName: 'David', lastName: 'Wilson', email: 'david@example.com' },
-  },
-];
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -242,16 +134,15 @@ export default function ConversationsPage() {
       if (tierFilter !== 'all') params.tier = tierFilter as CSTier;
       if (channelFilter !== 'all') params.channel = channelFilter;
 
-      const data = await csAiApi.getSessions(companyId, params).catch(() => ({ items: [], total: 0 }));
+      const data = await csAiApi.getSessions(companyId, params).catch((err) => {
+        console.error('Failed to load sessions:', err);
+        return { items: [], total: 0 };
+      });
 
-      if (data.items.length > 0) {
-        setSessions(data.items);
-      } else {
-        setSessions(MOCK_SESSIONS);
-      }
+      setSessions(data.items);
     } catch (err) {
       console.error('Failed to load sessions:', err);
-      setSessions(MOCK_SESSIONS);
+      setSessions([]);
     } finally {
       setIsLoading(false);
     }

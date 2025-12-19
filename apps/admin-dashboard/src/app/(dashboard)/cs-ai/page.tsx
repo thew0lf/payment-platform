@@ -109,102 +109,22 @@ export default function CSAIDashboardPage() {
           companyId,
           startDate.toISOString().split('T')[0],
           endDate.toISOString().split('T')[0]
-        ).catch(() => null),
-        csAiApi.getSessions(companyId, { status: 'ACTIVE', limit: 10 }).catch(() => ({ items: [], total: 0 })),
+        ).catch((err) => {
+          console.error('Failed to load analytics:', err);
+          return null;
+        }),
+        csAiApi.getSessions(companyId, { status: 'ACTIVE', limit: 10 }).catch((err) => {
+          console.error('Failed to load sessions:', err);
+          return { items: [], total: 0 };
+        }),
       ]);
 
-      if (analyticsData) {
-        setAnalytics(analyticsData);
-      } else {
-        // Mock data for demo
-        setAnalytics({
-          period: { start: startDate.toISOString(), end: endDate.toISOString() },
-          overview: {
-            totalSessions: 1250,
-            resolvedSessions: 1150,
-            resolutionRate: 92,
-            avgResolutionTime: 8.5,
-            avgMessagesPerSession: 6.2,
-            customerSatisfactionAvg: 4.3,
-          },
-          byTier: [
-            { tier: 'AI_REP', sessions: 800, resolved: 720, resolutionRate: 90, avgTime: 5.2 },
-            { tier: 'AI_MANAGER', sessions: 350, resolved: 330, resolutionRate: 94, avgTime: 10.5 },
-            { tier: 'HUMAN_AGENT', sessions: 100, resolved: 100, resolutionRate: 100, avgTime: 15.3 },
-          ],
-          byChannel: [
-            { channel: 'chat', sessions: 700, resolved: 650, avgTime: 6.5 },
-            { channel: 'voice', sessions: 350, resolved: 320, avgTime: 12.3 },
-            { channel: 'email', sessions: 200, resolved: 180, avgTime: 24.0 },
-          ],
-          byCategory: [],
-          escalations: {
-            total: 450,
-            byReason: {
-              IRATE_CUSTOMER: 85,
-              REFUND_REQUEST: 200,
-              COMPLEX_ISSUE: 75,
-              REPEAT_CONTACT: 45,
-              HIGH_VALUE_CUSTOMER: 30,
-            },
-            avgEscalationTime: 3.2,
-            escalationRate: 36,
-          },
-          sentiment: {
-            distribution: {
-              HAPPY: 250,
-              SATISFIED: 500,
-              NEUTRAL: 300,
-              FRUSTRATED: 150,
-              ANGRY: 40,
-              IRATE: 10,
-            },
-            irateIncidents: 10,
-            sentimentImprovement: 78,
-          },
-          topIssues: [
-            { issue: 'Order tracking', count: 180, avgResolutionTime: 3.5 },
-            { issue: 'Billing discrepancy', count: 120, avgResolutionTime: 8.2 },
-            { issue: 'Refund request', count: 100, avgResolutionTime: 10.5 },
-          ],
-        });
-      }
-
-      setActiveSessions(sessionsData.items.length > 0 ? sessionsData.items : [
-        {
-          id: 'cs_demo_1',
-          companyId,
-          customerId: 'cust_1',
-          channel: 'chat',
-          currentTier: 'AI_REP',
-          status: 'ACTIVE',
-          customerSentiment: 'NEUTRAL',
-          sentimentHistory: [],
-          escalationHistory: [],
-          messages: [],
-          createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-          updatedAt: new Date().toISOString(),
-          customer: { id: 'cust_1', firstName: 'John', lastName: 'Smith', email: 'john@example.com' },
-        },
-        {
-          id: 'cs_demo_2',
-          companyId,
-          customerId: 'cust_2',
-          channel: 'chat',
-          currentTier: 'AI_MANAGER',
-          status: 'ESCALATED',
-          issueCategory: 'REFUND',
-          customerSentiment: 'FRUSTRATED',
-          sentimentHistory: [],
-          escalationHistory: [],
-          messages: [],
-          createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-          updatedAt: new Date().toISOString(),
-          customer: { id: 'cust_2', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@example.com' },
-        },
-      ]);
+      setAnalytics(analyticsData);
+      setActiveSessions(sessionsData.items);
     } catch (err) {
       console.error('Failed to load CS AI data:', err);
+      setAnalytics(null);
+      setActiveSessions([]);
     } finally {
       setIsLoading(false);
     }
@@ -226,6 +146,7 @@ export default function CSAIDashboardPage() {
   }
 
   const overview = analytics?.overview;
+  const hasData = analytics !== null;
 
   return (
     <>
@@ -258,7 +179,7 @@ export default function CSAIDashboardPage() {
                   <MessageSquare className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold">{overview?.totalSessions.toLocaleString()}</p>
+                  <p className="text-2xl font-semibold">{overview?.totalSessions?.toLocaleString() ?? '0'}</p>
                   <p className="text-xs text-muted-foreground">Total Sessions</p>
                 </div>
               </div>
@@ -271,7 +192,7 @@ export default function CSAIDashboardPage() {
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold">{overview?.resolutionRate}%</p>
+                  <p className="text-2xl font-semibold">{overview?.resolutionRate ?? 0}%</p>
                   <p className="text-xs text-muted-foreground">Resolution Rate</p>
                 </div>
               </div>
@@ -284,7 +205,7 @@ export default function CSAIDashboardPage() {
                   <Clock className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold">{overview?.avgResolutionTime}m</p>
+                  <p className="text-2xl font-semibold">{overview?.avgResolutionTime ?? 0}m</p>
                   <p className="text-xs text-muted-foreground">Avg Resolution</p>
                 </div>
               </div>
@@ -297,7 +218,7 @@ export default function CSAIDashboardPage() {
                   <TrendingUp className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold">{overview?.customerSatisfactionAvg}</p>
+                  <p className="text-2xl font-semibold">{overview?.customerSatisfactionAvg ?? '-'}</p>
                   <p className="text-xs text-muted-foreground">Satisfaction</p>
                 </div>
               </div>
@@ -312,27 +233,34 @@ export default function CSAIDashboardPage() {
             <CardDescription>Resolution rates across AI tiers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analytics?.byTier.map((tier) => (
-                <div key={tier.tier} className="flex items-center gap-4">
-                  <div className="w-28">
-                    <TierBadge tier={tier.tier as CSTier} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-muted-foreground">
-                        {tier.resolved} / {tier.sessions} resolved
-                      </span>
-                      <span className="text-sm font-medium">{tier.resolutionRate}%</span>
+            {analytics?.byTier && analytics.byTier.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.byTier.map((tier) => (
+                  <div key={tier.tier} className="flex items-center gap-4">
+                    <div className="w-28">
+                      <TierBadge tier={tier.tier as CSTier} />
                     </div>
-                    <Progress value={tier.resolutionRate} className="h-2" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-muted-foreground">
+                          {tier.resolved} / {tier.sessions} resolved
+                        </span>
+                        <span className="text-sm font-medium">{tier.resolutionRate}%</span>
+                      </div>
+                      <Progress value={tier.resolutionRate} className="h-2" />
+                    </div>
+                    <div className="w-20 text-right">
+                      <span className="text-sm text-muted-foreground">{tier.avgTime}m avg</span>
+                    </div>
                   </div>
-                  <div className="w-20 text-right">
-                    <span className="text-sm text-muted-foreground">{tier.avgTime}m avg</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bot className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No tier data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -396,27 +324,36 @@ export default function CSAIDashboardPage() {
               <CardDescription>Top reasons for tier escalation</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(analytics?.escalations.byReason || {})
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 5)
-                .map(([reason, count]) => (
-                  <div key={reason} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">
-                      {reason.toLowerCase().replace(/_/g, ' ')}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Progress
-                        value={(count / (analytics?.escalations.total || 1)) * 100}
-                        className="w-24 h-2"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{count}</span>
-                    </div>
+              {analytics?.escalations?.byReason && Object.keys(analytics.escalations.byReason).length > 0 ? (
+                <>
+                  {Object.entries(analytics.escalations.byReason)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([reason, count]) => (
+                      <div key={reason} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">
+                          {reason.toLowerCase().replace(/_/g, ' ')}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Progress
+                            value={(count / (analytics.escalations.total || 1)) * 100}
+                            className="w-24 h-2"
+                          />
+                          <span className="text-sm text-muted-foreground w-8">{count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  <div className="pt-2 border-t border-border flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total Escalations</span>
+                    <span className="font-medium">{analytics.escalations.total}</span>
                   </div>
-                ))}
-              <div className="pt-2 border-t border-border flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Escalations</span>
-                <span className="font-medium">{analytics?.escalations.total}</span>
-              </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p>No escalation data available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

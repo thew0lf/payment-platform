@@ -190,86 +190,6 @@ function SentimentDistribution({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const MOCK_ANALYTICS: CSAnalytics = {
-  period: {
-    start: new Date(Date.now() - 7 * 24 * 3600000).toISOString(),
-    end: new Date().toISOString(),
-  },
-  overview: {
-    totalSessions: 1250,
-    resolvedSessions: 1150,
-    resolutionRate: 92,
-    avgResolutionTime: 8.5,
-    avgMessagesPerSession: 6.2,
-    customerSatisfactionAvg: 4.3,
-  },
-  byTier: [
-    { tier: 'AI_REP', sessions: 800, resolved: 720, resolutionRate: 90, avgTime: 5.2 },
-    { tier: 'AI_MANAGER', sessions: 350, resolved: 330, resolutionRate: 94, avgTime: 10.5 },
-    { tier: 'HUMAN_AGENT', sessions: 100, resolved: 100, resolutionRate: 100, avgTime: 15.3 },
-  ],
-  byChannel: [
-    { channel: 'chat', sessions: 700, resolved: 650, avgTime: 6.5 },
-    { channel: 'voice', sessions: 350, resolved: 320, avgTime: 12.3 },
-    { channel: 'email', sessions: 200, resolved: 180, avgTime: 24.0 },
-  ],
-  byCategory: [
-    { category: 'SHIPPING', count: 320, avgResolutionTime: 5.2, topResolutions: ['ISSUE_RESOLVED', 'INFORMATION_PROVIDED'] },
-    { category: 'BILLING', count: 280, avgResolutionTime: 8.5, topResolutions: ['REFUND_PROCESSED', 'CREDIT_APPLIED'] },
-    { category: 'REFUND', count: 220, avgResolutionTime: 12.3, topResolutions: ['REFUND_PROCESSED', 'ESCALATED_TO_HUMAN'] },
-    { category: 'CANCELLATION', count: 180, avgResolutionTime: 15.8, topResolutions: ['ISSUE_RESOLVED', 'ESCALATED_TO_HUMAN'] },
-    { category: 'PRODUCT_QUALITY', count: 150, avgResolutionTime: 10.2, topResolutions: ['REFUND_PROCESSED', 'CREDIT_APPLIED'] },
-    { category: 'GENERAL', count: 100, avgResolutionTime: 4.5, topResolutions: ['INFORMATION_PROVIDED', 'ISSUE_RESOLVED'] },
-  ],
-  escalations: {
-    total: 450,
-    byReason: {
-      IRATE_CUSTOMER: 85,
-      REFUND_REQUEST: 200,
-      COMPLEX_ISSUE: 75,
-      REPEAT_CONTACT: 45,
-      HIGH_VALUE_CUSTOMER: 30,
-      LEGAL_MENTION: 15,
-    },
-    avgEscalationTime: 3.2,
-    escalationRate: 36,
-  },
-  sentiment: {
-    distribution: {
-      HAPPY: 250,
-      SATISFIED: 500,
-      NEUTRAL: 300,
-      FRUSTRATED: 150,
-      ANGRY: 40,
-      IRATE: 10,
-    },
-    irateIncidents: 10,
-    sentimentImprovement: 78,
-  },
-  topIssues: [
-    { issue: 'Order tracking', count: 180, avgResolutionTime: 3.5 },
-    { issue: 'Billing discrepancy', count: 120, avgResolutionTime: 8.2 },
-    { issue: 'Refund request', count: 100, avgResolutionTime: 10.5 },
-    { issue: 'Product availability', count: 85, avgResolutionTime: 2.8 },
-    { issue: 'Subscription change', count: 70, avgResolutionTime: 6.5 },
-  ],
-};
-
-const MOCK_BILLING: BillingMetrics = {
-  totalRevenue: 2450.75,
-  chatMinutes: 4320,
-  voiceMinutes: 812,
-  avgRevenuePerSession: 1.96,
-  byClient: [
-    { clientId: 'client_1', clientName: 'Acme Corp', sessions: 520, minutes: 2180, revenue: 980.50 },
-    { clientId: 'client_2', clientName: 'Beta Inc', sessions: 380, minutes: 1540, revenue: 720.25 },
-    { clientId: 'client_3', clientName: 'Gamma LLC', sessions: 350, minutes: 1412, revenue: 750.00 },
-  ],
-};
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -307,20 +227,18 @@ export default function CSAIAnalyticsPage() {
 
       const data = await csAiApi
         .getAnalytics(companyId, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0])
-        .catch(() => null);
+        .catch((err) => {
+          console.error('Failed to load analytics:', err);
+          return null;
+        });
 
-      if (data) {
-        setAnalytics(data);
-      } else {
-        setAnalytics(MOCK_ANALYTICS);
-      }
-
-      // Billing data would come from a separate endpoint
-      setBilling(MOCK_BILLING);
+      setAnalytics(data);
+      // Billing data would come from a separate endpoint - set to null until implemented
+      setBilling(null);
     } catch (err) {
       console.error('Failed to load analytics:', err);
-      setAnalytics(MOCK_ANALYTICS);
-      setBilling(MOCK_BILLING);
+      setAnalytics(null);
+      setBilling(null);
     } finally {
       setIsLoading(false);
     }
@@ -341,7 +259,36 @@ export default function CSAIAnalyticsPage() {
     );
   }
 
-  const overview = analytics?.overview;
+  if (!analytics) {
+    return (
+      <>
+        <Header
+          title="CS AI Analytics"
+          subtitle="Performance metrics, billing, and insights"
+          actions={
+            <Button variant="outline" size="sm" onClick={loadData}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          }
+        />
+        <div className="p-4 sm:p-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <BarChart3 className="w-12 h-12 text-muted-foreground/50 mb-4" />
+              <p className="text-lg font-medium mb-2">No Analytics Data</p>
+              <p className="text-muted-foreground text-center max-w-md">
+                No CS AI analytics data is available for the selected period.
+                Start creating support sessions to see metrics here.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
+  const overview = analytics.overview;
 
   return (
     <>
@@ -570,51 +517,58 @@ export default function CSAIAnalyticsPage() {
             <CardDescription>Revenue breakdown for billing purposes</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="pb-3 font-medium text-muted-foreground text-sm">Client</th>
-                    <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Sessions</th>
-                    <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Minutes</th>
-                    <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Revenue</th>
-                    <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Avg/Session</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {billing?.byClient.map((client) => (
-                    <tr key={client.clientId}>
-                      <td className="py-3 font-medium">{client.clientName}</td>
-                      <td className="py-3 text-right">{client.sessions}</td>
-                      <td className="py-3 text-right">{client.minutes.toLocaleString()}</td>
-                      <td className="py-3 text-right text-green-400 font-medium">
-                        ${client.revenue.toFixed(2)}
+            {billing ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="pb-3 font-medium text-muted-foreground text-sm">Client</th>
+                      <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Sessions</th>
+                      <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Minutes</th>
+                      <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Revenue</th>
+                      <th className="pb-3 font-medium text-muted-foreground text-sm text-right">Avg/Session</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {billing.byClient.map((client) => (
+                      <tr key={client.clientId}>
+                        <td className="py-3 font-medium">{client.clientName}</td>
+                        <td className="py-3 text-right">{client.sessions}</td>
+                        <td className="py-3 text-right">{client.minutes.toLocaleString()}</td>
+                        <td className="py-3 text-right text-green-400 font-medium">
+                          ${client.revenue.toFixed(2)}
+                        </td>
+                        <td className="py-3 text-right text-muted-foreground">
+                          ${(client.revenue / client.sessions).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border">
+                      <td className="pt-3 font-semibold">Total</td>
+                      <td className="pt-3 text-right font-semibold">
+                        {billing.byClient.reduce((sum, c) => sum + c.sessions, 0)}
                       </td>
-                      <td className="py-3 text-right text-muted-foreground">
-                        ${(client.revenue / client.sessions).toFixed(2)}
+                      <td className="pt-3 text-right font-semibold">
+                        {billing.byClient.reduce((sum, c) => sum + c.minutes, 0).toLocaleString()}
+                      </td>
+                      <td className="pt-3 text-right font-semibold text-green-400">
+                        ${billing.totalRevenue.toFixed(2)}
+                      </td>
+                      <td className="pt-3 text-right text-muted-foreground">
+                        ${billing.avgRevenuePerSession.toFixed(2)}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border">
-                    <td className="pt-3 font-semibold">Total</td>
-                    <td className="pt-3 text-right font-semibold">
-                      {billing?.byClient.reduce((sum, c) => sum + c.sessions, 0)}
-                    </td>
-                    <td className="pt-3 text-right font-semibold">
-                      {billing?.byClient.reduce((sum, c) => sum + c.minutes, 0).toLocaleString()}
-                    </td>
-                    <td className="pt-3 text-right font-semibold text-green-400">
-                      ${billing?.totalRevenue.toFixed(2)}
-                    </td>
-                    <td className="pt-3 text-right text-muted-foreground">
-                      ${billing?.avgRevenuePerSession.toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <DollarSign className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No billing data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

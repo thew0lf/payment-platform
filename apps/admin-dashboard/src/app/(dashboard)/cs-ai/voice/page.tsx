@@ -139,121 +139,6 @@ function formatPhoneNumber(phone: string): string {
   return phone;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const MOCK_CALLS: ExtendedVoiceCall[] = [
-  {
-    id: 'call_001',
-    companyId: 'comp_1',
-    customerId: 'cust_1',
-    direction: 'INBOUND',
-    fromNumber: '+14155551234',
-    toNumber: '+18005551000',
-    status: 'COMPLETED',
-    outcome: 'RESOLVED',
-    duration: 245,
-    overallSentiment: 'SATISFIED',
-    detectedIntents: ['billing_inquiry', 'payment_question'],
-    initiatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-    answeredAt: new Date(Date.now() - 30 * 60000 + 5000).toISOString(),
-    endedAt: new Date(Date.now() - 26 * 60000).toISOString(),
-    clientId: 'client_1',
-    clientName: 'Acme Corp',
-    companyName: 'Acme Coffee',
-    customer: { id: 'cust_1', firstName: 'John', lastName: 'Smith', email: 'john@example.com' },
-    billingDetails: { minutesUsed: 4.08, ratePerMinute: 0.15, totalCost: 0.61, billable: true },
-  },
-  {
-    id: 'call_002',
-    companyId: 'comp_1',
-    customerId: 'cust_2',
-    direction: 'OUTBOUND',
-    fromNumber: '+18005551000',
-    toNumber: '+14155555678',
-    status: 'COMPLETED',
-    outcome: 'SAVE_SUCCESSFUL',
-    duration: 480,
-    overallSentiment: 'FRUSTRATED',
-    detectedIntents: ['cancellation_request', 'pricing_concern'],
-    initiatedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    answeredAt: new Date(Date.now() - 2 * 3600000 + 8000).toISOString(),
-    endedAt: new Date(Date.now() - 2 * 3600000 + 488000).toISOString(),
-    clientId: 'client_1',
-    clientName: 'Acme Corp',
-    companyName: 'Acme Coffee',
-    customer: { id: 'cust_2', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@example.com' },
-    billingDetails: { minutesUsed: 8.0, ratePerMinute: 0.15, totalCost: 1.20, billable: true },
-  },
-  {
-    id: 'call_003',
-    companyId: 'comp_2',
-    customerId: 'cust_3',
-    direction: 'INBOUND',
-    fromNumber: '+14155559999',
-    toNumber: '+18005551000',
-    status: 'COMPLETED',
-    outcome: 'ESCALATED',
-    duration: 320,
-    overallSentiment: 'ANGRY',
-    detectedIntents: ['complaint', 'refund_request', 'speak_to_manager'],
-    initiatedAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-    answeredAt: new Date(Date.now() - 5 * 3600000 + 3000).toISOString(),
-    endedAt: new Date(Date.now() - 5 * 3600000 + 323000).toISOString(),
-    clientId: 'client_2',
-    clientName: 'Beta Inc',
-    companyName: 'Beta Brewing',
-    customer: { id: 'cust_3', firstName: 'Michael', lastName: 'Brown', email: 'michael@example.com' },
-    billingDetails: { minutesUsed: 5.33, ratePerMinute: 0.15, totalCost: 0.80, billable: true },
-  },
-  {
-    id: 'call_004',
-    companyId: 'comp_1',
-    customerId: 'cust_4',
-    direction: 'OUTBOUND',
-    fromNumber: '+18005551000',
-    toNumber: '+14155554321',
-    status: 'NO_ANSWER',
-    duration: 0,
-    detectedIntents: [],
-    initiatedAt: new Date(Date.now() - 8 * 3600000).toISOString(),
-    clientId: 'client_1',
-    clientName: 'Acme Corp',
-    companyName: 'Acme Coffee',
-    customer: { id: 'cust_4', firstName: 'Emily', lastName: 'Davis', email: 'emily@example.com' },
-    billingDetails: { minutesUsed: 0, ratePerMinute: 0.15, totalCost: 0, billable: false },
-  },
-  {
-    id: 'call_005',
-    companyId: 'comp_1',
-    customerId: 'cust_5',
-    direction: 'INBOUND',
-    fromNumber: '+14155551111',
-    toNumber: '+18005551000',
-    status: 'IN_PROGRESS',
-    duration: 120,
-    overallSentiment: 'NEUTRAL',
-    detectedIntents: ['order_status'],
-    initiatedAt: new Date(Date.now() - 2 * 60000).toISOString(),
-    answeredAt: new Date(Date.now() - 2 * 60000 + 3000).toISOString(),
-    clientId: 'client_1',
-    clientName: 'Acme Corp',
-    companyName: 'Acme Coffee',
-    customer: { id: 'cust_5', firstName: 'David', lastName: 'Wilson', email: 'david@example.com' },
-    billingDetails: { minutesUsed: 2.0, ratePerMinute: 0.15, totalCost: 0.30, billable: true },
-  },
-];
-
-const MOCK_STATS: CallStats = {
-  totalCalls: 156,
-  inboundCalls: 98,
-  outboundCalls: 58,
-  avgDuration: 312,
-  successRate: 87,
-  totalMinutes: 812,
-  estimatedRevenue: 121.80,
-};
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -274,7 +159,10 @@ export default function VoiceAIPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const callsData = await voiceAiApi.getCalls(companyId, { limit: 50 }).catch(() => null);
+      const callsData = await voiceAiApi.getCalls(companyId, { limit: 50 }).catch((err) => {
+        console.error('Failed to load voice calls:', err);
+        return null;
+      });
 
       if (callsData && callsData.length > 0) {
         setCalls(callsData as ExtendedVoiceCall[]);
@@ -294,14 +182,30 @@ export default function VoiceAIPage() {
           estimatedRevenue: callsData.reduce((sum, c) => sum + (c.duration || 0), 0) / 60 * 0.15,
         });
       } else {
-        // Use mock data
-        setCalls(MOCK_CALLS);
-        setStats(MOCK_STATS);
+        // No data available - show empty state
+        setCalls([]);
+        setStats({
+          totalCalls: 0,
+          inboundCalls: 0,
+          outboundCalls: 0,
+          avgDuration: 0,
+          successRate: 0,
+          totalMinutes: 0,
+          estimatedRevenue: 0,
+        });
       }
     } catch (err) {
       console.error('Failed to load voice calls:', err);
-      setCalls(MOCK_CALLS);
-      setStats(MOCK_STATS);
+      setCalls([]);
+      setStats({
+        totalCalls: 0,
+        inboundCalls: 0,
+        outboundCalls: 0,
+        avgDuration: 0,
+        successRate: 0,
+        totalMinutes: 0,
+        estimatedRevenue: 0,
+      });
     } finally {
       setIsLoading(false);
     }
