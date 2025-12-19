@@ -41,6 +41,8 @@ import {
   Palette,
   TrendingUp,
   Sparkles,
+  Building,
+  Building2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -124,6 +126,8 @@ export const iconMap: Record<string, LucideIcon> = {
   Palette,
   TrendingUp,
   Sparkles,
+  Building,
+  Building2,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -200,6 +204,19 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: false,
     items: [
       { id: 'shipments', label: 'Shipments', href: '/shipments', icon: PackageCheck, badgeKey: 'fulfillment' },
+    ],
+  },
+
+  // Organization Management - Organization level only
+  {
+    id: 'organization',
+    label: 'Organization',
+    icon: Building,
+    defaultExpanded: false,
+    requiredScopes: ['ORGANIZATION'],
+    items: [
+      { id: 'clients', label: 'Clients', href: '/clients', icon: Building },
+      { id: 'companies', label: 'Companies', href: '/companies', icon: Building2 },
     ],
   },
 

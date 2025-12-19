@@ -41,6 +41,8 @@ import { AddressModule } from './address/address.module';
 import { AIFunnelGeneratorModule } from './ai-funnel-generator/ai-funnel-generator.module';
 import { EmailModule } from './email/email.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { ClientsModule } from './clients/clients.module';
+import { CompaniesModule } from './companies/companies.module';
 
 @Module({
   imports: [
@@ -84,6 +86,8 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     AIFunnelGeneratorModule,
     EmailModule,
     WaitlistModule,
+    ClientsModule,
+    CompaniesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

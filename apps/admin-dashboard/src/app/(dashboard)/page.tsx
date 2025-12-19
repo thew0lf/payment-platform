@@ -8,13 +8,14 @@ import { ProviderStatus } from '@/components/dashboard/provider-status';
 import { TransactionTable } from '@/components/dashboard/transaction-table';
 import { TransactionChart } from '@/components/dashboard/transaction-chart';
 import { RoutingSavings } from '@/components/dashboard/routing-savings';
+import { OrganizationOverview } from '@/components/dashboard/organization-overview';
 import { Button } from '@/components/ui/button';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import { dashboardApi, DashboardMetrics, ProviderMetrics, RoutingStats } from '@/lib/api/dashboard';
 import { Transaction } from '@/types/transactions';
 
 export default function DashboardPage() {
-  const { selectedCompanyId, selectedClientId } = useHierarchy();
+  const { selectedCompanyId, selectedClientId, accessLevel } = useHierarchy();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [providers, setProviders] = useState<ProviderMetrics[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -97,6 +98,9 @@ export default function DashboardPage() {
       />
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Organization Overview - Only for organization-level users */}
+        {accessLevel === 'ORGANIZATION' && <OrganizationOverview />}
+
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard

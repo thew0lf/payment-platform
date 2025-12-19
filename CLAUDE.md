@@ -2,6 +2,9 @@
 
 ## Review Commands
 
+**IMPORTANT: Fix All Issues When Discovered**
+When running any review command (`/review`, `/review-qa`, etc.) and issues are found, ALL issues must be fixed before proceeding to the next step. Do not skip issues or defer them - resolve each finding immediately after the review completes.
+
 ### Quick Reference
 
 | Command | Role | Focus Area |
@@ -234,13 +237,14 @@ payment-platform/
 
 ---
 
-## Current Status (December 17, 2025)
+## Current Status (December 19, 2025)
 
 | Feature | Backend | Frontend | Notes |
 |---------|---------|----------|-------|
 | Feature 01: Integrations Framework | ✅ Complete | ✅ Complete | UI-configurable credentials |
 | Feature 02: Dynamic RBAC | ✅ Spec Complete | 🔲 Pending | Hierarchical permissions |
 | Feature 03: Vendor System | ✅ Spec Complete | 🔲 Pending | Two-tier Vendor/VendorCompany |
+| Client & Company Management | ✅ Complete | ✅ Complete | Org-level CRUD with audit logging |
 | Auth & Auth0 SSO | ✅ Complete | ✅ Complete | JWT-based |
 | Password Reset | ✅ Complete | ✅ Complete | SOC2/ISO compliant |
 | Session Timeout | ✅ Complete | ✅ Complete | 15min timeout, activity detection |
@@ -1233,6 +1237,68 @@ refactor: code improvement without behavior change
 
 ---
 
+## Client & Company Management (Organization Admin)
+
+### Overview
+Organization-level management of Clients and Companies within the platform hierarchy. Only users with ORGANIZATION scope can access these modules.
+
+### Pages
+- `/clients` - Client list with CRUD operations
+- `/companies` - Company list with CRUD operations
+
+### Client API Endpoints
+```
+GET    /api/admin/clients              # List clients with filters
+GET    /api/admin/clients/stats        # Client statistics
+GET    /api/admin/clients/:id          # Get client by ID
+POST   /api/admin/clients              # Create client
+PATCH  /api/admin/clients/:id          # Update client
+DELETE /api/admin/clients/:id          # Soft delete client (cascades to companies)
+```
+
+### Company API Endpoints
+```
+GET    /api/admin/companies            # List companies with filters
+GET    /api/admin/companies/stats      # Company statistics
+GET    /api/admin/companies/:id        # Get company by ID
+POST   /api/admin/companies            # Create company (requires clientId)
+PATCH  /api/admin/companies/:id        # Update company
+DELETE /api/admin/companies/:id        # Soft delete company
+```
+
+### Key Features
+- **Audit Logging:** All CRUD operations logged with full change tracking
+- **Cascade Delete:** Deleting a client soft-deletes all associated companies
+- **Code Generation:** Unique 4-char alphanumeric codes auto-generated
+- **Validation:** Pagination limits (1-100), email format, name length (2-100)
+
+### Query Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| search | string | Search by name, code, email |
+| status | ACTIVE/INACTIVE/SUSPENDED | Filter by status |
+| plan | FOUNDERS/BASIC/STANDARD/PREMIUM/ENTERPRISE | Filter by plan (clients only) |
+| clientId | string | Filter by parent client (companies only) |
+| sortBy | name/createdAt/plan | Sort field |
+| sortOrder | asc/desc | Sort direction |
+| limit | 1-100 | Page size (default: 50) |
+| offset | number | Pagination offset |
+
+### Key Files
+- `apps/api/src/clients/` - Client backend module
+- `apps/api/src/companies/` - Company backend module
+- `apps/admin-dashboard/src/app/(dashboard)/clients/page.tsx` - Client list UI
+- `apps/admin-dashboard/src/app/(dashboard)/companies/page.tsx` - Company list UI
+- `apps/admin-dashboard/src/lib/api/clients.ts` - Client API client
+- `apps/admin-dashboard/src/lib/api/companies.ts` - Company API client
+- `apps/admin-dashboard/src/components/dashboard/organization-overview.tsx` - Dashboard widget
+
+### E2E Tests
+- `apps/admin-dashboard/e2e/clients.spec.ts` - Client CRUD tests
+- `apps/admin-dashboard/e2e/companies.spec.ts` - Company CRUD tests
+
+---
+
 ## Audit Logs (Compliance System)
 
 ### Overview
@@ -1859,6 +1925,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: December 17, 2025*
-*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email, Mobile Responsiveness: Complete*
+*Last Updated: December 19, 2025*
+*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email, Mobile Responsiveness, Client & Company Management: Complete*
 
