@@ -189,6 +189,7 @@ function getCategory(provider: string): string {
     // AI
     AWS_BEDROCK: 'AI_ML',
     OPENAI: 'AI_ML',
+    ANTHROPIC: 'AI_ML',
     LANGUAGETOOL: 'AI_ML',
 
     // Storage

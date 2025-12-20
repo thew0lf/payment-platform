@@ -55,6 +55,7 @@ export enum IntegrationProvider {
   // AI
   AWS_BEDROCK = 'AWS_BEDROCK',
   OPENAI = 'OPENAI',
+  ANTHROPIC = 'ANTHROPIC',
   LANGUAGETOOL = 'LANGUAGETOOL',
 
   // Storage
@@ -218,6 +219,13 @@ export interface SentryCredentials {
   environment?: string;
 }
 
+// Anthropic credentials
+export interface AnthropicCredentials {
+  apiKey: string;
+  defaultModel?: string;
+  maxTokens?: number;
+}
+
 // OAuth token credentials (used for encrypted token storage)
 export interface OAuthTokenCredentials {
   token: string;
@@ -234,6 +242,7 @@ export type IntegrationCredentials =
   | VercelCredentials
   | GooglePlacesCredentials
   | SentryCredentials
+  | AnthropicCredentials
   | OAuthTokenCredentials
   | Record<string, unknown>;
 

@@ -284,6 +284,17 @@ export const OPENAI_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// Anthropic Credential Schema
+export const ANTHROPIC_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: { type: 'string', title: 'API Key', format: 'password', description: 'Anthropic API Key. Found at console.anthropic.com → API Keys → Create Key.' },
+    defaultModel: { type: 'string', title: 'Default Model', default: 'claude-sonnet-4-20250514', description: 'Default Claude model (e.g., claude-sonnet-4-20250514, claude-3-5-haiku-20241022, claude-opus-4-20250514).' },
+    maxTokens: { type: 'number', title: 'Max Tokens', default: 4096, description: 'Maximum tokens for responses. Claude 3.5 Sonnet supports up to 8192 output tokens.' },
+  },
+};
+
 // ═══════════════════════════════════════════════════════════════
 // MONITORING PROVIDERS
 // ═══════════════════════════════════════════════════════════════
@@ -431,6 +442,7 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
   // AI/ML providers
   [IntegrationProvider.AWS_BEDROCK]: AWS_BEDROCK_CREDENTIAL_SCHEMA,
   [IntegrationProvider.OPENAI]: OPENAI_CREDENTIAL_SCHEMA,
+  [IntegrationProvider.ANTHROPIC]: ANTHROPIC_CREDENTIAL_SCHEMA,
   [IntegrationProvider.LANGUAGETOOL]: LANGUAGETOOL_CREDENTIAL_SCHEMA,
 
   // Storage providers

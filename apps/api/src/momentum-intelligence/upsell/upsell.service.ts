@@ -1,8 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import { AnthropicService } from '../../integrations/services/providers/anthropic.service';
 import {
   UpsellType,
   UpsellMoment,
@@ -58,7 +57,6 @@ interface CompanyUpsellPricingConfig {
 @Injectable()
 export class UpsellService {
   private readonly logger = new Logger(UpsellService.name);
-  private readonly anthropic: Anthropic;
 
   // Cache for company-specific upsell pricing
   private pricingCache = new Map<string, { pricing: CompanyUpsellPricingConfig; expiry: number }>();
@@ -133,12 +131,8 @@ export class UpsellService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly config: ConfigService,
-  ) {
-    this.anthropic = new Anthropic({
-      apiKey: this.config.get('ANTHROPIC_API_KEY'),
-    });
-  }
+    private readonly anthropicService: AnthropicService,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════════
   // COMPANY UPSELL PRICING
@@ -248,7 +242,7 @@ export class UpsellService {
 
     // Enhance with AI if enabled
     if (useAI && scoredOffers.length > 0) {
-      scoredOffers = await this.enhanceWithAI(scoredOffers, context, moment);
+      scoredOffers = await this.enhanceWithAI(companyId, scoredOffers, context, moment);
     }
 
     // Get top offers
@@ -289,11 +283,19 @@ export class UpsellService {
   // ═══════════════════════════════════════════════════════════════
 
   private async enhanceWithAI(
+    companyId: string,
     offers: ScoredOffer[],
     context: CustomerUpsellContext,
     moment: UpsellMoment,
   ): Promise<ScoredOffer[]> {
     if (offers.length === 0) return [];
+
+    // Check if Anthropic is configured for this company
+    const isConfigured = await this.anthropicService.isConfigured(companyId);
+    if (!isConfigured) {
+      this.logger.debug(`Anthropic not configured for company ${companyId}, using rule-based ranking`);
+      return offers;
+    }
 
     const prompt = `
 Analyze these upsell offers for a customer and optimize their ranking based on likelihood of acceptance.
@@ -333,13 +335,17 @@ Focus on:
 `;
 
     try {
-      const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
+      const response = await this.anthropicService.sendMessage(companyId, {
+        maxTokens: 500,
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      if (!response) {
+        this.logger.warn('No response from AI, using rule-based ranking');
+        return offers;
+      }
+
+      const text = response.content;
 
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);

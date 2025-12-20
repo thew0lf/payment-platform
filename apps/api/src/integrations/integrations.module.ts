@@ -38,6 +38,7 @@ import { SendGridService } from './services/providers/sendgrid.service';
 import { KlaviyoService } from './services/providers/klaviyo.service';
 // AI Services
 import { OpenAIService } from './services/providers/openai.service';
+import { AnthropicService } from './services/providers/anthropic.service';
 // Monitoring Services
 import { DatadogService } from './services/providers/datadog.service';
 import { SentryService } from './services/providers/sentry.service';
@@ -89,6 +90,7 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     KlaviyoService,
     // AI Services
     OpenAIService,
+    AnthropicService,
     // Monitoring Services
     DatadogService,
     SentryService,
@@ -135,6 +137,7 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     KlaviyoService,
     // AI Services
     OpenAIService,
+    AnthropicService,
     // Monitoring Services
     DatadogService,
     SentryService,

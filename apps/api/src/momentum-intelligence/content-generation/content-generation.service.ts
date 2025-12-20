@@ -5,9 +5,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import Anthropic from '@anthropic-ai/sdk';
+import { AnthropicService } from '../../integrations/services/providers/anthropic.service';
 import {
   ContentType,
   ContentPurpose,
@@ -37,18 +36,13 @@ import { BehavioralTriggerType } from '../types/triggers.types';
 @Injectable()
 export class ContentGenerationService {
   private readonly logger = new Logger(ContentGenerationService.name);
-  private readonly anthropic: Anthropic;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly triggerService: TriggerLibraryService,
-  ) {
-    this.anthropic = new Anthropic({
-      apiKey: this.config.get('ANTHROPIC_API_KEY'),
-    });
-  }
+    private readonly anthropicService: AnthropicService,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════════
   // CONTENT GENERATION
@@ -74,11 +68,11 @@ export class ContentGenerationService {
     let tokensUsed = 0;
 
     if (provider === AIProvider.CLAUDE) {
-      const result = await this.generateWithClaude(systemPrompt, userPrompt, genConfig);
+      const result = await this.generateWithClaude(dto.companyId, systemPrompt, userPrompt, genConfig);
       rawContent = result.content;
       tokensUsed = result.tokens;
     } else {
-      const result = await this.generateWithOllama(systemPrompt, userPrompt, genConfig);
+      const result = await this.generateWithOllama(dto.companyId, systemPrompt, userPrompt, genConfig);
       rawContent = result.content;
       tokensUsed = result.tokens;
     }
@@ -423,20 +417,38 @@ Provide the improved version:`;
   // ═══════════════════════════════════════════════════════════════
 
   private async generateWithClaude(
+    companyId: string,
     systemPrompt: string,
     userPrompt: string,
     config: ContentGenerationConfig,
   ): Promise<{ content: string; tokens: number }> {
     try {
-      const response = await this.anthropic.messages.create({
-        model: config.claude.model || 'claude-sonnet-4-20250514',
-        max_tokens: config.claude.maxTokens || 1024,
+      // Check if Anthropic is configured for this company
+      const isConfigured = await this.anthropicService.isConfigured(companyId);
+      if (!isConfigured) {
+        this.logger.warn(`Anthropic not configured for company ${companyId}, using fallback`);
+        return { content: 'AI content generation unavailable. Please configure Anthropic integration.', tokens: 0 };
+      }
+
+      // Get model and maxTokens from integration config or use defaults
+      const model = await this.anthropicService.getDefaultModel(companyId);
+      const maxTokens = config.claude.maxTokens || (await this.anthropicService.getMaxTokens(companyId));
+
+      const response = await this.anthropicService.sendMessage(companyId, {
+        model: config.claude.model || model,
+        maxTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       });
 
-      const content = response.content[0].type === 'text' ? response.content[0].text : '';
-      return { content, tokens: response.usage.input_tokens + response.usage.output_tokens };
+      if (!response) {
+        throw new BadRequestException('Content generation failed - no response from AI');
+      }
+
+      return {
+        content: response.content,
+        tokens: response.usage.inputTokens + response.usage.outputTokens,
+      };
     } catch (error) {
       this.logger.error(`Claude generation failed: ${error}`);
       throw new BadRequestException('Content generation failed');
@@ -444,6 +456,7 @@ Provide the improved version:`;
   }
 
   private async generateWithOllama(
+    companyId: string,
     systemPrompt: string,
     userPrompt: string,
     config: ContentGenerationConfig,
@@ -466,7 +479,7 @@ Provide the improved version:`;
       return { content: data.response, tokens: data.eval_count || 0 };
     } catch (error) {
       this.logger.error(`Ollama generation failed: ${error}`);
-      return this.generateWithClaude(systemPrompt, userPrompt, config);
+      return this.generateWithClaude(companyId, systemPrompt, userPrompt, config);
     }
   }
 
@@ -627,7 +640,7 @@ Apply these principles naturally:
     for (let i = 0; i < count; i++) {
       const tone = tones[i % tones.length];
       const { systemPrompt, userPrompt } = this.buildPrompts({ ...dto, tone }, config, customerContext);
-      const result = await this.generateWithClaude(systemPrompt, userPrompt, config);
+      const result = await this.generateWithClaude(dto.companyId, systemPrompt, userPrompt, config);
       const parsed = this.parseGeneratedContent(result.content, dto.type);
 
       variations.push({

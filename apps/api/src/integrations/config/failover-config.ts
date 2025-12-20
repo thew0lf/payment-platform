@@ -460,8 +460,9 @@ export function getPrimaryProvider(category: IntegrationCategory): IntegrationPr
  */
 export const FAILOVER_CHAIN: Record<IntegrationProvider, IntegrationProvider[]> = {
   // AI/ML
-  [IntegrationProvider.AWS_BEDROCK]: [IntegrationProvider.OPENAI],
-  [IntegrationProvider.OPENAI]: [IntegrationProvider.AWS_BEDROCK],
+  [IntegrationProvider.AWS_BEDROCK]: [IntegrationProvider.OPENAI, IntegrationProvider.ANTHROPIC],
+  [IntegrationProvider.OPENAI]: [IntegrationProvider.AWS_BEDROCK, IntegrationProvider.ANTHROPIC],
+  [IntegrationProvider.ANTHROPIC]: [IntegrationProvider.AWS_BEDROCK, IntegrationProvider.OPENAI],
   [IntegrationProvider.LANGUAGETOOL]: [], // No direct fallback
 
   // Email

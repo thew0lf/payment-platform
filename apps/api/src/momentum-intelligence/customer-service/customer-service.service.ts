@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AnthropicService } from '../../integrations/services/providers/anthropic.service';
 import {
   CSTier,
   EscalationReason,
@@ -19,7 +20,15 @@ import {
   GetSessionsDto,
   CSAnalyticsDto,
   CSAnalytics,
+  SentimentSnapshot,
 } from '../types/customer-service.types';
+import {
+  buildSystemPrompt,
+  buildConversationMessages,
+  buildUserMessage,
+  PromptContext,
+} from './prompts';
+import { Prisma, CSTier as PrismaCSTier, CSSessionStatus as PrismaCSSessionStatus } from '@prisma/client';
 
 @Injectable()
 export class CustomerServiceService {
@@ -28,6 +37,7 @@ export class CustomerServiceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly anthropicService: AnthropicService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -37,68 +47,108 @@ export class CustomerServiceService {
   async startSession(dto: StartCSSessionDto): Promise<CSSession> {
     this.logger.log(`Starting CS session for customer ${dto.customerId}`);
 
-    // Build customer context
+    // Build customer context from database
     const context = await this.buildCustomerContext(dto.companyId, dto.customerId);
 
     // Determine starting tier based on channel and company config
     const startingTier = await this.determineStartingTier(dto.companyId, dto.channel);
 
-    // Create the session
-    const session: CSSession = {
-      id: this.generateSessionId(),
-      companyId: dto.companyId,
-      customerId: dto.customerId,
-      channel: dto.channel,
-      currentTier: startingTier,
-      status: CSSessionStatus.ACTIVE,
-      issueCategory: dto.issueCategory,
-      customerSentiment: CustomerSentiment.NEUTRAL,
-      sentimentHistory: [{
-        sentiment: CustomerSentiment.NEUTRAL,
-        score: 0.5,
-        timestamp: new Date(),
-      }],
-      escalationHistory: [],
-      messages: [],
-      context,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Initial sentiment history
+    const sentimentHistory: SentimentSnapshot[] = [{
+      sentiment: CustomerSentiment.NEUTRAL,
+      score: 0.5,
+      timestamp: new Date(),
+    }];
 
-    // Add initial message if provided
+    // Create the session in database
+    const dbSession = await this.prisma.cSSession.create({
+      data: {
+        companyId: dto.companyId,
+        customerId: dto.customerId,
+        channel: dto.channel,
+        currentTier: startingTier as PrismaCSTier,
+        status: PrismaCSSessionStatus.ACTIVE,
+        issueCategory: dto.issueCategory,
+        customerSentiment: CustomerSentiment.NEUTRAL,
+        sentimentHistory: sentimentHistory as unknown as Prisma.InputJsonValue,
+        escalationHistory: [],
+        context: context as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        messages: true,
+      },
+    });
+
+    // Track initial message if provided
+    let analyzedMessage: { sentiment: CustomerSentiment; category?: IssueCategory; trigger?: string; keywords: string[] } | null = null;
     if (dto.initialMessage) {
-      const analyzedMessage = await this.analyzeMessage(dto.initialMessage);
-      session.messages.push({
-        id: this.generateMessageId(),
-        role: 'customer',
-        content: dto.initialMessage,
-        timestamp: new Date(),
-        sentiment: analyzedMessage.sentiment,
+      analyzedMessage = await this.analyzeMessage(dto.initialMessage);
+
+      // Create customer message in database
+      await this.prisma.cSMessage.create({
+        data: {
+          sessionId: dbSession.id,
+          role: 'customer',
+          content: dto.initialMessage,
+          sentiment: analyzedMessage.sentiment,
+        },
       });
-      session.customerSentiment = analyzedMessage.sentiment;
-      session.issueCategory = analyzedMessage.category || dto.issueCategory;
+
+      // Update session with analyzed data
+      sentimentHistory.push({
+        sentiment: analyzedMessage.sentiment,
+        score: this.getSentimentScore(analyzedMessage.sentiment),
+        timestamp: new Date(),
+        trigger: analyzedMessage.trigger,
+      });
+
+      await this.prisma.cSSession.update({
+        where: { id: dbSession.id },
+        data: {
+          customerSentiment: analyzedMessage.sentiment,
+          issueCategory: analyzedMessage.category || dto.issueCategory,
+          sentimentHistory: sentimentHistory as unknown as Prisma.InputJsonValue,
+        },
+      });
     }
 
-    // Generate AI welcome response
-    const welcomeResponse = await this.generateAIResponse(session, startingTier);
-    session.messages.push(welcomeResponse);
+    // Generate and save AI welcome response
+    const welcomeContent = this.generateWelcomeMessage(startingTier as CSTier, context.customer.name);
+    const role = startingTier === CSTier.AI_REP ? 'ai_rep' : startingTier === CSTier.AI_MANAGER ? 'ai_manager' : 'human_agent';
+
+    await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dbSession.id,
+        role,
+        content: welcomeContent,
+        metadata: {
+          suggestedActions: [],
+        },
+      },
+    });
+
+    // Log AI usage for billing
+    await this.logAIUsage(dbSession.id, dto.companyId, startingTier as CSTier, dto.channel, {
+      messageCount: dto.initialMessage ? 2 : 1,
+      aiMessageCount: 1,
+    });
 
     // Emit session started event
     this.eventEmitter.emit('cs.session.started', {
-      sessionId: session.id,
+      sessionId: dbSession.id,
       companyId: dto.companyId,
       customerId: dto.customerId,
       tier: startingTier,
       channel: dto.channel,
     });
 
-    this.logger.log(`CS session ${session.id} started with tier ${startingTier}`);
-    return session;
+    this.logger.log(`CS session ${dbSession.id} started with tier ${startingTier}`);
+
+    // Return full session with messages
+    return this.getSessionById(dbSession.id);
   }
 
   async sendMessage(dto: SendMessageDto): Promise<{ session: CSSession; response: CSMessage }> {
-    // In a real implementation, we'd fetch from database
-    // For now, we'll simulate the flow
     const session = await this.getSession(dto.sessionId);
 
     if (!session) {
@@ -112,24 +162,32 @@ export class CustomerServiceService {
     // Analyze the customer's message
     const analyzedMessage = await this.analyzeMessage(dto.message);
 
-    // Add customer message
-    const customerMessage: CSMessage = {
-      id: this.generateMessageId(),
-      role: 'customer',
-      content: dto.message,
-      timestamp: new Date(),
-      sentiment: analyzedMessage.sentiment,
-    };
-    session.messages.push(customerMessage);
+    // Add customer message to database
+    await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dto.sessionId,
+        role: 'customer',
+        content: dto.message,
+        sentiment: analyzedMessage.sentiment,
+      },
+    });
 
     // Update sentiment tracking
-    session.sentimentHistory.push({
+    const sentimentHistory = session.sentimentHistory || [];
+    sentimentHistory.push({
       sentiment: analyzedMessage.sentiment,
       score: this.getSentimentScore(analyzedMessage.sentiment),
       timestamp: new Date(),
       trigger: analyzedMessage.trigger,
     });
-    session.customerSentiment = analyzedMessage.sentiment;
+
+    await this.prisma.cSSession.update({
+      where: { id: dto.sessionId },
+      data: {
+        customerSentiment: analyzedMessage.sentiment,
+        sentimentHistory: sentimentHistory as unknown as Prisma.InputJsonValue,
+      },
+    });
 
     // Check for escalation triggers
     const escalationCheck = await this.checkEscalationTriggers(session, analyzedMessage);
@@ -143,10 +201,24 @@ export class CustomerServiceService {
     }
 
     // Generate AI response based on current tier
-    const aiResponse = await this.generateAIResponse(session, session.currentTier);
-    session.messages.push(aiResponse);
+    const updatedSession = await this.getSessionById(dto.sessionId);
+    const aiResponse = await this.generateAIResponse(updatedSession, updatedSession.currentTier);
 
-    session.updatedAt = new Date();
+    // Save AI response to database
+    const savedResponse = await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dto.sessionId,
+        role: aiResponse.role,
+        content: aiResponse.content,
+        metadata: aiResponse.metadata as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    // Log AI usage for billing
+    await this.logAIUsage(dto.sessionId, session.companyId, session.currentTier, session.channel, {
+      messageCount: 2,
+      aiMessageCount: 1,
+    });
 
     // Emit message event
     this.eventEmitter.emit('cs.message.received', {
@@ -155,7 +227,18 @@ export class CustomerServiceService {
       requiresEscalation: escalationCheck.shouldEscalate,
     });
 
-    return { session, response: aiResponse };
+    const finalSession = await this.getSessionById(dto.sessionId);
+
+    return {
+      session: finalSession,
+      response: {
+        id: savedResponse.id,
+        role: savedResponse.role as CSMessage['role'],
+        content: savedResponse.content,
+        timestamp: savedResponse.createdAt,
+        metadata: savedResponse.metadata as CSMessage['metadata'],
+      }
+    };
   }
 
   async escalateSession(dto: EscalateSessionDto): Promise<CSSession> {
@@ -175,28 +258,45 @@ export class CustomerServiceService {
       timestamp: new Date(),
       notes: dto.notes,
     };
-    session.escalationHistory.push(escalationEvent);
-    session.currentTier = dto.targetTier;
+
+    const escalationHistory = session.escalationHistory || [];
+    escalationHistory.push(escalationEvent);
+
+    // Update session in database
+    const newStatus = dto.targetTier === CSTier.HUMAN_AGENT
+      ? PrismaCSSessionStatus.ESCALATED
+      : session.status as unknown as PrismaCSSessionStatus;
+
+    await this.prisma.cSSession.update({
+      where: { id: dto.sessionId },
+      data: {
+        currentTier: dto.targetTier as PrismaCSTier,
+        status: newStatus,
+        escalationHistory: escalationHistory as unknown as Prisma.InputJsonValue,
+      },
+    });
 
     // Add system message about escalation
-    const systemMessage: CSMessage = {
-      id: this.generateMessageId(),
-      role: 'system',
-      content: this.getEscalationMessage(previousTier, dto.targetTier, dto.reason),
-      timestamp: new Date(),
-    };
-    session.messages.push(systemMessage);
-
-    // If escalating to human, update status
-    if (dto.targetTier === CSTier.HUMAN_AGENT) {
-      session.status = CSSessionStatus.ESCALATED;
-    }
+    await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dto.sessionId,
+        role: 'system',
+        content: this.getEscalationMessage(previousTier, dto.targetTier, dto.reason),
+      },
+    });
 
     // Generate response from new tier
-    const aiResponse = await this.generateAIResponse(session, dto.targetTier);
-    session.messages.push(aiResponse);
+    const updatedSession = await this.getSessionById(dto.sessionId);
+    const aiResponse = await this.generateAIResponse(updatedSession, dto.targetTier);
 
-    session.updatedAt = new Date();
+    await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dto.sessionId,
+        role: aiResponse.role,
+        content: aiResponse.content,
+        metadata: aiResponse.metadata as unknown as Prisma.InputJsonValue,
+      },
+    });
 
     // Emit escalation event
     this.eventEmitter.emit('cs.session.escalated', {
@@ -207,7 +307,7 @@ export class CustomerServiceService {
     });
 
     this.logger.log(`Session ${session.id} escalated from ${previousTier} to ${dto.targetTier}`);
-    return session;
+    return this.getSessionById(dto.sessionId);
   }
 
   async resolveSession(dto: ResolveSessionDto): Promise<CSSession> {
@@ -217,35 +317,104 @@ export class CustomerServiceService {
       throw new NotFoundException(`Session ${dto.sessionId} not found`);
     }
 
-    session.status = CSSessionStatus.RESOLVED;
-    session.resolution = {
-      type: dto.resolutionType,
-      summary: dto.summary,
-      actionsTaken: dto.actionsTaken,
-      followUpRequired: dto.followUpRequired || false,
-      followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : undefined,
-    };
-    session.resolvedAt = new Date();
-    session.updatedAt = new Date();
+    const resolvedAt = new Date();
+
+    // Update session in database
+    await this.prisma.cSSession.update({
+      where: { id: dto.sessionId },
+      data: {
+        status: PrismaCSSessionStatus.RESOLVED,
+        resolutionType: dto.resolutionType,
+        resolutionSummary: dto.summary,
+        resolutionActions: dto.actionsTaken as Prisma.InputJsonValue,
+        followUpRequired: dto.followUpRequired || false,
+        followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
+        resolvedAt,
+      },
+    });
 
     // Add resolution message
-    const resolutionMessage: CSMessage = {
-      id: this.generateMessageId(),
-      role: 'system',
-      content: `Session resolved: ${dto.resolutionType}. ${dto.summary}`,
-      timestamp: new Date(),
-    };
-    session.messages.push(resolutionMessage);
+    await this.prisma.cSMessage.create({
+      data: {
+        sessionId: dto.sessionId,
+        role: 'system',
+        content: `Session resolved: ${dto.resolutionType}. ${dto.summary}`,
+      },
+    });
 
     // Emit resolution event
     this.eventEmitter.emit('cs.session.resolved', {
       sessionId: session.id,
       resolutionType: dto.resolutionType,
       tier: session.currentTier,
-      duration: session.resolvedAt.getTime() - session.createdAt.getTime(),
+      duration: resolvedAt.getTime() - new Date(session.createdAt).getTime(),
     });
 
-    return session;
+    return this.getSessionById(dto.sessionId);
+  }
+
+  async getSessions(dto: GetSessionsDto): Promise<{ items: CSSession[]; total: number }> {
+    const where: Prisma.CSSessionWhereInput = {
+      companyId: dto.companyId,
+    };
+
+    if (dto.status) {
+      where.status = dto.status as PrismaCSSessionStatus;
+    }
+    if (dto.tier) {
+      where.currentTier = dto.tier as PrismaCSTier;
+    }
+    if (dto.customerId) {
+      where.customerId = dto.customerId;
+    }
+    if (dto.startDate || dto.endDate) {
+      where.createdAt = {};
+      if (dto.startDate) {
+        where.createdAt.gte = new Date(dto.startDate);
+      }
+      if (dto.endDate) {
+        where.createdAt.lte = new Date(dto.endDate);
+      }
+    }
+
+    const [sessions, total] = await Promise.all([
+      this.prisma.cSSession.findMany({
+        where,
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: dto.limit || 50,
+        skip: dto.offset || 0,
+      }),
+      this.prisma.cSSession.count({ where }),
+    ]);
+
+    // Transform to CSSession type with customer data
+    const items = await Promise.all(
+      sessions.map(async (session) => this.transformDbSession(session))
+    );
+
+    return { items, total };
+  }
+
+  async getSessionById(sessionId: string): Promise<CSSession> {
+    const session = await this.prisma.cSSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    return this.transformDbSession(session);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -256,22 +425,124 @@ export class CustomerServiceService {
     companyId: string,
     customerId: string,
   ): Promise<CustomerServiceContext> {
-    // In production, this would fetch from database
-    return {
-      customer: {
+    // Fetch customer from database
+    const customer = await this.prisma.customer.findFirst({
+      where: {
         id: customerId,
-        name: 'Customer Name',
-        email: 'customer@example.com',
-        tier: 'Gold',
-        lifetimeValue: 1500,
-        tenureMonths: 12,
-        rewardsBalance: 45.50,
-        isVIP: false,
-        previousEscalations: 0,
+        companyId,
       },
-      recentHistory: [],
-      orderHistory: [],
-      openTickets: [],
+      include: {
+        orders: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        subscriptions: {
+          where: { status: 'ACTIVE' },
+          take: 1,
+        },
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+    });
+
+    // Get previous CS sessions for escalation count
+    const previousSessions = await this.prisma.cSSession.count({
+      where: {
+        customerId,
+        companyId,
+        status: PrismaCSSessionStatus.ESCALATED,
+      },
+    });
+
+    // Calculate lifetime value from transactions
+    const lifetimeValueResult = await this.prisma.transaction.aggregate({
+      where: {
+        customerId,
+        status: 'COMPLETED',
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const lifetimeValue = lifetimeValueResult._sum.amount?.toNumber() || 0;
+    const isVIP = lifetimeValue > 10000; // VIP threshold
+
+    // Calculate tenure in months
+    const createdAt = customer?.createdAt || new Date();
+    const tenureMonths = Math.floor(
+      (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30)
+    );
+
+    // Build customer context
+    const customerContext = {
+      id: customerId,
+      name: customer
+        ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email.split('@')[0]
+        : 'Customer',
+      email: customer?.email || 'unknown@example.com',
+      phone: customer?.phone || undefined,
+      tier: isVIP ? 'VIP' : lifetimeValue > 5000 ? 'Gold' : lifetimeValue > 1000 ? 'Silver' : 'Standard',
+      lifetimeValue,
+      tenureMonths,
+      rewardsBalance: 0, // Would need rewards system integration
+      isVIP,
+      previousEscalations: previousSessions,
+    };
+
+    // Transform orders to order history
+    const orderHistory = (customer?.orders || []).map((order) => ({
+      id: order.id,
+      date: order.createdAt,
+      total: order.total?.toNumber() || 0,
+      status: order.status,
+      items: 0, // Would need to count items
+      trackingNumber: undefined,
+      deliveryStatus: order.fulfillmentStatus || undefined,
+    }));
+
+    // Get recent CS interaction history
+    const recentSessions = await this.prisma.cSSession.findMany({
+      where: {
+        customerId,
+        companyId,
+        resolvedAt: { not: null },
+      },
+      orderBy: { resolvedAt: 'desc' },
+      take: 5,
+    });
+
+    const recentHistory = recentSessions.map((s) => ({
+      id: s.id,
+      date: s.resolvedAt || s.createdAt,
+      channel: s.channel,
+      issueCategory: (s.issueCategory as IssueCategory) || IssueCategory.GENERAL_INQUIRY,
+      resolution: (s.resolutionType as ResolutionType) || ResolutionType.UNRESOLVED,
+      satisfaction: s.customerSatisfaction || undefined,
+      handledBy: s.currentTier as CSTier,
+    }));
+
+    // Build subscription summary if exists
+    const activeSubscription = customer?.subscriptions?.[0];
+    const subscriptionSummary = activeSubscription
+      ? {
+          id: activeSubscription.id,
+          plan: activeSubscription.planName || 'Standard',
+          status: activeSubscription.status.toLowerCase() as 'active' | 'paused' | 'cancelled',
+          nextBillingDate: activeSubscription.currentPeriodEnd || undefined,
+          monthlyAmount: activeSubscription.planAmount?.toNumber() || 0,
+          startDate: activeSubscription.createdAt,
+        }
+      : undefined;
+
+    return {
+      customer: customerContext,
+      recentHistory,
+      orderHistory,
+      activeSubscription: subscriptionSummary,
+      openTickets: [], // Would need ticket system integration
       availableActions: this.getAvailableActions(CSTier.AI_REP),
     };
   }
@@ -396,22 +667,226 @@ export class CustomerServiceService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AI RESPONSE GENERATION
+  // AI RESPONSE GENERATION (Claude Integration)
   // ═══════════════════════════════════════════════════════════════════════════
 
   private async generateAIResponse(session: CSSession, tier: CSTier): Promise<CSMessage> {
-    // In production, this would call Anthropic Claude API
-    // For now, generate contextual responses based on tier and situation
-
     const role = tier === CSTier.AI_REP ? 'ai_rep' : tier === CSTier.AI_MANAGER ? 'ai_manager' : 'human_agent';
 
+    // Check if Anthropic is configured for this company and tier is not human
+    if (tier !== CSTier.HUMAN_AGENT) {
+      const isAnthropicConfigured = await this.anthropicService.isConfigured(session.companyId);
+      if (isAnthropicConfigured) {
+        try {
+          return await this.generateClaudeResponse(session, tier);
+        } catch (error) {
+          this.logger.error('Claude API error, falling back to template:', error);
+          // Fall through to template-based response
+        }
+      } else {
+        this.logger.debug(`Anthropic not configured for company ${session.companyId} - using template responses`);
+      }
+    }
+
+    // Fallback to template-based responses
+    return this.generateTemplateResponse(session, tier, role);
+  }
+
+  /**
+   * Generate AI response using Anthropic Claude via AnthropicService
+   */
+  private async generateClaudeResponse(session: CSSession, tier: CSTier): Promise<CSMessage> {
+    const role = tier === CSTier.AI_REP ? 'ai_rep' : 'ai_manager';
+
+    // Get company name for prompts
+    const company = await this.prisma.company.findUnique({
+      where: { id: session.companyId },
+      select: { name: true },
+    });
+
+    // Get tier configuration from CSConfig
+    const csConfig = await this.prisma.cSConfig.findUnique({
+      where: { companyId: session.companyId },
+    });
+
+    const tierConfig = tier === CSTier.AI_REP
+      ? (csConfig?.aiRepConfig as any) || {}
+      : (csConfig?.aiManagerConfig as any) || {};
+
+    // Build prompt context
+    const promptContext: PromptContext = {
+      companyName: company?.name || 'Our Company',
+      customerName: session.context?.customer?.name || 'Customer',
+      customerId: session.customerId,
+      tier,
+      sentiment: session.customerSentiment,
+      issueCategory: session.issueCategory,
+      conversationHistory: session.messages.map(m => ({
+        role: m.role as 'customer' | 'ai_rep' | 'ai_manager' | 'system',
+        content: m.content,
+        timestamp: m.timestamp,
+      })),
+      customerContext: session.context?.customer ? {
+        isVip: session.context.customer.isVIP || false,
+        lifetimeValue: session.context.customer.lifetimeValue || 0,
+        accountAge: `${session.context.customer.tenureMonths || 0} months`,
+        recentOrders: session.context.orderHistory?.length || 0,
+        activeSubscription: !!session.context.activeSubscription,
+      } : undefined,
+      tierConfig: {
+        maxDiscountPercent: tierConfig.maxDiscountPercent || (tier === CSTier.AI_REP ? 15 : 30),
+        maxRefundAmount: tierConfig.maxRefundAmount || (tier === CSTier.AI_REP ? 50 : 200),
+        maxWaiveAmount: tierConfig.maxWaiveAmount || (tier === CSTier.AI_REP ? 25 : 100),
+        maxGoodwillCredit: tierConfig.maxGoodwillCredit || (tier === CSTier.AI_REP ? 10 : 50),
+      },
+    };
+
+    // Build prompts
+    const systemPrompt = buildSystemPrompt(promptContext);
+    const messages = buildConversationMessages(promptContext);
+
+    // If this is the first message, add a generic user message to get AI to introduce itself
+    if (messages.length === 0) {
+      messages.push({ role: 'user', content: 'Hello, I need help.' });
+    }
+
+    // Get model settings from integration
+    const defaultModel = await this.anthropicService.getDefaultModel(session.companyId);
+    const maxTokens = await this.anthropicService.getMaxTokens(session.companyId);
+
+    // Call Claude API via AnthropicService
+    const startTime = Date.now();
+    const response = await this.anthropicService.sendMessage(session.companyId, {
+      model: defaultModel,
+      maxTokens: Math.min(maxTokens, 500), // Cap at 500 for CS responses
+      system: systemPrompt,
+      messages: messages,
+    });
+
+    if (!response) {
+      throw new Error('Failed to get response from Anthropic');
+    }
+
+    const latencyMs = Date.now() - startTime;
+
+    // Track token usage for billing
+    await this.trackClaudeUsage(session.id, session.companyId, tier, {
+      inputTokens: response.usage.inputTokens,
+      outputTokens: response.usage.outputTokens,
+      latencyMs,
+      model: response.model,
+    });
+
+    // Generate suggested actions based on context
+    const suggestedActions = this.getSuggestedActionsForCategory(session.issueCategory);
+
+    return {
+      id: '', // Will be set by database
+      role,
+      content: response.content,
+      timestamp: new Date(),
+      metadata: {
+        suggestedActions,
+        aiGenerated: true,
+        model: response.model,
+        tokens: {
+          input: response.usage.inputTokens,
+          output: response.usage.outputTokens,
+        },
+        latencyMs,
+      },
+    };
+  }
+
+  /**
+   * Track Claude API usage for billing
+   */
+  private async trackClaudeUsage(
+    sessionId: string,
+    companyId: string,
+    tier: CSTier,
+    usage: {
+      inputTokens: number;
+      outputTokens: number;
+      latencyMs: number;
+      model: string;
+    },
+  ): Promise<void> {
+    try {
+      // Get company's organization for pricing lookup
+      const company = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: { client: { select: { organizationId: true, id: true } } },
+      });
+
+      // Get pricing (Claude Sonnet pricing as of 2025)
+      // Input: $3 per million tokens, Output: $15 per million tokens
+      const inputCostCents = (usage.inputTokens / 1_000_000) * 300;
+      const outputCostCents = (usage.outputTokens / 1_000_000) * 1500;
+      const baseCostCents = Math.ceil(inputCostCents + outputCostCents);
+
+      // Apply company markup (from CSAIPricing if configured)
+      let markupPercent = 20; // Default 20% markup
+      if (company?.client?.organizationId) {
+        const pricing = await this.prisma.cSAIPricing.findFirst({
+          where: { organizationId: company.client.organizationId },
+        });
+        if (pricing) {
+          markupPercent = tier === CSTier.AI_MANAGER
+            ? pricing.aiManagerMultiplier * 100 - 100
+            : pricing.aiRepMultiplier * 100 - 100;
+        }
+      }
+
+      const markupCostCents = Math.ceil(baseCostCents * (markupPercent / 100));
+      const totalCostCents = baseCostCents + markupCostCents;
+
+      // Create usage record
+      await this.prisma.cSAIUsage.create({
+        data: {
+          companyId,
+          clientId: company?.client?.id || '',
+          csSessionId: sessionId,
+          usageType: 'CHAT_SESSION',
+          tier,
+          channel: 'chat',
+          messageCount: 1,
+          aiMessageCount: 1,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          billingPeriod: this.getCurrentBillingPeriod(),
+          baseCost: baseCostCents,
+          markupCost: markupCostCents,
+          totalCost: totalCostCents,
+          metadata: {
+            model: usage.model,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            latencyMs: usage.latencyMs,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      this.logger.debug(
+        `Claude usage tracked: ${usage.inputTokens}+${usage.outputTokens} tokens, $${(totalCostCents / 100).toFixed(4)} total`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to track Claude usage:', error);
+      // Don't throw - usage tracking failure shouldn't break the response
+    }
+  }
+
+  /**
+   * Generate template-based response (fallback when Claude is unavailable)
+   */
+  private generateTemplateResponse(session: CSSession, tier: CSTier, role: string): CSMessage {
     let content: string;
     let suggestedActions: string[] = [];
     let internalNotes: string | undefined;
 
     if (session.messages.length <= 1) {
       // Welcome message
-      content = this.generateWelcomeMessage(tier, session.context.customer.name);
+      content = this.generateWelcomeMessage(tier, session.context?.customer?.name || 'Customer');
     } else if (session.customerSentiment === CustomerSentiment.IRATE) {
       // De-escalation response
       content = this.generateDeescalationResponse(tier);
@@ -424,13 +899,14 @@ export class CustomerServiceService {
     }
 
     return {
-      id: this.generateMessageId(),
-      role,
+      id: '', // Will be set by database
+      role: role as CSMessage['role'],
       content,
       timestamp: new Date(),
       metadata: {
         suggestedActions,
         internalNotes,
+        aiGenerated: false,
       },
     };
   }
@@ -464,7 +940,7 @@ export class CustomerServiceService {
       case IssueCategory.BILLING:
         return `I can help you with your billing inquiry. Let me review your account and recent charges to ensure everything is correct.`;
       case IssueCategory.PRODUCT_QUALITY:
-        return `I'm sorry to hear you're experiencing quality issues. ${managerPrefix}I can help arrange a replacement or refund for you right away.`;
+        return `I'm sorry to hear you're experiencing product issues. ${managerPrefix}I can help arrange a replacement or refund for you right away.`;
       default:
         return `I'm here to help! Could you please tell me more about what you need assistance with today?`;
     }
@@ -490,72 +966,290 @@ export class CustomerServiceService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getAnalytics(dto: CSAnalyticsDto): Promise<CSAnalytics> {
-    // In production, this would query the database
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
+
+    const where: Prisma.CSSessionWhereInput = {
+      companyId: dto.companyId,
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // Get all sessions for the period
+    const sessions = await this.prisma.cSSession.findMany({
+      where,
+      include: {
+        messages: true,
+      },
+    });
+
+    const totalSessions = sessions.length;
+    const resolvedSessions = sessions.filter(s => s.status === 'RESOLVED').length;
+    const resolutionRate = totalSessions > 0 ? Math.round((resolvedSessions / totalSessions) * 100) : 0;
+
+    // Calculate average resolution time (in minutes)
+    const resolvedWithTime = sessions.filter(s => s.resolvedAt);
+    const avgResolutionTime = resolvedWithTime.length > 0
+      ? resolvedWithTime.reduce((sum, s) => {
+          const duration = (s.resolvedAt!.getTime() - s.createdAt.getTime()) / 60000;
+          return sum + duration;
+        }, 0) / resolvedWithTime.length
+      : 0;
+
+    // Calculate average messages per session
+    const avgMessagesPerSession = totalSessions > 0
+      ? sessions.reduce((sum, s) => sum + s.messages.length, 0) / totalSessions
+      : 0;
+
+    // Calculate customer satisfaction average
+    const satisfactionScores = sessions
+      .filter(s => s.customerSatisfaction !== null)
+      .map(s => s.customerSatisfaction!);
+    const customerSatisfactionAvg = satisfactionScores.length > 0
+      ? satisfactionScores.reduce((a, b) => a + b, 0) / satisfactionScores.length
+      : 0;
+
+    // Analytics by tier
+    const byTier = await this.calculateTierAnalytics(sessions);
+
+    // Analytics by channel
+    const byChannel = await this.calculateChannelAnalytics(sessions);
+
+    // Analytics by category
+    const byCategory = await this.calculateCategoryAnalytics(sessions);
+
+    // Escalation analytics
+    const escalations = this.calculateEscalationAnalytics(sessions);
+
+    // Sentiment analytics
+    const sentiment = this.calculateSentimentAnalytics(sessions);
+
+    // Top issues
+    const topIssues = this.calculateTopIssues(sessions);
 
     return {
       period: { start: startDate, end: endDate },
       overview: {
-        totalSessions: 1250,
-        resolvedSessions: 1150,
-        resolutionRate: 92,
-        avgResolutionTime: 8.5,
-        avgMessagesPerSession: 6.2,
-        customerSatisfactionAvg: 4.3,
+        totalSessions,
+        resolvedSessions,
+        resolutionRate,
+        avgResolutionTime: Math.round(avgResolutionTime * 10) / 10,
+        avgMessagesPerSession: Math.round(avgMessagesPerSession * 10) / 10,
+        customerSatisfactionAvg: Math.round(customerSatisfactionAvg * 10) / 10,
       },
-      byTier: [
-        { tier: CSTier.AI_REP, sessions: 800, resolved: 720, resolutionRate: 90, avgTime: 5.2 },
-        { tier: CSTier.AI_MANAGER, sessions: 350, resolved: 330, resolutionRate: 94, avgTime: 10.5 },
-        { tier: CSTier.HUMAN_AGENT, sessions: 100, resolved: 100, resolutionRate: 100, avgTime: 15.3 },
-      ],
-      byChannel: [
-        { channel: 'chat', sessions: 700, resolved: 650, avgTime: 6.5 },
-        { channel: 'voice', sessions: 350, resolved: 320, avgTime: 12.3 },
-        { channel: 'email', sessions: 200, resolved: 180, avgTime: 24.0 },
-      ],
-      byCategory: [
-        { category: IssueCategory.SHIPPING, count: 400, avgResolutionTime: 5.5, topResolutions: [ResolutionType.INFORMATION_PROVIDED, ResolutionType.ISSUE_RESOLVED] },
-        { category: IssueCategory.BILLING, count: 300, avgResolutionTime: 8.2, topResolutions: [ResolutionType.ISSUE_RESOLVED, ResolutionType.CREDIT_APPLIED] },
-        { category: IssueCategory.REFUND, count: 250, avgResolutionTime: 10.5, topResolutions: [ResolutionType.REFUND_PROCESSED] },
-      ],
-      escalations: {
-        total: 450,
-        byReason: {
-          [EscalationReason.IRATE_CUSTOMER]: 85,
-          [EscalationReason.REFUND_REQUEST]: 200,
-          [EscalationReason.COMPLEX_ISSUE]: 75,
-          [EscalationReason.REPEAT_CONTACT]: 45,
-          [EscalationReason.HIGH_VALUE_CUSTOMER]: 30,
-          [EscalationReason.LEGAL_MENTION]: 5,
-          [EscalationReason.SOCIAL_MEDIA_THREAT]: 10,
-          [EscalationReason.REFUND_OVER_THRESHOLD]: 0,
-          [EscalationReason.CUSTOMER_REQUEST]: 0,
-          [EscalationReason.POLICY_EXCEPTION]: 0,
-          [EscalationReason.ESCALATED_COMPLAINT]: 0,
-          [EscalationReason.TECHNICAL_LIMITATION]: 0,
-        },
-        avgEscalationTime: 3.2,
-        escalationRate: 36,
-      },
-      sentiment: {
-        distribution: {
-          [CustomerSentiment.HAPPY]: 250,
-          [CustomerSentiment.SATISFIED]: 500,
-          [CustomerSentiment.NEUTRAL]: 300,
-          [CustomerSentiment.FRUSTRATED]: 150,
-          [CustomerSentiment.ANGRY]: 40,
-          [CustomerSentiment.IRATE]: 10,
-        },
-        irateIncidents: 10,
-        sentimentImprovement: 78,
-      },
-      topIssues: [
-        { issue: 'Order tracking', count: 180, avgResolutionTime: 3.5 },
-        { issue: 'Billing discrepancy', count: 120, avgResolutionTime: 8.2 },
-        { issue: 'Refund request', count: 100, avgResolutionTime: 10.5 },
-      ],
+      byTier,
+      byChannel,
+      byCategory,
+      escalations,
+      sentiment,
+      topIssues,
     };
+  }
+
+  private async calculateTierAnalytics(sessions: Array<{ currentTier: string; status: string; createdAt: Date; resolvedAt: Date | null }>): Promise<CSAnalytics['byTier']> {
+    const tiers = [CSTier.AI_REP, CSTier.AI_MANAGER, CSTier.HUMAN_AGENT];
+
+    return tiers.map(tier => {
+      const tierSessions = sessions.filter(s => s.currentTier === tier);
+      const resolved = tierSessions.filter(s => s.status === 'RESOLVED');
+      const avgTime = resolved.length > 0
+        ? resolved.reduce((sum, s) => {
+            const duration = (s.resolvedAt!.getTime() - s.createdAt.getTime()) / 60000;
+            return sum + duration;
+          }, 0) / resolved.length
+        : 0;
+
+      return {
+        tier,
+        sessions: tierSessions.length,
+        resolved: resolved.length,
+        resolutionRate: tierSessions.length > 0
+          ? Math.round((resolved.length / tierSessions.length) * 100)
+          : 0,
+        avgTime: Math.round(avgTime * 10) / 10,
+      };
+    });
+  }
+
+  private async calculateChannelAnalytics(sessions: Array<{ channel: string; status: string; createdAt: Date; resolvedAt: Date | null }>): Promise<CSAnalytics['byChannel']> {
+    const channels = ['chat', 'voice', 'email', 'sms'];
+
+    return channels.map(channel => {
+      const channelSessions = sessions.filter(s => s.channel === channel);
+      const resolved = channelSessions.filter(s => s.status === 'RESOLVED');
+      const avgTime = resolved.length > 0
+        ? resolved.reduce((sum, s) => {
+            const duration = (s.resolvedAt!.getTime() - s.createdAt.getTime()) / 60000;
+            return sum + duration;
+          }, 0) / resolved.length
+        : 0;
+
+      return {
+        channel,
+        sessions: channelSessions.length,
+        resolved: resolved.length,
+        avgTime: Math.round(avgTime * 10) / 10,
+      };
+    }).filter(c => c.sessions > 0);
+  }
+
+  private async calculateCategoryAnalytics(sessions: Array<{ issueCategory: string | null; status: string; resolutionType: string | null; createdAt: Date; resolvedAt: Date | null }>): Promise<CSAnalytics['byCategory']> {
+    const categories = Object.values(IssueCategory);
+
+    return categories.map(category => {
+      const categorySessions = sessions.filter(s => s.issueCategory === category);
+      const resolved = categorySessions.filter(s => s.resolvedAt);
+      const avgTime = resolved.length > 0
+        ? resolved.reduce((sum, s) => {
+            const duration = (s.resolvedAt!.getTime() - s.createdAt.getTime()) / 60000;
+            return sum + duration;
+          }, 0) / resolved.length
+        : 0;
+
+      // Get top resolutions
+      const resolutionCounts: Record<string, number> = {};
+      resolved.forEach(s => {
+        if (s.resolutionType) {
+          resolutionCounts[s.resolutionType] = (resolutionCounts[s.resolutionType] || 0) + 1;
+        }
+      });
+      const topResolutions = Object.entries(resolutionCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([type]) => type as ResolutionType);
+
+      return {
+        category,
+        count: categorySessions.length,
+        avgResolutionTime: Math.round(avgTime * 10) / 10,
+        topResolutions,
+      };
+    }).filter(c => c.count > 0);
+  }
+
+  private calculateEscalationAnalytics(sessions: Array<{ escalationHistory: unknown; createdAt: Date }>): CSAnalytics['escalations'] {
+    const byReason: Record<EscalationReason, number> = {
+      [EscalationReason.IRATE_CUSTOMER]: 0,
+      [EscalationReason.REFUND_REQUEST]: 0,
+      [EscalationReason.COMPLEX_ISSUE]: 0,
+      [EscalationReason.REPEAT_CONTACT]: 0,
+      [EscalationReason.HIGH_VALUE_CUSTOMER]: 0,
+      [EscalationReason.LEGAL_MENTION]: 0,
+      [EscalationReason.SOCIAL_MEDIA_THREAT]: 0,
+      [EscalationReason.REFUND_OVER_THRESHOLD]: 0,
+      [EscalationReason.CUSTOMER_REQUEST]: 0,
+      [EscalationReason.POLICY_EXCEPTION]: 0,
+      [EscalationReason.ESCALATED_COMPLAINT]: 0,
+      [EscalationReason.TECHNICAL_LIMITATION]: 0,
+    };
+
+    let totalEscalations = 0;
+    let escalationTimeSum = 0;
+
+    sessions.forEach(session => {
+      const history = (session.escalationHistory as EscalationEvent[]) || [];
+      history.forEach(event => {
+        if (event.reason && byReason[event.reason] !== undefined) {
+          byReason[event.reason]++;
+          totalEscalations++;
+
+          // Calculate time to escalation
+          const escalationTime = (new Date(event.timestamp).getTime() - session.createdAt.getTime()) / 60000;
+          escalationTimeSum += escalationTime;
+        }
+      });
+    });
+
+    const avgEscalationTime = totalEscalations > 0 ? escalationTimeSum / totalEscalations : 0;
+    const escalationRate = sessions.length > 0
+      ? Math.round((totalEscalations / sessions.length) * 100)
+      : 0;
+
+    return {
+      total: totalEscalations,
+      byReason,
+      avgEscalationTime: Math.round(avgEscalationTime * 10) / 10,
+      escalationRate,
+    };
+  }
+
+  private calculateSentimentAnalytics(sessions: Array<{ customerSentiment: string; sentimentHistory: unknown }>): CSAnalytics['sentiment'] {
+    const distribution: Record<CustomerSentiment, number> = {
+      [CustomerSentiment.HAPPY]: 0,
+      [CustomerSentiment.SATISFIED]: 0,
+      [CustomerSentiment.NEUTRAL]: 0,
+      [CustomerSentiment.FRUSTRATED]: 0,
+      [CustomerSentiment.ANGRY]: 0,
+      [CustomerSentiment.IRATE]: 0,
+    };
+
+    let irateIncidents = 0;
+    let sentimentImprovementCount = 0;
+    let sentimentImprovementTotal = 0;
+
+    sessions.forEach(session => {
+      // Count final sentiment
+      if (session.customerSentiment && distribution[session.customerSentiment as CustomerSentiment] !== undefined) {
+        distribution[session.customerSentiment as CustomerSentiment]++;
+      }
+
+      // Check for irate incidents
+      const history = (session.sentimentHistory as SentimentSnapshot[]) || [];
+      if (history.some(h => h.sentiment === CustomerSentiment.IRATE)) {
+        irateIncidents++;
+      }
+
+      // Calculate sentiment improvement (first vs last)
+      if (history.length >= 2) {
+        const firstScore = history[0].score;
+        const lastScore = history[history.length - 1].score;
+        if (lastScore > firstScore) {
+          sentimentImprovementCount++;
+        }
+        sentimentImprovementTotal++;
+      }
+    });
+
+    const sentimentImprovement = sentimentImprovementTotal > 0
+      ? Math.round((sentimentImprovementCount / sentimentImprovementTotal) * 100)
+      : 0;
+
+    return {
+      distribution,
+      irateIncidents,
+      sentimentImprovement,
+    };
+  }
+
+  private calculateTopIssues(sessions: Array<{ issueCategory: string | null; createdAt: Date; resolvedAt: Date | null }>): CSAnalytics['topIssues'] {
+    const issueCounts: Record<string, { count: number; totalTime: number; resolvedCount: number }> = {};
+
+    sessions.forEach(session => {
+      const issue = session.issueCategory || 'General inquiry';
+      if (!issueCounts[issue]) {
+        issueCounts[issue] = { count: 0, totalTime: 0, resolvedCount: 0 };
+      }
+      issueCounts[issue].count++;
+
+      if (session.resolvedAt) {
+        const duration = (session.resolvedAt.getTime() - session.createdAt.getTime()) / 60000;
+        issueCounts[issue].totalTime += duration;
+        issueCounts[issue].resolvedCount++;
+      }
+    });
+
+    return Object.entries(issueCounts)
+      .map(([issue, data]) => ({
+        issue: issue.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
+        count: data.count,
+        avgResolutionTime: data.resolvedCount > 0
+          ? Math.round((data.totalTime / data.resolvedCount) * 10) / 10
+          : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -563,14 +1257,155 @@ export class CustomerServiceService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   private async getSession(sessionId: string): Promise<CSSession | null> {
-    // In production, fetch from database
-    // For now, return null to simulate not found
-    return null;
+    const session = await this.prisma.cSSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    return this.transformDbSession(session);
+  }
+
+  private async transformDbSession(
+    session: Awaited<ReturnType<typeof this.prisma.cSSession.findUnique>> & { messages?: Array<{
+      id: string;
+      role: string;
+      content: string;
+      sentiment: string | null;
+      metadata: unknown;
+      createdAt: Date;
+    }> }
+  ): Promise<CSSession> {
+    if (!session) {
+      throw new Error('Session cannot be null');
+    }
+
+    // Get customer data
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: session.customerId },
+    });
+
+    const context = (session.context as unknown as CustomerServiceContext) || await this.buildCustomerContext(
+      session.companyId,
+      session.customerId
+    );
+
+    // Update context with current customer name if available
+    if (customer) {
+      context.customer.name = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email.split('@')[0];
+      context.customer.email = customer.email;
+    }
+
+    return {
+      id: session.id,
+      companyId: session.companyId,
+      customerId: session.customerId,
+      channel: session.channel as CSSession['channel'],
+      currentTier: session.currentTier as CSTier,
+      status: session.status as CSSessionStatus,
+      issueCategory: session.issueCategory as IssueCategory | undefined,
+      issueSummary: session.issueSummary || undefined,
+      customerSentiment: session.customerSentiment as CustomerSentiment,
+      sentimentHistory: (session.sentimentHistory as unknown as SentimentSnapshot[]) || [],
+      escalationHistory: (session.escalationHistory as unknown as EscalationEvent[]) || [],
+      messages: (session.messages || []).map(m => ({
+        id: m.id,
+        role: m.role as CSMessage['role'],
+        content: m.content,
+        timestamp: m.createdAt,
+        sentiment: m.sentiment as CustomerSentiment | undefined,
+        metadata: m.metadata as CSMessage['metadata'],
+      })),
+      context,
+      resolution: session.resolutionType ? {
+        type: session.resolutionType as ResolutionType,
+        summary: session.resolutionSummary || '',
+        actionsTaken: (session.resolutionActions as string[]) || [],
+        customerSatisfaction: session.customerSatisfaction || undefined,
+        followUpRequired: session.followUpRequired,
+        followUpDate: session.followUpDate || undefined,
+      } : undefined,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      resolvedAt: session.resolvedAt || undefined,
+      // Add customer info for frontend display
+      customer: customer ? {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+      } : undefined,
+    } as CSSession & { customer?: { firstName: string | null; lastName: string | null; email: string } };
   }
 
   private async determineStartingTier(companyId: string, channel: string): Promise<CSTier> {
-    // In production, check company config
+    // Check company CS config
+    const config = await this.prisma.cSConfig.findUnique({
+      where: { companyId },
+    });
+
+    if (config?.channelConfigs) {
+      const channelConfigs = config.channelConfigs as Record<string, { startingTier?: CSTier }>;
+      if (channelConfigs[channel]?.startingTier) {
+        return channelConfigs[channel].startingTier;
+      }
+    }
+
+    // Default to AI_REP
     return CSTier.AI_REP;
+  }
+
+  private async logAIUsage(
+    sessionId: string,
+    companyId: string,
+    tier: CSTier,
+    channel: string,
+    usage: { messageCount: number; aiMessageCount: number; inputTokens?: number; outputTokens?: number }
+  ): Promise<void> {
+    try {
+      // Get client ID from company
+      const company = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: { clientId: true },
+      });
+
+      if (!company) {
+        this.logger.warn(`Company ${companyId} not found for AI usage logging`);
+        return;
+      }
+
+      // Get current billing period
+      const now = new Date();
+      const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      await this.prisma.cSAIUsage.create({
+        data: {
+          companyId,
+          clientId: company.clientId,
+          csSessionId: sessionId,
+          usageType: 'CHAT_SESSION',
+          tier: tier as PrismaCSTier,
+          channel,
+          messageCount: usage.messageCount,
+          aiMessageCount: usage.aiMessageCount,
+          inputTokens: usage.inputTokens || 0,
+          outputTokens: usage.outputTokens || 0,
+          billingPeriod,
+          // Cost calculation would be done based on pricing config
+          baseCost: 0,
+          markupCost: 0,
+          totalCost: 0,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to log AI usage: ${error}`);
+    }
   }
 
   private getAvailableActions(tier: CSTier) {
@@ -619,11 +1454,11 @@ export class CustomerServiceService {
     return words.filter(word => word.length > 2 && !stopWords.includes(word));
   }
 
-  private generateSessionId(): string {
-    return `cs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  /**
+   * Get current billing period in YYYY-MM format
+   */
+  private getCurrentBillingPeriod(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }
 }
