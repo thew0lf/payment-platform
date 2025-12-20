@@ -123,6 +123,14 @@ export interface CSMessage {
     actionsTaken?: string[];
     suggestedActions?: string[];
     internalNotes?: string;
+    // Claude AI metadata
+    aiGenerated?: boolean;
+    model?: string;
+    tokens?: {
+      input: number;
+      output: number;
+    };
+    latencyMs?: number;
   };
 }
 
@@ -352,6 +360,11 @@ export interface HumanAgentConfig {
   maxWaitTime: number;
   fallbackMessage: string;
   availableHours: string;
+  // Escalation phone configuration
+  escalationPhone?: string;           // Primary phone number to transfer calls to
+  escalationPhoneBackup?: string;     // Backup phone if primary unavailable
+  notifyOnEscalation?: boolean;       // Send SMS notification to agent
+  notificationPhone?: string;         // Phone to receive SMS notifications (can be different from escalation)
 }
 
 export interface ChannelConfig {
