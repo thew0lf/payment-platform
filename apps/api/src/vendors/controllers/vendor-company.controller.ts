@@ -46,14 +46,14 @@ export class VendorCompanyController {
     });
   }
 
-  @Get(':id')
-  async findById(@Param('id') id: string) {
-    return this.vendorCompanyService.findById(id);
-  }
-
   @Get('vendor/:vendorId')
   async findByVendor(@Param('vendorId') vendorId: string) {
     return this.vendorCompanyService.findByVendor(vendorId);
+  }
+
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    return this.vendorCompanyService.findById(id);
   }
 
   @Patch(':id')
