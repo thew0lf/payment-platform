@@ -159,6 +159,43 @@ export interface SaveFlowStats {
 // TYPES - BEHAVIORAL TRIGGERS
 // ═══════════════════════════════════════════════════════════════
 
+export type BehavioralTriggerType =
+  | 'PATTERN_INTERRUPT'
+  | 'LOSS_AVERSION'
+  | 'IDENTITY_ALIGNMENT'
+  | 'SOCIAL_PROOF'
+  | 'SCARCITY'
+  | 'URGENCY'
+  | 'RECIPROCITY'
+  | 'ANCHORING'
+  | 'FUTURE_PACING'
+  | 'COMMITMENT_CONSISTENCY'
+  | 'AUTHORITY'
+  | 'OWNERSHIP_VELOCITY'
+  | 'CONTRAST_PRINCIPLE';
+
+export interface TriggerExample {
+  context: string;
+  before: string;
+  after: string;
+  explanation: string;
+}
+
+export interface BehavioralTrigger {
+  type: BehavioralTriggerType;
+  name: string;
+  description: string;
+  principle: string;
+  examples: TriggerExample[];
+  useCases: string[];
+  effectiveness: {
+    conversionLift: string;
+    bestFor: string[];
+    avoid: string[];
+  };
+}
+
+// Mapping from BehavioralTriggerType to category for UI display
 export type TriggerCategory =
   | 'URGENCY'
   | 'SCARCITY'
@@ -169,18 +206,24 @@ export type TriggerCategory =
   | 'COMMITMENT'
   | 'FOMO';
 
-export interface BehavioralTrigger {
-  id: string;
-  name: string;
-  code: string;
-  category: TriggerCategory;
-  description: string;
-  template: string;
-  variables: string[];
-  effectiveness: number; // 0-100
-  usageCount: number;
-  isActive: boolean;
-  contexts: string[]; // email, sms, push, web
+// Helper function to map trigger type to category for UI display
+export function getTriggerCategory(type: BehavioralTriggerType): TriggerCategory {
+  const categoryMap: Record<BehavioralTriggerType, TriggerCategory> = {
+    PATTERN_INTERRUPT: 'FOMO',
+    LOSS_AVERSION: 'LOSS_AVERSION',
+    IDENTITY_ALIGNMENT: 'SOCIAL_PROOF',
+    SOCIAL_PROOF: 'SOCIAL_PROOF',
+    SCARCITY: 'SCARCITY',
+    URGENCY: 'URGENCY',
+    RECIPROCITY: 'RECIPROCITY',
+    ANCHORING: 'AUTHORITY',
+    FUTURE_PACING: 'COMMITMENT',
+    COMMITMENT_CONSISTENCY: 'COMMITMENT',
+    AUTHORITY: 'AUTHORITY',
+    OWNERSHIP_VELOCITY: 'COMMITMENT',
+    CONTRAST_PRINCIPLE: 'SCARCITY',
+  };
+  return categoryMap[type] || 'FOMO';
 }
 
 // ═══════════════════════════════════════════════════════════════

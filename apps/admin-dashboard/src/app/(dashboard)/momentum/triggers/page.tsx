@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { triggersApi, BehavioralTrigger, TriggerCategory } from '@/lib/api/momentum';
+import { triggersApi, BehavioralTrigger, TriggerCategory, getTriggerCategory, BehavioralTriggerType } from '@/lib/api/momentum';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -67,22 +67,11 @@ const CATEGORY_CONFIG: Record<TriggerCategory, { label: string; icon: typeof Zap
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════
 
-function EffectivenessBar({ value }: { value: number }) {
-  const getColor = (v: number) => {
-    if (v >= 80) return 'bg-green-500';
-    if (v >= 60) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
+function EffectivenessDisplay({ effectiveness }: { effectiveness: { conversionLift: string; bestFor: string[]; avoid: string[] } }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-        <div
-          className={cn('h-full rounded-full', getColor(value))}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <span className="text-xs text-muted-foreground">{value}%</span>
+      <TrendingUp className="w-3 h-3 text-green-400" />
+      <span className="text-xs text-green-400 font-medium">{effectiveness.conversionLift}</span>
     </div>
   );
 }
@@ -96,7 +85,8 @@ function TriggerCard({
   onPreview: () => void;
   onApply: () => void;
 }) {
-  const categoryConfig = CATEGORY_CONFIG[trigger.category];
+  const category = getTriggerCategory(trigger.type);
+  const categoryConfig = CATEGORY_CONFIG[category];
   const Icon = categoryConfig?.icon || Zap;
 
   return (
@@ -116,16 +106,12 @@ function TriggerCard({
               </div>
               <p className="text-sm text-muted-foreground line-clamp-2">{trigger.description}</p>
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  {trigger.usageCount} uses
-                </span>
-                <EffectivenessBar value={trigger.effectiveness} />
+                <EffectivenessDisplay effectiveness={trigger.effectiveness} />
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
-                {trigger.contexts.map((ctx) => (
-                  <Badge key={ctx} variant="secondary" className="text-xs">
-                    {ctx}
+                {trigger.useCases.slice(0, 3).map((useCase) => (
+                  <Badge key={useCase} variant="secondary" className="text-xs">
+                    {useCase}
                   </Badge>
                 ))}
               </div>
@@ -190,7 +176,8 @@ export default function TriggersPage() {
       search === '' ||
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.description.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
+    const category = getTriggerCategory(t.type);
+    const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -202,9 +189,7 @@ export default function TriggersPage() {
   const handleApply = (trigger: BehavioralTrigger) => {
     setSelectedTrigger(trigger);
     setApplyContent('');
-    setApplyVariables(
-      trigger.variables.reduce((acc, v) => ({ ...acc, [v]: '' }), {})
-    );
+    setApplyVariables({});
     setShowApply(true);
   };
 
@@ -214,7 +199,7 @@ export default function TriggersPage() {
     try {
       const result = await triggersApi.applyToContent({
         content: applyContent,
-        triggers: [selectedTrigger.code],
+        triggers: [selectedTrigger.type],
         variables: applyVariables,
       });
       toast.success('Trigger applied successfully');
@@ -224,13 +209,14 @@ export default function TriggersPage() {
     }
   };
 
-  const handleCopyTemplate = (template: string) => {
-    navigator.clipboard.writeText(template);
-    toast.success('Template copied to clipboard');
+  const handleCopyExample = (example: { before: string; after: string }) => {
+    navigator.clipboard.writeText(example.after);
+    toast.success('Example copied to clipboard');
   };
 
   const categoryStats = triggers.reduce((acc, t) => {
-    acc[t.category] = (acc[t.category] || 0) + 1;
+    const category = getTriggerCategory(t.type);
+    acc[category] = (acc[category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -322,7 +308,7 @@ export default function TriggersPage() {
           <div className="space-y-4">
             {filteredTriggers.map((trigger) => (
               <TriggerCard
-                key={trigger.id}
+                key={trigger.type}
                 trigger={trigger}
                 onPreview={() => handlePreview(trigger)}
                 onApply={() => handleApply(trigger)}
@@ -334,47 +320,71 @@ export default function TriggersPage() {
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedTrigger?.name}</DialogTitle>
             <DialogDescription>{selectedTrigger?.description}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-sm text-muted-foreground">Template</Label>
-              <div className="mt-2 p-4 bg-muted rounded-lg font-mono text-sm">
-                {selectedTrigger?.template}
+              <Label className="text-sm text-muted-foreground">Principle</Label>
+              <p className="mt-2 text-sm">{selectedTrigger?.principle}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">Effectiveness</Label>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-medium text-green-400">{selectedTrigger?.effectiveness.conversionLift}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Best for: </span>
+                  {selectedTrigger?.effectiveness.bestFor.join(', ')}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Avoid: </span>
+                  {selectedTrigger?.effectiveness.avoid.join(', ')}
+                </div>
               </div>
             </div>
             <div>
-              <Label className="text-sm text-muted-foreground">Variables</Label>
+              <Label className="text-sm text-muted-foreground">Use Cases</Label>
               <div className="mt-2 flex flex-wrap gap-2">
-                {selectedTrigger?.variables.map((v) => (
-                  <Badge key={v} variant="secondary">
-                    {`{{${v}}}`}
+                {selectedTrigger?.useCases.map((useCase) => (
+                  <Badge key={useCase} variant="outline">
+                    {useCase}
                   </Badge>
                 ))}
               </div>
             </div>
-            <div>
-              <Label className="text-sm text-muted-foreground">Contexts</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedTrigger?.contexts.map((ctx) => (
-                  <Badge key={ctx} variant="outline">
-                    {ctx}
-                  </Badge>
-                ))}
+            {selectedTrigger?.examples && selectedTrigger.examples.length > 0 && (
+              <div>
+                <Label className="text-sm text-muted-foreground">Examples</Label>
+                <div className="mt-2 space-y-3">
+                  {selectedTrigger.examples.slice(0, 2).map((example, i) => (
+                    <div key={i} className="p-3 bg-muted rounded-lg text-sm">
+                      <p className="text-xs text-muted-foreground mb-2">{example.context}</p>
+                      <div className="space-y-1">
+                        <p><span className="text-red-400">Before:</span> {example.before}</p>
+                        <p><span className="text-green-400">After:</span> {example.after}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">{example.explanation}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => handleCopyTemplate(selectedTrigger?.template || '')}
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy Template
-            </Button>
+            {selectedTrigger?.examples && selectedTrigger.examples.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => handleCopyExample(selectedTrigger.examples[0])}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Example
+              </Button>
+            )}
             <Button onClick={() => {
               setShowPreview(false);
               handleApply(selectedTrigger!);
@@ -392,7 +402,7 @@ export default function TriggersPage() {
           <DialogHeader>
             <DialogTitle>Apply Trigger: {selectedTrigger?.name}</DialogTitle>
             <DialogDescription>
-              Enter your content and variable values to apply this trigger.
+              Enter your content to apply this behavioral trigger.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -405,21 +415,14 @@ export default function TriggersPage() {
                 rows={6}
               />
             </div>
-            {selectedTrigger?.variables && selectedTrigger.variables.length > 0 && (
-              <div className="space-y-3">
-                <Label>Variables</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedTrigger.variables.map((v) => (
-                    <div key={v} className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{v}</Label>
-                      <Input
-                        value={applyVariables[v] || ''}
-                        onChange={(e) =>
-                          setApplyVariables({ ...applyVariables, [v]: e.target.value })
-                        }
-                        placeholder={`Enter ${v}...`}
-                      />
-                    </div>
+            {selectedTrigger?.useCases && selectedTrigger.useCases.length > 0 && (
+              <div>
+                <Label className="text-sm text-muted-foreground">Best for these contexts:</Label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedTrigger.useCases.map((useCase) => (
+                    <Badge key={useCase} variant="secondary" className="text-xs">
+                      {useCase}
+                    </Badge>
                   ))}
                 </div>
               </div>
