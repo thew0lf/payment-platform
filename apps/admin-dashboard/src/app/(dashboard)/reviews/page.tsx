@@ -253,9 +253,9 @@ export default function ReviewsPage() {
     } catch (err) {
       console.error('Failed to fetch reviews:', err);
       setError('Failed to load reviews. Please try again.');
-      // Use mock data for development
-      setReviews(generateMockReviews());
-      setTotal(generateMockReviews().length);
+      // Clear data on error - no mock/fake data
+      setReviews([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -267,25 +267,7 @@ export default function ReviewsPage() {
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
-      // Use mock stats
-      setStats({
-        totalReviews: 156,
-        pendingReviews: 12,
-        approvedReviews: 138,
-        rejectedReviews: 4,
-        flaggedReviews: 2,
-        averageRating: 4.3,
-        ratingDistribution: [
-          { rating: 5, count: 78, percentage: 50 },
-          { rating: 4, count: 45, percentage: 29 },
-          { rating: 3, count: 18, percentage: 12 },
-          { rating: 2, count: 10, percentage: 6 },
-          { rating: 1, count: 5, percentage: 3 },
-        ],
-        verifiedPurchaseRate: 72,
-        responseRate: 45,
-        averageResponseTime: 24,
-      });
+      // Keep default empty stats - no mock/fake data
     }
   };
 
@@ -772,54 +754,3 @@ export default function ReviewsPage() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA (for development)
-// ═══════════════════════════════════════════════════════════════
-
-function generateMockReviews(): Review[] {
-  const statuses: ReviewStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'];
-  const titles = [
-    'Great product!',
-    'Exceeded expectations',
-    'Not what I expected',
-    'Would buy again',
-    'Amazing quality',
-  ];
-  const contents = [
-    'This coffee is absolutely amazing. The flavor is rich and smooth, perfect for my morning routine.',
-    'I was skeptical at first, but after trying it I\'m completely hooked. Will definitely order again!',
-    'The quality is okay, but the packaging was damaged when it arrived. Customer service was helpful though.',
-    'Best purchase I\'ve made this year. The freshness is unmatched and the roast is perfect.',
-    'Decent coffee for the price. Nothing special but gets the job done.',
-  ];
-  const products = [
-    { id: 'p1', name: 'Ethiopian Yirgacheffe', sku: 'ETH-001' },
-    { id: 'p2', name: 'Colombian Supremo', sku: 'COL-001' },
-    { id: 'p3', name: 'House Blend', sku: 'HB-001' },
-  ];
-
-  return Array.from({ length: 10 }, (_, i) => ({
-    id: `review-${i + 1}`,
-    companyId: 'company-1',
-    productId: products[i % products.length].id,
-    customerId: `customer-${i + 1}`,
-    rating: Math.floor(Math.random() * 3) + 3, // 3-5 stars
-    title: titles[i % titles.length],
-    content: contents[i % contents.length],
-    pros: i % 2 === 0 ? ['Great taste', 'Fast shipping', 'Good value'] : [],
-    cons: i % 3 === 0 ? ['Packaging could be better'] : [],
-    reviewerName: i % 4 === 0 ? undefined : `Customer ${i + 1}`,
-    isVerifiedPurchase: i % 2 === 0,
-    status: i === 0 ? 'PENDING' : statuses[i % statuses.length],
-    helpfulCount: Math.floor(Math.random() * 20),
-    unhelpfulCount: Math.floor(Math.random() * 5),
-    merchantResponse: i === 3 ? 'Thank you for your feedback! We appreciate your support.' : undefined,
-    merchantRespondedAt: i === 3 ? new Date().toISOString() : undefined,
-    isFeatured: i === 1,
-    isPinned: false,
-    source: 'WEBSITE',
-    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
-    product: products[i % products.length],
-  }));
-}
