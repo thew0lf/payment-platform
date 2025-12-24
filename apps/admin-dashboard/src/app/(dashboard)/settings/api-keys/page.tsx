@@ -40,36 +40,8 @@ interface ApiKey {
   createdAt: string;
 }
 
-// Mock data
-const mockApiKeys: ApiKey[] = [
-  {
-    id: 'key_1',
-    name: 'Production API',
-    keyPrefix: 'pk_live_',
-    scopes: ['transactions:read', 'transactions:write', 'customers:read'],
-    lastUsedAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    isActive: true,
-    createdAt: new Date('2024-01-15').toISOString(),
-  },
-  {
-    id: 'key_2',
-    name: 'Webhook Integration',
-    keyPrefix: 'pk_live_',
-    scopes: ['webhooks:read', 'webhooks:write'],
-    lastUsedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    expiresAt: new Date('2025-01-15').toISOString(),
-    isActive: true,
-    createdAt: new Date('2024-02-20').toISOString(),
-  },
-  {
-    id: 'key_3',
-    name: 'Test Environment',
-    keyPrefix: 'pk_test_',
-    scopes: ['transactions:read', 'customers:read'],
-    isActive: false,
-    createdAt: new Date('2024-03-01').toISOString(),
-  },
-];
+// Initial state - empty until API is implemented
+// TODO: Replace with API call to fetch real API keys
 
 const availableScopes = [
   { id: 'transactions:read', label: 'Read Transactions', description: 'View transaction data' },
@@ -82,7 +54,7 @@ const availableScopes = [
 
 export default function ApiKeysPage() {
   const { canManageApiKeys } = usePermissions();
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>(mockApiKeys);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyScopes, setNewKeyScopes] = useState<string[]>([]);
