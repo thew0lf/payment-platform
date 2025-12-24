@@ -220,19 +220,19 @@ export default function SaveFlowsPage() {
       if (configData) {
         setConfig(configData);
       } else {
-        // Set default config
+        // Set default empty config - no mock data
         setConfig({
-          id: 'default',
+          id: '',
           companyId,
-          isEnabled: true,
-          stages: STAGE_ORDER.map((stage, i) => ({
+          isEnabled: false,
+          stages: STAGE_ORDER.map((stage) => ({
             stage,
-            enabled: i < 5, // First 5 stages enabled by default
-            retryCount: 2,
-            delayMinutes: 5,
+            enabled: false,
+            retryCount: 0,
+            delayMinutes: 0,
           })),
-          defaultOffers: ['10% off', 'Free month', 'Pause subscription'],
-          escalationThreshold: 3,
+          defaultOffers: [],
+          escalationThreshold: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -243,27 +243,23 @@ export default function SaveFlowsPage() {
       if (statsData) {
         setStats(statsData);
       } else {
-        // Mock stats
+        // Empty stats - no mock data
         setStats({
-          totalAttempts: 156,
-          inProgress: 12,
-          saved: 89,
-          cancelled: 42,
-          paused: 8,
-          downgraded: 5,
-          successRate: 57.1,
-          avgTimeToSave: 4.2,
-          stagePerformance: STAGE_ORDER.map((stage, i) => ({
-            stage,
-            attempts: 150 - i * 10,
-            saves: Math.floor((150 - i * 10) * (0.2 + i * 0.05)),
-            rate: 20 + i * 5,
-          })),
-          revenuePreserved: 12450,
+          totalAttempts: 0,
+          inProgress: 0,
+          saved: 0,
+          cancelled: 0,
+          paused: 0,
+          downgraded: 0,
+          successRate: 0,
+          avgTimeToSave: 0,
+          stagePerformance: [],
+          revenuePreserved: 0,
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load save flow data:', err);
+      toast.error('Failed to load save flow data. Please try again.');
     } finally {
       setIsLoading(false);
     }

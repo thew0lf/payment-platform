@@ -705,6 +705,52 @@ vendor_users, vendor_roles, vendor_marketplace, vendor_settings
 
 ---
 
+## No Mock/Fake Data Policy
+
+**CRITICAL: ALL DATA MUST COME FROM THE API**
+
+This project does NOT use mock, fake, or hardcoded data in production or development frontends. All data displayed in the admin dashboard, company portal, or any other frontend must be fetched from the backend API.
+
+### Rules
+
+1. **Never use mock/fake data as fallback** - If an API call fails, show an error state (toast, error message, empty state with error indicator). Never silently fall back to hardcoded data.
+
+2. **No `MOCK_*` constants** - Do not create `MOCK_DATA`, `MOCK_TRIGGERS`, `MOCK_CUSTOMERS`, or similar constants in frontend code.
+
+3. **No catch-block mock data** - Do not populate state with fake data in catch blocks:
+   ```typescript
+   // ❌ WRONG
+   } catch (err) {
+     setData(MOCK_DATA); // Never do this
+   }
+
+   // ✅ CORRECT
+   } catch (err) {
+     setError(err.message);
+     setData([]);
+     toast.error('Failed to load data');
+   }
+   ```
+
+4. **Seed data for development** - Use `npx prisma db seed` to populate the database with realistic test data. All frontend pages should work with real database data.
+
+5. **Empty states are valid** - If no data exists, show an appropriate empty state message. This is better than showing fake data.
+
+### Why This Matters
+
+- **Data Integrity**: Users must see real data from their database, not fabricated examples
+- **Bug Discovery**: Fake data masks API and data issues that need to be fixed
+- **Trust**: Users should trust that what they see reflects their actual business data
+- **Testing**: Real API calls help identify performance and error handling issues
+
+### Exceptions
+
+- **Unit tests**: Mock data is acceptable in unit tests (`.spec.ts`, `.test.ts` files)
+- **Storybook stories**: Component demonstration with mock data is acceptable
+- **Seed scripts**: Database seed files (`prisma/seeds/`) should contain realistic sample data
+
+---
+
 ## Development Commands
 
 ### Docker Commands (Primary Development Method)

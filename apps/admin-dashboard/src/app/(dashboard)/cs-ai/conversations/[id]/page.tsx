@@ -187,108 +187,6 @@ function EscalationTimeline({ escalationHistory }: { escalationHistory: CSSessio
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const MOCK_SESSION: CSSession = {
-  id: 'cs_001',
-  companyId: 'comp_1',
-  customerId: 'cust_1',
-  channel: 'chat',
-  currentTier: 'AI_MANAGER',
-  status: 'ESCALATED',
-  issueCategory: 'REFUND',
-  customerSentiment: 'FRUSTRATED',
-  sentimentHistory: [
-    { sentiment: 'NEUTRAL', score: 0.5, timestamp: new Date(Date.now() - 20 * 60000).toISOString() },
-    { sentiment: 'FRUSTRATED', score: 0.3, timestamp: new Date(Date.now() - 15 * 60000).toISOString(), trigger: 'Expressed dissatisfaction' },
-  ],
-  escalationHistory: [
-    {
-      fromTier: 'AI_REP',
-      toTier: 'AI_MANAGER',
-      reason: 'Refund request exceeds AI Rep authorization limit',
-      timestamp: new Date(Date.now() - 10 * 60000).toISOString(),
-      notes: 'Customer requesting full refund for order #12345',
-    },
-  ],
-  messages: [
-    {
-      id: 'msg_1',
-      role: 'system',
-      content: 'Session started via chat widget',
-      timestamp: new Date(Date.now() - 20 * 60000).toISOString(),
-    },
-    {
-      id: 'msg_2',
-      role: 'ai_rep',
-      content: 'Hello! Welcome to Acme Coffee support. How can I help you today?',
-      timestamp: new Date(Date.now() - 20 * 60000 + 2000).toISOString(),
-    },
-    {
-      id: 'msg_3',
-      role: 'customer',
-      content: 'Hi, I need a refund for my last order. The coffee beans were stale.',
-      timestamp: new Date(Date.now() - 19 * 60000).toISOString(),
-      sentiment: 'NEUTRAL',
-    },
-    {
-      id: 'msg_4',
-      role: 'ai_rep',
-      content: 'I\'m sorry to hear that! Let me look up your order. Can you confirm the order number?',
-      timestamp: new Date(Date.now() - 18 * 60000).toISOString(),
-      metadata: {
-        suggestedActions: ['Look up recent orders', 'Check product quality reports'],
-      },
-    },
-    {
-      id: 'msg_5',
-      role: 'customer',
-      content: 'Order #12345. I paid $89.99 for premium beans and they taste terrible.',
-      timestamp: new Date(Date.now() - 17 * 60000).toISOString(),
-      sentiment: 'FRUSTRATED',
-    },
-    {
-      id: 'msg_6',
-      role: 'ai_rep',
-      content: 'I found your order. I can see you ordered our Premium Reserve blend. I\'m truly sorry the quality didn\'t meet your expectations. For refunds over $50, I\'ll need to connect you with our billing specialist who can help process this right away.',
-      timestamp: new Date(Date.now() - 16 * 60000).toISOString(),
-    },
-    {
-      id: 'msg_7',
-      role: 'system',
-      content: 'Escalated to AI Manager - Refund authorization required',
-      timestamp: new Date(Date.now() - 10 * 60000).toISOString(),
-    },
-    {
-      id: 'msg_8',
-      role: 'ai_manager',
-      content: 'Hello! I\'m the billing specialist. I can see you\'re requesting a refund for order #12345. I\'ve reviewed your account and I\'m happy to process this for you. Would you prefer a full refund to your original payment method, or would you like store credit with a 15% bonus?',
-      timestamp: new Date(Date.now() - 9 * 60000).toISOString(),
-      metadata: {
-        suggestedActions: ['Process full refund', 'Offer store credit + bonus', 'Request photo evidence'],
-      },
-    },
-    {
-      id: 'msg_9',
-      role: 'customer',
-      content: 'Store credit is fine if I get the bonus. When will it be applied?',
-      timestamp: new Date(Date.now() - 8 * 60000).toISOString(),
-      sentiment: 'NEUTRAL',
-    },
-    {
-      id: 'msg_10',
-      role: 'ai_manager',
-      content: 'Perfect! I\'ve applied $103.49 in store credit to your account ($89.99 + 15% bonus). It\'s available immediately. Is there anything else I can help you with today?',
-      timestamp: new Date(Date.now() - 7 * 60000).toISOString(),
-    },
-  ],
-  createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
-  updatedAt: new Date().toISOString(),
-  customer: { id: 'cust_1', firstName: 'John', lastName: 'Smith', email: 'john@example.com' },
-};
-
-// ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════
 
@@ -303,18 +201,24 @@ export default function ConversationDetailPage() {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadSession = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const data = await csAiApi.getSession(sessionId).catch(() => null);
+      const data = await csAiApi.getSession(sessionId);
       if (data) {
         setSession(data);
       } else {
-        setSession(MOCK_SESSION);
+        setError('Session not found');
+        setSession(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load session:', err);
-      setSession(MOCK_SESSION);
+      setError(err.message || 'Failed to load session');
+      setSession(null);
+      toast.error('Failed to load session. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -333,34 +237,13 @@ export default function ConversationDetailPage() {
 
     setIsSending(true);
     try {
-      const response = await csAiApi.sendMessage(session.id, newMessage).catch(() => null);
+      const response = await csAiApi.sendMessage(session.id, newMessage);
       if (response) {
         setSession(response.session);
-      } else {
-        // Mock response
-        const mockResponse: CSMessage = {
-          id: `msg_${Date.now()}`,
-          role: session.currentTier === 'AI_REP' ? 'ai_rep' : session.currentTier === 'AI_MANAGER' ? 'ai_manager' : 'human_agent',
-          content: 'Thank you for your message. Let me help you with that.',
-          timestamp: new Date().toISOString(),
-        };
-        setSession({
-          ...session,
-          messages: [
-            ...session.messages,
-            {
-              id: `msg_${Date.now() - 1}`,
-              role: 'customer',
-              content: newMessage,
-              timestamp: new Date(Date.now() - 1000).toISOString(),
-            },
-            mockResponse,
-          ],
-        });
       }
       setNewMessage('');
-    } catch (err) {
-      toast.error('Failed to send message');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send message');
     } finally {
       setIsSending(false);
     }

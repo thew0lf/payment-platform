@@ -187,55 +187,22 @@ export default function ChurnRiskDashboardPage() {
         medium,
         avgRiskScore: avgScore,
         revenueAtRisk: revenue,
-        weeklyChange: -3, // Mock data
+        weeklyChange: 0,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to load churn data');
-      // Set mock data for demo
-      setHighRiskCustomers([
-        {
-          customerId: '1',
-          customerName: 'John Smith',
-          customerEmail: 'john@example.com',
-          riskScore: 87,
-          riskLevel: 'CRITICAL',
-          topFactors: ['Payment declined 3x', 'No orders in 45 days', 'Support complaint'],
-          lifetimeValue: 2450,
-          lastOrderDate: '2025-11-15',
-          trend: 'DECLINING',
-        },
-        {
-          customerId: '2',
-          customerName: 'Sarah Johnson',
-          customerEmail: 'sarah@example.com',
-          riskScore: 72,
-          riskLevel: 'HIGH',
-          topFactors: ['Visited cancellation page', 'Subscription downgraded'],
-          lifetimeValue: 1890,
-          lastOrderDate: '2025-12-01',
-          trend: 'STABLE',
-        },
-        {
-          customerId: '3',
-          customerName: 'Mike Williams',
-          customerEmail: 'mike@example.com',
-          riskScore: 65,
-          riskLevel: 'HIGH',
-          topFactors: ['Reduced order frequency', 'Cart abandonment'],
-          lifetimeValue: 3200,
-          lastOrderDate: '2025-12-10',
-          trend: 'DECLINING',
-        },
-      ]);
+      // Clear data on error - no mock/fake data
+      setHighRiskCustomers([]);
       setStats({
-        totalAtRisk: 24,
-        critical: 3,
-        high: 8,
-        medium: 13,
-        avgRiskScore: 62,
-        revenueAtRisk: 45800,
-        weeklyChange: -3,
+        totalAtRisk: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        avgRiskScore: 0,
+        revenueAtRisk: 0,
+        weeklyChange: 0,
       });
+      toast.error('Failed to load churn data. Please try again.');
     } finally {
       setIsLoading(false);
     }

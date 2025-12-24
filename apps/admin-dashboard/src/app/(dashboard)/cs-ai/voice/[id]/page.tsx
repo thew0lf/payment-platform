@@ -282,159 +282,6 @@ function CallFlowVisualization({ steps }: { steps: CallFlowStep[] }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const MOCK_CALL_DETAIL: ExtendedVoiceCall = {
-  id: 'call_001',
-  companyId: 'comp_1',
-  customerId: 'cust_1',
-  direction: 'INBOUND',
-  fromNumber: '+14155551234',
-  toNumber: '+18005551000',
-  status: 'COMPLETED',
-  outcome: 'RESOLVED',
-  duration: 245,
-  overallSentiment: 'SATISFIED',
-  detectedIntents: ['billing_inquiry', 'payment_question'],
-  initiatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-  answeredAt: new Date(Date.now() - 30 * 60000 + 5000).toISOString(),
-  endedAt: new Date(Date.now() - 26 * 60000).toISOString(),
-  clientId: 'client_1',
-  clientName: 'Acme Corp',
-  companyName: 'Acme Coffee',
-  customer: { id: 'cust_1', firstName: 'John', lastName: 'Smith', email: 'john@example.com' },
-  billingDetails: {
-    minutesUsed: 4.08,
-    ratePerMinute: 0.15,
-    totalCost: 0.61,
-    billable: true,
-    breakdown: {
-      aiRepMinutes: 2.5,
-      aiManagerMinutes: 1.58,
-      humanAgentMinutes: 0,
-    },
-  },
-  transcriptSummary: 'Customer called regarding a billing discrepancy on their recent invoice. The AI identified a duplicate charge from a system error. A credit was applied to their account and the customer was satisfied with the resolution.',
-  flowSteps: [
-    {
-      id: 'step_1',
-      type: 'initiation',
-      title: 'Call Initiated',
-      description: 'Inbound call received from +1 (415) 555-1234',
-      timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
-      tier: 'AI_REP',
-    },
-    {
-      id: 'step_2',
-      type: 'greeting',
-      title: 'Greeting & Identification',
-      description: 'Customer identified via phone number lookup',
-      timestamp: new Date(Date.now() - 30 * 60000 + 5000).toISOString(),
-      duration: 15,
-      tier: 'AI_REP',
-      sentiment: 'NEUTRAL',
-      details: {
-        aiResponse: 'Hello John! Thank you for calling Acme Coffee support. How can I help you today?',
-      },
-    },
-    {
-      id: 'step_3',
-      type: 'diagnosis',
-      title: 'Issue Diagnosis',
-      description: 'AI identified billing inquiry with payment concern',
-      timestamp: new Date(Date.now() - 30 * 60000 + 20000).toISOString(),
-      duration: 45,
-      tier: 'AI_REP',
-      sentiment: 'FRUSTRATED',
-      details: {
-        intentsDetected: ['billing_inquiry', 'payment_question', 'possible_error'],
-        customerResponse: 'I was charged twice for my last order and I need this fixed immediately.',
-        aiResponse: 'I understand your frustration, John. Let me look into your recent charges right away.',
-      },
-    },
-    {
-      id: 'step_4',
-      type: 'intervention',
-      title: 'Account Analysis',
-      description: 'AI analyzed account and found duplicate charge',
-      timestamp: new Date(Date.now() - 30 * 60000 + 65000).toISOString(),
-      duration: 30,
-      tier: 'AI_REP',
-      sentiment: 'FRUSTRATED',
-      details: {
-        actionsOffered: [
-          'Review last 30 days of charges',
-          'Identify duplicate transaction',
-          'Calculate refund amount',
-        ],
-        aiResponse: 'I can see there was indeed a duplicate charge on December 15th for $45.99. This appears to be a system error on our end.',
-      },
-    },
-    {
-      id: 'step_5',
-      type: 'escalation',
-      title: 'Escalated to AI Manager',
-      description: 'Escalated for refund authorization',
-      timestamp: new Date(Date.now() - 30 * 60000 + 95000).toISOString(),
-      duration: 10,
-      tier: 'AI_MANAGER',
-      sentiment: 'NEUTRAL',
-      details: {
-        intentsDetected: ['refund_request', 'authorization_needed'],
-        aiResponse: 'I\'m connecting you with our billing specialist who can process this refund immediately.',
-      },
-    },
-    {
-      id: 'step_6',
-      type: 'intervention',
-      title: 'Refund Processing',
-      description: 'AI Manager authorized and processed refund',
-      timestamp: new Date(Date.now() - 30 * 60000 + 105000).toISOString(),
-      duration: 85,
-      tier: 'AI_MANAGER',
-      sentiment: 'SATISFIED',
-      details: {
-        actionsOffered: [
-          'Authorize immediate refund of $45.99',
-          'Add 10% courtesy credit ($4.60)',
-          'Send confirmation email',
-        ],
-        customerResponse: 'Oh that\'s great, thank you so much!',
-        aiResponse: 'I\'ve processed a full refund of $45.99 plus a 10% courtesy credit. You should see this reflected in 3-5 business days.',
-      },
-    },
-    {
-      id: 'step_7',
-      type: 'resolution',
-      title: 'Issue Resolved',
-      description: 'Customer satisfied, refund confirmed',
-      timestamp: new Date(Date.now() - 30 * 60000 + 190000).toISOString(),
-      duration: 55,
-      tier: 'AI_MANAGER',
-      sentiment: 'HAPPY',
-      success: true,
-      details: {
-        actionsOffered: [
-          'Confirmation email sent',
-          'Case logged for billing team review',
-          'Follow-up scheduled if needed',
-        ],
-        customerResponse: 'This was so easy! Thank you!',
-      },
-    },
-    {
-      id: 'step_8',
-      type: 'end',
-      title: 'Call Ended',
-      description: 'Customer ended call - positive outcome',
-      timestamp: new Date(Date.now() - 30 * 60000 + 245000).toISOString(),
-      success: true,
-    },
-  ],
-};
-
-// ═══════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════
 
@@ -447,28 +294,24 @@ export default function VoiceCallDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadCall = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const callData = await voiceAiApi.getCall(callId).catch(() => null);
-
+      const callData = await voiceAiApi.getCall(callId);
       if (callData) {
-        // In real implementation, flow steps would come from backend
-        setCall({
-          ...callData,
-          flowSteps: MOCK_CALL_DETAIL.flowSteps,
-          billingDetails: MOCK_CALL_DETAIL.billingDetails,
-          transcriptSummary: MOCK_CALL_DETAIL.transcriptSummary,
-          clientName: 'Acme Corp',
-          companyName: 'Acme Coffee',
-        } as ExtendedVoiceCall);
+        setCall(callData as ExtendedVoiceCall);
       } else {
-        // Use mock data
-        setCall(MOCK_CALL_DETAIL);
+        setError('Call not found');
+        setCall(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load call:', err);
-      setCall(MOCK_CALL_DETAIL);
+      setError(err.message || 'Failed to load call details');
+      setCall(null);
+      toast.error('Failed to load call details. Please try again.');
     } finally {
       setIsLoading(false);
     }

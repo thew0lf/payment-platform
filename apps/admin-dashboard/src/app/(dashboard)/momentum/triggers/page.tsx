@@ -63,114 +63,6 @@ const CATEGORY_CONFIG: Record<TriggerCategory, { label: string; icon: typeof Zap
   FOMO: { label: 'FOMO', icon: Bell, color: 'text-yellow-400 bg-yellow-500/10' },
 };
 
-// Mock triggers data
-const MOCK_TRIGGERS: BehavioralTrigger[] = [
-  {
-    id: '1',
-    name: 'Limited Time Offer',
-    code: 'URGENCY_LIMITED_TIME',
-    category: 'URGENCY',
-    description: 'Creates urgency with a countdown timer or deadline',
-    template: 'Offer expires in {{timeRemaining}}! Act now to save {{discount}}.',
-    variables: ['timeRemaining', 'discount'],
-    effectiveness: 85,
-    usageCount: 1250,
-    isActive: true,
-    contexts: ['email', 'web', 'sms'],
-  },
-  {
-    id: '2',
-    name: 'Low Stock Alert',
-    code: 'SCARCITY_LOW_STOCK',
-    category: 'SCARCITY',
-    description: 'Shows limited inventory to encourage quick decisions',
-    template: 'Only {{quantity}} left in stock! {{viewerCount}} people viewing now.',
-    variables: ['quantity', 'viewerCount'],
-    effectiveness: 78,
-    usageCount: 890,
-    isActive: true,
-    contexts: ['web', 'email'],
-  },
-  {
-    id: '3',
-    name: 'Recent Purchases',
-    code: 'SOCIAL_RECENT_PURCHASES',
-    category: 'SOCIAL_PROOF',
-    description: 'Shows recent customer activity and purchases',
-    template: '{{customerName}} from {{location}} just purchased this {{timeAgo}}.',
-    variables: ['customerName', 'location', 'timeAgo'],
-    effectiveness: 72,
-    usageCount: 2100,
-    isActive: true,
-    contexts: ['web'],
-  },
-  {
-    id: '4',
-    name: 'You\'ll Miss Out',
-    code: 'LOSS_AVERSION_MISS_OUT',
-    category: 'LOSS_AVERSION',
-    description: 'Highlights what the customer will lose by not acting',
-    template: 'Don\'t miss out on {{benefit}}! Your {{reward}} expires {{deadline}}.',
-    variables: ['benefit', 'reward', 'deadline'],
-    effectiveness: 81,
-    usageCount: 560,
-    isActive: true,
-    contexts: ['email', 'sms'],
-  },
-  {
-    id: '5',
-    name: 'Expert Recommendation',
-    code: 'AUTHORITY_EXPERT',
-    category: 'AUTHORITY',
-    description: 'Leverages expert endorsements and certifications',
-    template: 'Recommended by {{expertName}}, {{expertTitle}}. Trusted by {{customerCount}}+ customers.',
-    variables: ['expertName', 'expertTitle', 'customerCount'],
-    effectiveness: 68,
-    usageCount: 340,
-    isActive: true,
-    contexts: ['web', 'email'],
-  },
-  {
-    id: '6',
-    name: 'Free Gift',
-    code: 'RECIPROCITY_FREE_GIFT',
-    category: 'RECIPROCITY',
-    description: 'Offers something free to encourage reciprocal action',
-    template: 'Get a FREE {{giftName}} (worth ${{giftValue}}) with your order today!',
-    variables: ['giftName', 'giftValue'],
-    effectiveness: 76,
-    usageCount: 720,
-    isActive: true,
-    contexts: ['email', 'web', 'sms'],
-  },
-  {
-    id: '7',
-    name: 'Almost There',
-    code: 'COMMITMENT_ALMOST_THERE',
-    category: 'COMMITMENT',
-    description: 'Leverages progress and sunk cost to encourage completion',
-    template: 'You\'re {{progress}}% there! Just {{remaining}} left to unlock {{reward}}.',
-    variables: ['progress', 'remaining', 'reward'],
-    effectiveness: 74,
-    usageCount: 480,
-    isActive: true,
-    contexts: ['email', 'web'],
-  },
-  {
-    id: '8',
-    name: 'Last Chance',
-    code: 'FOMO_LAST_CHANCE',
-    category: 'FOMO',
-    description: 'Creates fear of missing out on exclusive opportunities',
-    template: '🚨 LAST CHANCE: {{offerName}} ends tonight! {{claimedCount}} already claimed.',
-    variables: ['offerName', 'claimedCount'],
-    effectiveness: 83,
-    usageCount: 1100,
-    isActive: true,
-    contexts: ['email', 'sms', 'push'],
-  },
-];
-
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════
@@ -270,15 +162,20 @@ export default function TriggersPage() {
   const [applyContent, setApplyContent] = useState('');
   const [applyVariables, setApplyVariables] = useState<Record<string, string>>({});
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await triggersApi.getAll();
       setTriggers(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load triggers:', err);
-      // Use mock data
-      setTriggers(MOCK_TRIGGERS);
+      setError(err.message || 'Failed to load triggers');
+      // Clear data on error - no mock/fake data
+      setTriggers([]);
+      toast.error('Failed to load triggers. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -322,16 +219,8 @@ export default function TriggersPage() {
       });
       toast.success('Trigger applied successfully');
       setApplyContent(result.enhancedContent);
-    } catch (err) {
-      // Mock the enhancement
-      let enhanced = applyContent;
-      let template = selectedTrigger.template;
-      Object.entries(applyVariables).forEach(([key, value]) => {
-        template = template.replace(`{{${key}}}`, value || `[${key}]`);
-      });
-      enhanced = applyContent + '\n\n' + template;
-      setApplyContent(enhanced);
-      toast.success('Trigger applied');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to apply trigger. Please try again.');
     }
   };
 
