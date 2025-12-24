@@ -2,6 +2,7 @@
 import { Module, Global, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 import { EmailService } from './services/email.service';
 import { TemplateRendererService } from './services/template-renderer.service';
 import { EmailQueueService } from './services/email-queue.service';
@@ -13,6 +14,7 @@ import { EmailQueueController } from './controllers/email-queue.controller';
   imports: [
     PrismaModule,
     forwardRef(() => AuditLogsModule),
+    forwardRef(() => IntegrationsModule),
   ],
   controllers: [EmailQueueController],
   providers: [

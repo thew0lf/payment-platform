@@ -95,24 +95,37 @@ export class RoutingController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<RoutingRule> {
-    // Note: Service should validate company access on the returned rule
-    return this.service.findById(id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RoutingRule> {
+    // Security: First fetch the rule, then verify access to its company
+    const rule = await this.service.findById(id);
+    await this.verifyCompanyAccess(user, rule.companyId);
+    return rule;
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateRoutingRuleDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<RoutingRule> {
-    // Note: Service should validate company access on the rule being updated
+    // Security: Verify access to the rule's company before updating
+    const rule = await this.service.findById(id);
+    await this.verifyCompanyAccess(user, rule.companyId);
     return this.service.update(id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string): Promise<void> {
-    // Note: Service should validate company access on the rule being deleted
+  async delete(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    // Security: Verify access to the rule's company before deleting
+    const rule = await this.service.findById(id);
+    await this.verifyCompanyAccess(user, rule.companyId);
     return this.service.delete(id);
   }
 

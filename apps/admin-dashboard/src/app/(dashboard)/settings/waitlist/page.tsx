@@ -133,7 +133,7 @@ export default function WaitlistPage() {
       setStats(statsResult);
     } catch (err: any) {
       console.error('Failed to fetch waitlist:', err);
-      setError(err.message || 'Failed to fetch waitlist');
+      setError(err.message || "We couldn't load the waitlist right now. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -186,13 +186,13 @@ export default function WaitlistPage() {
     try {
       const result = await waitlistApi.sendInvite(entryToInvite.id);
       if (result.success) {
-        toast.success(`Invite sent to ${getWaitlistEntryName(entryToInvite)}!`);
+        toast.success(`VIP invite on its way to ${getWaitlistEntryName(entryToInvite)}!`);
         fetchEntries();
       } else {
-        toast.error(result.message);
+        toast.error(result.message || "We couldn't send that invite. The email may have bounced previously.");
       }
     } catch (err: any) {
-      toast.error('Failed to send invite. Please try again.');
+      toast.error("Something went wrong sending the invite. Check the email address and try again.");
     } finally {
       setIsSendingInvite(false);
       setEntryToInvite(null);
@@ -205,11 +205,15 @@ export default function WaitlistPage() {
 
     try {
       const result = await waitlistApi.sendBulkInvites(selectedInvitable);
-      toast.success(`Sent ${result.sent} invites! (${result.failed} failed)`);
+      if (result.failed === 0) {
+        toast.success(`${result.sent} VIP invites sent successfully!`);
+      } else {
+        toast.success(`Sent ${result.sent} invites. ${result.failed} couldn't be delivered—check those email addresses.`);
+      }
       setSelectedIds(new Set());
       fetchEntries();
     } catch (err: any) {
-      toast.error('Failed to send bulk invites. Please try again.');
+      toast.error("We couldn't send those invites. Please try again or send them individually.");
     } finally {
       setIsSendingBulkInvites(false);
     }
@@ -220,26 +224,54 @@ export default function WaitlistPage() {
 
     try {
       await waitlistApi.delete(entryToDelete.id);
-      toast.success(`Removed ${getWaitlistEntryName(entryToDelete)} from waitlist`);
+      toast.success(`${getWaitlistEntryName(entryToDelete)} has been removed from the waitlist.`);
       fetchEntries();
     } catch (err: any) {
-      toast.error('Failed to delete. Please try again.');
+      toast.error("We couldn't remove this founder. They may have already registered.");
     } finally {
       setEntryToDelete(null);
     }
   };
 
-  const copyReferralLink = (entry: WaitlistEntry) => {
+  const copyReferralLink = async (entry: WaitlistEntry) => {
     const link = `${window.location.origin}/founders?ref=${entry.referralCode}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Referral link copied to clipboard!');
+
+    try {
+      // Try the modern clipboard API first
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(link);
+        toast.success('Referral link copied—share it to help them move up the list!');
+      } else {
+        // Fallback for browsers without clipboard API or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = link;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          toast.success('Referral link copied—share it to help them move up the list!');
+        } else {
+          toast.error('Could not copy link. Please copy manually: ' + link);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Could not copy link. Please try again.');
+    }
   };
 
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newEntry.email || !newEntry.email.includes('@')) {
-      toast.error('Please enter a valid email address');
+      toast.error("That email doesn't look quite right. Make sure it includes an @ symbol.");
       return;
     }
 
@@ -254,12 +286,16 @@ export default function WaitlistPage() {
         phone: newEntry.phone || undefined,
       });
 
-      toast.success(`Added ${entry.email} to the waitlist as ${entry.founderNumber}!`);
+      toast.success(`Welcome ${entry.founderNumber}! ${entry.email} is now on the waitlist.`);
       setShowAddModal(false);
       setNewEntry({ email: '', firstName: '', lastName: '', companyName: '', phone: '' });
       fetchEntries();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add to waitlist. Email may already be registered.');
+      if (err.message?.includes('already') || err.message?.includes('exists')) {
+        toast.error("This email is already on the waitlist. Search for them above!");
+      } else {
+        toast.error(err.message || "We couldn't add this founder right now. Please try again.");
+      }
     } finally {
       setIsAddingEntry(false);
     }
@@ -305,11 +341,11 @@ export default function WaitlistPage() {
       }
 
       await waitlistApi.update(entryToEdit.id, updateData);
-      toast.success(`Updated ${getWaitlistEntryName(entryToEdit)} successfully!`);
+      toast.success(`${getWaitlistEntryName(entryToEdit)} updated—changes saved!`);
       setEntryToEdit(null);
       fetchEntries();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update entry. Please try again.');
+      toast.error(err.message || "We couldn't save those changes. Please try again.");
     } finally {
       setIsEditingEntry(false);
     }
@@ -468,7 +504,7 @@ export default function WaitlistPage() {
           <Card>
             <CardContent className="p-8 text-center">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Failed to load waitlist</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Couldn&apos;t load the waitlist</h3>
               <p className="text-sm text-muted-foreground mb-4">{error}</p>
               <Button onClick={fetchEntries}>Try Again</Button>
             </CardContent>
@@ -479,14 +515,23 @@ export default function WaitlistPage() {
               <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
                 {search || statusFilter !== 'all' || hasReferralsFilter
-                  ? 'No founders found'
-                  : 'No founders on the waitlist yet'}
+                  ? 'No matching founders'
+                  : 'Your founder community awaits'}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {search || statusFilter !== 'all' || hasReferralsFilter
-                  ? 'Try different filters or search terms'
-                  : 'Share your waitlist link to start building your founder community.'}
+                  ? "We couldn't find anyone matching those criteria. Try adjusting your search or clearing the filters."
+                  : 'Share your waitlist link to start building your VIP founder community, or add founders manually.'}
               </p>
+              {!(search || statusFilter !== 'all' || hasReferralsFilter) && (
+                <Button
+                  onClick={() => setShowAddModal(true)}
+                  className="mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Your First Founder
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -625,16 +670,18 @@ export default function WaitlistPage() {
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Send Invite</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Send VIP Invite?</h3>
                   <p className="text-sm text-muted-foreground">
-                    {getWaitlistEntryName(entryToInvite)} ({entryToInvite.founderNumber})
+                    {getWaitlistEntryName(entryToInvite)} • {entryToInvite.founderNumber}
                   </p>
                 </div>
               </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                We&apos;ll send an exclusive founding member invitation to{' '}
+                <strong>{entryToInvite.email}</strong>.
+              </p>
               <p className="text-sm text-muted-foreground mb-6">
-                This will send a VIP founding member invitation email to{' '}
-                <strong>{entryToInvite.email}</strong>. They will have 7 days to accept and
-                complete their registration.
+                They&apos;ll have <strong>7 days</strong> to claim their spot and complete registration.
               </p>
               <div className="flex gap-3 justify-end">
                 <Button
@@ -642,10 +689,10 @@ export default function WaitlistPage() {
                   onClick={() => setEntryToInvite(null)}
                   disabled={isSendingInvite}
                 >
-                  Cancel
+                  Not Yet
                 </Button>
                 <Button onClick={handleSendInvite} disabled={isSendingInvite}>
-                  {isSendingInvite ? 'Sending...' : 'Send Invite'}
+                  {isSendingInvite ? 'Sending invite...' : 'Send VIP Invite'}
                 </Button>
               </div>
             </div>
@@ -659,19 +706,23 @@ export default function WaitlistPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Remove from Waitlist?
+                Remove {getWaitlistEntryName(entryToDelete)}?
               </h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                This will remove <strong>{entryToDelete.founderNumber}</strong> from the waitlist.
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Are you sure you want to remove{' '}
-                <strong>{getWaitlistEntryName(entryToDelete)}</strong> (
-                {entryToDelete.founderNumber}) from the waitlist? This action cannot be undone.
+                Their founder number will be released and they&apos;ll need to sign up again if they want back in.
+              </p>
+              <p className="text-sm text-red-400 mb-4">
+                This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" onClick={() => setEntryToDelete(null)}>
-                  Cancel
+                  Keep on Waitlist
                 </Button>
                 <Button variant="destructive" onClick={handleDelete}>
-                  Remove
+                  Yes, Remove
                 </Button>
               </div>
             </div>
@@ -689,9 +740,9 @@ export default function WaitlistPage() {
                   <UserPlus className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Add to Waitlist</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Add a Founder</h3>
                   <p className="text-sm text-muted-foreground">
-                    Add a new founding member manually
+                    Give someone VIP access to your waitlist
                   </p>
                 </div>
               </div>
@@ -708,11 +759,12 @@ export default function WaitlistPage() {
                       type="email"
                       value={newEntry.email}
                       onChange={(e) => setNewEntry({ ...newEntry, email: e.target.value })}
-                      placeholder="founder@example.com"
+                      placeholder="sarah@startup.com"
                       className="pl-10"
                       required
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">They&apos;ll receive their founder number at this address</p>
                 </div>
 
                 {/* Name fields */}
@@ -723,7 +775,7 @@ export default function WaitlistPage() {
                       type="text"
                       value={newEntry.firstName}
                       onChange={(e) => setNewEntry({ ...newEntry, firstName: e.target.value })}
-                      placeholder="John"
+                      placeholder="Sarah"
                     />
                   </div>
                   <div>
@@ -732,7 +784,7 @@ export default function WaitlistPage() {
                       type="text"
                       value={newEntry.lastName}
                       onChange={(e) => setNewEntry({ ...newEntry, lastName: e.target.value })}
-                      placeholder="Doe"
+                      placeholder="Chen"
                     />
                   </div>
                 </div>
@@ -746,10 +798,11 @@ export default function WaitlistPage() {
                       type="text"
                       value={newEntry.companyName}
                       onChange={(e) => setNewEntry({ ...newEntry, companyName: e.target.value })}
-                      placeholder="Acme Inc."
+                      placeholder="Rocket Commerce"
                       className="pl-10"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Helps personalize their founder experience</p>
                 </div>
 
                 {/* Phone */}
@@ -787,12 +840,12 @@ export default function WaitlistPage() {
                     {isAddingEntry ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Adding...
+                        Adding founder...
                       </>
                     ) : (
                       <>
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Founder
+                        Add to Waitlist
                       </>
                     )}
                   </Button>
@@ -813,9 +866,9 @@ export default function WaitlistPage() {
                   <Pencil className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Edit Founder</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Edit Founder Details</h3>
                   <p className="text-sm text-muted-foreground">
-                    {entryToEdit.founderNumber} - {entryToEdit.email}
+                    {entryToEdit.founderNumber} • {entryToEdit.email}
                   </p>
                 </div>
               </div>
@@ -829,7 +882,7 @@ export default function WaitlistPage() {
                       type="text"
                       value={editFormData.firstName}
                       onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
-                      placeholder="John"
+                      placeholder="Sarah"
                     />
                   </div>
                   <div>
@@ -838,7 +891,7 @@ export default function WaitlistPage() {
                       type="text"
                       value={editFormData.lastName}
                       onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
-                      placeholder="Doe"
+                      placeholder="Chen"
                     />
                   </div>
                 </div>
@@ -852,7 +905,7 @@ export default function WaitlistPage() {
                       type="text"
                       value={editFormData.companyName}
                       onChange={(e) => setEditFormData({ ...editFormData, companyName: e.target.value })}
-                      placeholder="Acme Inc."
+                      placeholder="Rocket Commerce"
                       className="pl-10"
                     />
                   </div>
@@ -891,6 +944,7 @@ export default function WaitlistPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Changing status won&apos;t automatically send emails</p>
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4 border-t border-border">
@@ -910,7 +964,7 @@ export default function WaitlistPage() {
                     {isEditingEntry ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving...
+                        Saving changes...
                       </>
                     ) : (
                       <>

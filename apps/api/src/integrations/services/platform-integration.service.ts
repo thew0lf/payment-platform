@@ -118,8 +118,9 @@ export class PlatformIntegrationService {
     return this.toResponse(integration);
   }
 
-  async update(id: string, dto: UpdatePlatformIntegrationDto, updatedBy: string): Promise<PlatformIntegration> {
-    const integration = await this.prisma.platformIntegration.findUnique({ where: { id } });
+  async update(id: string, organizationId: string, dto: UpdatePlatformIntegrationDto, updatedBy: string): Promise<PlatformIntegration> {
+    // Security: Verify integration belongs to the requesting organization
+    const integration = await this.prisma.platformIntegration.findFirst({ where: { id, organizationId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
 
     const updateData: any = { updatedBy, updatedAt: new Date() };
@@ -136,8 +137,9 @@ export class PlatformIntegrationService {
     return this.toResponse(updated);
   }
 
-  async delete(id: string): Promise<void> {
-    const integration = await this.prisma.platformIntegration.findUnique({ where: { id } });
+  async delete(id: string, organizationId: string): Promise<void> {
+    // Security: Verify integration belongs to the requesting organization
+    const integration = await this.prisma.platformIntegration.findFirst({ where: { id, organizationId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
     const clientRefs = await this.prisma.clientIntegration.count({ where: { platformIntegrationId: id } });
     if (clientRefs > 0) throw new BadRequestException(`Cannot delete: ${clientRefs} client integrations reference this`);
@@ -155,6 +157,42 @@ export class PlatformIntegrationService {
     return integration ? this.toResponse(integration) : null;
   }
 
+  /**
+   * Get decrypted credentials for a platform integration by provider
+   * Used by internal services (email, SMS, etc.) to get configured credentials
+   */
+  async getCredentialsByProvider<T = Record<string, any>>(
+    organizationId: string,
+    provider: IntegrationProvider,
+  ): Promise<{ credentials: T; environment: string } | null> {
+    const integration = await this.prisma.platformIntegration.findFirst({
+      where: { organizationId, provider, status: IntegrationStatus.ACTIVE },
+    });
+
+    if (!integration?.credentials) {
+      return null;
+    }
+
+    try {
+      const credentials = this.encryptionService.decrypt(integration.credentials as any) as T;
+      return { credentials, environment: integration.environment };
+    } catch (error) {
+      this.logger.error(`Failed to decrypt credentials for ${provider}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get the default organization ID (for system-level services)
+   * Returns the first organization's ID
+   */
+  async getDefaultOrganizationId(): Promise<string | null> {
+    const org = await this.prisma.organization.findFirst({
+      select: { id: true },
+    });
+    return org?.id || null;
+  }
+
   async getSharedIntegrations(organizationId: string): Promise<PlatformIntegration[]> {
     const integrations = await this.prisma.platformIntegration.findMany({
       where: { organizationId, isSharedWithClients: true, status: IntegrationStatus.ACTIVE },
@@ -162,12 +200,13 @@ export class PlatformIntegrationService {
     return integrations.map((i) => this.toResponse(i));
   }
 
-  async configureSharing(id: string, dto: ConfigureClientSharingDto, updatedBy: string): Promise<PlatformIntegration> {
-    return this.update(id, { isSharedWithClients: dto.isSharedWithClients, clientPricing: dto.clientPricing }, updatedBy);
+  async configureSharing(id: string, organizationId: string, dto: ConfigureClientSharingDto, updatedBy: string): Promise<PlatformIntegration> {
+    return this.update(id, organizationId, { isSharedWithClients: dto.isSharedWithClients, clientPricing: dto.clientPricing }, updatedBy);
   }
 
-  async test(id: string): Promise<IntegrationTestResult> {
-    const integration = await this.prisma.platformIntegration.findUnique({ where: { id } });
+  async test(id: string, organizationId: string): Promise<IntegrationTestResult> {
+    // Security: Verify integration belongs to the requesting organization
+    const integration = await this.prisma.platformIntegration.findFirst({ where: { id, organizationId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
     const startTime = Date.now();
     try {
@@ -188,8 +227,11 @@ export class PlatformIntegrationService {
     }
   }
 
-  async getDecryptedCredentials(id: string): Promise<Record<string, any>> {
-    const integration = await this.prisma.platformIntegration.findUnique({ where: { id } });
+  async getDecryptedCredentials(id: string, organizationId?: string): Promise<Record<string, any>> {
+    // Security: If organizationId is provided, verify integration belongs to that organization
+    // If not provided (internal service calls), allow access
+    const where = organizationId ? { id, organizationId } : { id };
+    const integration = await this.prisma.platformIntegration.findFirst({ where });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
     return this.encryptionService.decrypt(integration.credentials as any) as Record<string, any>;
   }

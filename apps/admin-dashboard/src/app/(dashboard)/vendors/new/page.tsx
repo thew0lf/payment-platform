@@ -79,7 +79,21 @@ export default function NewVendorPage() {
       router.push(`/vendors/${vendor.id}`);
     } catch (err: unknown) {
       console.error('Failed to create vendor:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create vendor. Please try again.';
+      // User-friendly error messages based on common scenarios
+      let errorMessage = "We couldn't create this vendor right now. Please check your connection and try again.";
+      if (err instanceof Error) {
+        if (err.message.includes('slug') && err.message.includes('exists')) {
+          errorMessage = `A vendor with the slug "${formData.slug}" already exists. Try a different name or customize the slug.`;
+        } else if (err.message.includes('email') && err.message.includes('invalid')) {
+          errorMessage = "That email address doesn't look quite right. Please check the format (e.g., name@company.com).";
+        } else if (err.message.includes('url') || err.message.includes('website')) {
+          errorMessage = "The website URL needs to include https:// (e.g., https://vendor.com).";
+        } else if (err.message.includes('required')) {
+          errorMessage = "Please fill in all required fields marked with *.";
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = "Connection issue—please check your internet and try again.";
+        }
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,7 +115,7 @@ export default function NewVendorPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Add New Vendor</h1>
-          <p className="text-sm text-muted-foreground mt-1">Create a new vendor in your network</p>
+          <p className="text-sm text-muted-foreground mt-1">Expand your network with a new vendor partner</p>
         </div>
       </div>
 
@@ -132,9 +146,10 @@ export default function NewVendorPage() {
                   required
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g., Premium Suppliers Inc."
+                  placeholder="Acme Fulfillment Co."
                   className={inputClasses}
                 />
+                <p className="text-xs text-muted-foreground mt-1">The name you'll see in your dashboard</p>
               </div>
               <div>
                 <label className={labelClasses}>
@@ -145,10 +160,10 @@ export default function NewVendorPage() {
                   required
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="e.g., premium-suppliers-inc"
+                  placeholder="acme-fulfillment"
                   className={inputClasses}
                 />
-                <p className="text-xs text-muted-foreground mt-1">URL-friendly identifier</p>
+                <p className="text-xs text-muted-foreground mt-1">Auto-generated from name—customize if needed</p>
               </div>
             </div>
 
@@ -158,9 +173,10 @@ export default function NewVendorPage() {
                 type="text"
                 value={formData.businessName || ''}
                 onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                placeholder="Legal business name"
+                placeholder="Acme Fulfillment Corporation"
                 className={inputClasses}
               />
+              <p className="text-xs text-muted-foreground mt-1">Official registered business name (if different)</p>
             </div>
 
             <div>
@@ -169,9 +185,10 @@ export default function NewVendorPage() {
                 type="text"
                 value={formData.taxId || ''}
                 onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                placeholder="e.g., 12-3456789"
+                placeholder="12-3456789"
                 className={inputClasses}
               />
+              <p className="text-xs text-muted-foreground mt-1">EIN or tax identification number for invoicing</p>
             </div>
 
             <div>
@@ -182,7 +199,7 @@ export default function NewVendorPage() {
                   type="url"
                   value={formData.website || ''}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://example.com"
+                  placeholder="https://acmefulfillment.com"
                   className={cn(inputClasses, 'pl-10')}
                 />
               </div>
@@ -193,10 +210,11 @@ export default function NewVendorPage() {
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of the vendor..."
+                placeholder="What does this vendor provide? E.g., Same-day fulfillment for US orders with warehouses in CA, TX, and NY."
                 rows={3}
                 className={cn(inputClasses, 'resize-none')}
               />
+              <p className="text-xs text-muted-foreground mt-1">Help your team understand what this vendor offers</p>
             </div>
           </div>
         </div>
@@ -215,9 +233,10 @@ export default function NewVendorPage() {
                 type="text"
                 value={formData.contactName || ''}
                 onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                placeholder="Primary contact person"
+                placeholder="Jane Smith"
                 className={inputClasses}
               />
+              <p className="text-xs text-muted-foreground mt-1">Who should we reach out to for questions?</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -229,10 +248,11 @@ export default function NewVendorPage() {
                     type="email"
                     value={formData.contactEmail || ''}
                     onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                    placeholder="contact@vendor.com"
+                    placeholder="jane@acmefulfillment.com"
                     className={cn(inputClasses, 'pl-10')}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Best email for order updates</p>
               </div>
               <div>
                 <label className={labelClasses}>Phone</label>
@@ -246,6 +266,7 @@ export default function NewVendorPage() {
                     className={cn(inputClasses, 'pl-10')}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">For urgent fulfillment issues</p>
               </div>
             </div>
           </div>
@@ -294,7 +315,7 @@ export default function NewVendorPage() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Creating...
+                Setting up your vendor...
               </>
             ) : (
               <>

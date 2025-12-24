@@ -92,6 +92,16 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
   const isOrgLevel = accessLevel === 'ORGANIZATION';
   const isClientLevel = accessLevel === 'CLIENT';
 
+  // DEBUG: Log hierarchy context values
+  console.log('[Sidebar Debug]', {
+    accessLevel,
+    isOrgLevel,
+    isClientLevel,
+    availableCompaniesCount: availableCompanies.length,
+    collapsed,
+    showCondition: (isOrgLevel || isClientLevel) && availableCompanies.length > 0 && !collapsed,
+  });
+
   const selectedClient = availableClients.find((c) => c.id === selectedClientId);
   const selectedCompany = availableCompanies.find((c) => c.id === selectedCompanyId);
 

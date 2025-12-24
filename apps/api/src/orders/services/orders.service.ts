@@ -148,7 +148,9 @@ export class OrdersService {
     companyId: string | undefined,
     query: OrderQueryDto,
   ): Promise<{ orders: Order[]; total: number } | CursorPaginatedResponse<Order>> {
-    const where: Prisma.OrderWhereInput = {};
+    const where: Prisma.OrderWhereInput = {
+      deletedAt: null,  // Security: Exclude soft-deleted records
+    };
 
     // Only filter by companyId if provided (undefined = all orders for org/client admins)
     if (companyId) {

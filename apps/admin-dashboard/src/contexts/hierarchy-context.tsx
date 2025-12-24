@@ -74,6 +74,11 @@ export function HierarchyProvider({ children }: { children: ReactNode }) {
     try {
       // Call the real hierarchy API (token is read from localStorage automatically)
       const response = await api.getAccessibleHierarchy();
+      console.log('[Hierarchy Context] Loaded:', {
+        clients: response.data.clients?.length || 0,
+        companies: response.data.companies?.length || 0,
+        departments: response.data.departments?.length || 0,
+      });
       setAvailableClients(response.data.clients || []);
       setAvailableCompanies(response.data.companies || []);
       setAvailableDepartments(response.data.departments || []);

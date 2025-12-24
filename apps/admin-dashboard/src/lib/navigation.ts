@@ -75,6 +75,8 @@ export interface NavItem {
   badge?: number | string;
   badgeKey?: keyof NavBadges;
   badgeVariant?: 'default' | 'warning' | 'error';
+  requiredScopes?: ScopeType[];
+  requiredRoles?: UserRole[];
 }
 
 export interface NavSection {
@@ -250,16 +252,17 @@ export const navigationSections: NavSection[] = [
     ],
   },
 
-  // Organization Management - Organization level only
+  // Organization Management - Organization and Client levels
   {
     id: 'organization',
     label: 'Organization',
     icon: Building,
     defaultExpanded: false,
-    requiredScopes: ['ORGANIZATION'],
+    requiredScopes: ['ORGANIZATION', 'CLIENT'],
     items: [
-      { id: 'clients', label: 'Clients', href: '/clients', icon: Building },
+      { id: 'clients', label: 'Clients', href: '/clients', icon: Building, requiredScopes: ['ORGANIZATION'] },
       { id: 'companies', label: 'Companies', href: '/companies', icon: Building2 },
+      { id: 'sites', label: 'Sites', href: '/sites', icon: Store },
     ],
   },
 
@@ -343,24 +346,49 @@ export const navigationSections: NavSection[] = [
 
 /**
  * Get navigation sections filtered by user scope and role
+ * Also filters individual items within sections based on their scope requirements
  */
 export function getNavigationSections(
   scopeType: ScopeType,
   role: UserRole
 ): NavSection[] {
-  return navigationSections.filter((section) => {
-    // Check scope requirements
-    if (section.requiredScopes && !section.requiredScopes.includes(scopeType)) {
-      return false;
-    }
+  return navigationSections
+    .filter((section) => {
+      // Check scope requirements at section level
+      if (section.requiredScopes && !section.requiredScopes.includes(scopeType)) {
+        return false;
+      }
 
-    // Check role requirements
-    if (section.requiredRoles && !section.requiredRoles.includes(role)) {
-      return false;
-    }
+      // Check role requirements at section level
+      if (section.requiredRoles && !section.requiredRoles.includes(role)) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .map((section) => {
+      // Filter items within each section based on their scope/role requirements
+      const filteredItems = section.items.filter((item) => {
+        // Check scope requirements at item level
+        if (item.requiredScopes && !item.requiredScopes.includes(scopeType)) {
+          return false;
+        }
+
+        // Check role requirements at item level
+        if (item.requiredRoles && !item.requiredRoles.includes(role)) {
+          return false;
+        }
+
+        return true;
+      });
+
+      return {
+        ...section,
+        items: filteredItems,
+      };
+    })
+    // Remove sections that have no visible items after filtering
+    .filter((section) => section.items.length > 0);
 }
 
 /**

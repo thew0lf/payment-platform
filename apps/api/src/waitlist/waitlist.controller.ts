@@ -19,10 +19,10 @@ import {
   UpdateWaitlistDto,
   WaitlistStats,
   WaitlistFilter,
-  WaitlistStatus,
   CompleteRegistrationDto,
   RegistrationResult,
 } from './types/waitlist.types';
+import { WaitlistStatus } from '@prisma/client';
 
 @Controller('admin/waitlist')
 @UseGuards(JwtAuthGuard)
@@ -34,14 +34,14 @@ export class WaitlistController {
   @Get()
   async findAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('status') status?: WaitlistStatus,
+    @Query('status') status?: string,
     @Query('search') search?: string,
     @Query('hasReferrals') hasReferrals?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ): Promise<{ items: WaitlistEntry[]; total: number }> {
     const filter: WaitlistFilter = {};
-    if (status) filter.status = status;
+    if (status) filter.status = status as WaitlistStatus;
     if (search) filter.search = search;
     if (hasReferrals === 'true') filter.hasReferrals = true;
 

@@ -35,6 +35,7 @@ import {
 } from '@/lib/api/companies';
 import { clientsApi, Client } from '@/lib/api/clients';
 import { createPortal } from 'react-dom';
+import { useAuth } from '@/contexts/auth-context';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -74,13 +75,19 @@ interface CompanyFormModalProps {
   company?: Company | null;
   clients: Client[];
   defaultClientId?: string;
+  userScopeType?: string;
+  userClientId?: string;
   onClose: () => void;
   onSave: (data: CreateCompanyInput | UpdateCompanyInput) => Promise<void>;
   loading: boolean;
 }
 
-function CompanyFormModal({ company, clients, defaultClientId, onClose, onSave, loading }: CompanyFormModalProps) {
-  const [clientId, setClientId] = useState(company?.clientId || defaultClientId || '');
+function CompanyFormModal({ company, clients, defaultClientId, userScopeType, userClientId, onClose, onSave, loading }: CompanyFormModalProps) {
+  // For CLIENT-scoped users, auto-set clientId to their own client
+  const isClientScoped = userScopeType === 'CLIENT';
+  const initialClientId = isClientScoped && userClientId ? userClientId : (company?.clientId || defaultClientId || '');
+
+  const [clientId, setClientId] = useState(initialClientId);
   const [name, setName] = useState(company?.name || '');
   const [domain, setDomain] = useState(company?.domain || '');
   const [timezone, setTimezone] = useState(company?.timezone || 'UTC');
@@ -135,8 +142,8 @@ function CompanyFormModal({ company, clients, defaultClientId, onClose, onSave, 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Client (only for create) */}
-          {!company && (
+          {/* Client (only for create, and only for ORGANIZATION-scoped users) */}
+          {!company && !isClientScoped && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
                 Client <span className="text-red-400">*</span>
@@ -321,6 +328,7 @@ function DeleteModal({ company, onClose, onConfirm, loading }: DeleteModalProps)
 export default function CompaniesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const clientIdFilter = searchParams?.get('clientId') || '';
 
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -550,7 +558,7 @@ export default function CompaniesPage() {
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filters</span>
-              {(statusFilter || selectedClientId) && (
+              {(statusFilter || (selectedClientId && user?.scopeType !== 'CLIENT')) && (
                 <span className="w-2 h-2 bg-primary rounded-full" />
               )}
             </button>
@@ -569,22 +577,24 @@ export default function CompaniesPage() {
         {/* Filter Dropdowns */}
         {showFilters && (
           <div className="flex flex-wrap gap-4 p-4 bg-card/50 border border-border rounded-lg">
-            {/* Client Filter */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Client</label>
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[44px]"
-              >
-                <option value="">All Clients</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} ({client.code})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Client Filter - Only show for ORGANIZATION users */}
+            {user?.scopeType !== 'CLIENT' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Client</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[44px]"
+                >
+                  <option value="">All Clients</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Status Filter */}
             <div className="flex flex-col gap-1">
@@ -604,11 +614,13 @@ export default function CompaniesPage() {
             </div>
 
             {/* Clear Filters */}
-            {(statusFilter || selectedClientId) && (
+            {(statusFilter || (selectedClientId && user?.scopeType !== 'CLIENT')) && (
               <button
                 onClick={() => {
                   setStatusFilter('');
-                  setSelectedClientId('');
+                  if (user?.scopeType !== 'CLIENT') {
+                    setSelectedClientId('');
+                  }
                   router.push('/companies');
                 }}
                 className="self-end px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] touch-manipulation"
@@ -868,6 +880,8 @@ export default function CompaniesPage() {
           company={editingCompany}
           clients={clients}
           defaultClientId={selectedClientId}
+          userScopeType={user?.scopeType}
+          userClientId={user?.clientId}
           onClose={() => {
             setShowFormModal(false);
             setEditingCompany(null);

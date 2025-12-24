@@ -70,8 +70,9 @@ export class ClientIntegrationService {
     return this.toResponse(integration);
   }
 
-  async update(id: string, dto: UpdateClientIntegrationDto, updatedBy: string): Promise<ClientIntegration> {
-    const integration = await this.prisma.clientIntegration.findUnique({ where: { id } });
+  async update(id: string, clientId: string, dto: UpdateClientIntegrationDto, updatedBy: string): Promise<ClientIntegration> {
+    // Security: Verify integration belongs to the requesting client
+    const integration = await this.prisma.clientIntegration.findFirst({ where: { id, clientId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
 
     const updateData: any = { updatedBy, updatedAt: new Date() };
@@ -100,8 +101,9 @@ export class ClientIntegrationService {
     return this.toResponse(updated);
   }
 
-  async delete(id: string): Promise<void> {
-    const integration = await this.prisma.clientIntegration.findUnique({ where: { id } });
+  async delete(id: string, clientId: string): Promise<void> {
+    // Security: Verify integration belongs to the requesting client
+    const integration = await this.prisma.clientIntegration.findFirst({ where: { id, clientId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
     if (integration.merchantAccountId) {
       await this.prisma.merchantAccount.update({ where: { id: integration.merchantAccountId }, data: { status: 'inactive' } });
@@ -121,8 +123,8 @@ export class ClientIntegrationService {
     return { definitions, platformOptions };
   }
 
-  async setDefault(id: string, updatedBy: string): Promise<ClientIntegration> {
-    return this.update(id, { isDefault: true }, updatedBy);
+  async setDefault(id: string, clientId: string, updatedBy: string): Promise<ClientIntegration> {
+    return this.update(id, clientId, { isDefault: true }, updatedBy);
   }
 
   async getDefaultPaymentGateway(clientId: string): Promise<ClientIntegration | null> {
@@ -132,8 +134,9 @@ export class ClientIntegrationService {
     return integration ? this.toResponse(integration) : null;
   }
 
-  async test(id: string): Promise<IntegrationTestResult> {
-    const integration = await this.prisma.clientIntegration.findUnique({ where: { id } });
+  async test(id: string, clientId: string): Promise<IntegrationTestResult> {
+    // Security: Verify integration belongs to the requesting client
+    const integration = await this.prisma.clientIntegration.findFirst({ where: { id, clientId } });
     if (!integration) throw new NotFoundException(`Not found: ${id}`);
     const startTime = Date.now();
     try {

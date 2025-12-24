@@ -286,14 +286,24 @@ export class AuditLogsService {
 
   /**
    * Get audit trail for a specific entity
+   * Security: Filters by scope at database level to prevent N+1 query issues
    */
   async getEntityTrail(
     entity: string,
     entityId: string,
     limit = 100,
+    scopeFilter?: { scopeType: ScopeType; scopeId: string },
   ): Promise<AuditLogEntry[]> {
+    const where: Prisma.AuditLogWhereInput = { entity, entityId };
+
+    // Security: Apply scope filter at database level
+    if (scopeFilter) {
+      where.scopeType = scopeFilter.scopeType;
+      where.scopeId = scopeFilter.scopeId;
+    }
+
     const logs = await this.prisma.auditLog.findMany({
-      where: { entity, entityId },
+      where,
       include: {
         user: {
           select: {

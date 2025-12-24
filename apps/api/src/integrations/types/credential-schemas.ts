@@ -60,9 +60,10 @@ export const AWS_SES_CREDENTIAL_SCHEMA: CredentialSchema = {
   required: ['region', 'accessKeyId', 'secretAccessKey', 'fromEmail'],
   properties: {
     region: { type: 'string', title: 'AWS Region', default: 'us-east-1', description: 'AWS region where SES is configured (e.g., us-east-1, eu-west-1). Ensure SES is enabled in this region.' },
-    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with SES permissions. Create in AWS Console → IAM → Users → Security Credentials.' },
+    accessKeyId: { type: 'string', title: 'Access Key ID', description: 'AWS IAM Access Key ID with SES and SQS permissions. Create in AWS Console → IAM → Users → Security Credentials.' },
     secretAccessKey: { type: 'string', title: 'Secret Access Key', format: 'password', description: 'AWS IAM Secret Access Key. Only shown once when created. Store securely.' },
     fromEmail: { type: 'string', title: 'From Email', format: 'email', description: 'Verified sender email address. Must be verified in SES Console → Verified Identities.' },
+    sqsQueueUrl: { type: 'string', title: 'SQS Queue URL', description: 'Optional SQS queue URL for email queuing (e.g., https://sqs.us-east-1.amazonaws.com/123456789012/avnz-email-queue). If not provided, emails will be sent directly.' },
   },
 };
 

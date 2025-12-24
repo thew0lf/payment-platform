@@ -278,17 +278,92 @@ export class VoiceAIController {
   /**
    * Handle escalation to human
    * POST /api/momentum/voice/escalate
+   *
+   * This webhook is called when a call needs to be transferred to a human agent.
+   * It looks up the agent phone number from CSConfig and transfers the call.
    */
   @Post('escalate')
   @HttpCode(HttpStatus.OK)
-  async handleEscalate() {
-    // This would transfer to a human agent queue
-    // For now, return a message indicating escalation
-    return `<?xml version="1.0" encoding="UTF-8"?>
+  async handleEscalate(@Body() webhookData: any) {
+    const { CallSid } = webhookData;
+
+    // Find the voice call record
+    const voiceCall = await this.prisma.voiceCall.findUnique({
+      where: { twilioCallSid: CallSid },
+    });
+
+    if (!voiceCall) {
+      // No call record found - return generic message
+      return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Please hold while I connect you with a team member.</Say>
-  <Enqueue>support</Enqueue>
+  <Say voice="Polly.Joanna">I'm sorry, there was an error transferring your call. Please try calling back.</Say>
+  <Hangup/>
 </Response>`;
+    }
+
+    // Get company's CS configuration
+    const csConfig = await this.prisma.cSConfig.findUnique({
+      where: { companyId: voiceCall.companyId },
+    });
+
+    // Get human agent config with escalation phone
+    const humanAgentConfig = (csConfig?.humanAgentConfig as any) || {};
+    const escalationPhone = humanAgentConfig.escalationPhone || humanAgentConfig.escalationPhoneBackup;
+
+    if (!escalationPhone) {
+      // No escalation phone configured - use fallback message
+      const fallbackMessage = humanAgentConfig.fallbackMessage ||
+        "I'm sorry, no agents are available right now. Please try again during business hours or leave a message.";
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">${fallbackMessage}</Say>
+  <Hangup/>
+</Response>`;
+    }
+
+    // Transfer the call using the service method
+    const transferred = await this.voiceAiService.transferToHuman(
+      voiceCall.companyId,
+      CallSid,
+      escalationPhone,
+    );
+
+    if (transferred) {
+      // Send SMS notification to agent if configured
+      if (humanAgentConfig.notifyOnEscalation) {
+        const notificationPhone = humanAgentConfig.notificationPhone || escalationPhone;
+        const customer = await this.prisma.customer.findUnique({
+          where: { id: voiceCall.customerId },
+          select: { firstName: true, lastName: true, phone: true },
+        });
+
+        const customerName = customer
+          ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.phone
+          : voiceCall.fromNumber;
+
+        await this.voiceAiService.sendSmsNotification(
+          voiceCall.companyId,
+          notificationPhone,
+          `Incoming escalation: Customer ${customerName} has been transferred to you. Call SID: ${CallSid.slice(-8)}`,
+        ).catch(err => {
+          // Log but don't fail if SMS notification fails
+          console.warn('Failed to send SMS notification:', err.message);
+        });
+      }
+
+      // The transferToHuman method handles the TwiML update via Twilio API
+      // Return empty response since transfer TwiML is already applied
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<Response/>`;
+    } else {
+      // Transfer failed - use fallback
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">I'm sorry, we were unable to connect you with an agent. Please try again in a few minutes.</Say>
+  <Hangup/>
+</Response>`;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════

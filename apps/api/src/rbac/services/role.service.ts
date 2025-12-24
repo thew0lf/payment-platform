@@ -110,6 +110,113 @@ export class RoleService {
     return roles.map(this.mapToRole.bind(this));
   }
 
+  /**
+   * Find all roles with hierarchical scope filtering.
+   * Only returns roles that the calling user has access to based on their scope.
+   *
+   * @param scopeType - Optional filter by scope type
+   * @param scopeId - Optional filter by specific scope ID
+   * @param scopeFilter - Prisma where clause from HierarchyService.getUserScopeFilter()
+   */
+  async findAllWithScopeFilter(
+    scopeType?: ScopeType,
+    scopeId?: string,
+    scopeFilter?: any,
+  ): Promise<Role[]> {
+    // Build where clause
+    const where: any = { deletedAt: null };
+
+    // Apply hierarchical scope filtering
+    // Roles can exist at various scope levels (ORGANIZATION, CLIENT, COMPANY, etc.)
+    // We need to filter based on what the user can access
+    if (scopeFilter && Object.keys(scopeFilter).length > 0) {
+      // Build scope conditions based on the user's scope filter
+      const scopeConditions: any[] = [];
+
+      // Organization-level roles are accessible if user has organizationId access
+      if (scopeFilter.organizationId) {
+        scopeConditions.push({
+          scopeType: 'ORGANIZATION',
+          scopeId: scopeFilter.organizationId,
+        });
+      }
+
+      // Client-level roles
+      if (scopeFilter.clientId) {
+        scopeConditions.push({
+          scopeType: 'CLIENT',
+          scopeId: scopeFilter.clientId,
+        });
+      } else if (scopeFilter.OR) {
+        // Handle CLIENT scope with multiple companies
+        for (const condition of scopeFilter.OR) {
+          if (condition.clientId) {
+            scopeConditions.push({
+              scopeType: 'CLIENT',
+              scopeId: condition.clientId,
+            });
+          }
+          if (condition.companyId) {
+            scopeConditions.push({
+              scopeType: 'COMPANY',
+              scopeId: condition.companyId,
+            });
+          }
+        }
+      }
+
+      // Company-level roles
+      if (scopeFilter.companyId) {
+        scopeConditions.push({
+          scopeType: 'COMPANY',
+          scopeId: scopeFilter.companyId,
+        });
+      }
+
+      // Department-level roles
+      if (scopeFilter.departmentId) {
+        scopeConditions.push({
+          scopeType: 'DEPARTMENT',
+          scopeId: scopeFilter.departmentId,
+        });
+      }
+
+      if (scopeConditions.length > 0) {
+        where.OR = scopeConditions;
+      }
+    }
+
+    // Additional filters from query parameters
+    if (scopeType) {
+      if (where.OR) {
+        // If we have scope conditions, filter within those
+        where.OR = where.OR.filter((c: any) => c.scopeType === scopeType);
+        if (scopeId) {
+          where.OR = where.OR.filter((c: any) => c.scopeId === scopeId);
+        }
+      } else {
+        where.scopeType = scopeType;
+        if (scopeId) {
+          where.scopeId = scopeId;
+        }
+      }
+    }
+
+    const roles = await this.prisma.role.findMany({
+      where,
+      orderBy: [{ priority: 'asc' }, { name: 'asc' }],
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+
+    return roles.map(this.mapToRole.bind(this));
+  }
+
   async findById(id: string): Promise<Role> {
     const role = await this.prisma.role.findFirst({
       where: { id, deletedAt: null },

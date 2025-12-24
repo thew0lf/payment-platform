@@ -30,26 +30,26 @@ export class VendorController {
   async findAll(
     @Request() req: any,
     @Query('search') search?: string,
-    @Query('status') status?: VendorStatus,
-    @Query('tier') tier?: VendorTier,
-    @Query('vendorType') vendorType?: VendorType,
+    @Query('status') status?: string,
+    @Query('tier') tier?: string,
+    @Query('vendorType') vendorType?: string,
     @Query('isVerified') isVerified?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-    @Query('sortBy') sortBy?: 'name' | 'createdAt' | 'totalOrders' | 'averageRating',
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
   ) {
     const organizationId = req.user.organizationId;
     return this.vendorService.findAll(organizationId, {
-      search,
-      status,
-      tier,
-      vendorType,
+      search: search || undefined,
+      status: status ? (status as VendorStatus) : undefined,
+      tier: tier ? (tier as VendorTier) : undefined,
+      vendorType: vendorType ? (vendorType as VendorType) : undefined,
       isVerified: isVerified === 'true' ? true : isVerified === 'false' ? false : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
-      sortBy,
-      sortOrder,
+      sortBy: sortBy as 'name' | 'createdAt' | 'totalOrders' | 'averageRating' | undefined,
+      sortOrder: sortOrder as 'asc' | 'desc' | undefined,
     });
   }
 

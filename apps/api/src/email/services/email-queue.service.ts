@@ -1,6 +1,6 @@
 // Email Queue Service - SQS-based email queuing for production reliability
 // Decouples email sending from request processing for better performance and reliability
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import {
   SQSClient,
   SendMessageCommand,
@@ -12,6 +12,17 @@ import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 import { AuditAction } from '../../audit-logs/types/audit-log.types';
 import { SendEmailOptions, EmailSendResult } from '../types/email.types';
 import { EmailTemplateCategory, EmailSendStatus, DataClassification } from '@prisma/client';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
+import { IntegrationProvider } from '../../integrations/types/integration.types';
+
+// AWS SES Integration credentials structure
+interface AWSSESCredentials {
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  fromEmail: string;
+  sqsQueueUrl?: string;
+}
 
 // Queue message structure
 export interface EmailQueueMessage {
@@ -68,25 +79,122 @@ export interface QueueStatusReport {
 @Injectable()
 export class EmailQueueService implements OnModuleInit {
   private readonly logger = new Logger(EmailQueueService.name);
-  private sqsClient: SQSClient;
-  private queueUrl: string;
+  private sqsClient: SQSClient | null = null;
+  private queueUrl: string = '';
+  private isQueueConfigured: boolean = false;
+  private credentials: AWSSESCredentials | null = null;
+  private configurationError: string = '';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogsService: AuditLogsService,
+    @Inject(forwardRef(() => PlatformIntegrationService))
+    private readonly platformIntegrationService: PlatformIntegrationService,
   ) {}
 
   async onModuleInit() {
-    // Initialize SQS client
-    this.sqsClient = new SQSClient({
-      region: process.env.AWS_REGION || 'us-east-1',
-    });
+    await this.loadCredentialsFromIntegration();
+  }
 
-    // Queue URL from environment or construct from account/region
-    this.queueUrl = process.env.EMAIL_QUEUE_URL ||
-      `https://sqs.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/avnz-email-queue`;
+  /**
+   * Load AWS SES/SQS credentials from Platform Integration
+   * Falls back to environment variables if no integration is configured
+   */
+  private async loadCredentialsFromIntegration(): Promise<void> {
+    try {
+      // Get the default organization
+      const organizationId = await this.platformIntegrationService.getDefaultOrganizationId();
 
-    this.logger.log(`Email queue service initialized: ${this.queueUrl}`);
+      if (!organizationId) {
+        this.configurationError = 'No organization found. Please set up your organization first.';
+        this.logger.warn('Email queue: No organization found');
+        return;
+      }
+
+      // Try to get AWS SES integration credentials
+      const integration = await this.platformIntegrationService.getCredentialsByProvider<AWSSESCredentials>(
+        organizationId,
+        IntegrationProvider.AWS_SES,
+      );
+
+      if (integration?.credentials) {
+        this.credentials = integration.credentials;
+
+        // Initialize SQS client with integration credentials
+        this.sqsClient = new SQSClient({
+          region: this.credentials.region || 'us-east-1',
+          credentials: {
+            accessKeyId: this.credentials.accessKeyId,
+            secretAccessKey: this.credentials.secretAccessKey,
+          },
+        });
+
+        // Get queue URL from integration or environment
+        this.queueUrl = this.credentials.sqsQueueUrl || process.env.EMAIL_QUEUE_URL || '';
+
+        // Validate queue URL
+        this.isQueueConfigured = this.isValidQueueUrl(this.queueUrl);
+
+        if (this.isQueueConfigured) {
+          this.logger.log(`Email queue initialized from AWS SES integration: ${this.queueUrl}`);
+        } else {
+          this.configurationError = 'AWS SES integration found but SQS Queue URL is not configured. Please add the SQS Queue URL in your AWS SES integration settings, or set EMAIL_QUEUE_URL environment variable.';
+          this.logger.warn('Email queue: SQS Queue URL not configured in integration');
+        }
+      } else {
+        // Fallback to environment variables
+        const region = process.env.AWS_REGION || 'us-east-1';
+        this.queueUrl = process.env.EMAIL_QUEUE_URL ||
+          (process.env.AWS_ACCOUNT_ID
+            ? `https://sqs.${region}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/avnz-email-queue`
+            : '');
+
+        if (this.queueUrl) {
+          this.sqsClient = new SQSClient({ region });
+          this.isQueueConfigured = this.isValidQueueUrl(this.queueUrl);
+        }
+
+        if (!this.isQueueConfigured) {
+          this.configurationError = 'Email service is not configured. Please configure AWS SES in Platform Integrations, or set EMAIL_QUEUE_URL and AWS credentials as environment variables.';
+          this.logger.warn('Email queue: No AWS SES integration and no environment variables configured');
+        }
+      }
+    } catch (error) {
+      this.configurationError = 'Failed to load email configuration. Please check your AWS SES integration settings.';
+      this.logger.error(`Failed to load email integration credentials: ${error}`);
+    }
+  }
+
+  /**
+   * Get the loaded AWS credentials (for use by the processor)
+   */
+  getCredentials(): AWSSESCredentials | null {
+    return this.credentials;
+  }
+
+  /**
+   * Check if the queue URL is valid
+   */
+  private isValidQueueUrl(url: string): boolean {
+    if (!url) return false;
+    // Must be a complete SQS URL with account ID
+    const sqsUrlRegex = /^https:\/\/sqs\.[a-z0-9-]+\.amazonaws\.com\/\d{12}\/[a-zA-Z0-9_-]+$/;
+    return sqsUrlRegex.test(url);
+  }
+
+  /**
+   * Check if the email queue is properly configured
+   */
+  isConfigured(): boolean {
+    return this.isQueueConfigured;
+  }
+
+  /**
+   * Get configuration error message
+   */
+  getConfigurationError(): string {
+    if (this.isQueueConfigured) return '';
+    return this.configurationError || 'Email service is not configured. Please configure AWS SES in Platform Integrations.';
   }
 
   /**
@@ -94,6 +202,15 @@ export class EmailQueueService implements OnModuleInit {
    * Creates a send log record and pushes to SQS
    */
   async queueEmail(options: SendEmailOptions): Promise<EmailSendResult> {
+    // Check if queue is properly configured before attempting to send
+    if (!this.isQueueConfigured) {
+      this.logger.warn(`Email queue not configured. Cannot send email to ${options.to}`);
+      return {
+        success: false,
+        error: this.getConfigurationError(),
+      };
+    }
+
     const {
       to,
       toName,
@@ -189,7 +306,7 @@ export class EmailQueueService implements OnModuleInit {
         // MessageDeduplicationId: sendLog.id,
       });
 
-      await this.sqsClient.send(command);
+      await this.sqsClient!.send(command);
 
       // Audit log: Email queued
       await this.auditLogsService.log(
@@ -253,6 +370,11 @@ export class EmailQueueService implements OnModuleInit {
    * Get queue status and statistics
    */
   async getQueueStatus(): Promise<QueueStatusReport> {
+    // Check if queue is configured
+    if (!this.isQueueConfigured) {
+      throw new Error(this.getConfigurationError());
+    }
+
     try {
       // Get SQS queue attributes
       const command = new GetQueueAttributesCommand({
@@ -267,7 +389,7 @@ export class EmailQueueService implements OnModuleInit {
         ],
       });
 
-      const response = await this.sqsClient.send(command);
+      const response = await this.sqsClient!.send(command);
       const attrs = response.Attributes || {};
 
       // Get database stats
@@ -358,11 +480,16 @@ export class EmailQueueService implements OnModuleInit {
    * Purge the queue (admin only, for emergencies)
    */
   async purgeQueue(): Promise<void> {
+    // Check if queue is configured
+    if (!this.isQueueConfigured) {
+      throw new Error(this.getConfigurationError());
+    }
+
     const command = new PurgeQueueCommand({
       QueueUrl: this.queueUrl,
     });
 
-    await this.sqsClient.send(command);
+    await this.sqsClient!.send(command);
 
     // Audit log
     await this.auditLogsService.log(

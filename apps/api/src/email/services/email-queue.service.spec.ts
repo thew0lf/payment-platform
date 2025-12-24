@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EmailQueueService } from './email-queue.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
 import { EmailTemplateCategory, EmailSendStatus, DataClassification } from '@prisma/client';
 import { SendMessageCommand } from '@aws-sdk/client-sqs';
 
@@ -38,16 +39,32 @@ describe('EmailQueueService', () => {
     log: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockPlatformIntegrationService = {
+    findByProvider: jest.fn().mockResolvedValue(null),
+    getDecryptedCredentials: jest.fn().mockResolvedValue(null),
+    getDefaultOrganizationId: jest.fn().mockResolvedValue('org-123'),
+    getCredentialsByProvider: jest.fn().mockResolvedValue({
+      credentials: {
+        region: 'us-east-1',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret-key',
+        fromEmail: 'noreply@avnz.io',
+        sqsQueueUrl: 'https://sqs.us-east-1.amazonaws.com/123456789012/test-email-queue',
+      },
+    }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     process.env.AWS_REGION = 'us-east-1';
-    process.env.EMAIL_QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/123456789/test-email-queue';
+    process.env.EMAIL_QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/123456789012/test-email-queue';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EmailQueueService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AuditLogsService, useValue: mockAuditLogsService },
+        { provide: PlatformIntegrationService, useValue: mockPlatformIntegrationService },
       ],
     }).compile();
 
@@ -69,7 +86,7 @@ describe('EmailQueueService', () => {
     });
 
     it('should use EMAIL_QUEUE_URL from environment', async () => {
-      expect((service as any).queueUrl).toBe('https://sqs.us-east-1.amazonaws.com/123456789/test-email-queue');
+      expect((service as any).queueUrl).toBe('https://sqs.us-east-1.amazonaws.com/123456789012/test-email-queue');
     });
   });
 

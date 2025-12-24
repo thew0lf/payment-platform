@@ -44,6 +44,7 @@ import { EmailModule } from './email/email.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
 import { ClientsModule } from './clients/clients.module';
 import { CompaniesModule } from './companies/companies.module';
+import { SitesModule } from './sites/sites.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { CompaniesModule } from './companies/companies.module';
     WaitlistModule,
     ClientsModule,
     CompaniesModule,
+    SitesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

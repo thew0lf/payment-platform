@@ -12,9 +12,11 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { FunnelsService, FunnelSessionsService, FunnelAnalyticsService } from './services';
 import { FunnelPaymentService, FunnelCheckoutDto } from './services/funnel-payment.service';
 import {
@@ -43,6 +45,7 @@ export class FunnelsController {
     private readonly funnelsService: FunnelsService,
     private readonly sessionsService: FunnelSessionsService,
     private readonly analyticsService: FunnelAnalyticsService,
+    private readonly hierarchyService: HierarchyService,
   ) {}
 
   // ─────────────────────────────────────────────────────────────
@@ -52,22 +55,32 @@ export class FunnelsController {
   @Post()
   async create(
     @Body() dto: CreateFunnelDto,
-    @Query('companyId') companyId: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate user has access to the requested company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.create(companyId, dto, user.id);
   }
 
   @Get()
-  async findAll(@Query() query: FunnelQueryDto) {
-    return this.funnelsService.findAll(query);
+  async findAll(
+    @Query() query: FunnelQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Security: Filter funnels by accessible companies
+    const companyId = await this.getCompanyIdForQuery(user, query.companyId);
+    return this.funnelsService.findAll({ ...query, companyId });
   }
 
   @Get(':id')
   async findOne(
     @Param('id') id: string,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate access before returning funnel
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.funnelsService.findOne(id, companyId);
   }
 
@@ -75,8 +88,11 @@ export class FunnelsController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateFunnelDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.update(id, dto, companyId);
   }
 
@@ -84,8 +100,11 @@ export class FunnelsController {
   async publish(
     @Param('id') id: string,
     @Body() dto: PublishFunnelDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.publish(id, dto.publish !== false, companyId);
   }
 
@@ -93,17 +112,22 @@ export class FunnelsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Param('id') id: string,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     await this.funnelsService.delete(id, companyId);
   }
 
   @Post(':id/duplicate')
   async duplicate(
     @Param('id') id: string,
-    @Query('companyId') companyId: string,
+    @Query('companyId') queryCompanyId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the target company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.duplicate(id, companyId, user.id);
   }
 
@@ -115,8 +139,11 @@ export class FunnelsController {
   async createStage(
     @Param('funnelId') funnelId: string,
     @Body() dto: CreateStageDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.createStage(funnelId, dto, companyId);
   }
 
@@ -125,8 +152,11 @@ export class FunnelsController {
     @Param('funnelId') funnelId: string,
     @Param('stageId') stageId: string,
     @Body() dto: UpdateStageDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.updateStage(funnelId, stageId, dto, companyId);
   }
 
@@ -135,8 +165,11 @@ export class FunnelsController {
   async deleteStage(
     @Param('funnelId') funnelId: string,
     @Param('stageId') stageId: string,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     await this.funnelsService.deleteStage(funnelId, stageId, companyId);
   }
 
@@ -144,8 +177,11 @@ export class FunnelsController {
   async reorderStages(
     @Param('funnelId') funnelId: string,
     @Body() dto: ReorderStagesDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.reorderStages(funnelId, dto, companyId);
   }
 
@@ -157,8 +193,11 @@ export class FunnelsController {
   async createVariant(
     @Param('funnelId') funnelId: string,
     @Body() dto: CreateVariantDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.createVariant(funnelId, dto, companyId);
   }
 
@@ -167,8 +206,11 @@ export class FunnelsController {
     @Param('funnelId') funnelId: string,
     @Param('variantId') variantId: string,
     @Body() dto: UpdateVariantDto,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.funnelsService.updateVariant(funnelId, variantId, dto, companyId);
   }
 
@@ -177,8 +219,11 @@ export class FunnelsController {
   async deleteVariant(
     @Param('funnelId') funnelId: string,
     @Param('variantId') variantId: string,
-    @Query('companyId') companyId?: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate write access to the funnel's company
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     await this.funnelsService.deleteVariant(funnelId, variantId, companyId);
   }
 
@@ -187,17 +232,99 @@ export class FunnelsController {
   // ─────────────────────────────────────────────────────────────
 
   @Get('stats/overview')
-  async getCompanyStats(@Query('companyId') companyId: string) {
+  async getCompanyStats(
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Security: Validate read access to the requested company
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
+    if (!companyId) {
+      throw new ForbiddenException('Company ID required for stats overview');
+    }
     return this.analyticsService.getCompanyFunnelStats(companyId);
   }
 
   @Get(':id/analytics')
   async getAnalytics(
     @Param('id') id: string,
-    @Query('companyId') companyId?: string,
-    @Query('days') days?: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('days') days: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Security: Validate read access to the funnel's company
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.analyticsService.getAnalytics(id, companyId, days ? parseInt(days, 10) : 30);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get companyId for write operations (create/update/delete).
+   * Requires explicit company context and validates access.
+   */
+  private async getCompanyIdForWrite(user: AuthenticatedUser, queryCompanyId?: string): Promise<string> {
+    // For COMPANY scope users, the scopeId IS the companyId
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // For users with explicit companyId, use that
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // For ORGANIZATION or CLIENT scope admins, validate access to the requested company
+    if ((user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') && queryCompanyId) {
+      const hasAccess = await this.hierarchyService.canAccessCompany(
+        { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+        queryCompanyId,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException('Access denied to the requested company');
+      }
+      return queryCompanyId;
+    }
+
+    throw new ForbiddenException('Company context required for this operation');
+  }
+
+  /**
+   * Get companyId for query operations (findAll, findOne).
+   * For ORGANIZATION/CLIENT scope users, allows:
+   * - Passing companyId query param to filter by specific company (with validation)
+   * - Returns undefined to query all accessible funnels (when no companyId passed)
+   */
+  private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
+    // For COMPANY scope users, always filter by their company
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // For users with explicit companyId, use that
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // For ORGANIZATION or CLIENT scope admins
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      // If they passed a companyId query param, validate access first
+      if (queryCompanyId) {
+        const hasAccess = await this.hierarchyService.canAccessCompany(
+          { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+          queryCompanyId,
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException('Access denied to the requested company');
+        }
+        return queryCompanyId;
+      }
+      // Otherwise return undefined to allow querying all funnels they have access to
+      return undefined;
+    }
+
+    throw new ForbiddenException('Unable to determine company context');
   }
 }
 

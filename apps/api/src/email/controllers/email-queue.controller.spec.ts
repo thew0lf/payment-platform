@@ -50,6 +50,7 @@ describe('EmailQueueController', () => {
   };
 
   const mockOrganizationUser: AuthenticatedUser = {
+    sub: 'user-123',
     id: 'user-123',
     email: 'admin@avnz.io',
     role: 'admin',
@@ -59,6 +60,7 @@ describe('EmailQueueController', () => {
   };
 
   const mockClientUser: AuthenticatedUser = {
+    sub: 'user-456',
     id: 'user-456',
     email: 'client@example.com',
     role: 'admin',
@@ -68,6 +70,7 @@ describe('EmailQueueController', () => {
   };
 
   const mockCompanyUser: AuthenticatedUser = {
+    sub: 'user-789',
     id: 'user-789',
     email: 'company@example.com',
     role: 'admin',

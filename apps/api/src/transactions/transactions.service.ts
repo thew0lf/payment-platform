@@ -50,6 +50,7 @@ export class TransactionsService {
 
     const where: any = {
       companyId: { in: companyIds },
+      deletedAt: null,  // Security: Exclude soft-deleted records
     };
 
     if (filters.status) {

@@ -15,6 +15,7 @@ When running any review command (`/review`, `/review-qa`, etc.) and issues are f
 | `/review-qa` | Senior QA Engineer | Test coverage, edge cases, quality gates |
 | `/review-cmo` | Chief Marketing Officer | Messaging, conversion, brand, UX |
 | `/review-seo` | SEO Manager | Search optimization, discoverability |
+| `/review-copy` | Senior Copywriter | Copy quality, voice, persuasion, clarity |
 | `/review-all` | Full Team | All roles review (comprehensive) |
 | `/feature` | Senior Developer | Pre-implementation ticket review |
 
@@ -146,6 +147,111 @@ Search engine optimization review. Use: `/review-seo [description or file path]`
 
 ---
 
+### `/review-copy` - Senior Copywriter Review
+Professional copy and content quality review. Use: `/review-copy [description or file path]`
+
+**Role Description:**
+The Senior Copywriter is the guardian of written communication across the platform. They ensure all customer-facing text—from UI microcopy to email templates, error messages to marketing pages—is clear, compelling, on-brand, and drives action. They understand that every word is an opportunity to build trust, reduce friction, and guide users toward their goals. They balance creativity with conversion, personality with professionalism, and brevity with completeness.
+
+**AVNZ Brand Voice:**
+We're the smart friend who happens to be a payment expert. Confident but not arrogant. Helpful but not hand-holdy. We celebrate wins, own mistakes, and always speak like a human—never a corporation.
+
+| Voice Attribute | We Are | We're Not |
+|-----------------|--------|-----------|
+| **Confident** | Expert, assured, decisive | Arrogant, dismissive, condescending |
+| **Friendly** | Warm, approachable, conversational | Overly casual, unprofessional, slangy |
+| **Clear** | Direct, simple, jargon-free | Dumbed down, verbose, vague |
+| **Empowering** | Encouraging, supportive, optimistic | Patronizing, pushy, fake-positive |
+| **Witty** | Clever, playful, memorable | Sarcastic, try-hard, cringey |
+
+**Tone by Context:**
+
+| Context | Tone | Energy | Example |
+|---------|------|--------|---------|
+| **Marketing/Landing Pages** | Enthusiastic, aspirational | High 🔥 | "Stop leaving money on the table. Start recovering revenue today." |
+| **Onboarding** | Encouraging, guiding | Medium-High ⚡ | "Great choice! Let's get your first integration connected—it only takes 2 minutes." |
+| **Dashboard/UI** | Clear, professional | Medium 💼 | "3 transactions pending review" |
+| **Success States** | Celebratory, confirming | Medium-High 🎉 | "Payment processed! Your customer just got their confirmation email." |
+| **Warnings** | Calm, helpful | Medium ⚠️ | "This action will remove access for 3 team members. Want to continue?" |
+| **Errors** | Empathetic, solution-focused | Low-Medium 🤝 | "We couldn't process that payment. The card may have expired—try another?" |
+| **Error Pages (404/500)** | Light, reassuring | Low-Medium 😅 | "This page went on vacation. Let's get you back to familiar territory." |
+| **Legal/Compliance** | Professional, precise | Low 📋 | "By continuing, you agree to our Terms of Service and Privacy Policy." |
+| **Security Alerts** | Urgent, clear | High 🚨 | "Unusual login detected. If this wasn't you, secure your account now." |
+
+**Checklist:**
+1. Voice & Tone - Consistent with brand personality? Appropriate for context? (See tone table above)
+2. Clarity - Instantly understandable? No ambiguity? Would a first-time user get it?
+3. Conciseness - Every word earns its place? Cut the fluff? Active voice?
+4. Action-Oriented - Clear next steps? Strong verbs? User knows what to do?
+5. Emotional Resonance - Connects with reader's feelings? Addresses pain points? Aspirational where appropriate?
+6. Persuasion & Urgency - Compelling reasons to act? Appropriate urgency without manipulation?
+7. Microcopy Quality - Button text, labels, placeholders helpful? Tooltips informative?
+8. Scanability - Headlines grab attention? Bullets where needed? Key info stands out?
+9. Grammar & Mechanics - Spelling, punctuation, capitalization correct? Consistent style?
+10. Inclusive Language - Accessible to all? No jargon unless audience expects it? Gender-neutral?
+11. Brand Vocabulary - Using approved terms? Consistent naming? No conflicting terminology?
+12. Legal & Compliance - Required disclaimers present? Claims substantiated? No misleading statements?
+
+**Technical Copy Responsibilities:**
+
+| Area | Responsibility | Examples |
+|------|----------------|----------|
+| **Form Validation** | Write clear, helpful error messages that tell users exactly what's wrong and how to fix it | "Email address is required" → "Please enter your email address so we can send your confirmation" |
+| **Empty States** | Create engaging copy for empty lists, no results, and first-time experiences | "No orders yet" → "Your orders will appear here once you make your first purchase" |
+| **Loading States** | Write reassuring messages for long operations | "Processing..." → "Securing your payment—almost there!" |
+| **Success Messages** | Celebrate wins and confirm actions clearly | "Saved" → "Changes saved! Your profile is up to date." |
+| **Error Pages** | Make 404, 500, and other error pages helpful and on-brand | "Page not found" → "Oops! This page took a coffee break. Let's get you back on track." |
+| **Confirmation Dialogs** | Write clear, consequential dialog copy for destructive actions | "Are you sure?" → "Delete this order? This can't be undone." |
+| **Toast Notifications** | Craft brief, informative system feedback messages | Keep under 10 words, include action when relevant |
+| **Placeholder Text** | Write helpful input placeholders that guide without cluttering | "Enter email" → "you@company.com" |
+| **Help Text** | Create contextual hints below form fields | Explain format, requirements, or why we're asking |
+| **Onboarding Copy** | Guide new users through setup with encouraging, clear steps | Progress indicators, next step previews |
+| **Email Templates** | Write transactional and marketing emails that get opened and acted on | Subject lines, preheaders, CTAs |
+| **Push/SMS Notifications** | Craft urgent, actionable short-form messages | Character limits, clear value prop |
+
+**Error Message Guidelines:**
+- ❌ Don't blame the user: "Invalid input" / "Error" / "Failed"
+- ✅ Do explain what happened: "We couldn't find an account with that email"
+- ✅ Do tell them how to fix it: "Check the spelling or try another email"
+- ✅ Do offer alternatives: "Forgot your email? Contact support"
+- Keep error messages under 2 sentences
+- Use sentence case, not ALL CAPS
+- Never expose technical details (stack traces, error codes) to users
+
+**Output Format:**
+```
+## Senior Copywriter Review: [Subject]
+
+### Voice & Tone
+[Assessment and specific examples]
+
+### Clarity Issues
+[List of unclear passages with rewrites]
+
+### Suggested Rewrites
+| Original | Suggested | Reason |
+|----------|-----------|--------|
+| "Click here to submit" | "Submit Application →" | More specific, action-oriented |
+
+### Form & Validation Copy
+| Field/Action | Current | Suggested |
+|--------------|---------|-----------|
+| Email error | "Invalid email" | "Please enter a valid email address (e.g., you@company.com)" |
+
+### Microcopy Audit
+[Review of buttons, labels, error messages, tooltips, empty states]
+
+### Quick Wins
+[Easy improvements with high impact]
+
+### Critical Issues
+[Must-fix before launch]
+```
+
+**Verdict:** Copy approved | Needs polish | Requires rewrite
+
+---
+
 ### `/review-all` - Full Team Review
 Comprehensive review by all team roles. Use: `/review-all [description or file path]`
 
@@ -156,6 +262,7 @@ This command runs ALL review checklists sequentially:
 4. Senior QA Engineer Review
 5. CMO Review
 6. SEO Manager Review
+7. Senior Copywriter Review
 
 **Output Format:**
 ```
@@ -182,6 +289,10 @@ This command runs ALL review checklists sequentially:
 **Verdict:** [verdict]
 
 ### SEO Manager
+[Checklist results]
+**Verdict:** [verdict]
+
+### Senior Copywriter
 [Checklist results]
 **Verdict:** [verdict]
 
@@ -677,6 +788,26 @@ cd apps/api && npx prisma generate
 cd apps/api && npx prisma db seed
 ```
 
+### Schema Change Tracking
+
+**IMPORTANT:** All database schema changes MUST be tracked in `docs/DATABASE_SCHEMA_CHANGELOG.md`.
+
+**Rules:**
+1. NEVER use `prisma db push` in development without documenting and creating a migration
+2. Document changes BEFORE modifying `schema.prisma`
+3. Create migration with `npx prisma migrate dev --name <description>`
+4. Update status from `PENDING` to `MIGRATED` with migration file name
+5. Commit schema.prisma + migration file together
+
+**Pre-Deployment Check:**
+```bash
+# Verify no pending schema changes
+grep -c "PENDING" docs/DATABASE_SCHEMA_CHANGELOG.md  # Should return 0
+
+# Verify migrations are up to date
+cd apps/api && npx prisma migrate status
+```
+
 ---
 
 ## API Configuration
@@ -812,6 +943,163 @@ const needsCompanySelection =
 
 await productsApi.update(id, data, selectedCompanyId || undefined);
 ```
+
+---
+
+## Security Patterns (REQUIRED)
+
+**CRITICAL: All controllers must implement these security patterns. These checks are MANDATORY for SOC2/ISO27001 compliance.**
+
+### Hierarchy Access Control
+
+All controllers must validate scope-based access using `HierarchyService`:
+
+```typescript
+// Controller-level helper methods (REQUIRED for all modules)
+
+/**
+ * Get company ID for WRITE operations
+ * Throws ForbiddenException if user lacks company context
+ */
+private getCompanyId(user: AuthenticatedUser): string {
+  if (user.scopeType === 'COMPANY') {
+    return user.scopeId;
+  }
+  if (user.companyId) {
+    return user.companyId;
+  }
+  throw new ForbiddenException('Company context required for this operation');
+}
+
+/**
+ * Get company ID for READ operations
+ * Returns undefined for ORG/CLIENT users (allows cross-company queries)
+ * Validates company access when query param is provided
+ */
+private async getCompanyIdForQuery(
+  user: AuthenticatedUser,
+  queryCompanyId?: string,
+): Promise<string | undefined> {
+  if (user.scopeType === 'COMPANY') {
+    return user.scopeId; // COMPANY users always filtered by their company
+  }
+
+  if (queryCompanyId) {
+    // Validate user can access the requested company
+    const canAccess = await this.hierarchyService.canAccessCompany(
+      { sub: user.id, scopeType: user.scopeType as ScopeType, scopeId: user.scopeId },
+      queryCompanyId,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException('Access denied to this company');
+    }
+    return queryCompanyId;
+  }
+
+  return undefined; // ORG/CLIENT admins can see all
+}
+```
+
+### Soft Delete Protection
+
+All database queries must exclude soft-deleted records:
+
+```typescript
+// Service layer - ALWAYS include deletedAt check
+async findAll(companyId: string | undefined, filters: QueryDto) {
+  return this.prisma.entity.findMany({
+    where: {
+      ...(companyId && { companyId }),
+      deletedAt: null, // REQUIRED - never omit
+      ...filters,
+    },
+  });
+}
+```
+
+### Organization Boundary Validation
+
+For organization-level operations, verify the entity belongs to the user's organization:
+
+```typescript
+// When fetching cross-tenant data
+const entity = await this.prisma.entity.findFirst({
+  where: {
+    id,
+    organizationId: user.organizationId, // REQUIRED - enforce org boundary
+    deletedAt: null,
+  },
+});
+
+if (!entity) {
+  throw new NotFoundException('Entity not found');
+}
+```
+
+### Role Assignment Scope Validation
+
+When assigning roles, verify the role scope is within the assigner's hierarchy:
+
+```typescript
+// Prevent privilege escalation
+async assignRole(userId: string, roleId: string, assignerScopeType: ScopeType, assignerScopeId: string) {
+  const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+
+  // Verify role scope is within assigner's scope hierarchy
+  const canAssign = await this.isInAssignerScope(
+    assignerScopeType,
+    assignerScopeId,
+    role.scopeType,
+    role.scopeId,
+  );
+
+  if (!canAssign) {
+    throw new ForbiddenException('Cannot assign roles from outside your scope');
+  }
+}
+```
+
+### Audit Log Access Control
+
+Audit logs must be scoped to the user's access level:
+
+```typescript
+// Users can only view logs at or below their scope
+private getUserScope(user: AuthenticatedUser): { scopeType: ScopeType; scopeId: string } {
+  return {
+    scopeType: user.scopeType as ScopeType,
+    scopeId: user.scopeId,
+  };
+}
+```
+
+### Test Patterns for Security
+
+All controller tests must include mock users with the `sub` property:
+
+```typescript
+const mockUser: AuthenticatedUser = {
+  sub: 'user-123',        // REQUIRED - Auth0 subject
+  id: 'user-123',
+  email: 'user@test.com',
+  role: 'ADMIN',
+  scopeType: 'COMPANY',
+  scopeId: 'company-1',
+  organizationId: 'org-1',
+  clientId: 'client-1',
+  companyId: 'company-1',
+  departmentId: undefined,
+};
+```
+
+### Key Security Files
+
+| File | Purpose |
+|------|---------|
+| `src/hierarchy/hierarchy.service.ts` | Scope validation methods |
+| `src/auth/decorators/current-user.decorator.ts` | AuthenticatedUser type |
+| `src/common/filters/prisma-exception.filter.ts` | Error handling |
+| `docs/reviews/SECURITY_REVIEW_Dec2025.md` | Full security audit |
 
 ---
 
@@ -1177,11 +1465,16 @@ AI-powered product management services:
 | `FUNNEL_BUILDER_SPECIFICATION.md` | `docs/roadmap/` | Funnels system spec |
 | `funnel-alpha-launch.md` | `docs/roadmap/` | Alpha launch checklist |
 | `CI_CD_DEPLOYMENT.md` | `docs/` | CI/CD pipeline setup |
+| `DATABASE_SCHEMA_CHANGELOG.md` | `docs/` | Schema change tracking (REQUIRED) |
 | `SECURITY_REVIEW_Dec2025.md` | `docs/reviews/` | Security audit |
 | `QA_TEST_CASES_Dec2025.md` | `docs/reviews/` | QA test cases |
 | `COMPLETE_DEVELOPMENT_PLAN.md` | `docs/roadmap/` | 24-week roadmap |
 | `MASTER_DEVELOPMENT_CHECKLIST.md` | `docs/roadmap/` | Task tracker |
-| `CS_AI_MODULE.md` | `docs/` | CS AI technical documentation |
+| `CS_AI_API.md` | `docs/api/` | CS AI API reference |
+| `VOICE_AI_API.md` | `docs/api/` | Voice AI API reference |
+| `TWILIO_INTEGRATION_GUIDE.md` | `docs/guides/` | Twilio setup guide |
+| `CS_AI_DEPLOYMENT_CHECKLIST.md` | `docs/guides/` | CS AI deployment guide |
+| `CS_AI_PRODUCTION_PLAN.md` | `docs/plans/` | CS AI production plan |
 
 ---
 
@@ -1239,16 +1532,23 @@ refactor: code improvement without behavior change
 
 ---
 
-## Client & Company Management (Organization Admin)
+## Client & Company Management
 
 ### Overview
-Organization-level management of Clients and Companies within the platform hierarchy. Only users with ORGANIZATION scope can access these modules.
+Management of Clients and Companies within the platform hierarchy.
+
+**Access Levels:**
+| Scope | Clients | Companies |
+|-------|---------|-----------|
+| ORGANIZATION | Full CRUD on all | Full CRUD on all |
+| CLIENT | No access | Full CRUD on own companies only |
+| COMPANY | No access | No access |
 
 ### Pages
-- `/clients` - Client list with CRUD operations
-- `/companies` - Company list with CRUD operations
+- `/clients` - Client list with CRUD operations (ORGANIZATION only)
+- `/companies` - Company list with CRUD operations (ORGANIZATION and CLIENT)
 
-### Client API Endpoints
+### Client API Endpoints (ORGANIZATION only)
 ```
 GET    /api/admin/clients              # List clients with filters
 GET    /api/admin/clients/stats        # Client statistics
@@ -1258,21 +1558,23 @@ PATCH  /api/admin/clients/:id          # Update client
 DELETE /api/admin/clients/:id          # Soft delete client (cascades to companies)
 ```
 
-### Company API Endpoints
+### Company API Endpoints (ORGANIZATION and CLIENT)
 ```
-GET    /api/admin/companies            # List companies with filters
-GET    /api/admin/companies/stats      # Company statistics
-GET    /api/admin/companies/:id        # Get company by ID
-POST   /api/admin/companies            # Create company (requires clientId)
-PATCH  /api/admin/companies/:id        # Update company
-DELETE /api/admin/companies/:id        # Soft delete company
+GET    /api/admin/companies            # List companies (CLIENT sees only their own)
+GET    /api/admin/companies/stats      # Company statistics (scoped)
+GET    /api/admin/companies/:id        # Get company by ID (access verified)
+POST   /api/admin/companies            # Create company (CLIENT auto-assigns clientId)
+PATCH  /api/admin/companies/:id        # Update company (CLIENT: own only)
+DELETE /api/admin/companies/:id        # Soft delete company (CLIENT: own only)
 ```
 
 ### Key Features
+- **Hierarchical Access:** CLIENT users can manage their own companies
 - **Audit Logging:** All CRUD operations logged with full change tracking
 - **Cascade Delete:** Deleting a client soft-deletes all associated companies
 - **Code Generation:** Unique 4-char alphanumeric codes auto-generated
 - **Validation:** Pagination limits (1-100), email format, name length (2-100)
+- **Company Dropdown:** CLIENT users see their companies in the sidebar switcher
 
 ### Query Parameters
 | Parameter | Type | Description |
@@ -1455,6 +1757,189 @@ GET    /api/transactions/stats      # Transaction statistics
 - `apps/api/src/transactions/` - Backend module
 - `apps/admin-dashboard/src/app/(dashboard)/transactions/page.tsx` - UI
 - `apps/admin-dashboard/src/lib/api/transactions.ts` - API client
+
+---
+
+## CS AI Module (Customer Service AI)
+
+### Overview
+Two-tier AI customer service system with Voice AI (Twilio) and Chat support. Uses Claude AI (Anthropic) for intelligent responses with automatic escalation to human agents.
+
+### Architecture
+
+```
+Customer Contact
+       │
+       ▼
+┌─────────────────┐
+│    AI REP       │  Tier 1: Basic queries, order status
+│   (Tier 1)      │  Max refund: $0, Credits: $10
+└────────┬────────┘
+         │ Escalation triggers:
+         │ - Irate customer
+         │ - Refund request
+         │ - Complex issue
+         ▼
+┌─────────────────┐
+│  AI MANAGER     │  Tier 2: Elevated authority
+│   (Tier 2)      │  Max refund: $100, Credits: $50
+└────────┬────────┘
+         │ Escalation triggers:
+         │ - Refund over threshold
+         │ - Customer explicit request
+         │ - Policy exception
+         ▼
+┌─────────────────┐
+│  HUMAN AGENT    │  Tier 3: Full authority
+│   (Tier 3)      │  Live transfer via Twilio
+└─────────────────┘
+```
+
+### Voice AI Flow
+
+```
+Inbound Call → Twilio → /voice/inbound (TwiML)
+                           │
+                           ▼
+                      AI Greeting
+                           │
+                           ▼
+Customer Speech → /voice/speech → Claude AI → TwiML Response
+                           │
+                           ▼
+                  Escalation? → /voice/escalate → Human Agent
+```
+
+### Channels
+- **Voice:** Twilio integration with speech-to-text
+- **Chat:** Real-time web chat
+- **Email:** Async support
+- **SMS:** Text-based support
+
+### API Endpoints
+
+```
+# Customer Service Sessions
+POST   /api/momentum/cs/sessions                    # Start session
+GET    /api/momentum/cs/sessions/:id                # Get session
+GET    /api/momentum/cs/sessions                    # List sessions
+POST   /api/momentum/cs/sessions/:id/messages       # Send message
+POST   /api/momentum/cs/sessions/:id/escalate       # Escalate session
+POST   /api/momentum/cs/sessions/:id/resolve        # Resolve session
+GET    /api/momentum/cs/analytics                   # Get analytics
+GET    /api/momentum/cs/config                      # Get CS config
+PUT    /api/momentum/cs/config                      # Update config
+
+# Voice AI (Twilio Webhooks)
+POST   /api/momentum/voice/inbound                  # Handle inbound call
+POST   /api/momentum/voice/speech                   # Process speech result
+POST   /api/momentum/voice/status-callback          # Call status update
+POST   /api/momentum/voice/escalate                 # Transfer to human
+
+# Voice AI (Authenticated)
+POST   /api/momentum/voice/calls/outbound           # Initiate outbound call
+GET    /api/momentum/voice/calls/:callId            # Get call status
+GET    /api/momentum/voice/calls                    # List calls
+GET    /api/momentum/voice/scripts                  # List voice scripts
+```
+
+### Key Models
+
+| Model | Purpose |
+|-------|---------|
+| `CSSession` | Customer service session with messages |
+| `CSMessage` | Individual messages in session |
+| `CSConfig` | Company-level CS configuration |
+| `CSAIUsage` | Claude token usage tracking |
+| `CSAIPricing` | Token pricing configuration |
+| `VoiceCall` | Voice call records |
+| `VoiceScript` | Call script templates |
+
+### Escalation Triggers
+
+**AI Rep → AI Manager:**
+- `IRATE_CUSTOMER` - Negative sentiment detected
+- `REFUND_REQUEST` - Refund mentioned
+- `COMPLEX_ISSUE` - Issue requires higher authority
+- `REPEAT_CONTACT` - Multiple contacts about same issue
+- `HIGH_VALUE_CUSTOMER` - VIP customer
+- `LEGAL_MENTION` - Legal terms detected
+- `SOCIAL_MEDIA_THREAT` - Public complaint threatened
+
+**AI Manager → Human:**
+- `REFUND_OVER_THRESHOLD` - Exceeds AI authority
+- `CUSTOMER_REQUEST` - Explicit request for human
+- `POLICY_EXCEPTION` - Requires manager approval
+- `ESCALATED_COMPLAINT` - Already escalated once
+- `TECHNICAL_LIMITATION` - AI cannot handle
+
+### Configuration (CSConfig)
+
+```json
+{
+  "companyId": "uuid",
+  "enabled": true,
+  "tiers": {
+    "aiRep": {
+      "enabled": true,
+      "capabilities": {
+        "canProcessRefunds": false,
+        "maxRefundAmount": 0,
+        "canApplyCredits": true,
+        "maxCreditAmount": 10
+      }
+    },
+    "aiManager": {
+      "enabled": true,
+      "capabilities": {
+        "canProcessRefunds": true,
+        "maxRefundAmount": 100,
+        "canApplyCredits": true,
+        "maxCreditAmount": 50
+      }
+    },
+    "humanAgent": {
+      "enabled": true,
+      "escalationPhone": "+14155559999",
+      "notifyOnEscalation": true
+    }
+  }
+}
+```
+
+### Key Files
+
+**Backend:**
+- `apps/api/src/momentum-intelligence/customer-service/` - CS AI service
+- `apps/api/src/momentum-intelligence/voice-ai/` - Voice AI service
+- `apps/api/src/momentum-intelligence/types/` - TypeScript types
+- `apps/api/test/momentum-intelligence/` - Unit tests
+
+**Frontend:**
+- `apps/admin-dashboard/src/app/(dashboard)/customer-service/` - CS dashboard
+- `apps/admin-dashboard/src/lib/api/customer-service.ts` - API client
+
+**Documentation:**
+- `docs/api/CS_AI_API.md` - CS API documentation
+- `docs/api/VOICE_AI_API.md` - Voice API documentation
+- `docs/guides/TWILIO_INTEGRATION_GUIDE.md` - Twilio setup guide
+- `docs/guides/CS_AI_DEPLOYMENT_CHECKLIST.md` - Deployment checklist
+
+### Integration Requirements
+
+1. **Anthropic Claude** - AI response generation
+   - Model: `claude-sonnet-4-20250514`
+   - Configure via `ANTHROPIC_API_KEY` or ClientIntegration
+
+2. **Twilio** - Voice calls
+   - Account SID, Auth Token, Phone Number
+   - Configure via ClientIntegration (preferred) or env vars
+   - Webhook URLs must be HTTPS in production
+
+### Test Coverage
+- Unit tests: `apps/api/test/momentum-intelligence/`
+- Coverage target: 70%+
+- Run: `npm test -- --testPathPattern="momentum-intelligence"`
 
 ---
 

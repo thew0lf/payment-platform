@@ -1,6 +1,6 @@
 // Email Queue Processor - Consumes SQS messages and sends via SES
 // Runs as a background worker with automatic retries and dead-letter handling
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import {
   SQSClient,
   ReceiveMessageCommand,
@@ -15,7 +15,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 import { AuditAction } from '../../audit-logs/types/audit-log.types';
-import { EmailQueueMessage } from './email-queue.service';
+import { EmailQueueMessage, EmailQueueService } from './email-queue.service';
 import {
   DEFAULT_FROM_EMAIL,
   DEFAULT_FROM_NAME,
@@ -32,33 +32,89 @@ const MAX_MESSAGES_PER_POLL = 10;
 @Injectable()
 export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EmailQueueProcessorService.name);
-  private sqsClient: SQSClient;
-  private sesClient: SESv2Client;
-  private queueUrl: string;
+  private sqsClient: SQSClient | null = null;
+  private sesClient: SESv2Client | null = null;
+  private queueUrl: string = '';
   private isProcessing = false;
   private shouldStop = false;
   private pollInterval: NodeJS.Timeout | null = null;
+  private isConfigured = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogsService: AuditLogsService,
+    @Inject(forwardRef(() => EmailQueueService))
+    private readonly emailQueueService: EmailQueueService,
   ) {}
 
   async onModuleInit() {
-    const region = process.env.AWS_REGION || 'us-east-1';
+    // Wait a bit for EmailQueueService to initialize and load credentials
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    this.sqsClient = new SQSClient({ region });
-    this.sesClient = new SESv2Client({ region });
+    await this.loadConfiguration();
 
-    this.queueUrl = process.env.EMAIL_QUEUE_URL ||
-      `https://sqs.${region}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/avnz-email-queue`;
-
-    // Only start polling in production or if explicitly enabled
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_EMAIL_PROCESSOR === 'true') {
+    // Only start polling in production or if explicitly enabled AND configured
+    if (this.isConfigured && (process.env.NODE_ENV === 'production' || process.env.ENABLE_EMAIL_PROCESSOR === 'true')) {
       this.startPolling();
       this.logger.log('Email queue processor started');
+    } else if (!this.isConfigured) {
+      this.logger.log('Email queue processor disabled (not configured)');
     } else {
       this.logger.log('Email queue processor disabled (not production)');
+    }
+  }
+
+  /**
+   * Load configuration from EmailQueueService (which loads from Platform Integration)
+   */
+  private async loadConfiguration(): Promise<void> {
+    // Check if email queue is configured
+    if (!this.emailQueueService.isConfigured()) {
+      this.logger.warn('Email processor: Queue not configured, skipping initialization');
+      return;
+    }
+
+    // Get credentials from the queue service (loaded from Platform Integration)
+    const credentials = this.emailQueueService.getCredentials();
+
+    if (credentials) {
+      // Use integration credentials
+      const awsCredentials = {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+      };
+
+      this.sqsClient = new SQSClient({
+        region: credentials.region || 'us-east-1',
+        credentials: awsCredentials,
+      });
+
+      this.sesClient = new SESv2Client({
+        region: credentials.region || 'us-east-1',
+        credentials: awsCredentials,
+      });
+
+      this.queueUrl = credentials.sqsQueueUrl || process.env.EMAIL_QUEUE_URL || '';
+
+      // Validate queue URL before marking as configured
+      if (this.queueUrl && this.queueUrl.includes('.amazonaws.com/')) {
+        this.isConfigured = true;
+        this.logger.log(`Email processor initialized from Platform Integration (queue: ${this.queueUrl})`);
+      } else {
+        this.logger.warn(`Email processor: Invalid or empty queue URL: "${this.queueUrl}"`);
+      }
+    } else {
+      // Fallback to environment variables
+      const region = process.env.AWS_REGION || 'us-east-1';
+      this.sqsClient = new SQSClient({ region });
+      this.sesClient = new SESv2Client({ region });
+      this.queueUrl = process.env.EMAIL_QUEUE_URL ||
+        `https://sqs.${region}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/avnz-email-queue`;
+
+      if (this.queueUrl && this.queueUrl.includes('.amazonaws.com/')) {
+        this.isConfigured = true;
+        this.logger.log('Email processor initialized from environment variables');
+      }
     }
   }
 
@@ -81,11 +137,12 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
   }
 
   private async pollQueue() {
-    if (this.isProcessing || this.shouldStop) {
+    if (this.isProcessing || this.shouldStop || !this.sqsClient) {
       return;
     }
 
     this.isProcessing = true;
+    this.logger.debug(`Polling queue: ${this.queueUrl}`);
 
     try {
       const command = new ReceiveMessageCommand({
@@ -96,11 +153,11 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
         MessageAttributeNames: ['All'],
       });
 
-      const response = await this.sqsClient.send(command);
+      const response = await this.sqsClient!.send(command);
       const messages = response.Messages || [];
 
       if (messages.length > 0) {
-        this.logger.debug(`Processing ${messages.length} email(s) from queue`);
+        this.logger.log(`Processing ${messages.length} email(s) from queue`);
       }
 
       // Process messages concurrently with a limit
@@ -203,7 +260,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
 
       // Send via SES
       const sesCommand = new SendEmailCommand(params);
-      const response = await this.sesClient.send(sesCommand);
+      const response = await this.sesClient!.send(sesCommand);
 
       // Update success in database
       await this.prisma.emailSendLog.update({
@@ -216,7 +273,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
       });
 
       // Delete message from queue
-      await this.sqsClient.send(new DeleteMessageCommand({
+      await this.sqsClient!.send(new DeleteMessageCommand({
         QueueUrl: this.queueUrl,
         ReceiptHandle: receiptHandle,
       }));
@@ -259,7 +316,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
 
         // Extend visibility timeout for retry (exponential backoff)
         const backoffSeconds = Math.min(300, 30 * Math.pow(2, retryCount));
-        await this.sqsClient.send(new ChangeMessageVisibilityCommand({
+        await this.sqsClient!.send(new ChangeMessageVisibilityCommand({
           QueueUrl: this.queueUrl,
           ReceiptHandle: receiptHandle,
           VisibilityTimeout: backoffSeconds,
@@ -297,7 +354,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
           },
         });
 
-        await this.sqsClient.send(new DeleteMessageCommand({
+        await this.sqsClient!.send(new DeleteMessageCommand({
           QueueUrl: this.queueUrl,
           ReceiptHandle: receiptHandle,
         }));
@@ -331,7 +388,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
    * Manually trigger processing (for testing/debugging)
    */
   async processNow(): Promise<number> {
-    if (this.isProcessing) {
+    if (this.isProcessing || !this.sqsClient || !this.isConfigured) {
       return 0;
     }
 
@@ -347,7 +404,7 @@ export class EmailQueueProcessorService implements OnModuleInit, OnModuleDestroy
         MessageAttributeNames: ['All'],
       });
 
-      const response = await this.sqsClient.send(command);
+      const response = await this.sqsClient!.send(command);
       const messages = response.Messages || [];
 
       for (const message of messages) {

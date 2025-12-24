@@ -1,22 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { UpsellService } from '../../src/momentum-intelligence/upsell/upsell.service';
+import { AnthropicService } from '../../src/integrations/services/providers/anthropic.service';
 import { UpsellType } from '../../src/momentum-intelligence/types/momentum.types';
-
-// Mock Anthropic SDK
-jest.mock('@anthropic-ai/sdk', () => {
-  return {
-    default: jest.fn().mockImplementation(() => ({
-      messages: {
-        create: jest.fn().mockResolvedValue({
-          content: [{ type: 'text', text: 'Mock response' }],
-        }),
-      },
-    })),
-  };
-});
 
 describe('UpsellService', () => {
   let service: UpsellService;
@@ -69,8 +56,8 @@ describe('UpsellService', () => {
       },
     };
 
-    const mockConfig = {
-      get: jest.fn().mockReturnValue('mock-api-key'),
+    const mockAnthropicService = {
+      generateMessage: jest.fn().mockResolvedValue('Mock AI response'),
     };
 
     const mockEventEmitter = {
@@ -82,7 +69,7 @@ describe('UpsellService', () => {
       providers: [
         UpsellService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ConfigService, useValue: mockConfig },
+        { provide: AnthropicService, useValue: mockAnthropicService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();

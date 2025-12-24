@@ -56,27 +56,27 @@ export class PlatformIntegrationsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update platform integration' })
-  async updatePlatform(@Param('id') id: string, @CurrentUser() user: { id: string }, @Body() dto: UpdatePlatformIntegrationDto): Promise<PlatformIntegration> {
-    return this.platformService.update(id, dto, user.id);
+  async updatePlatform(@Param('id') id: string, @CurrentUser() user: { id: string; organizationId: string }, @Body() dto: UpdatePlatformIntegrationDto): Promise<PlatformIntegration> {
+    return this.platformService.update(id, user.organizationId, dto, user.id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete platform integration' })
-  async deletePlatform(@Param('id') id: string): Promise<void> {
-    return this.platformService.delete(id);
+  async deletePlatform(@Param('id') id: string, @CurrentUser() user: { organizationId: string }): Promise<void> {
+    return this.platformService.delete(id, user.organizationId);
   }
 
   @Post(':id/test')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test platform integration' })
-  async testPlatform(@Param('id') id: string): Promise<IntegrationTestResult> {
-    return this.platformService.test(id);
+  async testPlatform(@Param('id') id: string, @CurrentUser() user: { organizationId: string }): Promise<IntegrationTestResult> {
+    return this.platformService.test(id, user.organizationId);
   }
 
   @Patch(':id/sharing')
   @ApiOperation({ summary: 'Configure client sharing' })
-  async configureSharing(@Param('id') id: string, @CurrentUser() user: { id: string }, @Body() dto: ConfigureClientSharingDto): Promise<PlatformIntegration> {
-    return this.platformService.configureSharing(id, dto, user.id);
+  async configureSharing(@Param('id') id: string, @CurrentUser() user: { id: string; organizationId: string }, @Body() dto: ConfigureClientSharingDto): Promise<PlatformIntegration> {
+    return this.platformService.configureSharing(id, user.organizationId, dto, user.id);
   }
 }
 
@@ -111,29 +111,29 @@ export class ClientIntegrationsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update client integration' })
   @Roles('SUPER_ADMIN', 'ADMIN')
-  async update(@Param('id') id: string, @CurrentUser() user: { id: string }, @Body() dto: UpdateClientIntegrationDto): Promise<ClientIntegration> {
-    return this.clientService.update(id, dto, user.id);
+  async update(@Param('id') id: string, @CurrentUser() user: { id: string; clientId: string }, @Body() dto: UpdateClientIntegrationDto): Promise<ClientIntegration> {
+    return this.clientService.update(id, user.clientId, dto, user.id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete client integration' })
   @Roles('SUPER_ADMIN', 'ADMIN')
-  async delete(@Param('id') id: string): Promise<void> {
-    return this.clientService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: { clientId: string }): Promise<void> {
+    return this.clientService.delete(id, user.clientId);
   }
 
   @Post(':id/test')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test client integration' })
-  async test(@Param('id') id: string): Promise<IntegrationTestResult> {
-    return this.clientService.test(id);
+  async test(@Param('id') id: string, @CurrentUser() user: { clientId: string }): Promise<IntegrationTestResult> {
+    return this.clientService.test(id, user.clientId);
   }
 
   @Patch(':id/default')
   @ApiOperation({ summary: 'Set as default' })
   @Roles('SUPER_ADMIN', 'ADMIN')
-  async setDefault(@Param('id') id: string, @CurrentUser() user: { id: string }): Promise<ClientIntegration> {
-    return this.clientService.setDefault(id, user.id);
+  async setDefault(@Param('id') id: string, @CurrentUser() user: { id: string; clientId: string }): Promise<ClientIntegration> {
+    return this.clientService.setDefault(id, user.clientId, user.id);
   }
 }
 

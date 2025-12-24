@@ -142,6 +142,7 @@ export class RefundsService {
     companyId: string | undefined,
     query: RefundQueryParams,
   ): Promise<{ refunds: Refund[]; total: number } | CursorPaginatedResponse<Refund>> {
+    // Note: Refund model doesn't have soft delete - records are kept for audit/compliance
     const where: Prisma.RefundWhereInput = {};
 
     // Only filter by companyId if provided (undefined = all refunds for org/client admins)

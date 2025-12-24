@@ -1,10 +1,12 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { ScopeType } from '@prisma/client';
 
 export interface AuthenticatedUser {
-  id: string;
+  sub: string;  // JWT subject (user ID)
+  id: string;   // Alias for sub
   email: string;
   role: string;
-  scopeType: string;
+  scopeType: ScopeType;
   scopeId: string;
   organizationId?: string;
   clientId?: string;

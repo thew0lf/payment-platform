@@ -342,23 +342,16 @@ Your authority:
         },
       },
       humanAgentConfig: {
-        enabled: false,
-        phoneNumber: null,
+        enabled: true,
         queueId: null,
-        availableHours: {
-          timezone: 'America/New_York',
-          schedule: {
-            monday: { open: '09:00', close: '17:00' },
-            tuesday: { open: '09:00', close: '17:00' },
-            wednesday: { open: '09:00', close: '17:00' },
-            thursday: { open: '09:00', close: '17:00' },
-            friday: { open: '09:00', close: '17:00' },
-            saturday: { open: '10:00', close: '14:00' },
-            sunday: null,
-          },
-        },
-        callbackEnabled: true,
-        maxWaitMinutes: 15,
+        maxWaitTime: 900, // 15 minutes in seconds
+        fallbackMessage: "I'm sorry, no agents are available right now. Please try again during business hours or leave a message.",
+        availableHours: 'Monday-Friday 9am-5pm, Saturday 10am-2pm EST',
+        // Escalation phone configuration
+        escalationPhone: process.env.DEMO_ESCALATION_PHONE || '+15551234567', // Demo phone - configure in env
+        escalationPhoneBackup: process.env.DEMO_ESCALATION_PHONE_BACKUP || null,
+        notifyOnEscalation: true,
+        notificationPhone: process.env.DEMO_NOTIFICATION_PHONE || null, // Same as escalation if not set
       },
       irateProtocol: {
         enabled: true,

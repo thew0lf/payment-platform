@@ -222,10 +222,76 @@ model Company {
   deletedBy String?
   cascadeId String?
 
+  // Sites (multiple storefronts per company)
+  sites Site[]
+
   @@unique([clientId, slug])
   @@index([clientId])
   @@index([deletedAt])
   @@map("companies")
+}
+
+// Site model - multiple sites/storefronts per company
+// Sites share company-level resources (customers, products, orders)
+model Site {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  slug      String
+  code      String? @unique // 4-char alphanumeric code - globally unique
+
+  // Site-specific configuration
+  domain      String?  // Custom domain for this site
+  subdomain   String?  // Subdomain if using platform domain
+  logo        String?
+  favicon     String?
+  description String?
+
+  // Branding
+  primaryColor   String?
+  secondaryColor String?
+  accentColor    String?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+
+  // Site settings
+  settings Json @default("{}")
+
+  // Localization (can differ from company defaults)
+  timezone String?
+  currency String?
+  locale   String? @default("en")
+
+  // Status
+  isDefault Boolean      @default(false) // Primary site for the company
+  status    EntityStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Funnels can be associated with specific sites
+  funnels Funnel[]
+
+  // Landing pages can be site-specific
+  landingPages LandingPage[]
+
+  // Soft delete fields
+  deletedAt DateTime?
+  deletedBy String?
+  cascadeId String?
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([domain])
+  @@index([deletedAt])
+  @@map("sites")
 }
 
 model Department {
@@ -6505,6 +6571,10 @@ model LandingPage {
   id        String @id @default(cuid())
   companyId String
 
+  // Optional site association (for multi-site companies)
+  siteId    String?
+  site      Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
   // Identity & Routing
   name      String // "Main Site", "Holiday Promo 2024"
   slug      String // Internal reference
@@ -7817,6 +7887,10 @@ model Funnel {
   id              String          @id @default(cuid())
   companyId       String
   company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Optional site association (for multi-site companies)
+  siteId          String?
+  site            Site?           @relation(fields: [siteId], references: [id], onDelete: SetNull)
 
   // Basic Info
   name            String

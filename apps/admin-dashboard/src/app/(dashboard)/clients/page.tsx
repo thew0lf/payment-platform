@@ -104,7 +104,13 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Client name is required');
+      toast.error('Every great client needs a name—please add one to continue.');
+      return;
+    }
+
+    // Basic email validation
+    if (contactEmail.trim() && !contactEmail.includes('@')) {
+      toast.error("That email doesn't look quite right. Make sure it includes an @ symbol.");
       return;
     }
 
@@ -125,9 +131,14 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
       <div className="bg-card border border-border rounded-xl w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">
-            {client ? 'Edit Client' : 'Add Client'}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {client ? 'Edit Client' : 'Add New Client'}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {client ? 'Update your client details' : 'Bring a new agency into your network'}
+            </p>
+          </div>
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -147,10 +158,11 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter client name"
+              placeholder="Velocity Marketing Group"
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               autoFocus
             />
+            <p className="text-xs text-muted-foreground mt-1">The name you&apos;ll see throughout the dashboard</p>
           </div>
 
           {/* Contact Name */}
@@ -162,9 +174,10 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
               type="text"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
-              placeholder="Primary contact person"
+              placeholder="Sarah Chen"
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
+            <p className="text-xs text-muted-foreground mt-1">Who&apos;s your go-to person at this agency?</p>
           </div>
 
           {/* Contact Email */}
@@ -176,9 +189,10 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="contact@example.com"
+              placeholder="sarah@velocitymarketing.com"
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
+            <p className="text-xs text-muted-foreground mt-1">Best email for account updates and invoices</p>
           </div>
 
           {/* Contact Phone */}
@@ -190,9 +204,10 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              placeholder="+1 (555) 000-0000"
+              placeholder="+1 (555) 123-4567"
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
+            <p className="text-xs text-muted-foreground mt-1">For time-sensitive account matters</p>
           </div>
 
           {/* Plan */}
@@ -211,6 +226,7 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
                 </option>
               ))}
             </select>
+            <p className="text-xs text-muted-foreground mt-1">Determines features and transaction limits</p>
           </div>
 
           {/* Status (only for edit) */}
@@ -230,6 +246,7 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-muted-foreground mt-1">Suspended clients lose API access immediately</p>
             </div>
           )}
 
@@ -247,7 +264,7 @@ function ClientFormModal({ client, onClose, onSave, loading }: ClientFormModalPr
               disabled={loading}
               className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation active:scale-[0.98]"
             >
-              {loading ? 'Saving...' : client ? 'Update Client' : 'Create Client'}
+              {loading ? (client ? 'Updating...' : 'Setting up client...') : client ? 'Update Client' : 'Create Client'}
             </button>
           </div>
         </form>
@@ -272,24 +289,31 @@ function DeleteModal({ client, onClose, onConfirm, loading }: DeleteModalProps) 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-card border border-border rounded-xl w-full max-w-md p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-2">Delete Client</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Are you sure you want to delete <strong>{client.name}</strong>? This action will also delete
-          all associated companies and cannot be undone.
+        <h3 className="text-lg font-semibold text-foreground mb-2">Delete {client.name}?</h3>
+        <p className="text-sm text-muted-foreground mb-2">
+          This will permanently remove the client and all their data, including:
+        </p>
+        <ul className="text-sm text-muted-foreground mb-4 list-disc list-inside space-y-1">
+          <li>All associated companies</li>
+          <li>Transaction history and analytics</li>
+          <li>User accounts and permissions</li>
+        </ul>
+        <p className="text-sm text-red-400 mb-4">
+          This action cannot be undone.
         </p>
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            Cancel
+            Keep Client
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation active:scale-[0.98]"
           >
-            {loading ? 'Deleting...' : 'Delete'}
+            {loading ? 'Removing client...' : 'Yes, Delete Client'}
           </button>
         </div>
       </div>
@@ -353,7 +377,7 @@ export default function ClientsPage() {
       setStats(statsResult);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
-      setError('Failed to load clients. Please try again.');
+      setError("We couldn't load your clients right now. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -398,17 +422,28 @@ export default function ClientsPage() {
     try {
       if (editingClient) {
         await clientsApi.update(editingClient.id, data);
-        toast.success(`"${data.name}" updated successfully`);
+        toast.success(`${data.name} updated—changes are live!`);
       } else {
         await clientsApi.create(data as CreateClientInput);
-        toast.success(`"${data.name}" created successfully`);
+        toast.success(`Welcome aboard, ${data.name}!`);
       }
       setShowFormModal(false);
       setEditingClient(null);
       fetchClients();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to save client:', err);
-      toast.error(editingClient ? 'Failed to update client' : 'Failed to create client');
+      let errorMessage = editingClient
+        ? "We couldn't save those changes. Please check your connection and try again."
+        : "We couldn't create this client right now. Please try again.";
+
+      if (err instanceof Error) {
+        if (err.message.includes('code') && err.message.includes('exists')) {
+          errorMessage = 'A client with this code already exists. Try a different name.';
+        } else if (err.message.includes('email') && err.message.includes('invalid')) {
+          errorMessage = "That email doesn't look quite right. Please check the format.";
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setFormLoading(false);
     }
@@ -419,12 +454,12 @@ export default function ClientsPage() {
     setFormLoading(true);
     try {
       await clientsApi.delete(deletingClient.id);
-      toast.success(`"${deletingClient.name}" deleted successfully`);
+      toast.success(`${deletingClient.name} has been removed.`);
       setDeletingClient(null);
       fetchClients();
     } catch (err) {
       console.error('Failed to delete client:', err);
-      toast.error('Failed to delete client');
+      toast.error("We couldn't delete this client. They may have active transactions—please contact support if this continues.");
     } finally {
       setFormLoading(false);
     }
@@ -584,11 +619,13 @@ export default function ClientsPage() {
       {!loading && clients.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No clients found</h3>
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {search || statusFilter || planFilter ? 'No matching clients' : 'No clients yet'}
+          </h3>
           <p className="text-sm text-muted-foreground max-w-md">
             {search || statusFilter || planFilter
-              ? "Try adjusting your search or filters to find what you're looking for."
-              : 'Get started by adding your first client.'}
+              ? "We couldn't find any clients matching those criteria. Try adjusting your search or clearing the filters."
+              : "Your client roster is empty—let's change that! Add your first agency to get started."}
           </p>
           {!search && !statusFilter && !planFilter && (
             <button
@@ -596,7 +633,7 @@ export default function ClientsPage() {
               className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors min-h-[44px] touch-manipulation active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
-              Add Client
+              Add Your First Client
             </button>
           )}
         </div>

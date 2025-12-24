@@ -205,21 +205,19 @@ export class RefundsController {
 
     // For ORGANIZATION or CLIENT scope admins
     if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
-      // If they passed a companyId query param, validate access first
+      // If they passed a companyId query param, validate access first (with audit logging)
       if (queryCompanyId) {
-        const hasAccess = await this.hierarchyService.canAccessCompany(
+        await this.hierarchyService.validateCompanyAccess(
           {
-            sub: user.id,
+            sub: user.sub,
             scopeType: user.scopeType as any,
             scopeId: user.scopeId,
             clientId: user.clientId,
             companyId: user.companyId,
           },
           queryCompanyId,
+          'query refunds',
         );
-        if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
-        }
         return queryCompanyId;
       }
       // Otherwise return undefined to allow querying all refunds they have access to

@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
-export type EntityType = 'client' | 'company';
+export type EntityType = 'client' | 'company' | 'site';
 
 // Reserved codes that might be confusing
 const RESERVED_CODES = new Set([
@@ -37,6 +37,19 @@ export class CodeGeneratorService {
     return this.prisma.$transaction(async (tx) => {
       // Company codes are now globally unique, clientId not used for uniqueness
       return this.generateUniqueCode('company', name, undefined, tx);
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  }
+
+  /**
+   * Generate a unique 4-character alphanumeric code for a site
+   * Site codes are globally unique across all entities
+   * Uses transaction to prevent race conditions
+   */
+  async generateSiteCode(name: string, _companyId?: string): Promise<string> {
+    return this.prisma.$transaction(async (tx) => {
+      return this.generateUniqueCode('site', name, undefined, tx);
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
@@ -126,7 +139,7 @@ export class CodeGeneratorService {
 
   /**
    * Batch fetch existing codes with a given prefix
-   * Both client and company codes are globally unique, so we check across all entities
+   * All entity codes are globally unique, so we check across all entity tables
    */
   private async getExistingCodesWithPrefix(
     type: EntityType,
@@ -136,9 +149,9 @@ export class CodeGeneratorService {
   ): Promise<Set<string>> {
     const db = prisma || this.prisma;
 
-    // Both client and company codes must be globally unique
-    // Check both tables to ensure no collision across entity types
-    const [clientCodes, companyCodes] = await Promise.all([
+    // All codes must be globally unique
+    // Check all tables to ensure no collision across entity types
+    const [clientCodes, companyCodes, siteCodes] = await Promise.all([
       db.client.findMany({
         where: { code: { startsWith: prefix } },
         select: { code: true },
@@ -147,11 +160,16 @@ export class CodeGeneratorService {
         where: { code: { startsWith: prefix } },
         select: { code: true },
       }),
+      db.site.findMany({
+        where: { code: { startsWith: prefix } },
+        select: { code: true },
+      }),
     ]);
 
     const allCodes = new Set<string>();
     clientCodes.forEach(e => e.code && allCodes.add(e.code));
     companyCodes.forEach(e => e.code && allCodes.add(e.code));
+    siteCodes.forEach(e => e.code && allCodes.add(e.code));
 
     return allCodes;
   }
@@ -208,7 +226,7 @@ export class CodeGeneratorService {
   }
 
   /**
-   * Check if a code is unique across all clients and companies
+   * Check if a code is unique across all clients, companies, and sites
    */
   private async isCodeUnique(
     _type: EntityType,
@@ -218,13 +236,14 @@ export class CodeGeneratorService {
   ): Promise<boolean> {
     const db = prisma || this.prisma;
 
-    // All codes must be globally unique across both clients and companies
-    const [existingClient, existingCompany] = await Promise.all([
+    // All codes must be globally unique across clients, companies, and sites
+    const [existingClient, existingCompany, existingSite] = await Promise.all([
       db.client.findFirst({ where: { code } }),
       db.company.findFirst({ where: { code } }),
+      db.site.findFirst({ where: { code } }),
     ]);
 
-    return !existingClient && !existingCompany;
+    return !existingClient && !existingCompany && !existingSite;
   }
 
   /**

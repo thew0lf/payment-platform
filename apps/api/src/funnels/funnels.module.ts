@@ -7,6 +7,7 @@ import { FunnelPaymentService } from './services/funnel-payment.service';
 import { FunnelPricingService } from './services/funnel-pricing.service';
 import { FunnelInterventionsService } from './services/funnel-interventions.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { HierarchyModule } from '../hierarchy/hierarchy.module';
 import { CardVaultModule } from '../card-vault/card-vault.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { OrdersModule } from '../orders/orders.module';
@@ -15,6 +16,7 @@ import { LeadsModule } from '../leads/leads.module';
 @Module({
   imports: [
     PrismaModule,
+    HierarchyModule,
     CardVaultModule,
     forwardRef(() => PaymentsModule),
     forwardRef(() => OrdersModule),

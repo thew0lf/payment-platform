@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwilioService } from '../../integrations/services/providers/twilio.service';
+import { IntegrationProvider, IntegrationStatus } from '../../integrations/types/integration.types';
 import {
   CallDirection,
   VoiceCallStatus,
@@ -448,14 +449,53 @@ export class VoiceAIService {
   // ═══════════════════════════════════════════════════════════════
 
   private async getTwilioConfig(companyId: string): Promise<TwilioConfig | null> {
-    // Would be retrieved from company settings in production
-    // For now, return a mock config
+    // Get Twilio credentials from TwilioService (which reads from ClientIntegration)
+    const credentials = await this.twilioService.getCredentials(companyId);
+
+    if (!credentials) {
+      // Fall back to environment variables for development/testing
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+      if (!accountSid || !authToken || !phoneNumber) {
+        this.logger.warn(`No Twilio configuration found for company ${companyId}`);
+        return null;
+      }
+
+      this.logger.log(`Using environment variable Twilio config for company ${companyId}`);
+      return {
+        accountSid,
+        authToken,
+        phoneNumber,
+        inboundWebhookUrl: `${process.env.API_URL || 'http://localhost:3001'}/api/momentum/voice/inbound`,
+        statusCallbackUrl: `${process.env.API_URL || 'http://localhost:3001'}/api/momentum/voice/status`,
+        voiceSettings: {
+          voice: 'Polly.Joanna',
+          language: 'en-US',
+          speechTimeout: 3,
+          maxCallDuration: 600,
+        },
+        speechRecognition: {
+          provider: 'google',
+          hints: [],
+          model: 'phone_call',
+        },
+        fallbackBehavior: {
+          maxRetries: 3,
+          fallbackMessage: "I'm sorry, I didn't catch that. Could you please repeat?",
+          transferToHuman: true,
+        },
+      };
+    }
+
+    // Return config from ClientIntegration credentials
     return {
-      accountSid: process.env.TWILIO_ACCOUNT_SID || '',
-      authToken: process.env.TWILIO_AUTH_TOKEN || '',
-      phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-      inboundWebhookUrl: `${process.env.API_URL}/api/momentum/voice/inbound`,
-      statusCallbackUrl: `${process.env.API_URL}/api/momentum/voice/status`,
+      accountSid: credentials.accountSid,
+      authToken: credentials.authToken,
+      phoneNumber: credentials.fromNumber || '',
+      inboundWebhookUrl: `${process.env.API_URL || 'http://localhost:3001'}/api/momentum/voice/inbound`,
+      statusCallbackUrl: `${process.env.API_URL || 'http://localhost:3001'}/api/momentum/voice/status`,
       voiceSettings: {
         voice: 'Polly.Joanna',
         language: 'en-US',
@@ -476,9 +516,52 @@ export class VoiceAIService {
   }
 
   private async findCompanyByPhone(phoneNumber: string): Promise<any> {
-    // Would lookup company by their Twilio phone number
-    // For now, return first company (simplified)
-    return this.prisma.company.findFirst();
+    // Look up company by matching the Twilio phone number in their ClientIntegration
+    // The fromNumber is stored in the credentials JSON field
+
+    // First, find all active Twilio integrations
+    const twilioIntegrations = await this.prisma.clientIntegration.findMany({
+      where: {
+        provider: IntegrationProvider.TWILIO,
+        status: IntegrationStatus.ACTIVE,
+      },
+      include: {
+        client: {
+          include: {
+            companies: true,
+          },
+        },
+      },
+    });
+
+    // Normalize the phone number (remove +, spaces, etc.)
+    const normalizedInput = phoneNumber.replace(/\D/g, '');
+
+    // Check each integration's credentials for matching phone number
+    for (const integration of twilioIntegrations) {
+      if (!integration.credentials) continue;
+
+      try {
+        // Note: Credentials are encrypted - this would need decryption in production
+        // For now, we're looking at the fromNumber field that should be in settings
+        const settings = integration.settings as { fromNumber?: string } | null;
+        const fromNumber = settings?.fromNumber?.replace(/\D/g, '');
+
+        if (fromNumber && fromNumber === normalizedInput) {
+          // Return the first company for this client
+          const company = integration.client?.companies?.[0];
+          if (company) {
+            this.logger.log(`Found company ${company.id} for phone number ${phoneNumber}`);
+            return company;
+          }
+        }
+      } catch (error) {
+        this.logger.warn(`Error checking integration ${integration.id}:`, error);
+      }
+    }
+
+    this.logger.warn(`No company found for phone number ${phoneNumber}`);
+    return null;
   }
 
   private analyzeSentiment(text: string): Sentiment {
