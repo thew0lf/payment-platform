@@ -151,9 +151,20 @@ export const iconMap: Record<string, LucideIcon> = {
 // ═══════════════════════════════════════════════════════════════
 // NAVIGATION CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
+// Reorganized into 8 logical sections prioritized by user needs:
+// 1. Dashboard (standalone) - First thing users see
+// 2. Insights - Analytics and reporting (expanded by default)
+// 3. Organization - Hierarchy management (ORG/CLIENT only, after Insights per request)
+// 4. Operations - Daily work (orders, transactions, customers)
+// 5. Commerce - Products, marketing, subscriptions
+// 6. AI & Automation - Momentum Intelligence + CS AI combined
+// 7. Vendors - Vendor management (ORG only)
+// 8. Settings - All configuration consolidated
 
 export const navigationSections: NavSection[] = [
-  // Insights (Dashboard & Analytics)
+  // ─────────────────────────────────────────────────────────────
+  // 1. INSIGHTS - Analytics & Reporting (Dashboard included here)
+  // ─────────────────────────────────────────────────────────────
   {
     id: 'insights',
     label: 'Insights',
@@ -169,90 +180,10 @@ export const navigationSections: NavSection[] = [
     ],
   },
 
-  // Daily Operations - Most used, expanded by default
-  {
-    id: 'daily-operations',
-    label: 'Daily Operations',
-    icon: Receipt,
-    defaultExpanded: true,
-    items: [
-      { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
-      { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
-      { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
-      { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
-      { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
-    ],
-  },
-
-  // Catalog
-  {
-    id: 'catalog',
-    label: 'Catalog',
-    icon: Package,
-    defaultExpanded: false,
-    items: [
-      { id: 'products', label: 'Products', href: '/products', icon: ShoppingBag, badgeKey: 'lowStock' },
-      { id: 'subscription-plans', label: 'Subscription Plans', href: '/subscription-plans', icon: Repeat },
-      { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
-      { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
-      { id: 'collections', label: 'Collections', href: '/products/collections', icon: Layers },
-      { id: 'reviews', label: 'Reviews', href: '/reviews', icon: Star },
-    ],
-  },
-
-  // Marketing
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: Megaphone,
-    defaultExpanded: false,
-    items: [
-      { id: 'funnels', label: 'Funnels', href: '/funnels', icon: Workflow },
-      { id: 'leads', label: 'Leads', href: '/leads', icon: UserPlus },
-      { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
-    ],
-  },
-
-  // Momentum Intelligence
-  {
-    id: 'momentum',
-    label: 'Momentum Intelligence',
-    icon: Brain,
-    defaultExpanded: false,
-    items: [
-      { id: 'churn-risk', label: 'Churn Risk', href: '/momentum/churn', icon: AlertTriangle },
-      { id: 'save-flows', label: 'Save Flows', href: '/momentum/save-flows', icon: Target },
-      { id: 'triggers', label: 'Behavioral Triggers', href: '/momentum/triggers', icon: Sparkles },
-      { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: RotateCcw },
-    ],
-  },
-
-  // CS AI - AI-powered Customer Service
-  {
-    id: 'cs-ai',
-    label: 'CS AI',
-    icon: Bot,
-    defaultExpanded: false,
-    items: [
-      { id: 'cs-dashboard', label: 'Dashboard', href: '/cs-ai', icon: BarChart3 },
-      { id: 'cs-conversations', label: 'Conversations', href: '/cs-ai/conversations', icon: MessageSquare },
-      { id: 'cs-voice', label: 'Voice Calls', href: '/cs-ai/voice', icon: Phone },
-      { id: 'cs-analytics', label: 'Analytics', href: '/cs-ai/analytics', icon: TrendingUp },
-    ],
-  },
-
-  // Fulfillment
-  {
-    id: 'fulfillment',
-    label: 'Fulfillment',
-    icon: Truck,
-    defaultExpanded: false,
-    items: [
-      { id: 'shipments', label: 'Shipments', href: '/shipments', icon: PackageCheck, badgeKey: 'fulfillment' },
-    ],
-  },
-
-  // Organization Management - Organization and Client levels
+  // ─────────────────────────────────────────────────────────────
+  // 2. ORGANIZATION - Hierarchy Management (ORG/CLIENT only)
+  // Moved after Insights as requested
+  // ─────────────────────────────────────────────────────────────
   {
     id: 'organization',
     label: 'Organization',
@@ -266,7 +197,72 @@ export const navigationSections: NavSection[] = [
     ],
   },
 
-  // Vendors - Organization level only
+  // ─────────────────────────────────────────────────────────────
+  // 3. OPERATIONS - Daily Work (high frequency actions)
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'operations',
+    label: 'Operations',
+    icon: Receipt,
+    defaultExpanded: true,
+    items: [
+      { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
+      { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
+      { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
+      { id: 'customers', label: 'Customers', href: '/customers', icon: Users },
+      { id: 'refunds', label: 'Refunds', href: '/refunds', icon: RotateCcw },
+      { id: 'shipments', label: 'Shipments', href: '/shipments', icon: PackageCheck, badgeKey: 'fulfillment' },
+      { id: 'rmas', label: 'Returns (RMA)', href: '/rmas', icon: RotateCcw },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 4. COMMERCE - Products, Marketing, Catalog
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'commerce',
+    label: 'Commerce',
+    icon: ShoppingBag,
+    defaultExpanded: false,
+    items: [
+      // Products & Catalog
+      { id: 'products', label: 'Products', href: '/products', icon: ShoppingBag, badgeKey: 'lowStock' },
+      { id: 'subscription-plans', label: 'Subscription Plans', href: '/subscription-plans', icon: Repeat },
+      { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
+      { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
+      { id: 'collections', label: 'Collections', href: '/products/collections', icon: Layers },
+      { id: 'reviews', label: 'Reviews', href: '/reviews', icon: Star },
+      // Marketing
+      { id: 'funnels', label: 'Funnels', href: '/funnels', icon: Workflow },
+      { id: 'leads', label: 'Leads', href: '/leads', icon: UserPlus },
+      { id: 'landing-pages', label: 'Landing Pages', href: '/landing-pages', icon: FileText },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 5. AI & AUTOMATION - Momentum Intelligence + CS AI combined
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'ai-automation',
+    label: 'AI & Automation',
+    icon: Brain,
+    defaultExpanded: false,
+    items: [
+      // Momentum Intelligence
+      { id: 'churn-risk', label: 'Churn Risk', href: '/momentum/churn', icon: AlertTriangle },
+      { id: 'save-flows', label: 'Save Flows', href: '/momentum/save-flows', icon: Target },
+      { id: 'triggers', label: 'Behavioral Triggers', href: '/momentum/triggers', icon: Sparkles },
+      // CS AI
+      { id: 'cs-dashboard', label: 'CS Dashboard', href: '/cs-ai', icon: Headphones },
+      { id: 'cs-conversations', label: 'Conversations', href: '/cs-ai/conversations', icon: MessageSquare },
+      { id: 'cs-voice', label: 'Voice Calls', href: '/cs-ai/voice', icon: Phone },
+      { id: 'cs-analytics', label: 'CS Analytics', href: '/cs-ai/analytics', icon: Activity },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 6. VENDORS - Vendor Management (ORG only)
+  // ─────────────────────────────────────────────────────────────
   {
     id: 'vendors',
     label: 'Vendors',
@@ -281,61 +277,39 @@ export const navigationSections: NavSection[] = [
     ],
   },
 
-  // Feature Development - Organization level only
-  {
-    id: 'features',
-    label: 'Development',
-    icon: GitBranch,
-    defaultExpanded: false,
-    requiredScopes: ['ORGANIZATION'],
-    items: [
-      { id: 'feature-pipeline', label: 'Feature Pipeline', href: '/features', icon: GitBranch },
-      { id: 'code-review-checklist', label: 'Code Review', href: '/features/code-review', icon: FileCheck2 },
-      { id: 'qa-checklist', label: 'QA Checklist', href: '/features/checklist', icon: Bug },
-    ],
-  },
-
-  // Payment Routing
-  {
-    id: 'payment-routing',
-    label: 'Payment Routing',
-    icon: Zap,
-    defaultExpanded: false,
-    items: [
-      { id: 'routing-rules', label: 'Routing Rules', href: '/routing', icon: GitBranch },
-      { id: 'account-pools', label: 'Account Pools', href: '/routing/pools', icon: Landmark },
-    ],
-  },
-
-  // Configuration
-  {
-    id: 'configuration',
-    label: 'Configuration',
-    icon: Wrench,
-    defaultExpanded: false,
-    items: [
-      { id: 'merchant-accounts', label: 'Merchant Accounts', href: '/settings/merchant-accounts', icon: CreditCard },
-      { id: 'integrations', label: 'Integrations', href: '/integrations', icon: Plug },
-      { id: 'api-keys', label: 'API Keys', href: '/settings/api-keys', icon: Key },
-    ],
-  },
-
-  // Settings
+  // ─────────────────────────────────────────────────────────────
+  // 7. SETTINGS - All Configuration Consolidated
+  // Includes: General, Payments, Integrations, Team, Security
+  // ─────────────────────────────────────────────────────────────
   {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
     defaultExpanded: false,
     items: [
+      // General
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
       { id: 'appearance', label: 'Appearance', href: '/settings/appearance', icon: Palette },
-      { id: 'billing', label: 'Billing', href: '/settings/billing', icon: Wallet },
-      { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
-      { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
+      // Payments & Routing
+      { id: 'merchant-accounts', label: 'Merchant Accounts', href: '/settings/merchant-accounts', icon: CreditCard },
+      { id: 'routing-rules', label: 'Routing Rules', href: '/routing', icon: GitBranch },
+      { id: 'account-pools', label: 'Account Pools', href: '/routing/pools', icon: Landmark },
+      // Integrations
+      { id: 'integrations', label: 'Integrations', href: '/integrations', icon: Plug },
+      { id: 'api-keys', label: 'API Keys', href: '/settings/api-keys', icon: Key },
+      // Team & Security
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },
-      { id: 'waitlist', label: 'Founders Waitlist', href: '/settings/waitlist', icon: Sparkles },
+      { id: 'roles', label: 'Roles & Permissions', href: '/settings/roles', icon: Shield },
+      { id: 'security', label: 'Security', href: '/settings/security', icon: Lock },
+      // Billing & Admin
+      { id: 'billing', label: 'Billing', href: '/settings/billing', icon: Wallet },
       { id: 'audit-logs', label: 'Audit Logs', href: '/settings/audit-logs', icon: ClipboardList },
+      { id: 'waitlist', label: 'Founders Waitlist', href: '/settings/waitlist', icon: Sparkles, requiredScopes: ['ORGANIZATION'] },
       { id: 'deleted', label: 'Trash', href: '/deleted', icon: Trash2 },
+      // Development (ORG only)
+      { id: 'feature-pipeline', label: 'Feature Pipeline', href: '/features', icon: GitBranch, requiredScopes: ['ORGANIZATION'] },
+      { id: 'code-review-checklist', label: 'Code Review', href: '/features/code-review', icon: FileCheck2, requiredScopes: ['ORGANIZATION'] },
+      { id: 'qa-checklist', label: 'QA Checklist', href: '/features/checklist', icon: Bug, requiredScopes: ['ORGANIZATION'] },
     ],
   },
 ];
