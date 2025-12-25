@@ -85,12 +85,40 @@ export class MomentumIntelligenceController {
     @Query('riskLevel') riskLevel?: string,
     @Query('urgency') urgency?: string,
     @Query('limit') limit?: string,
+    @Query('minScore') minScore?: string,
   ) {
-    return this.intentDetectionService.getHighRiskCustomers(companyId, {
+    const intents = await this.intentDetectionService.getHighRiskCustomers(companyId, {
       riskLevel: riskLevel as any,
       urgency: urgency as any,
       limit: limit ? parseInt(limit) : undefined,
     });
+
+    // Filter by minScore if provided
+    let filteredIntents = intents;
+    if (minScore) {
+      const minScoreNum = parseInt(minScore);
+      filteredIntents = intents.filter((intent: any) => intent.churnScore >= minScoreNum);
+    }
+
+    // Transform to HighRiskCustomer format expected by frontend
+    const items = filteredIntents.map((intent: any) => ({
+      customerId: intent.customerId,
+      customerName: intent.customer
+        ? `${intent.customer.firstName || ''} ${intent.customer.lastName || ''}`.trim() || intent.customer.email
+        : 'Unknown',
+      customerEmail: intent.customer?.email || '',
+      riskScore: intent.churnScore || 0,
+      riskLevel: intent.churnRisk || 'LOW',
+      topFactors: intent.primaryFactors || [],
+      lifetimeValue: 0, // Would need to calculate from orders
+      lastOrderDate: undefined,
+      trend: 'STABLE' as const,
+    }));
+
+    return {
+      items,
+      total: items.length,
+    };
   }
 
   // =============================================================================

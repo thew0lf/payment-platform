@@ -29,20 +29,25 @@ export class VendorCompanyController {
   async findAll(
     @Query('vendorId') vendorId?: string,
     @Query('search') search?: string,
-    @Query('status') status?: EntityStatus,
+    @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-    @Query('sortBy') sortBy?: 'name' | 'createdAt',
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
   ) {
+    // Validate status enum if provided
+    const validStatus = status && Object.values(EntityStatus).includes(status as EntityStatus)
+      ? (status as EntityStatus)
+      : undefined;
+
     return this.vendorCompanyService.findAll({
       vendorId,
       search,
-      status,
+      status: validStatus,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
-      sortBy,
-      sortOrder,
+      sortBy: sortBy as 'name' | 'createdAt' | undefined,
+      sortOrder: sortOrder as 'asc' | 'desc' | undefined,
     });
   }
 

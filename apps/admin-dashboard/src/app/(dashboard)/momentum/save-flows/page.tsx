@@ -101,6 +101,53 @@ const STAGE_ORDER: SaveFlowStage[] = [
   'WINBACK',
 ];
 
+// Map backend stage property names to frontend stage names
+const STAGE_PROPERTY_MAP: Record<string, SaveFlowStage> = {
+  patternInterrupt: 'PATTERN_INTERRUPT',
+  diagnosisSurvey: 'DIAGNOSIS',
+  branchingInterventions: 'BRANCHING',
+  nuclearOffer: 'NUCLEAR_OFFER',
+  lossVisualization: 'LOSS_VISUALIZATION',
+  exitSurvey: 'EXIT_SURVEY',
+  winback: 'WINBACK',
+};
+
+// Transform backend config format to frontend expected format
+function transformConfigFromBackend(backendConfig: any): SaveFlowConfig {
+  // If config already has stages array, return as-is
+  if (backendConfig.stages && Array.isArray(backendConfig.stages)) {
+    return backendConfig as SaveFlowConfig;
+  }
+
+  // Transform individual stage properties into stages array
+  const stages = STAGE_ORDER.map((stageName) => {
+    const propertyName = Object.entries(STAGE_PROPERTY_MAP).find(
+      ([_, v]) => v === stageName
+    )?.[0];
+
+    const stageConfig = propertyName ? backendConfig[propertyName] : null;
+
+    return {
+      stage: stageName,
+      enabled: stageConfig?.enabled ?? false,
+      template: stageConfig?.template,
+      retryCount: stageConfig?.retryCount ?? 0,
+      delayMinutes: stageConfig?.delayMinutes ?? 0,
+    };
+  });
+
+  return {
+    id: backendConfig.id || '',
+    companyId: backendConfig.companyId || '',
+    isEnabled: backendConfig.enabled ?? false,
+    stages,
+    defaultOffers: backendConfig.defaultOffers || [],
+    escalationThreshold: backendConfig.escalationThreshold || 0,
+    createdAt: backendConfig.createdAt || new Date().toISOString(),
+    updatedAt: backendConfig.updatedAt || new Date().toISOString(),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════
@@ -218,7 +265,8 @@ export default function SaveFlowsPage() {
       ]);
 
       if (configData) {
-        setConfig(configData);
+        // Transform backend format to frontend expected format
+        setConfig(transformConfigFromBackend(configData));
       } else {
         // Set default empty config - no mock data
         setConfig({
@@ -426,7 +474,7 @@ export default function SaveFlowsPage() {
               <CardDescription>Configure each stage of the save flow</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {config?.stages.map((stage) => (
+              {config?.stages?.map((stage) => (
                 <StageCard
                   key={stage.stage}
                   stage={stage.stage}

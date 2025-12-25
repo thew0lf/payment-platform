@@ -16,6 +16,9 @@ import { RMAService } from './rma.service';
 import {
   RMA,
   RMAPolicy,
+  RMAStatus,
+  RMAType,
+  ReturnReason,
   CreateRMADto,
   ApproveRMADto,
   RejectRMADto,
@@ -194,11 +197,34 @@ export class RMAController {
    */
   @Get()
   async getRMAs(
-    @Query() dto: GetRMAsDto,
-    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') companyId?: string,
+    @Query('status') status?: string,
+    @Query('type') type?: string,
+    @Query('customerId') customerId?: string,
+    @Query('orderId') orderId?: string,
+    @Query('reason') reason?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @CurrentUser() user?: AuthenticatedUser,
   ) {
     // Get accessible company IDs and filter the query
-    const accessibleCompanyIds = await this.getAccessibleCompanyIds(user);
+    const accessibleCompanyIds = user ? await this.getAccessibleCompanyIds(user) : [];
+
+    // Build DTO from query params
+    const dto: GetRMAsDto = {
+      companyId,
+      status: status as RMAStatus,
+      type: type as RMAType,
+      customerId,
+      orderId,
+      reason: reason as ReturnReason,
+      startDate,
+      endDate,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    };
 
     // If companyId filter provided, verify it's in accessible list
     if (dto.companyId) {

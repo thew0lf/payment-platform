@@ -46,7 +46,7 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
       whitelist: true,
       forbidNonWhitelisted: true,
-      forbidUnknownValues: true,
+      forbidUnknownValues: false, // Allow primitive query params without DTO classes
     }),
   );
 

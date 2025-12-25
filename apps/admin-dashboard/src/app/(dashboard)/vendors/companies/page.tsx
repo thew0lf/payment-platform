@@ -105,6 +105,7 @@ export default function VendorCompaniesPage() {
   // Form state
   const [formData, setFormData] = useState<Partial<CreateVendorCompanyInput>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Load vendors for filter dropdown
   useEffect(() => {
@@ -151,8 +152,10 @@ export default function VendorCompaniesPage() {
 
   // Handle create
   const handleCreate = async () => {
+    setFormError(null);
+
     if (!formData.vendorId || !formData.name) {
-      toast.error('Please fill in required fields');
+      setFormError('Please select a vendor and enter a company name to continue.');
       return;
     }
 
@@ -163,12 +166,20 @@ export default function VendorCompaniesPage() {
         ...formData,
         slug,
       } as CreateVendorCompanyInput);
-      toast.success('Vendor company created successfully');
+      toast.success('Vendor company created! Time to get things rolling.');
       setShowCreateModal(false);
       setFormData({});
+      setFormError(null);
       loadCompanies();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create vendor company');
+      const errorMessage = err.message || 'Something went wrong while creating the company. Please try again.';
+      if (errorMessage.includes('slug') && errorMessage.includes('exists')) {
+        setFormError('A company with this name already exists. Try a slightly different name.');
+      } else if (errorMessage.includes('domain') && errorMessage.includes('exists')) {
+        setFormError('That domain is already in use by another company.');
+      } else {
+        setFormError(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -385,114 +396,132 @@ export default function VendorCompaniesPage() {
       </div>
 
       {/* Create Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Vendor Company</DialogTitle>
-            <DialogDescription>
-              Create a new business unit within a vendor organization.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="vendor">Vendor *</Label>
-              <Select
-                value={formData.vendorId || ''}
-                onValueChange={(v) => setFormData({ ...formData, vendorId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select vendor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Company Name *</Label>
-              <Input
-                id="name"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., West Coast Fulfillment"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="domain">Domain</Label>
-              <Input
-                id="domain"
-                value={formData.domain || ''}
-                onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                placeholder="e.g., westcoast.example.com"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
+      <Dialog open={showCreateModal} onOpenChange={(open) => {
+        setShowCreateModal(open);
+        if (!open) {
+          setFormError(null);
+          setFormData({});
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+            <DialogHeader>
+              <DialogTitle>Add vendor company</DialogTitle>
+              <DialogDescription>
+                Set up a new business unit within your vendor network. You can configure settings and add team members after creation.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="vendor">Parent Vendor *</Label>
                 <Select
-                  value={formData.timezone || 'America/Los_Angeles'}
-                  onValueChange={(v) => setFormData({ ...formData, timezone: v })}
+                  value={formData.vendorId || ''}
+                  onValueChange={(v) => setFormData({ ...formData, vendorId: v })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger id="vendor">
+                    <SelectValue placeholder="Choose a vendor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="America/Los_Angeles">Pacific</SelectItem>
-                    <SelectItem value="America/Denver">Mountain</SelectItem>
-                    <SelectItem value="America/Chicago">Central</SelectItem>
-                    <SelectItem value="America/New_York">Eastern</SelectItem>
-                    <SelectItem value="UTC">UTC</SelectItem>
+                    {vendors.length === 0 ? (
+                      <SelectItem value="" disabled>No vendors available</SelectItem>
+                    ) : (
+                      vendors.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select
-                  value={formData.currency || 'USD'}
-                  onValueChange={(v) => setFormData({ ...formData, currency: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="name">Company Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name || ''}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="West Coast Fulfillment"
+                  required
+                />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="domain">Domain</Label>
+                <Input
+                  id="domain"
+                  value={formData.domain || ''}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  placeholder="westcoast.vendor.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Select
+                    value={formData.timezone || 'America/Los_Angeles'}
+                    onValueChange={(v) => setFormData({ ...formData, timezone: v })}
+                  >
+                    <SelectTrigger id="timezone">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/Los_Angeles">Pacific</SelectItem>
+                      <SelectItem value="America/Denver">Mountain</SelectItem>
+                      <SelectItem value="America/Chicago">Central</SelectItem>
+                      <SelectItem value="America/New_York">Eastern</SelectItem>
+                      <SelectItem value="UTC">UTC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select
+                    value={formData.currency || 'USD'}
+                    onValueChange={(v) => setFormData({ ...formData, currency: v })}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CAD">CAD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {formError && (
+                <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  {formError}
+                </div>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Company
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !formData.vendorId || !formData.name}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create company
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <Dialog open={!!companyToDelete} onOpenChange={() => setCompanyToDelete(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Delete Vendor Company?</DialogTitle>
+            <DialogTitle>Delete vendor company?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{companyToDelete?.name}&quot;? This action cannot be undone.
+              This will permanently remove &quot;{companyToDelete?.name}&quot; and all its associated data. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCompanyToDelete(null)}>
-              Cancel
+            <Button type="button" variant="outline" onClick={() => setCompanyToDelete(null)}>
+              Keep it
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              Delete
+              Yes, delete
             </Button>
           </DialogFooter>
         </DialogContent>
