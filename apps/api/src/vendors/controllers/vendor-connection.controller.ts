@@ -59,7 +59,7 @@ export class VendorConnectionController {
     return this.connectionService.update(id, dto);
   }
 
-  @Patch(':id/approve')
+  @Post(':id/approve')
   async approve(
     @Request() req: any,
     @Param('id') id: string,

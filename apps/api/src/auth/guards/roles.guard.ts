@@ -17,7 +17,17 @@ export class RolesGuard implements CanActivate {
       return true;
     }
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.role) {
+    if (!user) {
+      return false;
+    }
+
+    // Organization-level users always have full access
+    if (user.scopeType === 'ORGANIZATION') {
+      return true;
+    }
+
+    // Check if user has one of the required roles
+    if (!user.role) {
       return false;
     }
     return requiredRoles.some((role) => user.role === role);
