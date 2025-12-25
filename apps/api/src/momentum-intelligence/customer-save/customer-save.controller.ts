@@ -135,7 +135,48 @@ export class CustomerSaveController {
   }
 
   /**
-   * Get save attempts for a company
+   * Get save attempts with query params (used by frontend)
+   */
+  @Get('attempts')
+  async getAttemptsByQuery(
+    @Query('companyId') companyId: string,
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const where: any = { companyId };
+
+    // Handle status filter (IN_PROGRESS means no outcome yet)
+    if (status === 'IN_PROGRESS') {
+      where.outcome = null;
+      where.completedAt = null;
+    }
+
+    const [items, total] = await Promise.all([
+      this.saveService['prisma'].saveAttempt.findMany({
+        where,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit ? parseInt(limit, 10) : 50,
+        skip: offset ? parseInt(offset, 10) : 0,
+      }),
+      this.saveService['prisma'].saveAttempt.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  /**
+   * Get save attempts for a company (legacy route)
    */
   @Get('attempts/:companyId')
   async getSaveAttempts(
@@ -163,6 +204,85 @@ export class CustomerSaveController {
     });
 
     return attempts;
+  }
+
+  /**
+   * Get save flow stats for a company (matches frontend API)
+   */
+  @Get('stats/:companyId')
+  async getStats(@Param('companyId') companyId: string) {
+    // Get all save attempts for this company
+    const attempts = await this.saveService['prisma'].saveAttempt.findMany({
+      where: { companyId },
+    });
+
+    const totalAttempts = attempts.length;
+    const inProgress = attempts.filter(a => a.outcome === null && a.completedAt === null).length;
+    const completed = attempts.filter(a => a.outcome !== null);
+    const saved = completed.filter(a => a.outcome && a.outcome.toString().startsWith('SAVED')).length;
+    const cancelled = completed.filter(a => a.outcome === 'CANCELLED').length;
+    const paused = completed.filter(a => a.outcome === 'PAUSED').length;
+    const downgraded = completed.filter(a => a.outcome === 'DOWNGRADED').length;
+
+    // Calculate success rate
+    const successRate = totalAttempts > 0 ? (saved / totalAttempts) * 100 : 0;
+
+    // Calculate average time to save (in minutes)
+    const savedAttempts = completed.filter(a =>
+      a.outcome && a.outcome.toString().startsWith('SAVED') && a.completedAt
+    );
+    let avgTimeToSave = 0;
+    if (savedAttempts.length > 0) {
+      const totalTime = savedAttempts.reduce((sum, a) => {
+        const duration = new Date(a.completedAt!).getTime() - new Date(a.createdAt).getTime();
+        return sum + duration;
+      }, 0);
+      avgTimeToSave = (totalTime / savedAttempts.length) / 60000; // Convert to minutes
+    }
+
+    // Calculate revenue preserved
+    const revenuePreserved = completed.reduce((sum, a) => {
+      return sum + (a.revenuePreserved ? Number(a.revenuePreserved) : 0);
+    }, 0);
+
+    // Stage performance
+    const stageSaves: Record<string, { stage: string; attempts: number; saves: number }> = {};
+    const stageNames = ['PATTERN_INTERRUPT', 'DIAGNOSIS', 'BRANCHING', 'NUCLEAR_OFFER', 'LOSS_VISUALIZATION', 'EXIT_SURVEY', 'WINBACK'];
+
+    for (const stageName of stageNames) {
+      stageSaves[stageName] = { stage: stageName, attempts: 0, saves: 0 };
+    }
+
+    for (const attempt of completed) {
+      const outcome = attempt.outcome as string;
+      if (outcome?.startsWith('SAVED_STAGE_')) {
+        const stageNum = parseInt(outcome.replace('SAVED_STAGE_', ''), 10);
+        const stageName = stageNames[stageNum - 1];
+        if (stageName && stageSaves[stageName]) {
+          stageSaves[stageName].saves++;
+        }
+      }
+    }
+
+    const stagePerformance = Object.values(stageSaves).map(s => ({
+      stage: s.stage,
+      attempts: s.attempts,
+      saves: s.saves,
+      rate: totalAttempts > 0 ? Math.round((s.saves / Math.max(totalAttempts, 1)) * 100) : 0,
+    }));
+
+    return {
+      totalAttempts,
+      inProgress,
+      saved,
+      cancelled,
+      paused,
+      downgraded,
+      successRate: Math.round(successRate * 100) / 100,
+      avgTimeToSave: Math.round(avgTimeToSave * 10) / 10,
+      stagePerformance,
+      revenuePreserved,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════
