@@ -136,6 +136,7 @@ export class CustomerSaveController {
 
   /**
    * Get save attempts with query params (used by frontend)
+   * Transforms currentStage from number to stage name string
    */
   @Get('attempts')
   async getAttemptsByQuery(
@@ -172,7 +173,26 @@ export class CustomerSaveController {
       this.saveService['prisma'].saveAttempt.count({ where }),
     ]);
 
-    return { items, total };
+    // Transform currentStage from number to stage name
+    const stageNumberToName: Record<number, string> = {
+      1: 'PATTERN_INTERRUPT',
+      2: 'DIAGNOSIS',
+      3: 'BRANCHING',
+      4: 'NUCLEAR_OFFER',
+      5: 'LOSS_VISUALIZATION',
+      6: 'EXIT_SURVEY',
+      7: 'WINBACK',
+    };
+
+    const transformedItems = items.map((item: any) => ({
+      ...item,
+      currentStage: stageNumberToName[item.currentStage] || 'PATTERN_INTERRUPT',
+      startedAt: item.createdAt,
+      offersMade: item.offersMade || [],
+      offersAccepted: item.offersAccepted || [],
+    }));
+
+    return { items: transformedItems, total };
   }
 
   /**
@@ -291,21 +311,96 @@ export class CustomerSaveController {
 
   /**
    * Get save flow configuration for a company
+   * Transforms internal config format to match frontend SaveFlowConfig type
    */
   @Get('config/:companyId')
   async getFlowConfig(@Param('companyId') companyId: string) {
-    return this.saveService.getFlowConfig(companyId);
+    const config = await this.saveService.getFlowConfig(companyId);
+
+    // Transform to frontend expected format
+    const stageMapping: { key: string; stage: string }[] = [
+      { key: 'patternInterrupt', stage: 'PATTERN_INTERRUPT' },
+      { key: 'diagnosisSurvey', stage: 'DIAGNOSIS' },
+      { key: 'branchingInterventions', stage: 'BRANCHING' },
+      { key: 'nuclearOffer', stage: 'NUCLEAR_OFFER' },
+      { key: 'lossVisualization', stage: 'LOSS_VISUALIZATION' },
+      { key: 'exitSurvey', stage: 'EXIT_SURVEY' },
+      { key: 'winback', stage: 'WINBACK' },
+    ];
+
+    const stages = stageMapping.map(({ key, stage }) => {
+      const stageConfig = config[key] || {};
+      return {
+        stage,
+        enabled: stageConfig.enabled ?? false,
+        template: stageConfig.template,
+        retryCount: stageConfig.retryCount ?? 0,
+        delayMinutes: stageConfig.delayMinutes ?? 0,
+      };
+    });
+
+    return {
+      id: config.id || '',
+      companyId: config.companyId || companyId,
+      isEnabled: config.enabled ?? false,
+      stages,
+      defaultOffers: config.defaultOffers || [],
+      escalationThreshold: config.escalationThreshold || 0,
+      createdAt: config.createdAt || new Date().toISOString(),
+      updatedAt: config.updatedAt || new Date().toISOString(),
+    };
   }
 
   /**
    * Update save flow configuration for a company
+   * Transforms frontend format to internal config format
    */
   @Put('config/:companyId')
   async updateFlowConfig(
     @Param('companyId') companyId: string,
-    @Body() dto: UpdateFlowConfigDto,
+    @Body() dto: UpdateFlowConfigDto & { isEnabled?: boolean; stages?: any[] },
   ) {
-    return this.saveService.updateFlowConfig(companyId, dto);
+    // Transform frontend format to internal format
+    const updates: any = { ...dto };
+
+    // Handle isEnabled -> enabled
+    if ('isEnabled' in dto) {
+      updates.enabled = dto.isEnabled;
+      delete updates.isEnabled;
+    }
+
+    // Handle stages array -> individual stage configs
+    if (dto.stages && Array.isArray(dto.stages)) {
+      const stageKeyMapping: Record<string, string> = {
+        'PATTERN_INTERRUPT': 'patternInterrupt',
+        'DIAGNOSIS': 'diagnosisSurvey',
+        'BRANCHING': 'branchingInterventions',
+        'NUCLEAR_OFFER': 'nuclearOffer',
+        'LOSS_VISUALIZATION': 'lossVisualization',
+        'EXIT_SURVEY': 'exitSurvey',
+        'WINBACK': 'winback',
+      };
+
+      for (const stageUpdate of dto.stages) {
+        const key = stageKeyMapping[stageUpdate.stage];
+        if (key) {
+          // Get existing config and merge
+          const existingConfig = await this.saveService.getFlowConfig(companyId);
+          updates[key] = {
+            ...existingConfig[key],
+            enabled: stageUpdate.enabled,
+            retryCount: stageUpdate.retryCount,
+            delayMinutes: stageUpdate.delayMinutes,
+          };
+        }
+      }
+      delete updates.stages;
+    }
+
+    await this.saveService.updateFlowConfig(companyId, updates);
+
+    // Return in frontend format
+    return this.getFlowConfig(companyId);
   }
 
   // ═══════════════════════════════════════════════════════════════
