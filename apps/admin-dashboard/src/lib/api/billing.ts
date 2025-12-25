@@ -400,7 +400,8 @@ export function formatCurrency(amountInCents: number, currency: string = 'USD'):
 /**
  * Format large numbers with abbreviations (1K, 1M, etc.)
  */
-export function formatNumber(value: number): string {
+export function formatNumber(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '0';
   if (value === 0) return 'Unlimited';
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
