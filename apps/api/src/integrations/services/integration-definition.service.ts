@@ -589,6 +589,25 @@ export class IntegrationDefinitionService implements OnModuleInit {
       },
 
       // ═══════════════════════════════════════════════════════════════
+      // FULFILLMENT / DROPSHIP
+      // ═══════════════════════════════════════════════════════════════
+      {
+        provider: IntegrationProvider.ROASTIFY,
+        category: IntegrationCategory.FULFILLMENT,
+        name: 'Roastify',
+        description: 'Coffee fulfillment and dropship platform for specialty roasters. Import products, manage inventory, and create orders via API.',
+        logoUrl: '/integrations/roastify.svg',
+        documentationUrl: 'https://www.roastify.app/developer-api',
+        isOrgOnly: false,
+        isClientAllowed: true,
+        isPlatformOffered: false, // OWN mode only - clients bring their own keys
+        authType: AuthType.API_KEY,
+        credentialSchema: CREDENTIAL_SCHEMAS[IntegrationProvider.ROASTIFY]!,
+        requiredCompliance: [],
+        status: 'active',
+      },
+
+      // ═══════════════════════════════════════════════════════════════
       // OAUTH PROVIDERS (for SSO/data sync)
       // ═══════════════════════════════════════════════════════════════
       {

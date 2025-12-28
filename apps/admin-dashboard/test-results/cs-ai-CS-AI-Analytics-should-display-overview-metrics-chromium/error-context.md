@@ -1,0 +1,693 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Main navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "avnz.io" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e10]: avnz.io
+        - button "Collapse sidebar" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+      - button "A All Clients Platform view" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: A
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: All Clients
+          - paragraph [ref=e20]: Platform view
+        - img [ref=e21]
+      - button "A All Companies 6 companies" [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: A
+        - generic [ref=e27]:
+          - paragraph [ref=e28]: All Companies
+          - paragraph [ref=e29]: 6 companies
+        - img [ref=e30]
+      - navigation "Sidebar navigation" [ref=e32]:
+        - group "Insights" [ref=e33]:
+          - button "Insights" [expanded] [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]:
+              - img [ref=e36]
+              - generic [ref=e38]: Insights
+            - img [ref=e40]
+          - list [ref=e42]:
+            - generic [ref=e43]:
+              - listitem [ref=e44] [cursor=pointer]:
+                - generic [ref=e45]:
+                  - img [ref=e46]
+                  - generic [ref=e51]: Dashboard
+              - listitem [ref=e52] [cursor=pointer]:
+                - generic [ref=e53]:
+                  - img [ref=e54]
+                  - generic [ref=e57]: Revenue
+              - listitem [ref=e58] [cursor=pointer]:
+                - generic [ref=e59]:
+                  - img [ref=e60]
+                  - generic [ref=e64]: Orders
+              - listitem [ref=e65] [cursor=pointer]:
+                - generic [ref=e66]:
+                  - img [ref=e67]
+                  - generic [ref=e72]: Customers
+              - listitem [ref=e73] [cursor=pointer]:
+                - generic [ref=e74]:
+                  - img [ref=e75]
+                  - generic [ref=e79]: Funnels
+              - listitem [ref=e80] [cursor=pointer]:
+                - generic [ref=e81]:
+                  - img [ref=e82]
+                  - generic [ref=e87]: Subscriptions
+        - group "Daily Operations" [ref=e88]:
+          - button "Daily Operations" [expanded] [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]:
+              - img [ref=e91]
+              - generic [ref=e94]: Daily Operations
+            - img [ref=e96]
+          - list [ref=e98]:
+            - generic [ref=e99]:
+              - listitem [ref=e100] [cursor=pointer]:
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - generic [ref=e106]: Orders
+              - listitem [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]:
+                  - img [ref=e109]
+                  - generic [ref=e114]: Subscriptions
+              - listitem [ref=e115] [cursor=pointer]:
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e120]: Transactions
+              - listitem [ref=e121] [cursor=pointer]:
+                - generic [ref=e122]:
+                  - img [ref=e123]
+                  - generic [ref=e128]: Customers
+              - listitem [ref=e129] [cursor=pointer]:
+                - generic [ref=e130]:
+                  - img [ref=e131]
+                  - generic [ref=e134]: Refunds
+        - group "Catalog" [ref=e135]:
+          - button "Catalog" [ref=e136] [cursor=pointer]:
+            - generic [ref=e137]:
+              - img [ref=e138]
+              - generic [ref=e142]: Catalog
+            - img [ref=e144]
+          - generic [ref=e146]:
+            - listitem [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]:
+                - img [ref=e149]
+                - generic [ref=e152]: Products
+            - listitem [ref=e153] [cursor=pointer]:
+              - generic [ref=e154]:
+                - img [ref=e155]
+                - generic [ref=e160]: Subscription Plans
+            - listitem [ref=e161] [cursor=pointer]:
+              - generic [ref=e162]:
+                - img [ref=e163]
+                - generic [ref=e168]: Categories
+            - listitem [ref=e169] [cursor=pointer]:
+              - generic [ref=e170]:
+                - img [ref=e171]
+                - generic [ref=e174]: Tags
+            - listitem [ref=e175] [cursor=pointer]:
+              - generic [ref=e176]:
+                - img [ref=e177]
+                - generic [ref=e181]: Collections
+            - listitem [ref=e182] [cursor=pointer]:
+              - generic [ref=e183]:
+                - img [ref=e184]
+                - generic [ref=e186]: Reviews
+        - group "Marketing" [ref=e187]:
+          - button "Marketing" [ref=e188] [cursor=pointer]:
+            - generic [ref=e189]:
+              - img [ref=e190]
+              - generic [ref=e193]: Marketing
+            - img [ref=e195]
+          - generic [ref=e197]:
+            - listitem [ref=e198] [cursor=pointer]:
+              - generic [ref=e199]:
+                - img [ref=e200]
+                - generic [ref=e204]: Funnels
+            - listitem [ref=e205] [cursor=pointer]:
+              - generic [ref=e206]:
+                - img [ref=e207]
+                - generic [ref=e210]: Leads
+            - listitem [ref=e211] [cursor=pointer]:
+              - generic [ref=e212]:
+                - img [ref=e213]
+                - generic [ref=e216]: Landing Pages
+        - group "Momentum Intelligence" [ref=e217]:
+          - button "Momentum Intelligence" [ref=e218] [cursor=pointer]:
+            - generic [ref=e219]:
+              - img [ref=e220]
+              - generic [ref=e223]: Momentum Intelligence
+            - img [ref=e225]
+          - generic [ref=e227]:
+            - listitem [ref=e228] [cursor=pointer]:
+              - generic [ref=e229]:
+                - img [ref=e230]
+                - generic [ref=e232]: Churn Risk
+            - listitem [ref=e233] [cursor=pointer]:
+              - generic [ref=e234]:
+                - img [ref=e235]
+                - generic [ref=e239]: Save Flows
+            - listitem [ref=e240] [cursor=pointer]:
+              - generic [ref=e241]:
+                - img [ref=e242]
+                - generic [ref=e244]: Behavioral Triggers
+            - listitem [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]:
+                - img [ref=e247]
+                - generic [ref=e250]: Returns (RMA)
+        - group "CS AI" [ref=e251]:
+          - button "CS AI" [expanded] [ref=e252] [cursor=pointer]:
+            - generic [ref=e253]:
+              - img [ref=e254]
+              - generic [ref=e257]: CS AI
+            - img [ref=e259]
+          - list [ref=e261]:
+            - generic [ref=e262]:
+              - listitem [ref=e263] [cursor=pointer]:
+                - generic [ref=e264]:
+                  - img [ref=e265]
+                  - generic [ref=e267]: Dashboard
+              - listitem [ref=e268] [cursor=pointer]:
+                - generic [ref=e269]:
+                  - img [ref=e270]
+                  - generic [ref=e272]: Conversations
+              - listitem [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]:
+                  - img [ref=e275]
+                  - generic [ref=e277]: Voice Calls
+              - listitem [ref=e278] [cursor=pointer]:
+                - generic [ref=e279]:
+                  - img [ref=e280]
+                  - generic [ref=e283]: Analytics
+        - group "Fulfillment" [ref=e284]:
+          - button "Fulfillment" [ref=e285] [cursor=pointer]:
+            - generic [ref=e286]:
+              - img [ref=e287]
+              - generic [ref=e292]: Fulfillment
+            - img [ref=e294]
+          - listitem [ref=e297] [cursor=pointer]:
+            - generic [ref=e298]:
+              - img [ref=e299]
+              - generic [ref=e304]: Shipments
+        - group "Organization" [ref=e305]:
+          - button "Organization" [ref=e306] [cursor=pointer]:
+            - generic [ref=e307]:
+              - img [ref=e308]
+              - generic [ref=e311]: Organization
+            - img [ref=e313]
+          - generic [ref=e315]:
+            - listitem [ref=e316] [cursor=pointer]:
+              - generic [ref=e317]:
+                - img [ref=e318]
+                - generic [ref=e321]: Clients
+            - listitem [ref=e322] [cursor=pointer]:
+              - generic [ref=e323]:
+                - img [ref=e324]
+                - generic [ref=e328]: Companies
+        - group "Vendors" [ref=e329]:
+          - button "Vendors" [ref=e330] [cursor=pointer]:
+            - generic [ref=e331]:
+              - img [ref=e332]
+              - generic [ref=e334]: Vendors
+            - img [ref=e336]
+          - generic [ref=e338]:
+            - listitem [ref=e339] [cursor=pointer]:
+              - generic [ref=e340]:
+                - img [ref=e341]
+                - generic [ref=e346]: All Vendors
+            - listitem [ref=e347] [cursor=pointer]:
+              - generic [ref=e348]:
+                - img [ref=e349]
+                - generic [ref=e353]: Companies
+            - listitem [ref=e354] [cursor=pointer]:
+              - generic [ref=e355]:
+                - img [ref=e356]
+                - generic [ref=e360]: Products
+            - listitem [ref=e361] [cursor=pointer]:
+              - generic [ref=e362]:
+                - img [ref=e363]
+                - generic [ref=e366]: Connections
+        - group "Development" [ref=e367]:
+          - button "Development" [ref=e368] [cursor=pointer]:
+            - generic [ref=e369]:
+              - img [ref=e370]
+              - generic [ref=e374]: Development
+            - img [ref=e376]
+          - generic [ref=e378]:
+            - listitem [ref=e379] [cursor=pointer]:
+              - generic [ref=e380]:
+                - img [ref=e381]
+                - generic [ref=e385]: Feature Pipeline
+            - listitem [ref=e386] [cursor=pointer]:
+              - generic [ref=e387]:
+                - img [ref=e388]
+                - generic [ref=e392]: Code Review
+            - listitem [ref=e393] [cursor=pointer]:
+              - generic [ref=e394]:
+                - img [ref=e395]
+                - generic [ref=e404]: QA Checklist
+        - group "Payment Routing" [ref=e405]:
+          - button "Payment Routing" [ref=e406] [cursor=pointer]:
+            - generic [ref=e407]:
+              - img [ref=e408]
+              - generic [ref=e410]: Payment Routing
+            - img [ref=e412]
+          - generic [ref=e414]:
+            - listitem [ref=e415] [cursor=pointer]:
+              - generic [ref=e416]:
+                - img [ref=e417]
+                - generic [ref=e421]: Routing Rules
+            - listitem [ref=e422] [cursor=pointer]:
+              - generic [ref=e423]:
+                - img [ref=e424]
+                - generic [ref=e426]: Account Pools
+        - group "Configuration" [ref=e427]:
+          - button "Configuration" [ref=e428] [cursor=pointer]:
+            - generic [ref=e429]:
+              - img [ref=e430]
+              - generic [ref=e432]: Configuration
+            - img [ref=e434]
+          - generic [ref=e436]:
+            - listitem [ref=e437] [cursor=pointer]:
+              - generic [ref=e438]:
+                - img [ref=e439]
+                - generic [ref=e441]: Merchant Accounts
+            - listitem [ref=e442] [cursor=pointer]:
+              - generic [ref=e443]:
+                - img [ref=e444]
+                - generic [ref=e446]: Integrations
+            - listitem [ref=e447] [cursor=pointer]:
+              - generic [ref=e448]:
+                - img [ref=e449]
+                - generic [ref=e453]: API Keys
+        - group "Settings" [ref=e454]:
+          - button "Settings" [ref=e455] [cursor=pointer]:
+            - generic [ref=e456]:
+              - img [ref=e457]
+              - generic [ref=e460]: Settings
+            - img [ref=e462]
+          - generic [ref=e464]:
+            - listitem [ref=e465] [cursor=pointer]:
+              - generic [ref=e466]:
+                - img [ref=e467]
+                - generic [ref=e468]: General
+            - listitem [ref=e469] [cursor=pointer]:
+              - generic [ref=e470]:
+                - img [ref=e471]
+                - generic [ref=e477]: Appearance
+            - listitem [ref=e478] [cursor=pointer]:
+              - generic [ref=e479]:
+                - img [ref=e480]
+                - generic [ref=e484]: Billing
+            - listitem [ref=e485] [cursor=pointer]:
+              - generic [ref=e486]:
+                - img [ref=e487]
+                - generic [ref=e490]: Security
+            - listitem [ref=e491] [cursor=pointer]:
+              - generic [ref=e492]:
+                - img [ref=e493]
+                - generic [ref=e495]: Roles & Permissions
+            - listitem [ref=e496] [cursor=pointer]:
+              - generic [ref=e497]:
+                - img [ref=e498]
+                - generic [ref=e510]: Team
+            - listitem [ref=e511] [cursor=pointer]:
+              - generic [ref=e512]:
+                - img [ref=e513]
+                - generic [ref=e515]: Founders Waitlist
+            - listitem [ref=e516] [cursor=pointer]:
+              - generic [ref=e517]:
+                - img [ref=e518]
+                - generic [ref=e521]: Audit Logs
+            - listitem [ref=e522] [cursor=pointer]:
+              - generic [ref=e523]:
+                - img [ref=e524]
+                - generic [ref=e527]: Trash
+      - generic [ref=e529]:
+        - generic [ref=e530]: Theme
+        - generic [ref=e531]:
+          - button "Light mode" [ref=e532] [cursor=pointer]:
+            - img [ref=e533]
+          - button "System preference" [ref=e539] [cursor=pointer]:
+            - img [ref=e540]
+          - button "Dark mode" [ref=e542] [cursor=pointer]:
+            - img [ref=e543]
+      - button "P Platform Admin super admin" [ref=e547] [cursor=pointer]:
+        - generic [ref=e548]: P
+        - generic [ref=e549]:
+          - paragraph [ref=e550]: Platform Admin
+          - paragraph [ref=e551]: super admin
+        - img [ref=e552]
+    - main [ref=e554]:
+      - generic [ref=e555]:
+        - button "Search... ⌘ K" [ref=e557] [cursor=pointer]:
+          - img [ref=e558]
+          - generic [ref=e561]: Search...
+          - generic [ref=e562]:
+            - generic [ref=e563]: ⌘
+            - generic [ref=e564]: K
+        - generic [ref=e565]:
+          - button [ref=e566] [cursor=pointer]:
+            - img [ref=e567]
+          - link [ref=e571] [cursor=pointer]:
+            - /url: /settings/general
+            - img [ref=e572]
+          - button "P" [ref=e575] [cursor=pointer]
+      - generic [ref=e577]:
+        - generic [ref=e578]:
+          - heading "CS AI Analytics" [level=1] [ref=e580]
+          - paragraph [ref=e581]: Performance metrics, billing, and insights
+        - generic [ref=e583]:
+          - button "7d" [ref=e585] [cursor=pointer]:
+            - img [ref=e586]
+            - generic [ref=e588]: 7d
+            - img [ref=e589]
+          - button "Refresh" [ref=e591] [cursor=pointer]:
+            - img [ref=e592]
+            - text: Refresh
+          - button "Export" [ref=e597] [cursor=pointer]:
+            - img [ref=e598]
+            - text: Export
+      - generic [ref=e601]:
+        - generic [ref=e602]:
+          - generic [ref=e604]:
+            - generic [ref=e605]:
+              - img [ref=e607]
+              - generic [ref=e609]:
+                - img [ref=e610]
+                - text: +12%
+            - generic [ref=e613]:
+              - paragraph [ref=e614]: 1,250
+              - paragraph [ref=e615]: Total Sessions
+              - paragraph [ref=e616]: Support interactions
+          - generic [ref=e618]:
+            - generic [ref=e619]:
+              - img [ref=e621]
+              - generic [ref=e624]:
+                - img [ref=e625]
+                - text: +3%
+            - generic [ref=e628]:
+              - paragraph [ref=e629]: 92%
+              - paragraph [ref=e630]: Resolution Rate
+              - paragraph [ref=e631]: Successfully resolved
+          - generic [ref=e633]:
+            - generic [ref=e634]:
+              - img [ref=e636]
+              - generic [ref=e639]:
+                - img [ref=e640]
+                - text: "-15%"
+            - generic [ref=e643]:
+              - paragraph [ref=e644]: 8.5m
+              - paragraph [ref=e645]: Avg Resolution
+              - paragraph [ref=e646]: Time to resolve
+          - generic [ref=e648]:
+            - generic [ref=e649]:
+              - img [ref=e651]
+              - generic [ref=e654]:
+                - img [ref=e655]
+                - text: "+0.2"
+            - generic [ref=e658]:
+              - paragraph [ref=e659]: "4.3"
+              - paragraph [ref=e660]: CSAT Score
+              - paragraph [ref=e661]: Out of 5.0
+          - generic [ref=e663]:
+            - generic [ref=e664]:
+              - img [ref=e666]
+              - generic [ref=e668]:
+                - img [ref=e669]
+                - text: "-8%"
+            - generic [ref=e672]:
+              - paragraph [ref=e673]: "450"
+              - paragraph [ref=e674]: Escalations
+              - paragraph [ref=e675]: 36% rate
+          - generic [ref=e677]:
+            - generic [ref=e678]:
+              - img [ref=e680]
+              - generic [ref=e682]:
+                - img [ref=e683]
+                - text: +18%
+            - generic [ref=e686]:
+              - paragraph [ref=e687]: $2,450.75
+              - paragraph [ref=e688]: Total Revenue
+              - paragraph [ref=e689]: Billable usage
+        - generic [ref=e690]:
+          - generic [ref=e691]:
+            - heading "Performance by Tier" [level=3] [ref=e692]
+            - paragraph [ref=e693]: Resolution rates and efficiency across AI tiers
+          - generic [ref=e694]:
+            - generic [ref=e696]:
+              - generic [ref=e697]:
+                - img [ref=e698]
+                - generic [ref=e701]: AI Rep
+              - generic [ref=e702]:
+                - generic [ref=e703]: 800 sessions
+                - generic [ref=e704]: 90% resolved
+                - generic [ref=e705]: 5.2m avg
+            - generic [ref=e709]:
+              - generic [ref=e710]:
+                - img [ref=e711]
+                - generic [ref=e714]: AI Manager
+              - generic [ref=e715]:
+                - generic [ref=e716]: 350 sessions
+                - generic [ref=e717]: 94% resolved
+                - generic [ref=e718]: 10.5m avg
+            - generic [ref=e722]:
+              - generic [ref=e723]:
+                - img [ref=e724]
+                - generic [ref=e726]: Human Agent
+              - generic [ref=e727]:
+                - generic [ref=e728]: 100 sessions
+                - generic [ref=e729]: 100% resolved
+                - generic [ref=e730]: 15.3m avg
+        - generic [ref=e733]:
+          - generic [ref=e734]:
+            - generic [ref=e735]:
+              - heading "By Channel" [level=3] [ref=e736]
+              - paragraph [ref=e737]: Sessions by communication channel
+            - generic [ref=e739]:
+              - generic [ref=e740]:
+                - generic [ref=e741]: chat
+                - progressbar [ref=e743]
+                - generic [ref=e745]: 700 (56%)
+              - generic [ref=e746]:
+                - generic [ref=e747]: voice
+                - progressbar [ref=e749]
+                - generic [ref=e751]: 350 (28%)
+              - generic [ref=e752]:
+                - generic [ref=e753]: email
+                - progressbar [ref=e755]
+                - generic [ref=e757]: 200 (16%)
+          - generic [ref=e758]:
+            - generic [ref=e759]:
+              - heading "Sentiment Distribution" [level=3] [ref=e760]
+              - paragraph [ref=e761]: Customer sentiment across sessions
+            - generic [ref=e762]:
+              - generic [ref=e763]:
+                - generic [ref=e764]:
+                  - generic [ref=e766]: satisfied
+                  - progressbar [ref=e768]
+                  - generic [ref=e770]: "500"
+                  - generic [ref=e771]: 40%
+                - generic [ref=e772]:
+                  - generic [ref=e774]: neutral
+                  - progressbar [ref=e776]
+                  - generic [ref=e778]: "300"
+                  - generic [ref=e779]: 24%
+                - generic [ref=e780]:
+                  - generic [ref=e782]: happy
+                  - progressbar [ref=e784]
+                  - generic [ref=e786]: "250"
+                  - generic [ref=e787]: 20%
+                - generic [ref=e788]:
+                  - generic [ref=e790]: frustrated
+                  - progressbar [ref=e792]
+                  - generic [ref=e794]: "150"
+                  - generic [ref=e795]: 12%
+                - generic [ref=e796]:
+                  - generic [ref=e798]: angry
+                  - progressbar [ref=e800]
+                  - generic [ref=e802]: "40"
+                  - generic [ref=e803]: 3%
+                - generic [ref=e804]:
+                  - generic [ref=e806]: irate
+                  - progressbar [ref=e808]
+                  - generic [ref=e810]: "10"
+                  - generic [ref=e811]: 1%
+              - generic [ref=e812]:
+                - generic [ref=e813]: Sentiment Improvement
+                - generic [ref=e814]: 78% improved during session
+        - generic [ref=e815]:
+          - generic [ref=e816]:
+            - generic [ref=e817]:
+              - heading "Top Issues" [level=3] [ref=e818]
+              - paragraph [ref=e819]: Most common support topics
+            - generic [ref=e821]:
+              - generic [ref=e822]:
+                - generic [ref=e823]:
+                  - generic [ref=e824]: "1."
+                  - generic [ref=e825]: Order tracking
+                - generic [ref=e826]:
+                  - generic [ref=e827]: 180 sessions
+                  - generic [ref=e828]: 3.5m avg
+              - generic [ref=e829]:
+                - generic [ref=e830]:
+                  - generic [ref=e831]: "2."
+                  - generic [ref=e832]: Billing discrepancy
+                - generic [ref=e833]:
+                  - generic [ref=e834]: 120 sessions
+                  - generic [ref=e835]: 8.2m avg
+              - generic [ref=e836]:
+                - generic [ref=e837]:
+                  - generic [ref=e838]: "3."
+                  - generic [ref=e839]: Refund request
+                - generic [ref=e840]:
+                  - generic [ref=e841]: 100 sessions
+                  - generic [ref=e842]: 10.5m avg
+              - generic [ref=e843]:
+                - generic [ref=e844]:
+                  - generic [ref=e845]: "4."
+                  - generic [ref=e846]: Product availability
+                - generic [ref=e847]:
+                  - generic [ref=e848]: 85 sessions
+                  - generic [ref=e849]: 2.8m avg
+              - generic [ref=e850]:
+                - generic [ref=e851]:
+                  - generic [ref=e852]: "5."
+                  - generic [ref=e853]: Subscription change
+                - generic [ref=e854]:
+                  - generic [ref=e855]: 70 sessions
+                  - generic [ref=e856]: 6.5m avg
+          - generic [ref=e857]:
+            - generic [ref=e858]:
+              - heading "Escalation Reasons" [level=3] [ref=e859]
+              - paragraph [ref=e860]: Why sessions escalate to higher tiers
+            - generic [ref=e862]:
+              - generic [ref=e863]:
+                - generic [ref=e864]: refund request
+                - progressbar [ref=e865]
+                - generic [ref=e867]: 200 (44%)
+              - generic [ref=e868]:
+                - generic [ref=e869]: irate customer
+                - progressbar [ref=e870]
+                - generic [ref=e872]: 85 (19%)
+              - generic [ref=e873]:
+                - generic [ref=e874]: complex issue
+                - progressbar [ref=e875]
+                - generic [ref=e877]: 75 (17%)
+              - generic [ref=e878]:
+                - generic [ref=e879]: repeat contact
+                - progressbar [ref=e880]
+                - generic [ref=e882]: 45 (10%)
+              - generic [ref=e883]:
+                - generic [ref=e884]: high value customer
+                - progressbar [ref=e885]
+                - generic [ref=e887]: 30 (7%)
+              - generic [ref=e888]:
+                - generic [ref=e889]: legal mention
+                - progressbar [ref=e890]
+                - generic [ref=e892]: 15 (3%)
+        - generic [ref=e893]:
+          - generic [ref=e894]:
+            - heading "Billing by Client" [level=3] [ref=e895]:
+              - img [ref=e896]
+              - text: Billing by Client
+            - paragraph [ref=e898]: Revenue breakdown for billing purposes
+          - table [ref=e901]:
+            - rowgroup [ref=e902]:
+              - row "Client Sessions Minutes Revenue Avg/Session" [ref=e903]:
+                - columnheader "Client" [ref=e904]
+                - columnheader "Sessions" [ref=e905]
+                - columnheader "Minutes" [ref=e906]
+                - columnheader "Revenue" [ref=e907]
+                - columnheader "Avg/Session" [ref=e908]
+            - rowgroup [ref=e909]:
+              - row "Acme Corp 520 2,180 $980.50 $1.89" [ref=e910]:
+                - cell "Acme Corp" [ref=e911]
+                - cell "520" [ref=e912]
+                - cell "2,180" [ref=e913]
+                - cell "$980.50" [ref=e914]
+                - cell "$1.89" [ref=e915]
+              - row "Beta Inc 380 1,540 $720.25 $1.90" [ref=e916]:
+                - cell "Beta Inc" [ref=e917]
+                - cell "380" [ref=e918]
+                - cell "1,540" [ref=e919]
+                - cell "$720.25" [ref=e920]
+                - cell "$1.90" [ref=e921]
+              - row "Gamma LLC 350 1,412 $750.00 $2.14" [ref=e922]:
+                - cell "Gamma LLC" [ref=e923]
+                - cell "350" [ref=e924]
+                - cell "1,412" [ref=e925]
+                - cell "$750.00" [ref=e926]
+                - cell "$2.14" [ref=e927]
+            - rowgroup [ref=e928]:
+              - row "Total 1250 5,132 $2450.75 $1.96" [ref=e929]:
+                - cell "Total" [ref=e930]
+                - cell "1250" [ref=e931]
+                - cell "5,132" [ref=e932]
+                - cell "$2450.75" [ref=e933]
+                - cell "$1.96" [ref=e934]
+        - generic [ref=e935]:
+          - generic [ref=e936]:
+            - heading "Performance by Category" [level=3] [ref=e937]
+            - paragraph [ref=e938]: Issue categories and resolution metrics
+          - table [ref=e941]:
+            - rowgroup [ref=e942]:
+              - row "Category Count Avg Time Top Resolutions" [ref=e943]:
+                - columnheader "Category" [ref=e944]
+                - columnheader "Count" [ref=e945]
+                - columnheader "Avg Time" [ref=e946]
+                - columnheader "Top Resolutions" [ref=e947]
+            - rowgroup [ref=e948]:
+              - row "shipping 320 5.2m ISSUE RESOLVED INFORMATION PROVIDED" [ref=e949]:
+                - cell "shipping" [ref=e950]
+                - cell "320" [ref=e951]
+                - cell "5.2m" [ref=e952]
+                - cell "ISSUE RESOLVED INFORMATION PROVIDED" [ref=e953]:
+                  - generic [ref=e954]:
+                    - generic [ref=e955]: ISSUE RESOLVED
+                    - generic [ref=e956]: INFORMATION PROVIDED
+              - row "billing 280 8.5m REFUND PROCESSED CREDIT APPLIED" [ref=e957]:
+                - cell "billing" [ref=e958]
+                - cell "280" [ref=e959]
+                - cell "8.5m" [ref=e960]
+                - cell "REFUND PROCESSED CREDIT APPLIED" [ref=e961]:
+                  - generic [ref=e962]:
+                    - generic [ref=e963]: REFUND PROCESSED
+                    - generic [ref=e964]: CREDIT APPLIED
+              - row "refund 220 12.3m REFUND PROCESSED ESCALATED TO HUMAN" [ref=e965]:
+                - cell "refund" [ref=e966]
+                - cell "220" [ref=e967]
+                - cell "12.3m" [ref=e968]
+                - cell "REFUND PROCESSED ESCALATED TO HUMAN" [ref=e969]:
+                  - generic [ref=e970]:
+                    - generic [ref=e971]: REFUND PROCESSED
+                    - generic [ref=e972]: ESCALATED TO HUMAN
+              - row "cancellation 180 15.8m ISSUE RESOLVED ESCALATED TO HUMAN" [ref=e973]:
+                - cell "cancellation" [ref=e974]
+                - cell "180" [ref=e975]
+                - cell "15.8m" [ref=e976]
+                - cell "ISSUE RESOLVED ESCALATED TO HUMAN" [ref=e977]:
+                  - generic [ref=e978]:
+                    - generic [ref=e979]: ISSUE RESOLVED
+                    - generic [ref=e980]: ESCALATED TO HUMAN
+              - row "product quality 150 10.2m REFUND PROCESSED CREDIT APPLIED" [ref=e981]:
+                - cell "product quality" [ref=e982]
+                - cell "150" [ref=e983]
+                - cell "10.2m" [ref=e984]
+                - cell "REFUND PROCESSED CREDIT APPLIED" [ref=e985]:
+                  - generic [ref=e986]:
+                    - generic [ref=e987]: REFUND PROCESSED
+                    - generic [ref=e988]: CREDIT APPLIED
+              - row "general 100 4.5m INFORMATION PROVIDED ISSUE RESOLVED" [ref=e989]:
+                - cell "general" [ref=e990]
+                - cell "100" [ref=e991]
+                - cell "4.5m" [ref=e992]
+                - cell "INFORMATION PROVIDED ISSUE RESOLVED" [ref=e993]:
+                  - generic [ref=e994]:
+                    - generic [ref=e995]: INFORMATION PROVIDED
+                    - generic [ref=e996]: ISSUE RESOLVED
+  - region "Notifications alt+T"
+  - alert [ref=e997]
+```

@@ -1,0 +1,534 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Main navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "avnz.io" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e10]: avnz.io
+        - button "Collapse sidebar" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+      - button "A All Clients Platform view" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: A
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: All Clients
+          - paragraph [ref=e20]: Platform view
+        - img [ref=e21]
+      - button "A All Companies 6 companies" [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: A
+        - generic [ref=e27]:
+          - paragraph [ref=e28]: All Companies
+          - paragraph [ref=e29]: 6 companies
+        - img [ref=e30]
+      - navigation "Sidebar navigation" [ref=e32]:
+        - group "Insights" [ref=e33]:
+          - button "Insights" [expanded] [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]:
+              - img [ref=e36]
+              - generic [ref=e38]: Insights
+            - img [ref=e40]
+          - list [ref=e42]:
+            - generic [ref=e43]:
+              - listitem [ref=e44] [cursor=pointer]:
+                - generic [ref=e45]:
+                  - img [ref=e46]
+                  - generic [ref=e51]: Dashboard
+              - listitem [ref=e52] [cursor=pointer]:
+                - generic [ref=e53]:
+                  - img [ref=e54]
+                  - generic [ref=e57]: Revenue
+              - listitem [ref=e58] [cursor=pointer]:
+                - generic [ref=e59]:
+                  - img [ref=e60]
+                  - generic [ref=e64]: Orders
+              - listitem [ref=e65] [cursor=pointer]:
+                - generic [ref=e66]:
+                  - img [ref=e67]
+                  - generic [ref=e72]: Customers
+              - listitem [ref=e73] [cursor=pointer]:
+                - generic [ref=e74]:
+                  - img [ref=e75]
+                  - generic [ref=e79]: Funnels
+              - listitem [ref=e80] [cursor=pointer]:
+                - generic [ref=e81]:
+                  - img [ref=e82]
+                  - generic [ref=e87]: Subscriptions
+        - group "Daily Operations" [ref=e88]:
+          - button "Daily Operations" [expanded] [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]:
+              - img [ref=e91]
+              - generic [ref=e94]: Daily Operations
+            - img [ref=e96]
+          - list [ref=e98]:
+            - generic [ref=e99]:
+              - listitem [ref=e100] [cursor=pointer]:
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - generic [ref=e106]: Orders
+              - listitem [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]:
+                  - img [ref=e109]
+                  - generic [ref=e114]: Subscriptions
+              - listitem [ref=e115] [cursor=pointer]:
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e120]: Transactions
+              - listitem [ref=e121] [cursor=pointer]:
+                - generic [ref=e122]:
+                  - img [ref=e123]
+                  - generic [ref=e128]: Customers
+              - listitem [ref=e129] [cursor=pointer]:
+                - generic [ref=e130]:
+                  - img [ref=e131]
+                  - generic [ref=e134]: Refunds
+        - group "Catalog" [ref=e135]:
+          - button "Catalog" [ref=e136] [cursor=pointer]:
+            - generic [ref=e137]:
+              - img [ref=e138]
+              - generic [ref=e142]: Catalog
+            - img [ref=e144]
+          - generic [ref=e146]:
+            - listitem [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]:
+                - img [ref=e149]
+                - generic [ref=e152]: Products
+            - listitem [ref=e153] [cursor=pointer]:
+              - generic [ref=e154]:
+                - img [ref=e155]
+                - generic [ref=e160]: Subscription Plans
+            - listitem [ref=e161] [cursor=pointer]:
+              - generic [ref=e162]:
+                - img [ref=e163]
+                - generic [ref=e168]: Categories
+            - listitem [ref=e169] [cursor=pointer]:
+              - generic [ref=e170]:
+                - img [ref=e171]
+                - generic [ref=e174]: Tags
+            - listitem [ref=e175] [cursor=pointer]:
+              - generic [ref=e176]:
+                - img [ref=e177]
+                - generic [ref=e181]: Collections
+            - listitem [ref=e182] [cursor=pointer]:
+              - generic [ref=e183]:
+                - img [ref=e184]
+                - generic [ref=e186]: Reviews
+        - group "Marketing" [ref=e187]:
+          - button "Marketing" [ref=e188] [cursor=pointer]:
+            - generic [ref=e189]:
+              - img [ref=e190]
+              - generic [ref=e193]: Marketing
+            - img [ref=e195]
+          - generic [ref=e197]:
+            - listitem [ref=e198] [cursor=pointer]:
+              - generic [ref=e199]:
+                - img [ref=e200]
+                - generic [ref=e204]: Funnels
+            - listitem [ref=e205] [cursor=pointer]:
+              - generic [ref=e206]:
+                - img [ref=e207]
+                - generic [ref=e210]: Leads
+            - listitem [ref=e211] [cursor=pointer]:
+              - generic [ref=e212]:
+                - img [ref=e213]
+                - generic [ref=e216]: Landing Pages
+        - group "Momentum Intelligence" [ref=e217]:
+          - button "Momentum Intelligence" [ref=e218] [cursor=pointer]:
+            - generic [ref=e219]:
+              - img [ref=e220]
+              - generic [ref=e223]: Momentum Intelligence
+            - img [ref=e225]
+          - generic [ref=e227]:
+            - listitem [ref=e228] [cursor=pointer]:
+              - generic [ref=e229]:
+                - img [ref=e230]
+                - generic [ref=e232]: Churn Risk
+            - listitem [ref=e233] [cursor=pointer]:
+              - generic [ref=e234]:
+                - img [ref=e235]
+                - generic [ref=e239]: Save Flows
+            - listitem [ref=e240] [cursor=pointer]:
+              - generic [ref=e241]:
+                - img [ref=e242]
+                - generic [ref=e244]: Behavioral Triggers
+            - listitem [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]:
+                - img [ref=e247]
+                - generic [ref=e250]: Returns (RMA)
+        - group "CS AI" [ref=e251]:
+          - button "CS AI" [expanded] [ref=e252] [cursor=pointer]:
+            - generic [ref=e253]:
+              - img [ref=e254]
+              - generic [ref=e257]: CS AI
+            - img [ref=e259]
+          - list [ref=e261]:
+            - generic [ref=e262]:
+              - listitem [ref=e263] [cursor=pointer]:
+                - generic [ref=e264]:
+                  - img [ref=e265]
+                  - generic [ref=e267]: Dashboard
+              - listitem [ref=e268] [cursor=pointer]:
+                - generic [ref=e269]:
+                  - img [ref=e270]
+                  - generic [ref=e272]: Conversations
+              - listitem [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]:
+                  - img [ref=e275]
+                  - generic [ref=e277]: Voice Calls
+              - listitem [ref=e278] [cursor=pointer]:
+                - generic [ref=e279]:
+                  - img [ref=e280]
+                  - generic [ref=e283]: Analytics
+        - group "Fulfillment" [ref=e284]:
+          - button "Fulfillment" [ref=e285] [cursor=pointer]:
+            - generic [ref=e286]:
+              - img [ref=e287]
+              - generic [ref=e292]: Fulfillment
+            - img [ref=e294]
+          - listitem [ref=e297] [cursor=pointer]:
+            - generic [ref=e298]:
+              - img [ref=e299]
+              - generic [ref=e304]: Shipments
+        - group "Organization" [ref=e305]:
+          - button "Organization" [ref=e306] [cursor=pointer]:
+            - generic [ref=e307]:
+              - img [ref=e308]
+              - generic [ref=e311]: Organization
+            - img [ref=e313]
+          - generic [ref=e315]:
+            - listitem [ref=e316] [cursor=pointer]:
+              - generic [ref=e317]:
+                - img [ref=e318]
+                - generic [ref=e321]: Clients
+            - listitem [ref=e322] [cursor=pointer]:
+              - generic [ref=e323]:
+                - img [ref=e324]
+                - generic [ref=e328]: Companies
+        - group "Vendors" [ref=e329]:
+          - button "Vendors" [ref=e330] [cursor=pointer]:
+            - generic [ref=e331]:
+              - img [ref=e332]
+              - generic [ref=e334]: Vendors
+            - img [ref=e336]
+          - generic [ref=e338]:
+            - listitem [ref=e339] [cursor=pointer]:
+              - generic [ref=e340]:
+                - img [ref=e341]
+                - generic [ref=e346]: All Vendors
+            - listitem [ref=e347] [cursor=pointer]:
+              - generic [ref=e348]:
+                - img [ref=e349]
+                - generic [ref=e353]: Companies
+            - listitem [ref=e354] [cursor=pointer]:
+              - generic [ref=e355]:
+                - img [ref=e356]
+                - generic [ref=e360]: Products
+            - listitem [ref=e361] [cursor=pointer]:
+              - generic [ref=e362]:
+                - img [ref=e363]
+                - generic [ref=e366]: Connections
+        - group "Development" [ref=e367]:
+          - button "Development" [ref=e368] [cursor=pointer]:
+            - generic [ref=e369]:
+              - img [ref=e370]
+              - generic [ref=e374]: Development
+            - img [ref=e376]
+          - generic [ref=e378]:
+            - listitem [ref=e379] [cursor=pointer]:
+              - generic [ref=e380]:
+                - img [ref=e381]
+                - generic [ref=e385]: Feature Pipeline
+            - listitem [ref=e386] [cursor=pointer]:
+              - generic [ref=e387]:
+                - img [ref=e388]
+                - generic [ref=e392]: Code Review
+            - listitem [ref=e393] [cursor=pointer]:
+              - generic [ref=e394]:
+                - img [ref=e395]
+                - generic [ref=e404]: QA Checklist
+        - group "Payment Routing" [ref=e405]:
+          - button "Payment Routing" [ref=e406] [cursor=pointer]:
+            - generic [ref=e407]:
+              - img [ref=e408]
+              - generic [ref=e410]: Payment Routing
+            - img [ref=e412]
+          - generic [ref=e414]:
+            - listitem [ref=e415] [cursor=pointer]:
+              - generic [ref=e416]:
+                - img [ref=e417]
+                - generic [ref=e421]: Routing Rules
+            - listitem [ref=e422] [cursor=pointer]:
+              - generic [ref=e423]:
+                - img [ref=e424]
+                - generic [ref=e426]: Account Pools
+        - group "Configuration" [ref=e427]:
+          - button "Configuration" [ref=e428] [cursor=pointer]:
+            - generic [ref=e429]:
+              - img [ref=e430]
+              - generic [ref=e432]: Configuration
+            - img [ref=e434]
+          - generic [ref=e436]:
+            - listitem [ref=e437] [cursor=pointer]:
+              - generic [ref=e438]:
+                - img [ref=e439]
+                - generic [ref=e441]: Merchant Accounts
+            - listitem [ref=e442] [cursor=pointer]:
+              - generic [ref=e443]:
+                - img [ref=e444]
+                - generic [ref=e446]: Integrations
+            - listitem [ref=e447] [cursor=pointer]:
+              - generic [ref=e448]:
+                - img [ref=e449]
+                - generic [ref=e453]: API Keys
+        - group "Settings" [ref=e454]:
+          - button "Settings" [ref=e455] [cursor=pointer]:
+            - generic [ref=e456]:
+              - img [ref=e457]
+              - generic [ref=e460]: Settings
+            - img [ref=e462]
+          - generic [ref=e464]:
+            - listitem [ref=e465] [cursor=pointer]:
+              - generic [ref=e466]:
+                - img [ref=e467]
+                - generic [ref=e468]: General
+            - listitem [ref=e469] [cursor=pointer]:
+              - generic [ref=e470]:
+                - img [ref=e471]
+                - generic [ref=e477]: Appearance
+            - listitem [ref=e478] [cursor=pointer]:
+              - generic [ref=e479]:
+                - img [ref=e480]
+                - generic [ref=e484]: Billing
+            - listitem [ref=e485] [cursor=pointer]:
+              - generic [ref=e486]:
+                - img [ref=e487]
+                - generic [ref=e490]: Security
+            - listitem [ref=e491] [cursor=pointer]:
+              - generic [ref=e492]:
+                - img [ref=e493]
+                - generic [ref=e495]: Roles & Permissions
+            - listitem [ref=e496] [cursor=pointer]:
+              - generic [ref=e497]:
+                - img [ref=e498]
+                - generic [ref=e510]: Team
+            - listitem [ref=e511] [cursor=pointer]:
+              - generic [ref=e512]:
+                - img [ref=e513]
+                - generic [ref=e515]: Founders Waitlist
+            - listitem [ref=e516] [cursor=pointer]:
+              - generic [ref=e517]:
+                - img [ref=e518]
+                - generic [ref=e521]: Audit Logs
+            - listitem [ref=e522] [cursor=pointer]:
+              - generic [ref=e523]:
+                - img [ref=e524]
+                - generic [ref=e527]: Trash
+      - generic [ref=e529]:
+        - generic [ref=e530]: Theme
+        - generic [ref=e531]:
+          - button "Light mode" [ref=e532] [cursor=pointer]:
+            - img [ref=e533]
+          - button "System preference" [ref=e539] [cursor=pointer]:
+            - img [ref=e540]
+          - button "Dark mode" [ref=e542] [cursor=pointer]:
+            - img [ref=e543]
+      - button "P Platform Admin super admin" [ref=e547] [cursor=pointer]:
+        - generic [ref=e548]: P
+        - generic [ref=e549]:
+          - paragraph [ref=e550]: Platform Admin
+          - paragraph [ref=e551]: super admin
+        - img [ref=e552]
+    - main [ref=e554]:
+      - generic [ref=e555]:
+        - button "Search... ⌘ K" [ref=e557] [cursor=pointer]:
+          - img [ref=e558]
+          - generic [ref=e561]: Search...
+          - generic [ref=e562]:
+            - generic [ref=e563]: ⌘
+            - generic [ref=e564]: K
+        - generic [ref=e565]:
+          - button [ref=e566] [cursor=pointer]:
+            - img [ref=e567]
+          - link [ref=e571] [cursor=pointer]:
+            - /url: /settings/general
+            - img [ref=e572]
+          - button "P" [ref=e575] [cursor=pointer]
+      - generic [ref=e577]:
+        - generic [ref=e578]:
+          - heading "Conversations" [level=1] [ref=e580]
+          - paragraph [ref=e581]: CS AI chat sessions and support tickets
+        - button "Refresh" [ref=e583] [cursor=pointer]:
+          - img [ref=e584]
+          - text: Refresh
+      - generic [ref=e589]:
+        - generic [ref=e590]:
+          - generic [ref=e592]:
+            - img [ref=e594]
+            - generic [ref=e596]:
+              - paragraph [ref=e597]: "1"
+              - paragraph [ref=e598]: Active
+          - generic [ref=e600]:
+            - img [ref=e602]
+            - generic [ref=e604]:
+              - paragraph [ref=e605]: "2"
+              - paragraph [ref=e606]: Escalated
+          - generic [ref=e608]:
+            - img [ref=e610]
+            - generic [ref=e613]:
+              - paragraph [ref=e614]: "2"
+              - paragraph [ref=e615]: Resolved
+        - generic [ref=e618]:
+          - generic [ref=e620]:
+            - img [ref=e621]
+            - textbox "Search by customer name, email, or issue..." [ref=e624]
+          - generic [ref=e625]:
+            - button "all" [ref=e627] [cursor=pointer]:
+              - generic [ref=e628]: all
+              - img [ref=e629]
+            - button "all" [ref=e632] [cursor=pointer]:
+              - generic [ref=e633]: all
+              - img [ref=e634]
+            - button "all" [ref=e637] [cursor=pointer]:
+              - generic [ref=e638]: all
+              - img [ref=e639]
+        - generic [ref=e641]:
+          - generic [ref=e642]:
+            - heading "All Conversations" [level=3] [ref=e643]
+            - paragraph [ref=e644]: 5 conversations
+          - table [ref=e647]:
+            - rowgroup [ref=e648]:
+              - row "Customer Issue Channel Tier Sentiment Status Started" [ref=e649]:
+                - columnheader "Customer" [ref=e650]
+                - columnheader "Issue" [ref=e651]
+                - columnheader "Channel" [ref=e652]
+                - columnheader "Tier" [ref=e653]
+                - columnheader "Sentiment" [ref=e654]
+                - columnheader "Status" [ref=e655]
+                - columnheader "Started" [ref=e656]
+                - columnheader [ref=e657]
+            - rowgroup [ref=e658]:
+              - row "John Smith john@example.com shipping chat AI Rep Neutral Active 5m ago" [ref=e659]:
+                - cell "John Smith john@example.com" [ref=e660]:
+                  - generic [ref=e661]:
+                    - img [ref=e663]
+                    - generic [ref=e666]:
+                      - paragraph [ref=e667]: John Smith
+                      - paragraph [ref=e668]: john@example.com
+                - cell "shipping" [ref=e669]
+                - cell "chat" [ref=e670]:
+                  - generic [ref=e671]: chat
+                - cell "AI Rep" [ref=e672]:
+                  - generic [ref=e673]:
+                    - img [ref=e674]
+                    - text: AI Rep
+                - cell "Neutral" [ref=e677]:
+                  - generic [ref=e680]: Neutral
+                - cell "Active" [ref=e681]:
+                  - generic [ref=e682]: Active
+                - cell "5m ago" [ref=e683]
+                - cell [ref=e684]:
+                  - link [ref=e685] [cursor=pointer]:
+                    - /url: /cs-ai/conversations/cs_001
+                    - button [ref=e686]:
+                      - img [ref=e687]
+              - row "Sarah Johnson sarah@example.com refund chat AI Manager Frustrated Escalated 20m ago" [ref=e689]:
+                - cell "Sarah Johnson sarah@example.com" [ref=e690]:
+                  - generic [ref=e691]:
+                    - img [ref=e693]
+                    - generic [ref=e696]:
+                      - paragraph [ref=e697]: Sarah Johnson
+                      - paragraph [ref=e698]: sarah@example.com
+                - cell "refund" [ref=e699]
+                - cell "chat" [ref=e700]:
+                  - generic [ref=e701]: chat
+                - cell "AI Manager" [ref=e702]:
+                  - generic [ref=e703]:
+                    - img [ref=e704]
+                    - text: AI Manager
+                - cell "Frustrated" [ref=e707]:
+                  - generic [ref=e710]: Frustrated
+                - cell "Escalated" [ref=e711]:
+                  - generic [ref=e712]: Escalated
+                - cell "20m ago" [ref=e713]
+                - cell [ref=e714]:
+                  - link [ref=e715] [cursor=pointer]:
+                    - /url: /cs-ai/conversations/cs_002
+                    - button [ref=e716]:
+                      - img [ref=e717]
+              - row "Michael Brown michael@example.com billing email Human Angry Escalated 1h ago" [ref=e719]:
+                - cell "Michael Brown michael@example.com" [ref=e720]:
+                  - generic [ref=e721]:
+                    - img [ref=e723]
+                    - generic [ref=e726]:
+                      - paragraph [ref=e727]: Michael Brown
+                      - paragraph [ref=e728]: michael@example.com
+                - cell "billing" [ref=e729]
+                - cell "email" [ref=e730]:
+                  - generic [ref=e731]: email
+                - cell "Human" [ref=e732]:
+                  - generic [ref=e733]:
+                    - img [ref=e734]
+                    - text: Human
+                - cell "Angry" [ref=e736]:
+                  - generic [ref=e739]: Angry
+                - cell "Escalated" [ref=e740]:
+                  - generic [ref=e741]: Escalated
+                - cell "1h ago" [ref=e742]
+                - cell [ref=e743]:
+                  - link [ref=e744] [cursor=pointer]:
+                    - /url: /cs-ai/conversations/cs_003
+                    - button [ref=e745]:
+                      - img [ref=e746]
+              - row "Emily Davis emily@example.com general chat AI Rep Happy Resolved 2h ago" [ref=e748]:
+                - cell "Emily Davis emily@example.com" [ref=e749]:
+                  - generic [ref=e750]:
+                    - img [ref=e752]
+                    - generic [ref=e755]:
+                      - paragraph [ref=e756]: Emily Davis
+                      - paragraph [ref=e757]: emily@example.com
+                - cell "general" [ref=e758]
+                - cell "chat" [ref=e759]:
+                  - generic [ref=e760]: chat
+                - cell "AI Rep" [ref=e761]:
+                  - generic [ref=e762]:
+                    - img [ref=e763]
+                    - text: AI Rep
+                - cell "Happy" [ref=e766]:
+                  - generic [ref=e769]: Happy
+                - cell "Resolved" [ref=e770]:
+                  - generic [ref=e771]: Resolved
+                - cell "2h ago" [ref=e772]
+                - cell [ref=e773]:
+                  - link [ref=e774] [cursor=pointer]:
+                    - /url: /cs-ai/conversations/cs_004
+                    - button [ref=e775]:
+                      - img [ref=e776]
+              - row "David Wilson david@example.com cancellation chat AI Manager Satisfied Resolved 5h ago" [ref=e778]:
+                - cell "David Wilson david@example.com" [ref=e779]:
+                  - generic [ref=e780]:
+                    - img [ref=e782]
+                    - generic [ref=e785]:
+                      - paragraph [ref=e786]: David Wilson
+                      - paragraph [ref=e787]: david@example.com
+                - cell "cancellation" [ref=e788]
+                - cell "chat" [ref=e789]:
+                  - generic [ref=e790]: chat
+                - cell "AI Manager" [ref=e791]:
+                  - generic [ref=e792]:
+                    - img [ref=e793]
+                    - text: AI Manager
+                - cell "Satisfied" [ref=e796]:
+                  - generic [ref=e799]: Satisfied
+                - cell "Resolved" [ref=e800]:
+                  - generic [ref=e801]: Resolved
+                - cell "5h ago" [ref=e802]
+                - cell [ref=e803]:
+                  - link [ref=e804] [cursor=pointer]:
+                    - /url: /cs-ai/conversations/cs_005
+                    - button [ref=e805]:
+                      - img [ref=e806]
+  - region "Notifications alt+T"
+  - alert [ref=e808]
+```

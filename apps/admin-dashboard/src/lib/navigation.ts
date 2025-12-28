@@ -52,6 +52,8 @@ import {
   MessageSquare,
   Phone,
   Headphones,
+  ShieldAlert,
+  DollarSign,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -146,6 +148,8 @@ export const iconMap: Record<string, LucideIcon> = {
   MessageSquare,
   Phone,
   Headphones,
+  ShieldAlert,
+  DollarSign,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -194,6 +198,7 @@ export const navigationSections: NavSection[] = [
       { id: 'clients', label: 'Clients', href: '/clients', icon: Building, requiredScopes: ['ORGANIZATION'] },
       { id: 'companies', label: 'Companies', href: '/companies', icon: Building2 },
       { id: 'sites', label: 'Sites', href: '/sites', icon: Store },
+      { id: 'admin-billing', label: 'Billing Management', href: '/admin/billing', icon: Wallet, requiredScopes: ['ORGANIZATION'] },
     ],
   },
 
@@ -278,7 +283,24 @@ export const navigationSections: NavSection[] = [
   },
 
   // ─────────────────────────────────────────────────────────────
-  // 7. SETTINGS - All Configuration Consolidated
+  // 7. GATEWAY RISK - Risk Management (ORG only)
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'gateway-risk',
+    label: 'Gateway Risk',
+    icon: ShieldAlert,
+    defaultExpanded: false,
+    requiredScopes: ['ORGANIZATION'],
+    items: [
+      { id: 'risk-dashboard', label: 'Risk Dashboard', href: '/gateway-risk', icon: ShieldAlert },
+      { id: 'merchant-profiles', label: 'Merchant Profiles', href: '/gateway-risk/merchants', icon: Users },
+      { id: 'chargebacks', label: 'Chargebacks', href: '/gateway-risk/chargebacks', icon: AlertTriangle },
+      { id: 'reserves', label: 'Reserves', href: '/gateway-risk/reserves', icon: DollarSign },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 8. SETTINGS - All Configuration Consolidated
   // Includes: General, Payments, Integrations, Team, Security
   // ─────────────────────────────────────────────────────────────
   {
@@ -295,7 +317,8 @@ export const navigationSections: NavSection[] = [
       { id: 'routing-rules', label: 'Routing Rules', href: '/routing', icon: GitBranch },
       { id: 'account-pools', label: 'Account Pools', href: '/routing/pools', icon: Landmark },
       // Integrations
-      { id: 'integrations', label: 'Integrations', href: '/integrations', icon: Plug },
+      { id: 'platform-integrations', label: 'Platform Integrations', href: '/integrations', icon: Plug, requiredScopes: ['ORGANIZATION'] },
+      { id: 'integrations', label: 'Integrations', href: '/settings/integrations', icon: Plug, requiredScopes: ['CLIENT', 'COMPANY'] },
       { id: 'api-keys', label: 'API Keys', href: '/settings/api-keys', icon: Key },
       // Team & Security
       { id: 'team', label: 'Team', href: '/settings/team', icon: UserCog },

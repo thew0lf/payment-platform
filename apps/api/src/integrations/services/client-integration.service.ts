@@ -29,14 +29,24 @@ export class ClientIntegrationService {
     private readonly runwayService: RunwayService,
   ) {}
 
-  async create(clientId: string, organizationId: string, dto: CreateClientIntegrationDto, createdBy: string): Promise<ClientIntegration> {
+  async create(clientId: string, organizationId: string | undefined, dto: CreateClientIntegrationDto, createdBy: string): Promise<ClientIntegration> {
     const definition = await this.definitionService.getByProvider(dto.provider);
     if (!definition) throw new BadRequestException(`Unknown provider: ${dto.provider}`);
     if (!definition.isClientAllowed) throw new BadRequestException(`Provider ${dto.provider} not available for clients`);
 
     if (dto.mode === IntegrationMode.OWN && !dto.credentials) throw new BadRequestException('Credentials required for OWN mode');
     if (dto.mode === IntegrationMode.PLATFORM) {
-      const platformInt = await this.platformService.getByProvider(organizationId, dto.provider);
+      // Resolve organizationId from client if not provided directly
+      let resolvedOrgId = organizationId;
+      if (!resolvedOrgId && clientId) {
+        const client = await this.prisma.client.findUnique({
+          where: { id: clientId },
+          select: { organizationId: true },
+        });
+        resolvedOrgId = client?.organizationId || undefined;
+      }
+      if (!resolvedOrgId) throw new BadRequestException('Organization not found for platform integration');
+      const platformInt = await this.platformService.getByProvider(resolvedOrgId, dto.provider);
       if (!platformInt || !platformInt.isSharedWithClients) throw new BadRequestException(`Platform gateway for ${dto.provider} not available`);
       dto.platformIntegrationId = platformInt.id;
     }
@@ -117,9 +127,40 @@ export class ClientIntegrationService {
     return integrations.map((i) => this.toResponse(i));
   }
 
-  async getAvailable(clientId: string, organizationId: string): Promise<{ definitions: IntegrationDefinition[]; platformOptions: PlatformIntegration[] }> {
+  async listByOrganization(organizationId: string): Promise<ClientIntegration[]> {
+    // Get all clients belonging to this organization
+    const clients = await this.prisma.client.findMany({
+      where: { organizationId },
+      select: { id: true },
+    });
+    const clientIds = clients.map((c) => c.id);
+
+    // Get all integrations for these clients
+    const integrations = await this.prisma.clientIntegration.findMany({
+      where: { clientId: { in: clientIds } },
+      orderBy: [{ category: 'asc' }, { priority: 'asc' }],
+    });
+    return integrations.map((i) => this.toResponse(i));
+  }
+
+  async getAvailable(clientId: string, organizationId?: string): Promise<{ definitions: IntegrationDefinition[]; platformOptions: PlatformIntegration[] }> {
     const definitions = await this.definitionService.getClientAllowed();
-    const platformOptions = await this.platformService.getSharedIntegrations(organizationId);
+
+    // Resolve organizationId from client if not provided directly (for CLIENT/COMPANY-scoped users)
+    let resolvedOrgId = organizationId;
+    if (!resolvedOrgId && clientId) {
+      const client = await this.prisma.client.findUnique({
+        where: { id: clientId },
+        select: { organizationId: true },
+      });
+      resolvedOrgId = client?.organizationId || undefined;
+    }
+
+    // Get platform options only if we have an organizationId
+    const platformOptions = resolvedOrgId
+      ? await this.platformService.getSharedIntegrations(resolvedOrgId)
+      : [];
+
     return { definitions, platformOptions };
   }
 

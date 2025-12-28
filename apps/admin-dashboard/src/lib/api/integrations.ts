@@ -50,6 +50,8 @@ export enum IntegrationProvider {
   QUICKBOOKS = 'QUICKBOOKS',
   // Location Services
   GOOGLE_PLACES = 'GOOGLE_PLACES',
+  // Fulfillment
+  ROASTIFY = 'ROASTIFY',
 }
 
 export enum IntegrationCategory {
@@ -74,6 +76,7 @@ export enum IntegrationCategory {
   WEBHOOK = 'WEBHOOK',
   DEPLOYMENT = 'DEPLOYMENT',
   LOCATION_SERVICES = 'LOCATION_SERVICES',
+  FULFILLMENT = 'FULFILLMENT',
 }
 
 export enum IntegrationStatus {

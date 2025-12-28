@@ -15,6 +15,12 @@ export enum PlanStatus {
   HIDDEN = 'hidden',
 }
 
+export enum PlanType {
+  DEFAULT = 'DEFAULT',
+  CUSTOM = 'CUSTOM',
+  LEGACY = 'LEGACY',
+}
+
 export enum SubscriptionStatus {
   ACTIVE = 'active',
   PAST_DUE = 'past_due',
@@ -71,6 +77,7 @@ export interface PricingPlan {
   description?: string;
   billingInterval: string;
   baseCost: number;
+  annualCost?: number;
   currency: string;
   sortOrder: number;
   isDefault: boolean;
@@ -82,6 +89,19 @@ export interface PricingPlan {
   metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+  // New fields for plan types
+  planType: PlanType | string;
+  isPublic: boolean;
+  clientId?: string;
+  clientName?: string;  // Populated in admin queries
+  basePlanId?: string;
+  allowSelfUpgrade: boolean;
+  allowSelfDowngrade: boolean;
+  requiresApproval: boolean;
+  stripeProductId?: string;
+  stripePriceId?: string;
+  stripeAnnualPriceId?: string;
+  subscriptionCount?: number;  // Populated in admin queries
 }
 
 export interface ClientSubscription {
@@ -89,6 +109,8 @@ export interface ClientSubscription {
   clientId: string;
   planId: string;
   planName?: string;
+  clientName?: string;  // Populated in admin queries
+  clientCode?: string;  // Populated in admin queries
   status: string;
   statusReason?: string;
   statusChangedAt?: string;
@@ -111,6 +133,30 @@ export interface ClientSubscription {
   createdAt: string;
   updatedAt: string;
   plan?: PricingPlan;
+}
+
+// DTO for admin to assign a plan to a client
+export interface AssignPlanToClientDto {
+  clientId: string;
+  planId: string;
+  billingInterval?: 'monthly' | 'annual';
+  customPricing?: Partial<PlanOverage>;
+  discountPercent?: number;
+  discountReason?: string;
+  notes?: string;
+}
+
+// DTO for self-service plan change request
+export interface RequestPlanChangeDto {
+  targetPlanId: string;
+  billingInterval?: 'monthly' | 'annual';
+}
+
+// Response for upgrade request
+export interface UpgradeResponse {
+  checkoutUrl?: string;
+  requiresApproval?: boolean;
+  message?: string;
 }
 
 export interface UsageMetric {
@@ -378,6 +424,70 @@ export const billingApi = {
    */
   async voidInvoice(id: string): Promise<Invoice> {
     return apiClient.post<Invoice>(`/api/billing/invoices/${id}/void`, {});
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // ORG ADMIN METHODS
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Get all plans (ORG admin view - includes all plan types)
+   */
+  async getAllPlansAdmin(options: { planType?: string; clientId?: string } = {}): Promise<PricingPlan[]> {
+    const params = new URLSearchParams();
+    if (options.planType) params.append('type', options.planType);
+    if (options.clientId) params.append('clientId', options.clientId);
+    const queryString = params.toString();
+    return apiClient.get<PricingPlan[]>(`/api/billing/admin/plans${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get all subscriptions (ORG admin view)
+   */
+  async getAllSubscriptionsAdmin(options: { status?: string } = {}): Promise<ClientSubscription[]> {
+    const params = new URLSearchParams();
+    if (options.status) params.append('status', options.status);
+    const queryString = params.toString();
+    return apiClient.get<ClientSubscription[]>(`/api/billing/admin/subscriptions${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Create a custom plan for a specific client (ORG admin only)
+   */
+  async createCustomPlan(data: CreatePricingPlanDto & { clientId: string }): Promise<PricingPlan> {
+    return apiClient.post<PricingPlan>('/api/billing/plans/custom', data);
+  },
+
+  /**
+   * Assign a plan to a client (ORG admin only)
+   */
+  async assignPlanToClient(data: AssignPlanToClientDto): Promise<ClientSubscription> {
+    return apiClient.post<ClientSubscription>('/api/billing/admin/assign-plan', data);
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SELF-SERVICE PLAN CHANGES
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Get plans available to upgrade to (self-service)
+   */
+  async getUpgradeablePlans(clientId: string): Promise<PricingPlan[]> {
+    return apiClient.get<PricingPlan[]>(`/api/billing/plans/upgradeable?clientId=${clientId}`);
+  },
+
+  /**
+   * Request a plan upgrade (returns Stripe Checkout URL or approval message)
+   */
+  async requestUpgrade(clientId: string, data: RequestPlanChangeDto): Promise<UpgradeResponse> {
+    return apiClient.post<UpgradeResponse>('/api/billing/subscription/upgrade', { clientId, ...data });
+  },
+
+  /**
+   * Request a plan downgrade (requires ORG approval)
+   */
+  async requestDowngrade(clientId: string, data: RequestPlanChangeDto, reason?: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.post('/api/billing/subscription/downgrade-request', { clientId, ...data, reason });
   },
 };
 

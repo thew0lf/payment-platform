@@ -45,6 +45,8 @@ import { WaitlistModule } from './waitlist/waitlist.module';
 import { ClientsModule } from './clients/clients.module';
 import { CompaniesModule } from './companies/companies.module';
 import { SitesModule } from './sites/sites.module';
+import { GatewayRiskModule } from './gateway-risk/gateway-risk.module';
+import { ProductImportModule } from './product-import';
 
 @Module({
   imports: [
@@ -92,6 +94,8 @@ import { SitesModule } from './sites/sites.module';
     ClientsModule,
     CompaniesModule,
     SitesModule,
+    GatewayRiskModule,
+    ProductImportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

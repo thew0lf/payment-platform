@@ -278,6 +278,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
   [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
+  [IntegrationCategory.FULFILLMENT]: 'Fulfillment',
 };
 
 function isPlatformIntegration(integration: Integration): integration is PlatformIntegration {
@@ -414,7 +415,7 @@ export function IntegrationCard({
                     Configure Sharing
                   </button>
                 )}
-                {!isPlatformView && isClientIntegration(integration) && !integration.isDefault && onSetDefault && (
+                {!isPlatformView && isClientIntegration(integration) && !integration.isDefault && onSetDefault && integration.category === IntegrationCategory.PAYMENT_GATEWAY && (
                   <button
                     onClick={() => {
                       onSetDefault(integration.id);

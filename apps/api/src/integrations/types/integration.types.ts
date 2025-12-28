@@ -27,6 +27,7 @@ export enum IntegrationCategory {
   OAUTH = 'OAUTH',
   DEPLOYMENT = 'DEPLOYMENT',
   LOCATION_SERVICES = 'LOCATION_SERVICES',
+  FULFILLMENT = 'FULFILLMENT',
 }
 
 export enum IntegrationProvider {
@@ -95,6 +96,9 @@ export enum IntegrationProvider {
 
   // Location Services
   GOOGLE_PLACES = 'GOOGLE_PLACES',
+
+  // Fulfillment / Dropship
+  ROASTIFY = 'ROASTIFY',
 }
 
 export enum IntegrationStatus {

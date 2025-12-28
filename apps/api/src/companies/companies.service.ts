@@ -248,10 +248,12 @@ export class CompaniesService {
     const organizationId = await this.getOrganizationId(user);
 
     // For CLIENT users, force clientId to be their own client
-    const targetClientId = user.scopeType === 'CLIENT' ? user.clientId : data.clientId;
+    // For ORGANIZATION users, require clientId from request (treat empty string as undefined)
+    const providedClientId = data.clientId && data.clientId.trim() ? data.clientId.trim() : undefined;
+    const targetClientId = user.scopeType === 'CLIENT' ? user.clientId : providedClientId;
 
     if (!targetClientId) {
-      throw new BadRequestException('Client ID is required');
+      throw new BadRequestException('Client ID is required for organization users');
     }
 
     // Verify client exists and belongs to organization

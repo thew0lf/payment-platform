@@ -55,6 +55,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
   [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
+  [IntegrationCategory.FULFILLMENT]: 'Fulfillment',
 };
 
 // Provider configuration with icons and brand colors
@@ -282,6 +283,13 @@ const providerConfig: Record<string, { icon: string; iconUrl?: string; bgColor: 
     iconUrl: '/integrations/google-places.svg',
     bgColor: 'bg-white',
     gradient: 'from-[#4285F4] to-[#34A853]',
+  },
+  // Fulfillment
+  [IntegrationProvider.ROASTIFY]: {
+    icon: 'RF',
+    iconUrl: '/integrations/roastify.svg',
+    bgColor: 'bg-amber-900',
+    gradient: 'from-[#5D4037] to-[#FF6F00]',
   },
 };
 
@@ -645,8 +653,8 @@ export function AddIntegrationModal({
                 </select>
               </div>
 
-              {/* Default checkbox for client view */}
-              {!isPlatformView && (
+              {/* Default checkbox for client view - only for payment gateways */}
+              {!isPlatformView && selectedDefinition?.category === IntegrationCategory.PAYMENT_GATEWAY && (
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"

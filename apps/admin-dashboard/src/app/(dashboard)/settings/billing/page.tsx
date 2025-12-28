@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   CreditCard,
@@ -18,7 +19,12 @@ import {
   ExternalLink,
   Clock,
   Receipt,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -35,6 +41,7 @@ import {
   getFeatureLabel,
   SubscriptionStatus,
   InvoiceStatus,
+  PlanType,
 } from '@/lib/api/billing';
 
 // ═══════════════════════════════════════════════════════════════
@@ -126,12 +133,21 @@ function getInvoiceBadgeVariant(status: string): 'success' | 'info' | 'warning' 
 
 interface PlanCardProps {
   plan: PricingPlan;
+  currentPlan: PricingPlan | null;
   isCurrentPlan: boolean;
-  onSelect?: () => void;
+  onUpgrade?: (plan: PricingPlan) => void;
+  onDowngrade?: (plan: PricingPlan) => void;
 }
 
-function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
-  const isEnterprise = plan.metadata && (plan.metadata as Record<string, unknown>).isCustomPricing;
+function PlanCompareCard({ plan, currentPlan, isCurrentPlan, onUpgrade, onDowngrade }: PlanCardProps) {
+  const isEnterprise = Boolean(plan.metadata && (plan.metadata as Record<string, unknown>).isCustomPricing);
+  const isCustomPlan = plan.planType === PlanType.CUSTOM;
+
+  // Determine if this is an upgrade or downgrade
+  const isUpgrade = currentPlan && plan.baseCost > currentPlan.baseCost;
+  const isDowngrade = currentPlan && plan.baseCost < currentPlan.baseCost;
+  const canSelfUpgrade = plan.allowSelfUpgrade && isUpgrade;
+  const canSelfDowngrade = plan.allowSelfDowngrade && isDowngrade;
 
   return (
     <Card
@@ -147,9 +163,16 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
             <CardTitle className="text-lg">{plan.displayName}</CardTitle>
             <CardDescription>{plan.description}</CardDescription>
           </div>
-          {isCurrentPlan && (
-            <Badge variant="info">Current</Badge>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {isCurrentPlan && (
+              <Badge variant="info">Current</Badge>
+            )}
+            {isCustomPlan && (
+              <Badge variant="default" className="bg-purple-500/10 text-purple-500 border-purple-500/20">
+                Custom
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 
@@ -190,14 +213,37 @@ function PlanCompareCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
           </div>
         </div>
 
-        {!isCurrentPlan && onSelect && (
-          <Button
-            onClick={onSelect}
-            variant="outline"
-            className="w-full"
-          >
-            {isEnterprise ? "Let's Talk" : 'Switch to This Plan'}
-          </Button>
+        {!isCurrentPlan && (
+          <div className="space-y-2">
+            {isUpgrade && onUpgrade && (
+              <Button
+                onClick={() => onUpgrade(plan)}
+                variant={canSelfUpgrade ? 'default' : 'outline'}
+                className="w-full"
+              >
+                <ArrowUp className="h-4 w-4 mr-2" />
+                {canSelfUpgrade ? 'Upgrade Now' : 'Request Upgrade'}
+              </Button>
+            )}
+            {isDowngrade && onDowngrade && (
+              <Button
+                onClick={() => onDowngrade(plan)}
+                variant="outline"
+                className="w-full"
+              >
+                <ArrowDown className="h-4 w-4 mr-2" />
+                {canSelfDowngrade ? 'Downgrade' : 'Request Downgrade'}
+              </Button>
+            )}
+            {!isUpgrade && !isDowngrade && isEnterprise && (
+              <Button
+                variant="outline"
+                className="w-full"
+              >
+                Contact Sales
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -218,18 +264,32 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Plan change modal state
+  const [upgradeModal, setUpgradeModal] = useState<{ plan: PricingPlan } | null>(null);
+  const [downgradeModal, setDowngradeModal] = useState<{ plan: PricingPlan } | null>(null);
+  const [downgradeReason, setDowngradeReason] = useState('');
+  const [isPlanChanging, setIsPlanChanging] = useState(false);
+
   const clientId = user?.clientId;
+  const isOrgAdmin = user?.scopeType === 'ORGANIZATION';
 
   const loadData = useCallback(async () => {
-    if (!clientId) return;
-
     try {
       setIsLoading(true);
       setError(null);
 
-      // Load plans (public)
+      // Load plans (always available)
       const plansData = await billingApi.getPlans();
       setPlans(plansData.filter((p) => p.status === 'active').sort((a, b) => a.sortOrder - b.sortOrder));
+
+      // If no clientId (org-level user), only load plans
+      if (!clientId) {
+        setSubscription(null);
+        setCurrentPlan(null);
+        setUsage(null);
+        setInvoices([]);
+        return;
+      }
 
       // Load subscription
       try {
@@ -271,6 +331,82 @@ export default function BillingPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Handle upgrade request
+  const handleUpgrade = async (plan: PricingPlan) => {
+    if (!clientId) return;
+
+    // If plan allows self-upgrade, show confirmation modal
+    if (plan.allowSelfUpgrade) {
+      setUpgradeModal({ plan });
+    } else {
+      // If requires approval, submit request directly
+      setIsPlanChanging(true);
+      try {
+        const response = await billingApi.requestUpgrade(clientId, { targetPlanId: plan.id });
+        if (response.requiresApproval) {
+          toast.success(response.message || 'Upgrade request submitted for approval');
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to request upgrade');
+      } finally {
+        setIsPlanChanging(false);
+      }
+    }
+  };
+
+  // Confirm upgrade (self-service via Stripe Checkout)
+  const confirmUpgrade = async () => {
+    if (!clientId || !upgradeModal) return;
+
+    setIsPlanChanging(true);
+    try {
+      const response = await billingApi.requestUpgrade(clientId, { targetPlanId: upgradeModal.plan.id });
+
+      if (response.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.checkoutUrl;
+      } else if (response.requiresApproval) {
+        toast.success(response.message || 'Upgrade request submitted');
+        setUpgradeModal(null);
+      } else {
+        // Upgrade completed directly (no Stripe)
+        toast.success('Plan upgraded successfully!');
+        setUpgradeModal(null);
+        await loadData();
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upgrade');
+    } finally {
+      setIsPlanChanging(false);
+    }
+  };
+
+  // Handle downgrade request
+  const handleDowngrade = (plan: PricingPlan) => {
+    setDowngradeModal({ plan });
+    setDowngradeReason('');
+  };
+
+  // Submit downgrade request
+  const submitDowngradeRequest = async () => {
+    if (!clientId || !downgradeModal) return;
+
+    setIsPlanChanging(true);
+    try {
+      const response = await billingApi.requestDowngrade(
+        clientId,
+        { targetPlanId: downgradeModal.plan.id },
+        downgradeReason
+      );
+      toast.success(response.message || 'Downgrade request submitted');
+      setDowngradeModal(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to request downgrade');
+    } finally {
+      setIsPlanChanging(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -429,20 +565,38 @@ export default function BillingPage() {
             </Card>
           </div>
         ) : (
-          /* No Subscription */
+          /* No Subscription or Org Admin View */
           <Card>
             <CardContent className="py-12 text-center">
-              <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">No Active Subscription</h2>
-              <p className="text-muted-foreground mb-6">
-                Pick a plan that fits your business. Upgrade anytime!
-              </p>
-              <Button asChild>
-                <Link href="/settings/billing/plans">
-                  <Package className="h-4 w-4 mr-2" />
-                  Browse Plans
-                </Link>
-              </Button>
+              {isOrgAdmin ? (
+                <>
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">Organization Billing</h2>
+                  <p className="text-muted-foreground mb-6">
+                    As an organization admin, you can manage all pricing plans and client subscriptions.
+                  </p>
+                  <Button asChild>
+                    <Link href="/settings/billing/plans">
+                      <Package className="h-4 w-4 mr-2" />
+                      Manage Plans
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">No Active Subscription</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Pick a plan that fits your business. Upgrade anytime!
+                  </p>
+                  <Button asChild>
+                    <Link href="/settings/billing/plans">
+                      <Package className="h-4 w-4 mr-2" />
+                      Browse Plans
+                    </Link>
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
@@ -518,11 +672,10 @@ export default function BillingPage() {
               <PlanCompareCard
                 key={plan.id}
                 plan={plan}
+                currentPlan={currentPlan}
                 isCurrentPlan={currentPlan?.id === plan.id}
-                onSelect={() => {
-                  // TODO: Implement plan change modal
-                  console.log('Select plan:', plan.id);
-                }}
+                onUpgrade={handleUpgrade}
+                onDowngrade={handleDowngrade}
               />
             ))}
           </div>
@@ -581,6 +734,167 @@ export default function BillingPage() {
           </Card>
         )}
       </div>
+
+      {/* Upgrade Confirmation Modal */}
+      {upgradeModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setUpgradeModal(null)} />
+            <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+              <button
+                onClick={() => setUpgradeModal(null)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-semibold text-foreground mb-2">
+                  Upgrade to {upgradeModal.plan.displayName}
+                </h2>
+                <p className="text-muted-foreground">
+                  You're about to upgrade your plan. You'll be charged the prorated difference immediately.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">New plan</span>
+                  <span className="text-sm font-medium text-foreground">{upgradeModal.plan.displayName}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Monthly price</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {formatCurrency(upgradeModal.plan.baseCost, upgradeModal.plan.currency)}
+                  </span>
+                </div>
+                {currentPlan && (
+                  <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
+                    <span className="text-sm text-muted-foreground">Previous plan</span>
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatCurrency(currentPlan.baseCost, currentPlan.currency)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setUpgradeModal(null)}
+                  disabled={isPlanChanging}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={confirmUpgrade}
+                  disabled={isPlanChanging}
+                >
+                  {isPlanChanging ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUp className="h-4 w-4 mr-2" />
+                      Upgrade Now
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Downgrade Request Modal */}
+      {downgradeModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setDowngradeModal(null)} />
+            <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+              <button
+                onClick={() => setDowngradeModal(null)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mx-auto mb-4">
+                  <ArrowDown className="h-6 w-6 text-orange-500" />
+                </div>
+                <h2 className="text-xl font-semibold text-foreground mb-2">
+                  Request Downgrade to {downgradeModal.plan.displayName}
+                </h2>
+                <p className="text-muted-foreground">
+                  Downgrade requests require approval. Our team will review your request and get back to you.
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Reason for downgrade (optional)
+                </label>
+                <textarea
+                  value={downgradeReason}
+                  onChange={(e) => setDowngradeReason(e.target.value)}
+                  placeholder="Help us understand why you'd like to downgrade..."
+                  className="w-full h-24 px-3 py-2 bg-background border border-input rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Requested plan</span>
+                  <span className="text-sm font-medium text-foreground">{downgradeModal.plan.displayName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Monthly price</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {formatCurrency(downgradeModal.plan.baseCost, downgradeModal.plan.currency)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDowngradeModal(null)}
+                  disabled={isPlanChanging}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+                  onClick={submitDowngradeRequest}
+                  disabled={isPlanChanging}
+                >
+                  {isPlanChanging ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDown className="h-4 w-4 mr-2" />
+                      Request Downgrade
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

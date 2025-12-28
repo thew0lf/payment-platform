@@ -53,7 +53,7 @@ export interface CompanyStats {
 }
 
 export interface CreateCompanyInput {
-  clientId: string;
+  clientId?: string;  // Optional - backend will use user.clientId for CLIENT-scoped users
   name: string;
   domain?: string;
   logo?: string;

@@ -9,6 +9,12 @@ export enum PlanStatus {
   HIDDEN = 'hidden',
 }
 
+export enum PlanType {
+  DEFAULT = 'DEFAULT',   // Standard plans visible to all clients
+  CUSTOM = 'CUSTOM',     // Client-specific negotiated plans
+  LEGACY = 'LEGACY',     // Grandfathered plans (not available for new subscriptions)
+}
+
 export enum SubscriptionStatus {
   ACTIVE = 'active',
   PAST_DUE = 'past_due',
@@ -83,14 +89,30 @@ export interface PricingTier {
 export interface PricingPlan {
   id: string;
   name: string;
+  displayName: string;
   description: string;
   displayOrder: number;
+
+  // Plan Type & Visibility
+  planType: PlanType;
   isPublic: boolean;
-  isCustom: boolean;
+  clientId?: string;              // For CUSTOM plans - which client this belongs to
+  basePlanId?: string;            // For CUSTOM plans - which default plan this is based on
+
+  // Self-service controls
+  allowSelfUpgrade: boolean;      // Can clients upgrade to this plan themselves?
+  allowSelfDowngrade: boolean;    // Can clients downgrade from this plan themselves?
+  requiresApproval: boolean;      // Does switching to this plan require ORG approval?
+
+  // Stripe integration
+  stripeProductId?: string;
+  stripePriceId?: string;         // Monthly price
+  stripeAnnualPriceId?: string;   // Annual price
 
   // Base subscription
   billingInterval: 'monthly' | 'annual';
   basePrice: number;              // In cents
+  annualPrice?: number;           // Annual price (if different from basePrice * 12)
   annualDiscount?: number;        // e.g., 0.20 = 20% off
 
   // Included allowances
@@ -312,11 +334,30 @@ export interface Invoice {
 
 export interface CreatePricingPlanDto {
   name: string;
+  displayName: string;
   description: string;
   displayOrder?: number;
-  isPublic?: boolean;
+
+  // Plan Type & Visibility (ORG-only fields)
+  planType?: PlanType;            // Defaults to DEFAULT
+  isPublic?: boolean;             // Defaults to true
+  clientId?: string;              // Required for CUSTOM plans
+  basePlanId?: string;            // For CUSTOM plans - which default plan this is based on
+
+  // Self-service controls (ORG-only fields)
+  allowSelfUpgrade?: boolean;     // Defaults to true
+  allowSelfDowngrade?: boolean;   // Defaults to false
+  requiresApproval?: boolean;     // Defaults to false
+
+  // Stripe integration (ORG-only fields)
+  stripeProductId?: string;
+  stripePriceId?: string;
+  stripeAnnualPriceId?: string;
+
+  // Pricing
   billingInterval: 'monthly' | 'annual';
   basePrice: number;
+  annualPrice?: number;
   annualDiscount?: number;
   included: PricingPlan['included'];
   overage: PricingPlan['overage'];
@@ -324,6 +365,27 @@ export interface CreatePricingPlanDto {
   volumeTiers?: PricingTier[];
   features: PlanFeatures;
   limits?: PricingPlan['limits'];
+}
+
+export interface UpdatePricingPlanDto extends Partial<CreatePricingPlanDto> {
+  status?: PlanStatus;
+}
+
+// DTO for clients to request a plan change (self-service upgrade)
+export interface RequestPlanChangeDto {
+  targetPlanId: string;
+  billingInterval?: 'monthly' | 'annual';
+}
+
+// DTO for ORG to assign a plan to a client
+export interface AssignPlanToClientDto {
+  clientId: string;
+  planId: string;
+  billingInterval?: 'monthly' | 'annual';
+  customPricing?: Partial<PricingPlan['overage']>;
+  discountPercent?: number;
+  discountReason?: string;
+  notes?: string;
 }
 
 export interface CreateSubscriptionDto {

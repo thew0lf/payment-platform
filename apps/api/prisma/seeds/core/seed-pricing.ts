@@ -1,6 +1,11 @@
 /**
  * Core: Pricing Plans Seed
  * Creates the default pricing plans available to clients
+ *
+ * Plan Types:
+ * - DEFAULT: Standard tiers visible to all clients
+ * - CUSTOM: Client-specific negotiated pricing (created via admin UI)
+ * - LEGACY: Old plans being phased out
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -18,6 +23,15 @@ export async function seedPricingPlans(prisma: PrismaClient) {
       currency: 'USD',
       sortOrder: 1,
       isDefault: true,
+      // New billing system fields
+      planType: 'DEFAULT',
+      isPublic: true,
+      allowSelfUpgrade: true,
+      allowSelfDowngrade: false, // Downgrades require ORG approval
+      requiresApproval: false,
+      // Stripe price IDs (to be configured in Stripe dashboard)
+      stripePriceId: null, // Set to actual Stripe price ID for production
+      stripeAnnualPriceId: null,
       included: {
         transactions: 500,
         volume: 2500000, // $25,000 in cents
@@ -59,6 +73,14 @@ export async function seedPricingPlans(prisma: PrismaClient) {
       currency: 'USD',
       sortOrder: 2,
       isDefault: false,
+      // New billing system fields
+      planType: 'DEFAULT',
+      isPublic: true,
+      allowSelfUpgrade: true,
+      allowSelfDowngrade: false,
+      requiresApproval: false,
+      stripePriceId: null,
+      stripeAnnualPriceId: null,
       included: {
         transactions: 2500,
         volume: 12500000, // $125,000
@@ -105,6 +127,14 @@ export async function seedPricingPlans(prisma: PrismaClient) {
       currency: 'USD',
       sortOrder: 3,
       isDefault: false,
+      // New billing system fields
+      planType: 'DEFAULT',
+      isPublic: true,
+      allowSelfUpgrade: true,
+      allowSelfDowngrade: false,
+      requiresApproval: false,
+      stripePriceId: null,
+      stripeAnnualPriceId: null,
       included: {
         transactions: 5000,
         volume: 25000000, // $250,000
@@ -158,6 +188,14 @@ export async function seedPricingPlans(prisma: PrismaClient) {
       currency: 'USD',
       sortOrder: 4,
       isDefault: false,
+      // New billing system fields - Enterprise requires approval
+      planType: 'DEFAULT',
+      isPublic: true,
+      allowSelfUpgrade: false, // Requires sales contact
+      allowSelfDowngrade: false,
+      requiresApproval: true, // Enterprise requires ORG approval
+      stripePriceId: null,
+      stripeAnnualPriceId: null,
       included: {
         transactions: 0, // Unlimited/custom
         volume: 0,
@@ -216,6 +254,14 @@ export async function seedPricingPlans(prisma: PrismaClient) {
         currency: plan.currency,
         sortOrder: plan.sortOrder,
         isDefault: plan.isDefault,
+        // New billing system fields
+        planType: plan.planType,
+        isPublic: plan.isPublic,
+        allowSelfUpgrade: plan.allowSelfUpgrade,
+        allowSelfDowngrade: plan.allowSelfDowngrade,
+        requiresApproval: plan.requiresApproval,
+        stripePriceId: plan.stripePriceId,
+        stripeAnnualPriceId: plan.stripeAnnualPriceId,
         included: plan.included,
         overage: plan.overage,
         features: plan.features,
@@ -232,6 +278,14 @@ export async function seedPricingPlans(prisma: PrismaClient) {
         sortOrder: plan.sortOrder,
         isDefault: plan.isDefault,
         status: 'active',
+        // New billing system fields
+        planType: plan.planType,
+        isPublic: plan.isPublic,
+        allowSelfUpgrade: plan.allowSelfUpgrade,
+        allowSelfDowngrade: plan.allowSelfDowngrade,
+        requiresApproval: plan.requiresApproval,
+        stripePriceId: plan.stripePriceId,
+        stripeAnnualPriceId: plan.stripeAnnualPriceId,
         included: plan.included,
         overage: plan.overage,
         features: plan.features,

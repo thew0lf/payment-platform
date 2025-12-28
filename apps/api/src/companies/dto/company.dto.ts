@@ -41,9 +41,10 @@ function sanitizeString(value: string): string {
 }
 
 export class CreateCompanyDto {
+  @IsOptional()
   @IsString()
   @IsUUID('4', { message: 'clientId must be a valid UUID' })
-  clientId: string;
+  clientId?: string;
 
   @IsString()
   @MinLength(2)

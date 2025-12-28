@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
@@ -36,6 +36,174 @@ import {
 import { clientsApi, Client } from '@/lib/api/clients';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/auth-context';
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION MENU COMPONENT (Portal-based dropdown)
+// ═══════════════════════════════════════════════════════════════
+
+interface ActionMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  triggerRef: React.RefObject<HTMLButtonElement>;
+  children: React.ReactNode;
+}
+
+function ActionMenu({ isOpen, onClose, triggerRef, children }: ActionMenuProps) {
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right - 160 + window.scrollX, // 160 = menu width (w-40 = 10rem = 160px)
+      });
+    }
+  }, [isOpen, triggerRef]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // Don't close if clicking inside the menu or on the trigger
+      if (menuRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      onClose();
+    };
+
+    const handleScroll = () => onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    // Use mousedown for outside clicks, but the menu items use onClick which fires after
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('scroll', handleScroll, true);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('scroll', handleScroll, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose, triggerRef]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      className="fixed w-40 bg-card border border-border rounded-lg shadow-lg z-[9999] py-1"
+      style={{ top: position.top, left: position.left }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPANY TABLE ROW (with portal-based action menu)
+// ═══════════════════════════════════════════════════════════════
+
+interface CompanyTableRowProps {
+  company: Company;
+  isMenuOpen: boolean;
+  onMenuToggle: (companyId: string | null) => void;
+  onEdit: (company: Company) => void;
+  onDelete: (company: Company) => void;
+}
+
+function CompanyTableRow({ company, isMenuOpen, onMenuToggle, onEdit, onDelete }: CompanyTableRowProps) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const handleMenuToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMenuToggle(isMenuOpen ? null : company.id);
+  };
+
+  return (
+    <tr className="hover:bg-muted/50 transition-colors">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-lg font-bold text-white">
+            {company.name.charAt(0)}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">{company.name}</p>
+            <p className="text-xs text-muted-foreground">{company.code}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        {company.client && (
+          <div>
+            <p className="text-sm text-foreground">{company.client.name}</p>
+            <p className="text-xs text-muted-foreground">{company.client.code}</p>
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {company.domain && (
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Globe className="w-3 h-3" />
+            {company.domain}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <StatusBadge status={company.status} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {company._count?.customers || 0}
+          </span>
+          <span className="flex items-center gap-1">
+            <ShoppingCart className="w-3 h-3" />
+            {company._count?.orders || 0}
+          </span>
+          <span className="flex items-center gap-1">
+            <Package className="w-3 h-3" />
+            {company._count?.products || 0}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <button
+          ref={triggerRef}
+          onClick={handleMenuToggle}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <MoreVertical className="w-4 h-4" />
+        </button>
+        <ActionMenu
+          isOpen={isMenuOpen}
+          onClose={() => onMenuToggle(null)}
+          triggerRef={triggerRef}
+        >
+          <button
+            onClick={() => onEdit(company)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(company)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-muted transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </ActionMenu>
+      </td>
+    </tr>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -100,7 +268,8 @@ function CompanyFormModal({ company, clients, defaultClientId, userScopeType, us
       toast.error('Company name is required');
       return;
     }
-    if (!company && !clientId) {
+    // CLIENT-scoped users don't need to select a client - backend uses their clientId automatically
+    if (!company && !isClientScoped && !clientId) {
       toast.error('Please select a client');
       return;
     }
@@ -114,7 +283,9 @@ function CompanyFormModal({ company, clients, defaultClientId, userScopeType, us
           status,
         }
       : {
-          clientId,
+          // For CLIENT-scoped users, omit clientId - backend will use user.clientId
+          // For ORGANIZATION users, include the selected clientId
+          clientId: isClientScoped ? undefined : clientId,
           name: name.trim(),
           domain: domain.trim() || undefined,
           timezone,
@@ -357,8 +528,12 @@ export default function CompaniesPage() {
   // Dropdown menu
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // Fetch clients for dropdown
+  // Fetch clients for dropdown (only for organization-level users)
+  // CLIENT-scoped users don't need this since they're already scoped to a single client
+  const isOrgUser = user?.scopeType === 'ORGANIZATION';
   useEffect(() => {
+    if (!isOrgUser) return; // Skip for non-org users
+
     const fetchClients = async () => {
       try {
         const result = await clientsApi.list({ limit: 100 });
@@ -368,7 +543,7 @@ export default function CompaniesPage() {
       }
     };
     fetchClients();
-  }, []);
+  }, [isOrgUser]);
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -671,7 +846,7 @@ export default function CompaniesPage() {
       {/* Desktop Table */}
       {companies.length > 0 && (
         <>
-          <div className="hidden md:block bg-card/50 border border-border rounded-xl overflow-hidden mb-6">
+          <div className="hidden md:block bg-card/50 border border-border rounded-xl overflow-x-auto overflow-y-visible mb-6">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
@@ -697,85 +872,14 @@ export default function CompaniesPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-lg font-bold text-white">
-                          {company.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{company.name}</p>
-                          <p className="text-xs text-muted-foreground">{company.code}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {company.client && (
-                        <div>
-                          <p className="text-sm text-foreground">{company.client.name}</p>
-                          <p className="text-xs text-muted-foreground">{company.client.code}</p>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {company.domain && (
-                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Globe className="w-3 h-3" />
-                          {company.domain}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={company.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {company._count?.customers || 0}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <ShoppingCart className="w-3 h-3" />
-                          {company._count?.orders || 0}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Package className="w-3 h-3" />
-                          {company._count?.products || 0}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(openMenuId === company.id ? null : company.id);
-                          }}
-                          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        {openMenuId === company.id && (
-                          <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-10">
-                            <button
-                              onClick={() => handleEditCompany(company)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Pencil className="w-4 h-4" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCompany(company)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-muted transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                  <CompanyTableRow
+                    key={company.id}
+                    company={company}
+                    isMenuOpen={openMenuId === company.id}
+                    onMenuToggle={setOpenMenuId}
+                    onEdit={handleEditCompany}
+                    onDelete={handleDeleteCompany}
+                  />
                 ))}
               </tbody>
             </table>

@@ -1,0 +1,957 @@
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ImportJobStatus, ImportJobPhase, Prisma } from '@prisma/client';
+import {
+  ImportJobConfig,
+  ImportJobData,
+  ImportJobProgress,
+  PRODUCT_IMPORT_QUEUE,
+  ExternalProduct,
+  FieldMapping,
+  StorageUsageStats,
+  StorageBreakdown,
+  StorageCategory,
+  ImportHistoryStats,
+  ImportCostEstimate,
+  CostBreakdown,
+} from '../types/product-import.types';
+import {
+  CreateImportJobDto,
+  PreviewImportDto,
+  CreateFieldMappingProfileDto,
+  UpdateFieldMappingProfileDto,
+  ListImportJobsQueryDto,
+  PreviewProductDto,
+  PreviewImportResponseDto,
+  FieldMappingDto,
+} from '../dto/product-import.dto';
+import { RoastifyService } from '../../integrations/services/providers/roastify.service';
+import { FieldMappingService } from './field-mapping.service';
+import { ImportEventService } from './import-event.service';
+
+@Injectable()
+export class ProductImportService {
+  private readonly logger = new Logger(ProductImportService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(PRODUCT_IMPORT_QUEUE) private readonly importQueue: Queue<ImportJobData>,
+    private readonly roastifyService: RoastifyService,
+    private readonly fieldMappingService: FieldMappingService,
+    private readonly importEventService: ImportEventService,
+  ) {}
+
+  // ═══════════════════════════════════════════════════════════════
+  // IMPORT JOB OPERATIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Create a new import job and queue it for processing
+   */
+  async createImportJob(
+    dto: CreateImportJobDto,
+    companyId: string,
+    clientId: string,
+    userId: string,
+  ): Promise<ImportJobProgress> {
+    // Validate integration exists and belongs to the company
+    const integration = await this.prisma.clientIntegration.findFirst({
+      where: {
+        id: dto.integrationId,
+        clientId,
+      },
+    });
+
+    if (!integration) {
+      throw new NotFoundException(
+        'Integration not found. Please verify the integration ID is correct and belongs to your account.',
+      );
+    }
+
+    // Get provider from integration
+    const provider = integration.provider;
+
+    // Fetch products to get total count
+    const products = await this.fetchProductsFromProvider(integration);
+    const selectedProducts = dto.selectedProductIds?.length
+      ? products.filter((p) => dto.selectedProductIds!.includes(p.id))
+      : products;
+
+    // Calculate total images
+    const totalImages = dto.importImages
+      ? selectedProducts.reduce((sum, p) => sum + (p.images?.length || 0), 0)
+      : 0;
+
+    // Create import job config
+    const config: ImportJobConfig = {
+      provider,
+      integrationId: dto.integrationId,
+      selectedProductIds: dto.selectedProductIds,
+      importImages: dto.importImages ?? true,
+      generateThumbnails: dto.generateThumbnails ?? true,
+      skipDuplicates: dto.skipDuplicates ?? true,
+      updateExisting: dto.updateExisting ?? false,
+      fieldMappingProfileId: dto.fieldMappingProfileId,
+      customMappings: dto.customMappings,
+    };
+
+    // Create the job in the database
+    const job = await this.prisma.productImportJob.create({
+      data: {
+        companyId,
+        clientId,
+        integrationId: dto.integrationId,
+        provider,
+        status: ImportJobStatus.PENDING,
+        phase: ImportJobPhase.QUEUED,
+        totalProducts: selectedProducts.length,
+        totalImages,
+        config: config as unknown as Prisma.InputJsonValue,
+        createdBy: userId,
+      },
+    });
+
+    // Add to Bull queue
+    const jobData: ImportJobData = {
+      jobId: job.id,
+      companyId,
+      clientId,
+      integrationId: dto.integrationId,
+      provider,
+      config,
+      createdBy: userId,
+    };
+
+    await this.importQueue.add('process-import', jobData, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+      removeOnComplete: 100,
+      removeOnFail: 50,
+    });
+
+    this.logger.log(`Created import job ${job.id} for ${selectedProducts.length} products`);
+
+    return this.mapToProgress(job);
+  }
+
+  /**
+   * Get import job by ID
+   */
+  async getImportJob(jobId: string, companyId: string): Promise<ImportJobProgress> {
+    const job = await this.prisma.productImportJob.findFirst({
+      where: { id: jobId, companyId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(
+        'Import job not found. The job may have been deleted or you may not have access to it.',
+      );
+    }
+
+    return this.mapToProgress(job);
+  }
+
+  /**
+   * List import jobs with filters
+   */
+  async listImportJobs(
+    companyId: string,
+    query: ListImportJobsQueryDto,
+  ): Promise<{ items: ImportJobProgress[]; total: number; limit: number; offset: number }> {
+    const limit = parseInt(query.limit || '20', 10);
+    const offset = parseInt(query.offset || '0', 10);
+
+    const where: Prisma.ProductImportJobWhereInput = {
+      companyId,
+      ...(query.status && { status: query.status }),
+      ...(query.provider && { provider: query.provider }),
+    };
+
+    const [jobs, total] = await Promise.all([
+      this.prisma.productImportJob.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.productImportJob.count({ where }),
+    ]);
+
+    return {
+      items: jobs.map((job) => this.mapToProgress(job)),
+      total,
+      limit,
+      offset,
+    };
+  }
+
+  /**
+   * Cancel a running import job
+   */
+  async cancelImportJob(jobId: string, companyId: string): Promise<ImportJobProgress> {
+    const job = await this.prisma.productImportJob.findFirst({
+      where: { id: jobId, companyId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(
+        'Import job not found. Please check the job ID and try again.',
+      );
+    }
+
+    if (job.status === ImportJobStatus.COMPLETED || job.status === ImportJobStatus.CANCELLED) {
+      throw new BadRequestException(
+        'This import job cannot be cancelled because it has already completed or been cancelled.',
+      );
+    }
+
+    // Update job status
+    const updated = await this.prisma.productImportJob.update({
+      where: { id: jobId },
+      data: {
+        status: ImportJobStatus.CANCELLED,
+        completedAt: new Date(),
+      },
+    });
+
+    // Remove from queue if still pending
+    const bullJob = await this.importQueue.getJob(jobId);
+    if (bullJob) {
+      await bullJob.remove();
+    }
+
+    this.logger.log(`Cancelled import job ${jobId}`);
+
+    const progress = this.mapToProgress(updated);
+
+    // Emit job cancelled event for SSE subscribers
+    this.importEventService.emitJobCancelled(jobId, companyId, progress);
+
+    return progress;
+  }
+
+  /**
+   * Retry a failed import job
+   */
+  async retryImportJob(
+    jobId: string,
+    companyId: string,
+    userId: string,
+  ): Promise<ImportJobProgress> {
+    const job = await this.prisma.productImportJob.findFirst({
+      where: { id: jobId, companyId },
+    });
+
+    if (!job) {
+      throw new NotFoundException(
+        'Import job not found. The job may have expired or been removed.',
+      );
+    }
+
+    if (job.status !== ImportJobStatus.FAILED) {
+      throw new BadRequestException(
+        `Only failed import jobs can be retried. This job has status: ${job.status}`,
+      );
+    }
+
+    // Reset job status
+    const updated = await this.prisma.productImportJob.update({
+      where: { id: jobId },
+      data: {
+        status: ImportJobStatus.PENDING,
+        phase: ImportJobPhase.QUEUED,
+        processedProducts: 0,
+        processedImages: 0,
+        importedCount: 0,
+        skippedCount: 0,
+        errorCount: 0,
+        progress: 0,
+        currentItem: null,
+        estimatedSecondsRemaining: null,
+        errorLog: null,
+        importedIds: [],
+        startedAt: null,
+        completedAt: null,
+      },
+    });
+
+    // Re-queue the job
+    const config = job.config as unknown as ImportJobConfig;
+    const jobData: ImportJobData = {
+      jobId: job.id,
+      companyId,
+      clientId: job.clientId,
+      integrationId: job.integrationId,
+      provider: job.provider,
+      config,
+      createdBy: userId,
+    };
+
+    await this.importQueue.add('process-import', jobData, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    });
+
+    this.logger.log(`Retrying import job ${jobId}`);
+
+    return this.mapToProgress(updated);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PREVIEW OPERATIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Preview products before import with field mapping
+   */
+  async previewImport(
+    dto: PreviewImportDto,
+    companyId: string,
+    clientId: string,
+  ): Promise<PreviewImportResponseDto> {
+    // Get integration
+    const integration = await this.prisma.clientIntegration.findFirst({
+      where: {
+        id: dto.integrationId,
+        clientId,
+      },
+    });
+
+    if (!integration) {
+      throw new NotFoundException(
+        'Integration not found. Please select a valid integration from Settings > Integrations.',
+      );
+    }
+
+    // Fetch products from provider
+    const products = await this.fetchProductsFromProvider(integration);
+
+    // Get field mappings
+    const mappings = await this.getFieldMappings(
+      integration.provider,
+      companyId,
+      dto.fieldMappingProfileId,
+      dto.customMappings,
+    );
+
+    // Get existing products for duplicate detection
+    const existingSkus = await this.prisma.product.findMany({
+      where: { companyId },
+      select: { sku: true, externalId: true, importSource: true },
+    });
+
+    const existingSkuSet = new Set(existingSkus.map((p) => p.sku));
+    const existingExternalIds = new Set(
+      existingSkus
+        .filter((p) => p.importSource === integration.provider)
+        .map((p) => p.externalId),
+    );
+
+    // Map products for preview
+    const previewProducts: PreviewProductDto[] = products.map((product) => {
+      const isDuplicate =
+        existingExternalIds.has(product.id) || existingSkuSet.has(product.sku);
+      const willImport = !isDuplicate;
+
+      return {
+        externalId: product.id,
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        imageCount: product.images?.length || 0,
+        variantCount: product.variants?.length || 0,
+        willImport,
+        skipReason: isDuplicate ? 'Product already exists in your catalog (matching SKU or product ID)' : undefined,
+        mappedData: this.fieldMappingService.applyMappings(product, mappings).data,
+      };
+    });
+
+    const willImport = previewProducts.filter((p) => p.willImport).length;
+    const willSkip = previewProducts.filter((p) => !p.willImport).length;
+    const estimatedImages = previewProducts
+      .filter((p) => p.willImport)
+      .reduce((sum, p) => sum + p.imageCount, 0);
+
+    // Get default mappings and convert to DTO format (simple transforms only)
+    const defaultMappings = this.getDefaultMappings(integration.provider);
+    const suggestedMappings: FieldMappingDto[] = defaultMappings.map((m) => ({
+      sourceField: m.sourceField,
+      targetField: m.targetField,
+      transform: typeof m.transform === 'string' ? m.transform : undefined,
+    }));
+
+    return {
+      provider: integration.provider,
+      totalProducts: products.length,
+      willImport,
+      willSkip,
+      estimatedImages,
+      products: previewProducts,
+      suggestedMappings,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FIELD MAPPING PROFILE OPERATIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Create a new field mapping profile
+   */
+  async createFieldMappingProfile(
+    dto: CreateFieldMappingProfileDto,
+    companyId: string,
+    userId: string,
+  ) {
+    // If setting as default, unset existing defaults
+    if (dto.isDefault) {
+      await this.prisma.fieldMappingProfile.updateMany({
+        where: { companyId, provider: dto.provider, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
+    return this.prisma.fieldMappingProfile.create({
+      data: {
+        companyId,
+        provider: dto.provider,
+        name: dto.name,
+        mappings: dto.mappings as unknown as Prisma.InputJsonValue,
+        isDefault: dto.isDefault ?? false,
+        createdBy: userId,
+      },
+    });
+  }
+
+  /**
+   * Update a field mapping profile
+   */
+  async updateFieldMappingProfile(
+    profileId: string,
+    dto: UpdateFieldMappingProfileDto,
+    companyId: string,
+  ) {
+    const profile = await this.prisma.fieldMappingProfile.findFirst({
+      where: { id: profileId, companyId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(
+        'Field mapping profile not found. It may have been deleted or belongs to a different company.',
+      );
+    }
+
+    // If setting as default, unset existing defaults
+    if (dto.isDefault) {
+      await this.prisma.fieldMappingProfile.updateMany({
+        where: { companyId, provider: profile.provider, isDefault: true, id: { not: profileId } },
+        data: { isDefault: false },
+      });
+    }
+
+    return this.prisma.fieldMappingProfile.update({
+      where: { id: profileId },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.mappings && { mappings: dto.mappings as unknown as Prisma.InputJsonValue }),
+        ...(dto.isDefault !== undefined && { isDefault: dto.isDefault }),
+      },
+    });
+  }
+
+  /**
+   * Delete a field mapping profile
+   */
+  async deleteFieldMappingProfile(profileId: string, companyId: string): Promise<void> {
+    const profile = await this.prisma.fieldMappingProfile.findFirst({
+      where: { id: profileId, companyId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(
+        'Field mapping profile not found. Please verify the profile ID and try again.',
+      );
+    }
+
+    await this.prisma.fieldMappingProfile.delete({
+      where: { id: profileId },
+    });
+  }
+
+  /**
+   * List field mapping profiles
+   */
+  async listFieldMappingProfiles(companyId: string, provider?: string) {
+    return this.prisma.fieldMappingProfile.findMany({
+      where: {
+        companyId,
+        ...(provider && { provider }),
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PROVIDER OPERATIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Fetch products from a provider integration
+   */
+  private async fetchProductsFromProvider(
+    integration: {
+      provider: string;
+      credentials: Prisma.JsonValue | null;
+    },
+  ): Promise<ExternalProduct[]> {
+    const credentials = integration.credentials as Record<string, string> | null;
+
+    if (!credentials) {
+      throw new BadRequestException(
+        'Integration credentials not configured. Please add your credentials in Settings > Integrations before importing products.',
+      );
+    }
+
+    switch (integration.provider) {
+      case 'ROASTIFY':
+        const roastifyProducts = await this.roastifyService.importAllProducts({
+          apiKey: credentials.apiKey,
+        });
+        return roastifyProducts.map((p) => ({
+          id: p.id,
+          sku: p.sku,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          currency: p.currency,
+          images: p.images.map((img) => ({
+            id: img.id,
+            url: img.url,
+            altText: img.altText,
+            position: img.position,
+          })),
+          variants: p.variants.map((v) => ({
+            id: v.id,
+            sku: v.sku,
+            name: v.name,
+            price: v.price,
+            inventory: v.inventory,
+            options: v.grindType ? { grindType: v.grindType } : undefined,
+          })),
+          metadata: {
+            productType: p.productType,
+            roastLevel: p.roastLevel,
+            origin: p.origin,
+            flavorNotes: p.flavorNotes,
+          },
+        }));
+
+      default:
+        throw new BadRequestException(
+          `Provider "${integration.provider}" not supported for product import. Currently supported: Roastify. More providers coming soon!`,
+        );
+    }
+  }
+
+  /**
+   * Get field mappings for import
+   */
+  private async getFieldMappings(
+    provider: string,
+    companyId: string,
+    profileId?: string,
+    customMappings?: FieldMapping[],
+  ): Promise<FieldMapping[]> {
+    // Use custom mappings if provided
+    if (customMappings?.length) {
+      return customMappings;
+    }
+
+    // Try to get profile mappings
+    if (profileId) {
+      const profile = await this.prisma.fieldMappingProfile.findFirst({
+        where: { id: profileId, companyId },
+      });
+      if (profile) {
+        return profile.mappings as unknown as FieldMapping[];
+      }
+    }
+
+    // Try to get default profile
+    const defaultProfile = await this.prisma.fieldMappingProfile.findFirst({
+      where: { companyId, provider, isDefault: true },
+    });
+    if (defaultProfile) {
+      return defaultProfile.mappings as unknown as FieldMapping[];
+    }
+
+    // Return default mappings for provider
+    return this.getDefaultMappings(provider);
+  }
+
+  /**
+   * Get default field mappings for a provider
+   */
+  private getDefaultMappings(provider: string): FieldMapping[] {
+    // Default mappings that work for most providers
+    return [
+      { sourceField: 'name', targetField: 'name' },
+      { sourceField: 'description', targetField: 'description' },
+      { sourceField: 'sku', targetField: 'sku' },
+      { sourceField: 'price', targetField: 'basePrice', transform: 'centsToDecimal' },
+      { sourceField: 'currency', targetField: 'currency' },
+    ];
+  }
+
+  // Note: Field mapping application is now handled by FieldMappingService
+  // which provides enhanced functionality including validation, conditional
+  // mappings, and complex transforms (Phase 2 enhancement).
+
+  /**
+   * Map database job to progress response
+   */
+  private mapToProgress(job: {
+    id: string;
+    status: ImportJobStatus;
+    phase: ImportJobPhase;
+    progress: number;
+    totalProducts: number;
+    processedProducts: number;
+    totalImages: number;
+    processedImages: number;
+    importedCount: number;
+    skippedCount: number;
+    errorCount: number;
+    currentItem: string | null;
+    estimatedSecondsRemaining: number | null;
+    startedAt: Date | null;
+    completedAt: Date | null;
+  }): ImportJobProgress {
+    return {
+      id: job.id,
+      status: job.status,
+      phase: job.phase,
+      progress: job.progress,
+      totalProducts: job.totalProducts,
+      processedProducts: job.processedProducts,
+      totalImages: job.totalImages,
+      processedImages: job.processedImages,
+      importedCount: job.importedCount,
+      skippedCount: job.skippedCount,
+      errorCount: job.errorCount,
+      currentItem: job.currentItem ?? undefined,
+      estimatedSecondsRemaining: job.estimatedSecondsRemaining ?? undefined,
+      startedAt: job.startedAt ?? undefined,
+      completedAt: job.completedAt ?? undefined,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // STORAGE & BILLING OPERATIONS (Phase 6)
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get storage usage statistics for a company
+   */
+  async getStorageUsage(companyId: string): Promise<StorageUsageStats> {
+    // Get all product images for the company
+    const images = await this.prisma.productImage.findMany({
+      where: {
+        companyId,
+      },
+      select: {
+        id: true,
+        cdnUrl: true,
+        s3Key: true,
+        size: true,
+        thumbnailSmall: true,
+        thumbnailMedium: true,
+        thumbnailLarge: true,
+        thumbnailBytes: true,
+      },
+    });
+
+    // Calculate storage breakdown
+    const breakdown = this.calculateStorageBreakdown(images);
+
+    // Calculate totals
+    const totalStorageBytes =
+      breakdown.originals.bytes +
+      breakdown.thumbnailsSmall.bytes +
+      breakdown.thumbnailsMedium.bytes +
+      breakdown.thumbnailsLarge.bytes;
+
+    const totalImages = breakdown.originals.count;
+    const totalThumbnails =
+      breakdown.thumbnailsSmall.count +
+      breakdown.thumbnailsMedium.count +
+      breakdown.thumbnailsLarge.count;
+
+    return {
+      companyId,
+      totalStorageBytes,
+      totalStorageFormatted: this.formatBytes(totalStorageBytes),
+      totalImages,
+      totalThumbnails,
+      breakdown,
+      lastUpdated: new Date(),
+    };
+  }
+
+  /**
+   * Get import history statistics for a company
+   */
+  async getImportHistory(companyId: string): Promise<ImportHistoryStats> {
+    // Get job counts by status
+    const [
+      totalJobs,
+      successfulJobs,
+      failedJobs,
+      cancelledJobs,
+    ] = await Promise.all([
+      this.prisma.productImportJob.count({ where: { companyId } }),
+      this.prisma.productImportJob.count({
+        where: { companyId, status: ImportJobStatus.COMPLETED },
+      }),
+      this.prisma.productImportJob.count({
+        where: { companyId, status: ImportJobStatus.FAILED },
+      }),
+      this.prisma.productImportJob.count({
+        where: { companyId, status: ImportJobStatus.CANCELLED },
+      }),
+    ]);
+
+    // Get aggregated stats for completed jobs
+    const stats = await this.prisma.productImportJob.aggregate({
+      where: { companyId, status: ImportJobStatus.COMPLETED },
+      _sum: {
+        importedCount: true,
+        processedImages: true,
+      },
+    });
+
+    // Calculate average job duration for completed jobs
+    const completedJobs = await this.prisma.productImportJob.findMany({
+      where: {
+        companyId,
+        status: ImportJobStatus.COMPLETED,
+        startedAt: { not: null },
+        completedAt: { not: null },
+      },
+      select: {
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+
+    let avgJobDurationSeconds = 0;
+    if (completedJobs.length > 0) {
+      const totalDuration = completedJobs.reduce((sum, job) => {
+        if (job.startedAt && job.completedAt) {
+          return sum + (job.completedAt.getTime() - job.startedAt.getTime());
+        }
+        return sum;
+      }, 0);
+      avgJobDurationSeconds = Math.round(totalDuration / completedJobs.length / 1000);
+    }
+
+    // Get jobs by provider
+    const providerCounts = await this.prisma.productImportJob.groupBy({
+      by: ['provider'],
+      where: { companyId },
+      _count: { id: true },
+    });
+    const jobsByProvider: Record<string, number> = {};
+    providerCounts.forEach((p) => {
+      jobsByProvider[p.provider] = p._count.id;
+    });
+
+    // Get jobs over time (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentJobs = await this.prisma.productImportJob.findMany({
+      where: {
+        companyId,
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    // Group by date
+    const jobsByDate = new Map<string, number>();
+    recentJobs.forEach((job) => {
+      const dateStr = job.createdAt.toISOString().split('T')[0];
+      jobsByDate.set(dateStr, (jobsByDate.get(dateStr) || 0) + 1);
+    });
+
+    const jobsOverTime = Array.from(jobsByDate.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      companyId,
+      totalJobs,
+      successfulJobs,
+      failedJobs,
+      cancelledJobs,
+      totalProductsImported: stats._sum.importedCount || 0,
+      totalImagesImported: stats._sum.processedImages || 0,
+      avgJobDurationSeconds,
+      jobsByProvider,
+      jobsOverTime,
+    };
+  }
+
+  /**
+   * Estimate costs for an import job
+   */
+  async estimateImportCost(
+    companyId: string,
+    productCount: number,
+    imageCount: number,
+    generateThumbnails: boolean,
+  ): Promise<ImportCostEstimate> {
+    // Default pricing (cents)
+    const pricing: CostBreakdown = {
+      storagePerGbCents: 23, // $0.023/GB/month (S3 standard)
+      imageProcessingCents: 1, // $0.01 per image processed
+      thumbnailGenerationCents: 2, // $0.02 per thumbnail set
+      monthlyStorageCents: 0, // Calculated below
+      processingCostCents: 0, // Calculated below
+    };
+
+    // Estimate storage (average 500KB per image, 50KB per thumbnail)
+    const avgImageBytes = 500 * 1024;
+    const avgThumbnailBytes = 50 * 1024;
+    const thumbnailCount = generateThumbnails ? imageCount * 3 : 0;
+
+    const estimatedStorageBytes =
+      imageCount * avgImageBytes + thumbnailCount * avgThumbnailBytes;
+
+    // Calculate costs
+    const storageGb = estimatedStorageBytes / (1024 * 1024 * 1024);
+    pricing.monthlyStorageCents = Math.ceil(storageGb * pricing.storagePerGbCents);
+    pricing.processingCostCents =
+      imageCount * pricing.imageProcessingCents +
+      (generateThumbnails ? imageCount * pricing.thumbnailGenerationCents : 0);
+
+    const totalCostCents = pricing.monthlyStorageCents + pricing.processingCostCents;
+
+    return {
+      productCount,
+      imageCount,
+      estimatedStorageBytes,
+      estimatedStorageFormatted: this.formatBytes(estimatedStorageBytes),
+      estimatedThumbnails: thumbnailCount,
+      costs: pricing,
+      totalCostCents,
+      currency: 'USD',
+    };
+  }
+
+  /**
+   * Calculate storage breakdown from product images
+   */
+  private calculateStorageBreakdown(
+    images: {
+      id: string;
+      cdnUrl: string | null;
+      s3Key: string | null;
+      size: number | null;
+      thumbnailSmall: string | null;
+      thumbnailMedium: string | null;
+      thumbnailLarge: string | null;
+      thumbnailBytes: number | null;
+    }[],
+  ): StorageBreakdown {
+    // Estimate sizes if not stored (average estimates)
+    const avgOriginalSize = 500 * 1024; // 500KB
+    const avgSmallThumb = 15 * 1024; // 15KB
+    const avgMediumThumb = 40 * 1024; // 40KB
+    const avgLargeThumb = 80 * 1024; // 80KB
+
+    let originalsCount = 0;
+    let originalsBytes = 0;
+    let smallCount = 0;
+    let smallBytes = 0;
+    let mediumCount = 0;
+    let mediumBytes = 0;
+    let largeCount = 0;
+    let largeBytes = 0;
+
+    for (const img of images) {
+      // Original image
+      if (img.s3Key || img.cdnUrl) {
+        originalsCount++;
+        originalsBytes += img.size || avgOriginalSize;
+      }
+
+      // Thumbnails - use actual thumbnailBytes if available, divide equally among generated thumbnails
+      const thumbCount = (img.thumbnailSmall ? 1 : 0) + (img.thumbnailMedium ? 1 : 0) + (img.thumbnailLarge ? 1 : 0);
+      const actualThumbBytes = img.thumbnailBytes && thumbCount > 0 ? img.thumbnailBytes / thumbCount : 0;
+
+      if (img.thumbnailSmall) {
+        smallCount++;
+        smallBytes += actualThumbBytes > 0 ? actualThumbBytes : avgSmallThumb;
+      }
+      if (img.thumbnailMedium) {
+        mediumCount++;
+        mediumBytes += actualThumbBytes > 0 ? actualThumbBytes : avgMediumThumb;
+      }
+      if (img.thumbnailLarge) {
+        largeCount++;
+        largeBytes += actualThumbBytes > 0 ? actualThumbBytes : avgLargeThumb;
+      }
+    }
+
+    return {
+      originals: {
+        count: originalsCount,
+        bytes: originalsBytes,
+        formatted: this.formatBytes(originalsBytes),
+      },
+      thumbnailsSmall: {
+        count: smallCount,
+        bytes: smallBytes,
+        formatted: this.formatBytes(smallBytes),
+      },
+      thumbnailsMedium: {
+        count: mediumCount,
+        bytes: mediumBytes,
+        formatted: this.formatBytes(mediumBytes),
+      },
+      thumbnailsLarge: {
+        count: largeCount,
+        bytes: largeBytes,
+        formatted: this.formatBytes(largeBytes),
+      },
+    };
+  }
+
+  /**
+   * Format bytes to human-readable string
+   */
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const size = bytes / Math.pow(k, i);
+
+    return `${size.toFixed(i > 0 ? 2 : 0)} ${units[i]}`;
+  }
+}

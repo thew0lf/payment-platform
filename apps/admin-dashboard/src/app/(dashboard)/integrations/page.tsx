@@ -44,6 +44,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
   [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
+  [IntegrationCategory.FULFILLMENT]: 'Fulfillment',
 };
 
 const statusOptions = [

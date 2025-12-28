@@ -1,0 +1,362 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Main navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "avnz.io" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e10]: avnz.io
+        - button "Collapse sidebar" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+      - button "A All Clients Platform view" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: A
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: All Clients
+          - paragraph [ref=e20]: Platform view
+        - img [ref=e21]
+      - navigation "Sidebar navigation" [ref=e23]:
+        - group "Insights" [ref=e24]:
+          - button "Insights" [expanded] [ref=e25] [cursor=pointer]:
+            - generic [ref=e26]:
+              - img [ref=e27]
+              - generic [ref=e29]: Insights
+            - img [ref=e31]
+          - list [ref=e33]:
+            - generic [ref=e34]:
+              - listitem [ref=e35] [cursor=pointer]:
+                - generic [ref=e36]:
+                  - img [ref=e37]
+                  - generic [ref=e42]: Dashboard
+              - listitem [ref=e43] [cursor=pointer]:
+                - generic [ref=e44]:
+                  - img [ref=e45]
+                  - generic [ref=e48]: Revenue
+              - listitem [ref=e49] [cursor=pointer]:
+                - generic [ref=e50]:
+                  - img [ref=e51]
+                  - generic [ref=e55]: Orders
+              - listitem [ref=e56] [cursor=pointer]:
+                - generic [ref=e57]:
+                  - img [ref=e58]
+                  - generic [ref=e63]: Customers
+              - listitem [ref=e64] [cursor=pointer]:
+                - generic [ref=e65]:
+                  - img [ref=e66]
+                  - generic [ref=e70]: Funnels
+              - listitem [ref=e71] [cursor=pointer]:
+                - generic [ref=e72]:
+                  - img [ref=e73]
+                  - generic [ref=e78]: Subscriptions
+        - group "Daily Operations" [ref=e79]:
+          - button "Daily Operations" [expanded] [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]:
+              - img [ref=e82]
+              - generic [ref=e85]: Daily Operations
+            - img [ref=e87]
+          - list [ref=e89]:
+            - generic [ref=e90]:
+              - listitem [ref=e91] [cursor=pointer]:
+                - generic [ref=e92]:
+                  - img [ref=e93]
+                  - generic [ref=e97]: Orders
+              - listitem [ref=e98] [cursor=pointer]:
+                - generic [ref=e99]:
+                  - img [ref=e100]
+                  - generic [ref=e105]: Subscriptions
+              - listitem [ref=e106] [cursor=pointer]:
+                - generic [ref=e107]:
+                  - img [ref=e108]
+                  - generic [ref=e111]: Transactions
+              - listitem [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]:
+                  - img [ref=e114]
+                  - generic [ref=e119]: Customers
+              - listitem [ref=e120] [cursor=pointer]:
+                - generic [ref=e121]:
+                  - img [ref=e122]
+                  - generic [ref=e125]: Refunds
+        - group "Catalog" [ref=e126]:
+          - button "Catalog" [ref=e127] [cursor=pointer]:
+            - generic [ref=e128]:
+              - img [ref=e129]
+              - generic [ref=e133]: Catalog
+            - img [ref=e135]
+          - generic [ref=e137]:
+            - listitem [ref=e138] [cursor=pointer]:
+              - generic [ref=e139]:
+                - img [ref=e140]
+                - generic [ref=e143]: Products
+            - listitem [ref=e144] [cursor=pointer]:
+              - generic [ref=e145]:
+                - img [ref=e146]
+                - generic [ref=e151]: Subscription Plans
+            - listitem [ref=e152] [cursor=pointer]:
+              - generic [ref=e153]:
+                - img [ref=e154]
+                - generic [ref=e159]: Categories
+            - listitem [ref=e160] [cursor=pointer]:
+              - generic [ref=e161]:
+                - img [ref=e162]
+                - generic [ref=e165]: Tags
+            - listitem [ref=e166] [cursor=pointer]:
+              - generic [ref=e167]:
+                - img [ref=e168]
+                - generic [ref=e172]: Collections
+            - listitem [ref=e173] [cursor=pointer]:
+              - generic [ref=e174]:
+                - img [ref=e175]
+                - generic [ref=e177]: Reviews
+        - group "Marketing" [ref=e178]:
+          - button "Marketing" [ref=e179] [cursor=pointer]:
+            - generic [ref=e180]:
+              - img [ref=e181]
+              - generic [ref=e184]: Marketing
+            - img [ref=e186]
+          - generic [ref=e188]:
+            - listitem [ref=e189] [cursor=pointer]:
+              - generic [ref=e190]:
+                - img [ref=e191]
+                - generic [ref=e195]: Funnels
+            - listitem [ref=e196] [cursor=pointer]:
+              - generic [ref=e197]:
+                - img [ref=e198]
+                - generic [ref=e201]: Leads
+            - listitem [ref=e202] [cursor=pointer]:
+              - generic [ref=e203]:
+                - img [ref=e204]
+                - generic [ref=e207]: Landing Pages
+        - group "Momentum Intelligence" [ref=e208]:
+          - button "Momentum Intelligence" [ref=e209] [cursor=pointer]:
+            - generic [ref=e210]:
+              - img [ref=e211]
+              - generic [ref=e214]: Momentum Intelligence
+            - img [ref=e216]
+          - generic [ref=e218]:
+            - listitem [ref=e219] [cursor=pointer]:
+              - generic [ref=e220]:
+                - img [ref=e221]
+                - generic [ref=e223]: Churn Risk
+            - listitem [ref=e224] [cursor=pointer]:
+              - generic [ref=e225]:
+                - img [ref=e226]
+                - generic [ref=e230]: Save Flows
+            - listitem [ref=e231] [cursor=pointer]:
+              - generic [ref=e232]:
+                - img [ref=e233]
+                - generic [ref=e235]: Behavioral Triggers
+            - listitem [ref=e236] [cursor=pointer]:
+              - generic [ref=e237]:
+                - img [ref=e238]
+                - generic [ref=e241]: Returns (RMA)
+        - group "CS AI" [ref=e242]:
+          - button "CS AI" [ref=e243] [cursor=pointer]:
+            - generic [ref=e244]:
+              - img [ref=e245]
+              - generic [ref=e248]: CS AI
+            - img [ref=e250]
+          - generic [ref=e252]:
+            - listitem [ref=e253] [cursor=pointer]:
+              - generic [ref=e254]:
+                - img [ref=e255]
+                - generic [ref=e257]: Dashboard
+            - listitem [ref=e258] [cursor=pointer]:
+              - generic [ref=e259]:
+                - img [ref=e260]
+                - generic [ref=e262]: Conversations
+            - listitem [ref=e263] [cursor=pointer]:
+              - generic [ref=e264]:
+                - img [ref=e265]
+                - generic [ref=e267]: Voice Calls
+            - listitem [ref=e268] [cursor=pointer]:
+              - generic [ref=e269]:
+                - img [ref=e270]
+                - generic [ref=e273]: Analytics
+        - group "Fulfillment" [ref=e274]:
+          - button "Fulfillment" [ref=e275] [cursor=pointer]:
+            - generic [ref=e276]:
+              - img [ref=e277]
+              - generic [ref=e282]: Fulfillment
+            - img [ref=e284]
+          - listitem [ref=e287] [cursor=pointer]:
+            - generic [ref=e288]:
+              - img [ref=e289]
+              - generic [ref=e294]: Shipments
+        - group "Organization" [ref=e295]:
+          - button "Organization" [ref=e296] [cursor=pointer]:
+            - generic [ref=e297]:
+              - img [ref=e298]
+              - generic [ref=e301]: Organization
+            - img [ref=e303]
+          - generic [ref=e305]:
+            - listitem [ref=e306] [cursor=pointer]:
+              - generic [ref=e307]:
+                - img [ref=e308]
+                - generic [ref=e311]: Clients
+            - listitem [ref=e312] [cursor=pointer]:
+              - generic [ref=e313]:
+                - img [ref=e314]
+                - generic [ref=e318]: Companies
+        - group "Vendors" [ref=e319]:
+          - button "Vendors" [ref=e320] [cursor=pointer]:
+            - generic [ref=e321]:
+              - img [ref=e322]
+              - generic [ref=e324]: Vendors
+            - img [ref=e326]
+          - generic [ref=e328]:
+            - listitem [ref=e329] [cursor=pointer]:
+              - generic [ref=e330]:
+                - img [ref=e331]
+                - generic [ref=e336]: All Vendors
+            - listitem [ref=e337] [cursor=pointer]:
+              - generic [ref=e338]:
+                - img [ref=e339]
+                - generic [ref=e343]: Companies
+            - listitem [ref=e344] [cursor=pointer]:
+              - generic [ref=e345]:
+                - img [ref=e346]
+                - generic [ref=e350]: Products
+            - listitem [ref=e351] [cursor=pointer]:
+              - generic [ref=e352]:
+                - img [ref=e353]
+                - generic [ref=e356]: Connections
+        - group "Development" [ref=e357]:
+          - button "Development" [ref=e358] [cursor=pointer]:
+            - generic [ref=e359]:
+              - img [ref=e360]
+              - generic [ref=e364]: Development
+            - img [ref=e366]
+          - generic [ref=e368]:
+            - listitem [ref=e369] [cursor=pointer]:
+              - generic [ref=e370]:
+                - img [ref=e371]
+                - generic [ref=e375]: Feature Pipeline
+            - listitem [ref=e376] [cursor=pointer]:
+              - generic [ref=e377]:
+                - img [ref=e378]
+                - generic [ref=e382]: Code Review
+            - listitem [ref=e383] [cursor=pointer]:
+              - generic [ref=e384]:
+                - img [ref=e385]
+                - generic [ref=e394]: QA Checklist
+        - group "Payment Routing" [ref=e395]:
+          - button "Payment Routing" [ref=e396] [cursor=pointer]:
+            - generic [ref=e397]:
+              - img [ref=e398]
+              - generic [ref=e400]: Payment Routing
+            - img [ref=e402]
+          - generic [ref=e404]:
+            - listitem [ref=e405] [cursor=pointer]:
+              - generic [ref=e406]:
+                - img [ref=e407]
+                - generic [ref=e411]: Routing Rules
+            - listitem [ref=e412] [cursor=pointer]:
+              - generic [ref=e413]:
+                - img [ref=e414]
+                - generic [ref=e416]: Account Pools
+        - group "Configuration" [ref=e417]:
+          - button "Configuration" [ref=e418] [cursor=pointer]:
+            - generic [ref=e419]:
+              - img [ref=e420]
+              - generic [ref=e422]: Configuration
+            - img [ref=e424]
+          - generic [ref=e426]:
+            - listitem [ref=e427] [cursor=pointer]:
+              - generic [ref=e428]:
+                - img [ref=e429]
+                - generic [ref=e431]: Merchant Accounts
+            - listitem [ref=e432] [cursor=pointer]:
+              - generic [ref=e433]:
+                - img [ref=e434]
+                - generic [ref=e436]: Integrations
+            - listitem [ref=e437] [cursor=pointer]:
+              - generic [ref=e438]:
+                - img [ref=e439]
+                - generic [ref=e443]: API Keys
+        - group "Settings" [ref=e444]:
+          - button "Settings" [ref=e445] [cursor=pointer]:
+            - generic [ref=e446]:
+              - img [ref=e447]
+              - generic [ref=e450]: Settings
+            - img [ref=e452]
+          - generic [ref=e454]:
+            - listitem [ref=e455] [cursor=pointer]:
+              - generic [ref=e456]:
+                - img [ref=e457]
+                - generic [ref=e458]: General
+            - listitem [ref=e459] [cursor=pointer]:
+              - generic [ref=e460]:
+                - img [ref=e461]
+                - generic [ref=e467]: Appearance
+            - listitem [ref=e468] [cursor=pointer]:
+              - generic [ref=e469]:
+                - img [ref=e470]
+                - generic [ref=e474]: Billing
+            - listitem [ref=e475] [cursor=pointer]:
+              - generic [ref=e476]:
+                - img [ref=e477]
+                - generic [ref=e480]: Security
+            - listitem [ref=e481] [cursor=pointer]:
+              - generic [ref=e482]:
+                - img [ref=e483]
+                - generic [ref=e485]: Roles & Permissions
+            - listitem [ref=e486] [cursor=pointer]:
+              - generic [ref=e487]:
+                - img [ref=e488]
+                - generic [ref=e500]: Team
+            - listitem [ref=e501] [cursor=pointer]:
+              - generic [ref=e502]:
+                - img [ref=e503]
+                - generic [ref=e505]: Founders Waitlist
+            - listitem [ref=e506] [cursor=pointer]:
+              - generic [ref=e507]:
+                - img [ref=e508]
+                - generic [ref=e511]: Audit Logs
+            - listitem [ref=e512] [cursor=pointer]:
+              - generic [ref=e513]:
+                - img [ref=e514]
+                - generic [ref=e517]: Trash
+      - generic [ref=e519]:
+        - generic [ref=e520]: Theme
+        - generic [ref=e521]:
+          - button "Light mode" [ref=e522] [cursor=pointer]:
+            - img [ref=e523]
+          - button "System preference" [ref=e529] [cursor=pointer]:
+            - img [ref=e530]
+          - button "Dark mode" [ref=e532] [cursor=pointer]:
+            - img [ref=e533]
+      - button "P Platform Admin super admin" [ref=e537] [cursor=pointer]:
+        - generic [ref=e538]: P
+        - generic [ref=e539]:
+          - paragraph [ref=e540]: Platform Admin
+          - paragraph [ref=e541]: super admin
+        - img [ref=e542]
+    - main [ref=e544]:
+      - generic [ref=e545]:
+        - button "Search... ⌘ K" [ref=e547] [cursor=pointer]:
+          - img [ref=e548]
+          - generic [ref=e551]: Search...
+          - generic [ref=e552]:
+            - generic [ref=e553]: ⌘
+            - generic [ref=e554]: K
+        - generic [ref=e555]:
+          - button [ref=e556] [cursor=pointer]:
+            - img [ref=e557]
+          - link [ref=e561] [cursor=pointer]:
+            - /url: /settings/general
+            - img [ref=e562]
+          - button "P" [ref=e565] [cursor=pointer]
+      - generic [ref=e567]:
+        - heading "Dashboard" [level=1] [ref=e570]
+        - generic [ref=e571]:
+          - button "Sync" [disabled]:
+            - img
+            - text: Sync
+      - generic [ref=e573]:
+        - img [ref=e574]
+        - generic [ref=e576]: Loading dashboard...
+  - region "Notifications alt+T"
+  - alert [ref=e577]
+```

@@ -417,6 +417,24 @@ export const GOOGLE_PLACES_CREDENTIAL_SCHEMA: CredentialSchema = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════
+// FULFILLMENT / DROPSHIP PROVIDERS
+// ═══════════════════════════════════════════════════════════════
+
+// Roastify Credential Schema (Coffee Dropship/Fulfillment)
+export const ROASTIFY_CREDENTIAL_SCHEMA: CredentialSchema = {
+  type: 'object',
+  required: ['apiKey'],
+  properties: {
+    apiKey: {
+      type: 'string',
+      title: 'API Key',
+      format: 'password',
+      description: 'Roastify API Key. Found in Roastify Merchant Dashboard → API Settings. Test keys start with "rty_test_", live keys start with "rty_live_".',
+    },
+  },
+};
+
 export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialSchema>> = {
   // Payment Gateways
   [IntegrationProvider.PAYPAL_PAYFLOW]: PAYFLOW_CREDENTIAL_SCHEMA,
@@ -483,4 +501,7 @@ export const CREDENTIAL_SCHEMAS: Partial<Record<IntegrationProvider, CredentialS
 
   // Location Services providers
   [IntegrationProvider.GOOGLE_PLACES]: GOOGLE_PLACES_CREDENTIAL_SCHEMA,
+
+  // Fulfillment / Dropship providers
+  [IntegrationProvider.ROASTIFY]: ROASTIFY_CREDENTIAL_SCHEMA,
 };

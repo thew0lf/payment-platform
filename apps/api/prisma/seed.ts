@@ -23,6 +23,7 @@ import { seedRbac } from './seeds/seed-rbac';
 import { seedCodeReviewChecklist } from './seeds/seed-code-review-checklist';
 import { seedQAChecklist } from './seeds/seed-qa-checklist';
 import { seedEmailTemplates } from './seeds/core/seed-email-templates';
+import { seedGatewayRisk } from './seeds/core/seed-gateway-risk';
 
 // Demo seeds
 import {
@@ -81,6 +82,9 @@ async function main() {
 
   // Seed email templates (system templates for auth, etc.)
   await seedEmailTemplates();
+
+  // Seed gateway risk management data (terms, MCC codes)
+  await seedGatewayRisk(prisma);
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 2: DEMO DATA (demo & development only)

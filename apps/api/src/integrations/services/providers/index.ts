@@ -32,6 +32,8 @@ export { VercelService } from './vercel.service';
 export { SlackService } from './slack.service';
 // Location Services
 export { GooglePlacesService } from './google-places.service';
+// Fulfillment / Dropship
+export { RoastifyService } from './roastify.service';
 
 // Re-export types
 export type {
@@ -225,3 +227,24 @@ export type {
   ParsedAddress,
   PlaceDetailsResult,
 } from './google-places.service';
+
+// Fulfillment / Dropship types
+export type {
+  RoastifyCredentials,
+  RoastifyTestResult,
+  RoastifyProduct,
+  RoastifyVariant,
+  RoastifyImage,
+  RoastifyBlend,
+  RoastifyOrder,
+  RoastifyOrderItem,
+  RoastifyAddress,
+  RoastifyCreateOrderRequest,
+  RoastifyPaginatedResponse,
+  RoastifyPaginationOptions,
+  RoastifyStockItem,
+  RoastifyStockUpdate,
+  RoastifyShipment,
+  RoastifyShippingEvent,
+  RoastifyShippingRate,
+} from './roastify.service';

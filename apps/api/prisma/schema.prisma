@@ -98,6 +98,16 @@ model Client {
   // Waitlist (link back from completed registration)
   waitlistEntry        Waitlist?
 
+  // Custom Pricing Plans (for negotiated rates)
+  customPricingPlans   PricingPlan[] @relation("CustomPlans")
+
+  // Client Subscription (billing)
+  subscription         ClientSubscription?
+
+  // Feature 04: Shared Gateway Risk Management
+  merchantRiskProfile  MerchantRiskProfile?
+  gatewayTermsAcceptances GatewayTermsAcceptance[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -216,6 +226,11 @@ model Company {
   // CS AI Usage Tracking
   csAIUsage        CSAIUsage[]
   csAIUsageSummary CSAIUsageSummary[]
+
+  // Product Import System
+  productImportJobs    ProductImportJob[]
+  productImages        ProductImage[]
+  fieldMappingProfiles FieldMappingProfile[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -784,11 +799,20 @@ model Product {
   aiGeneratedDescription Boolean   @default(false)
   aiGeneratedAt          DateTime?
 
+  // Import tracking
+  importSource      String?   // IntegrationProvider value (ROASTIFY, SHOPIFY, etc.)
+  externalId        String?   // ID from external system
+  externalSku       String?   // Original SKU if renamed during import
+  lastSyncedAt      DateTime? // Last inventory sync
+
   // Flexible Attributes (JSON)
   attributes Json? // Custom key-value attributes
 
   // Relations
   company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Product Import System
+  productImages ProductImage[]
   orderItems OrderItem[]
 
   // Feature 10: Categories, Tags, Media
@@ -828,8 +852,10 @@ model Product {
 
   @@unique([companyId, sku, deletedAt])
   @@unique([companyId, slug, deletedAt])
+  @@unique([companyId, externalId, importSource])
   @@index([companyId, status])
   @@index([companyId, status, trackInventory])
+  @@index([companyId, importSource])
   @@index([deletedAt])
   @@map("products")
 }
@@ -2124,9 +2150,26 @@ model PricingPlan {
   displayName String
   description String?
 
+  // Plan Type & Visibility
+  planType   String  @default("DEFAULT") // DEFAULT, CUSTOM, LEGACY
+  isPublic   Boolean @default(true) // Show in public plan list (for self-service)
+  clientId   String? // If CUSTOM plan, which client it belongs to (NULL = default plan)
+  basePlanId String? // For CUSTOM plans: which default plan this is based on
+
+  // Self-service controls
+  allowSelfUpgrade   Boolean @default(true) // Can clients upgrade to this plan themselves?
+  allowSelfDowngrade Boolean @default(false) // Can clients downgrade from this plan themselves?
+  requiresApproval   Boolean @default(false) // Does switching to this plan require ORG approval?
+
+  // Stripe Product/Price IDs
+  stripeProductId String? // Stripe Product ID for this plan
+  stripePriceId   String? // Stripe Price ID (monthly)
+  stripeAnnualPriceId String? // Stripe Price ID (annual)
+
   // Billing
   billingInterval String @default("MONTHLY")
   baseCost        Int    @default(0)
+  annualCost      Int?   // Annual price (if different from baseCost * 12)
   currency        String @default("USD")
 
   // Included allowances (JSON)
@@ -2142,8 +2185,8 @@ model PricingPlan {
   limits Json? // { maxCompanies: number, maxUsers: number, ... }
 
   // Status
-  status    String  @default("active")
-  isDefault Boolean @default(false)
+  status    String  @default("active") // active, deprecated, hidden
+  isDefault Boolean @default(false) // Default plan for new clients
 
   // Metadata
   sortOrder Int      @default(0)
@@ -2152,9 +2195,15 @@ model PricingPlan {
   updatedAt DateTime @updatedAt
 
   // Relations
-  subscriptions ClientSubscription[]
+  subscriptions  ClientSubscription[]
+  client         Client?       @relation("CustomPlans", fields: [clientId], references: [id])
+  basePlan       PricingPlan?  @relation("DerivedPlans", fields: [basePlanId], references: [id])
+  derivedPlans   PricingPlan[] @relation("DerivedPlans")
 
   @@index([status])
+  @@index([planType])
+  @@index([clientId])
+  @@index([isPublic])
   @@map("pricing_plans")
 }
 
@@ -2203,6 +2252,7 @@ model ClientSubscription {
   updatedAt DateTime @updatedAt
 
   // Relations
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   plan         PricingPlan   @relation(fields: [planId], references: [id])
   usagePeriods UsagePeriod[]
   invoices     Invoice[]
@@ -4788,6 +4838,11 @@ model PlatformIntegration {
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientIntegrations ClientIntegration[]
   usage              IntegrationUsage[]
+
+  // Feature 04: Shared Gateway Risk Management
+  gatewayPricingTiers   GatewayPricingTier[]
+  gatewayTermsDocuments GatewayTermsDocument[]
+  merchantRiskProfiles  MerchantRiskProfile[]
 
   @@unique([organizationId, provider])
   @@index([organizationId])
@@ -9375,4 +9430,613 @@ enum WaitlistStatus {
   INVITED           // Invite sent
   REGISTERED        // Completed registration
   DECLINED          // Opted out
+}
+
+// =============================================================================
+// FEATURE 04: SHARED GATEWAY RISK MANAGEMENT
+// Pricing, Terms, Risk Assessment, Reserves, and Chargeback Tracking
+// =============================================================================
+
+enum MerchantRiskLevel {
+  LOW               // Clean history, low-risk MCC
+  STANDARD          // Normal business, typical risk
+  ELEVATED          // Some flags, higher monitoring
+  HIGH              // High-risk MCC or history
+  VERY_HIGH         // Very high risk, significant deposit required
+  SUSPENDED         // Account suspended, no processing
+}
+
+enum MerchantAccountStatus {
+  PENDING_REVIEW    // Awaiting initial risk assessment
+  APPROVED          // Approved, can process
+  GOOD_STANDING     // Active, in good standing
+  UNDER_REVIEW      // Being reviewed for issues
+  RESTRICTED        // Limited processing allowed
+  SUSPENDED         // Processing suspended
+  TERMINATED        // Account terminated
+}
+
+enum GatewayTermsVersion {
+  V1_0              // Initial version
+  V2_0              // Updated terms
+  V2_1              // Minor updates
+}
+
+enum ReserveTransactionType {
+  HOLD              // Amount held from transaction
+  RELEASE           // Scheduled release
+  CHARGEBACK_DEBIT  // Debited for chargeback
+  ADJUSTMENT        // Manual adjustment
+  REFUND            // Refund from reserve
+}
+
+enum ChargebackStatus {
+  RECEIVED          // Initial notification
+  UNDER_REVIEW      // Being reviewed
+  REPRESENTMENT     // Fighting the chargeback
+  WON               // Chargeback reversed
+  LOST              // Chargeback upheld
+  ACCEPTED          // Merchant accepted
+}
+
+enum ChargebackReason {
+  FRAUD             // Fraudulent transaction
+  NOT_RECOGNIZED    // Customer doesn't recognize
+  NOT_RECEIVED      // Product/service not received
+  NOT_AS_DESCRIBED  // Product different than described
+  DUPLICATE         // Duplicate charge
+  CANCELED          // Recurring canceled but charged
+  CREDIT_NOT_ISSUED // Refund not processed
+  TECHNICAL         // Technical/processing error
+  OTHER             // Other reason
+}
+
+enum RiskAssessmentType {
+  INITIAL           // Initial application assessment
+  PERIODIC          // Scheduled review
+  TRIGGERED         // Triggered by event (chargeback, etc)
+  MANUAL            // Manual review
+}
+
+// Gateway Pricing Tier - Defines pricing for each risk level
+model GatewayPricingTier {
+  id                    String              @id @default(cuid())
+  platformIntegrationId String
+
+  // Tier identification
+  tierName              String              // "Standard", "Elevated Risk", etc.
+  riskLevel             MerchantRiskLevel
+
+  // Application fee (one-time, $0 for founders)
+  applicationFee        Int                 @default(0) // In cents
+  isFounderPricing      Boolean             @default(false)
+
+  // Transaction fees
+  transactionPercentage Decimal             @db.Decimal(5, 4) // e.g., 0.0290 = 2.9%
+  transactionFlat       Int                 // Flat fee in cents, e.g., 30 = $0.30
+
+  // Chargeback fees
+  chargebackFee         Int                 // Per chargeback in cents
+  chargebackReviewFee   Int                 @default(0) // Fee for representment
+
+  // Reserve settings
+  reservePercentage     Decimal             @db.Decimal(5, 4) // e.g., 0.05 = 5%
+  reserveHoldDays       Int                 // Days to hold reserve
+  reserveCap            Int?                // Maximum reserve in cents (optional)
+
+  // Additional fees
+  setupFee              Int?                // One-time setup fee in cents
+  monthlyFee            Int?                // Monthly fee in cents
+  monthlyMinimum        Int?                // Monthly minimum processing in cents
+
+  // Security deposit
+  securityDepositMin    Int?                // Minimum security deposit in cents
+  securityDepositMax    Int?                // Maximum security deposit in cents
+
+  // Thresholds for escalation
+  chargebackThreshold   Decimal             @db.Decimal(5, 4) @default(0.01) // 1%
+
+  // Active status
+  isActive              Boolean             @default(true)
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  platformIntegration   PlatformIntegration @relation(fields: [platformIntegrationId], references: [id], onDelete: Cascade)
+  merchantProfiles      MerchantRiskProfile[]
+
+  @@unique([platformIntegrationId, riskLevel])
+  @@index([platformIntegrationId])
+  @@index([riskLevel])
+  @@map("gateway_pricing_tiers")
+}
+
+// Gateway Terms Document - Legal terms for shared gateway usage
+model GatewayTermsDocument {
+  id                    String              @id @default(cuid())
+  platformIntegrationId String
+
+  // Document identification
+  version               GatewayTermsVersion
+  title                 String              // "High-Risk Merchant Agreement"
+
+  // Content
+  content               String              @db.Text // Full legal text (Markdown/HTML)
+  summary               String?             @db.Text // Summary for quick review
+
+  // Risk level applicability
+  applicableRiskLevels  MerchantRiskLevel[] // Which risk levels require this
+
+  // Effective dates
+  effectiveDate         DateTime
+  expiresAt             DateTime?           // If terms expire
+
+  // Status
+  isActive              Boolean             @default(true)
+  isCurrent             Boolean             @default(false) // Current version for new signups
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String
+
+  // Relations
+  platformIntegration   PlatformIntegration @relation(fields: [platformIntegrationId], references: [id], onDelete: Cascade)
+  acceptances           GatewayTermsAcceptance[]
+
+  @@unique([platformIntegrationId, version])
+  @@index([platformIntegrationId])
+  @@index([isActive, isCurrent])
+  @@map("gateway_terms_documents")
+}
+
+// Gateway Terms Acceptance - Record of client accepting terms
+model GatewayTermsAcceptance {
+  id                    String              @id @default(cuid())
+  termsDocumentId       String
+  clientId              String
+
+  // Acceptance details
+  acceptedAt            DateTime            @default(now())
+  acceptedBy            String              // User ID who accepted
+  acceptorName          String              // Name of person accepting
+  acceptorTitle         String?             // Title/role
+  acceptorEmail         String              // Email of acceptor
+
+  // Verification data (for legal compliance)
+  ipAddress             String
+  userAgent             String?
+  acceptanceMethod      String              @default("ELECTRONIC") // ELECTRONIC, PHYSICAL
+
+  // Digital signature (optional)
+  signatureHash         String?             // Hash of acceptance action
+
+  // Status
+  isValid               Boolean             @default(true)
+  revokedAt             DateTime?
+  revokedBy             String?
+  revokedReason         String?
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+
+  // Relations
+  termsDocument         GatewayTermsDocument @relation(fields: [termsDocumentId], references: [id])
+  client                Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([termsDocumentId, clientId])
+  @@index([clientId])
+  @@index([acceptedAt])
+  @@map("gateway_terms_acceptances")
+}
+
+// Merchant Risk Profile - Risk assessment for each client
+model MerchantRiskProfile {
+  id                    String              @id @default(cuid())
+  clientId              String              @unique
+  platformIntegrationId String
+
+  // Current risk status
+  riskLevel             MerchantRiskLevel   @default(STANDARD)
+  riskScore             Int                 @default(50) // 0-100, higher = riskier
+  accountStatus         MerchantAccountStatus @default(PENDING_REVIEW)
+
+  // Current pricing tier
+  pricingTierId         String?
+
+  // Business information
+  mccCode               String?             // Merchant Category Code
+  mccDescription        String?
+  businessType          String?             // LLC, Corp, Sole Prop, etc.
+  businessAge           Int?                // Years in business
+  annualVolume          Int?                // Expected annual volume in cents
+  averageTicket         Int?                // Average transaction in cents
+
+  // Processing metrics (updated regularly)
+  totalProcessed        BigInt              @default(0) // Total processed in cents
+  transactionCount      Int                 @default(0)
+  chargebackCount       Int                 @default(0)
+  chargebackRatio       Decimal             @db.Decimal(5, 4) @default(0) // Current ratio
+  refundRatio           Decimal             @db.Decimal(5, 4) @default(0)
+
+  // Reserve tracking
+  reserveBalance        BigInt              @default(0) // Current reserve in cents
+  reserveHeldTotal      BigInt              @default(0) // Total held all time
+  reserveReleasedTotal  BigInt              @default(0) // Total released
+
+  // Security deposit
+  securityDeposit       Int                 @default(0) // Required deposit in cents
+  securityDepositPaid   Int                 @default(0) // Amount paid
+  securityDepositPaidAt DateTime?
+
+  // Risk flags
+  isHighRiskMCC         Boolean             @default(false)
+  hasChargebackHistory  Boolean             @default(false)
+  hasComplianceIssues   Boolean             @default(false)
+  requiresMonitoring    Boolean             @default(false)
+
+  // Review scheduling
+  lastReviewDate        DateTime?
+  nextReviewDate        DateTime?
+  reviewFrequency       Int                 @default(90) // Days between reviews
+
+  // Notes
+  internalNotes         String?             @db.Text
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  approvedAt            DateTime?
+  approvedBy            String?
+
+  // Relations
+  client                Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platformIntegration   PlatformIntegration @relation(fields: [platformIntegrationId], references: [id])
+  pricingTier           GatewayPricingTier? @relation(fields: [pricingTierId], references: [id])
+  riskAssessments       RiskAssessment[]
+  reserveTransactions   ReserveTransaction[]
+  chargebacks           ChargebackRecord[]
+
+  @@index([clientId])
+  @@index([platformIntegrationId])
+  @@index([riskLevel])
+  @@index([accountStatus])
+  @@map("merchant_risk_profiles")
+}
+
+// Risk Assessment - Individual risk assessment record
+model RiskAssessment {
+  id                    String              @id @default(cuid())
+  merchantRiskProfileId String
+
+  // Assessment info
+  assessmentType        RiskAssessmentType
+  assessmentDate        DateTime            @default(now())
+  assessedBy            String?             // User ID or 'SYSTEM'
+
+  // Results
+  previousRiskLevel     MerchantRiskLevel
+  newRiskLevel          MerchantRiskLevel
+  previousRiskScore     Int
+  newRiskScore          Int
+
+  // Factors considered (JSON for flexibility)
+  factors               Json                // { mcc, chargebackRatio, volume, age, etc. }
+
+  // AI Assessment (if used)
+  aiModel               String?             // 'bedrock-claude-3-haiku', etc.
+  aiConfidence          Decimal?            @db.Decimal(5, 4) // 0-1 confidence score
+  aiExplanation         String?             @db.Text
+
+  // Notes and reasoning
+  reasoning             String?             @db.Text
+  recommendedActions    String[]            // Actions to take
+
+  // Approval (for manual review)
+  requiresApproval      Boolean             @default(false)
+  approvedAt            DateTime?
+  approvedBy            String?
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+
+  // Relations
+  merchantRiskProfile   MerchantRiskProfile @relation(fields: [merchantRiskProfileId], references: [id], onDelete: Cascade)
+
+  @@index([merchantRiskProfileId])
+  @@index([assessmentDate])
+  @@index([assessmentType])
+  @@map("risk_assessments")
+}
+
+// Reserve Transaction - Track reserve holds and releases
+model ReserveTransaction {
+  id                    String                  @id @default(cuid())
+  merchantRiskProfileId String
+
+  // Transaction info
+  type                  ReserveTransactionType
+  amount                Int                     // Amount in cents (positive for hold, negative for release)
+  balanceAfter          BigInt                  // Reserve balance after this transaction
+
+  // Related transaction (if applicable)
+  relatedTransactionId  String?                 // Original payment transaction
+  relatedChargebackId   String?                 // If related to chargeback
+
+  // Scheduling (for releases)
+  scheduledReleaseDate  DateTime?
+  releasedAt            DateTime?
+
+  // Notes
+  description           String?
+  internalNotes         String?
+
+  // Timestamps
+  createdAt             DateTime                @default(now())
+  createdBy             String?                 // User ID or 'SYSTEM'
+
+  // Relations
+  merchantRiskProfile   MerchantRiskProfile     @relation(fields: [merchantRiskProfileId], references: [id], onDelete: Cascade)
+  chargeback            ChargebackRecord?       @relation(fields: [relatedChargebackId], references: [id])
+
+  @@index([merchantRiskProfileId])
+  @@index([type])
+  @@index([scheduledReleaseDate])
+  @@index([createdAt])
+  @@map("reserve_transactions")
+}
+
+// Chargeback Record - Track chargebacks
+model ChargebackRecord {
+  id                    String              @id @default(cuid())
+  merchantRiskProfileId String
+
+  // Chargeback identification
+  chargebackId          String              @unique // Provider's chargeback ID
+  transactionId         String?             // Original transaction ID
+  orderId               String?             // Related order
+
+  // Amounts
+  amount                Int                 // Chargeback amount in cents
+  currency              String              @default("USD")
+  fee                   Int                 // Chargeback fee charged in cents
+
+  // Details
+  reason                ChargebackReason
+  reasonCode            String?             // Provider's reason code
+  reasonDescription     String?
+
+  // Status tracking
+  status                ChargebackStatus    @default(RECEIVED)
+
+  // Dates
+  receivedAt            DateTime
+  respondByDate         DateTime?           // Deadline to respond
+  resolvedAt            DateTime?
+
+  // Representment (if fighting)
+  representmentSubmittedAt DateTime?
+  representmentEvidence    Json?            // Evidence submitted
+  representmentNotes       String?          @db.Text
+
+  // Outcome
+  outcomeDate           DateTime?
+  outcomeAmount         Int?                // Amount recovered if won
+  outcomeFee            Int?                // Fee refunded if won
+
+  // Impact tracking
+  impactedReserve       Boolean             @default(false)
+  reserveDebitAmount    Int?                // Amount debited from reserve
+
+  // Notes
+  internalNotes         String?             @db.Text
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  merchantRiskProfile   MerchantRiskProfile @relation(fields: [merchantRiskProfileId], references: [id], onDelete: Cascade)
+  reserveTransactions   ReserveTransaction[]
+
+  @@index([merchantRiskProfileId])
+  @@index([status])
+  @@index([receivedAt])
+  @@index([transactionId])
+  @@map("chargeback_records")
+}
+
+// MCC Code Reference - High-risk MCC codes
+model MCCCodeReference {
+  id                    String              @id @default(cuid())
+
+  // MCC info
+  code                  String              @unique // 4-digit MCC code
+  description           String
+  category              String              // Retail, Travel, etc.
+
+  // Risk classification
+  isHighRisk            Boolean             @default(false)
+  defaultRiskLevel      MerchantRiskLevel   @default(STANDARD)
+
+  // Restrictions
+  requiresEnhancedReview Boolean            @default(false)
+  prohibited            Boolean             @default(false) // Cannot process at all
+  restrictedCountries   String[]            // Countries where restricted
+
+  // Notes
+  notes                 String?
+
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([isHighRisk])
+  @@index([category])
+  @@map("mcc_code_references")
+}
+
+// =============================================================================
+// PRODUCT IMPORT SYSTEM
+// Import products from external fulfillment providers (Roastify, Shopify, etc.)
+// =============================================================================
+
+enum ImportJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ImportJobPhase {
+  QUEUED
+  FETCHING
+  MAPPING
+  CREATING
+  DOWNLOADING_IMAGES
+  UPLOADING_IMAGES
+  GENERATING_THUMBNAILS
+  FINALIZING
+  DONE
+}
+
+// Product Import Job - Tracks import operations
+model ProductImportJob {
+  id            String          @id @default(cuid())
+  companyId     String
+  clientId      String
+  integrationId String
+  provider      String          // IntegrationProvider value (ROASTIFY, SHOPIFY, etc.)
+
+  // Job status
+  status        ImportJobStatus @default(PENDING)
+  phase         ImportJobPhase  @default(QUEUED)
+
+  // Counts
+  totalProducts     Int
+  totalImages       Int         @default(0)
+  processedProducts Int         @default(0)
+  processedImages   Int         @default(0)
+  importedCount     Int         @default(0)
+  skippedCount      Int         @default(0)
+  errorCount        Int         @default(0)
+
+  // Progress
+  progress                  Int     @default(0) // 0-100
+  currentItem               String? // "Importing: Ethiopian Yirgacheffe..."
+  estimatedSecondsRemaining Int?
+
+  // Configuration
+  config        Json            // { mappings, conflictResolution, imageOption }
+
+  // Results
+  errorLog      Json?           // [{ productId, error, timestamp }]
+  importedIds   String[]        // Product IDs created
+
+  // Timing
+  createdBy     String
+  createdAt     DateTime        @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  // Relations
+  company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([status, createdAt])
+  @@map("product_import_jobs")
+}
+
+// Product Image - Managed images with CDN storage
+model ProductImage {
+  id          String   @id @default(cuid())
+  productId   String
+  companyId   String
+
+  // Storage reference
+  s3Key       String   @unique
+  cdnUrl      String
+
+  // Metadata
+  originalUrl     String?  // External URL if imported
+  importSource    String?  // IntegrationProvider value
+  filename        String
+  contentType     String
+  size            Int      // bytes
+  width           Int?
+  height          Int?
+
+  // Thumbnails
+  thumbnailSmall  String?
+  thumbnailMedium String?
+  thumbnailLarge  String?
+  thumbnailBytes  Int      @default(0)
+
+  // Ordering
+  position    Int      @default(0)
+  isPrimary   Boolean  @default(false)
+  altText     String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([companyId])
+  @@map("product_images")
+}
+
+// Storage Usage - Track storage consumption for billing
+model StorageUsage {
+  id             String   @id @default(cuid())
+  organizationId String
+  clientId       String?
+  companyId      String?
+
+  // Usage metrics
+  totalBytes     BigInt   @default(0)
+  fileCount      Int      @default(0)
+  imageCount     Int      @default(0)
+  thumbnailBytes BigInt   @default(0)
+
+  // Monthly rollup
+  month          DateTime // First day of month
+
+  // Breakdown by source
+  usageBySource  Json?    // { "UPLOAD": 1024, "ROASTIFY": 2048 }
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, clientId, companyId, month])
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([companyId])
+  @@map("storage_usage")
+}
+
+// Field Mapping Profile - Save mapping configurations for reuse
+model FieldMappingProfile {
+  id          String   @id @default(cuid())
+  companyId   String
+  provider    String   // IntegrationProvider value
+  name        String
+  mappings    Json     // [{ sourceField, targetField, transform }]
+  isDefault   Boolean  @default(false)
+
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, provider, name])
+  @@map("field_mapping_profiles")
 }

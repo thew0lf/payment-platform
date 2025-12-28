@@ -516,4 +516,7 @@ export const FAILOVER_CHAIN: Record<IntegrationProvider, IntegrationProvider[]> 
 
   // Location Services (no direct fallbacks)
   [IntegrationProvider.GOOGLE_PLACES]: [],
+
+  // Fulfillment (no direct fallbacks)
+  [IntegrationProvider.ROASTIFY]: [],
 };

@@ -85,19 +85,32 @@ export class PlatformIntegrationsController {
 @Controller('integrations/client')
 @UseGuards(JwtAuthGuard, RolesGuard, ScopeGuard)
 @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'USER')
-@Scopes('CLIENT')
+@Scopes('ORGANIZATION', 'CLIENT', 'COMPANY')
 export class ClientIntegrationsController {
   constructor(private readonly clientService: ClientIntegrationService) {}
 
   @Get('available')
   @ApiOperation({ summary: 'Get available integrations' })
-  async getAvailable(@CurrentUser() user: { clientId: string; organizationId: string }) {
-    return this.clientService.getAvailable(user.clientId, user.organizationId);
+  async getAvailable(@CurrentUser() user: { clientId: string; organizationId: string; scopeType: string }) {
+    // For CLIENT/COMPANY scoped users, organizationId may be null - service will resolve from client
+    return this.clientService.getAvailable(user.clientId, user.organizationId || undefined);
   }
 
   @Get()
   @ApiOperation({ summary: 'List client integrations' })
-  async list(@CurrentUser() user: { clientId: string }): Promise<ClientIntegration[]> {
+  async list(
+    @Query('clientId') queryClientId: string,
+    @CurrentUser() user: { clientId: string; organizationId: string; scopeType: string },
+  ): Promise<ClientIntegration[]> {
+    // For ORGANIZATION scope users, require clientId query param or return all org integrations
+    if (user.scopeType === 'ORGANIZATION') {
+      if (queryClientId) {
+        return this.clientService.list(queryClientId);
+      }
+      // Return all client integrations for the organization
+      return this.clientService.listByOrganization(user.organizationId);
+    }
+    // For CLIENT/COMPANY scope users, use their clientId
     return this.clientService.list(user.clientId);
   }
 
@@ -105,7 +118,8 @@ export class ClientIntegrationsController {
   @ApiOperation({ summary: 'Create client integration' })
   @Roles('SUPER_ADMIN', 'ADMIN')
   async create(@CurrentUser() user: { id: string; clientId: string; organizationId: string }, @Body() dto: CreateClientIntegrationDto): Promise<ClientIntegration> {
-    return this.clientService.create(user.clientId, user.organizationId, dto, user.id);
+    // For CLIENT/COMPANY scoped users, organizationId may be null - service will resolve from client
+    return this.clientService.create(user.clientId, user.organizationId || undefined, dto, user.id);
   }
 
   @Patch(':id')

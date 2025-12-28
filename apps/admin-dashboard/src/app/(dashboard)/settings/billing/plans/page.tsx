@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus,
   Edit2,
@@ -10,16 +11,24 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Trash2,
   Package,
   Users,
   Building2,
   CreditCard,
   Zap,
   Server,
-  Shield,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Header } from '@/components/layout/header';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   billingApi,
   PricingPlan,
@@ -29,6 +38,22 @@ import {
   CreatePricingPlanDto,
   UpdatePricingPlanDto,
 } from '@/lib/api/billing';
+
+// Helper to safely get features as an array (handles JSON fields)
+function getFeatures(features: unknown): string[] {
+  if (Array.isArray(features)) {
+    return features;
+  }
+  if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PLAN CARD COMPONENT
@@ -45,72 +70,69 @@ interface PlanCardProps {
 function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: PlanCardProps) {
   const isHidden = plan.status === 'hidden';
   const isDeprecated = plan.status === 'deprecated';
-  const isEnterprise = plan.metadata && (plan.metadata as any).isCustomPricing;
+  const isEnterprise = plan.metadata && (plan.metadata as Record<string, unknown>).isCustomPricing;
 
   return (
-    <div
-      className={`bg-card border rounded-xl overflow-hidden transition-all ${
+    <Card
+      className={`transition-all ${
         isHidden
-          ? 'border-border opacity-60'
+          ? 'opacity-60'
           : isDeprecated
             ? 'border-orange-500/30'
             : plan.isDefault
-              ? 'border-blue-500'
-              : 'border-border'
+              ? 'border-primary ring-1 ring-primary/20'
+              : ''
       }`}
     >
-      {/* Header */}
-      <div className="p-6 pb-4">
-        <div className="flex items-start justify-between mb-4">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-semibold text-foreground">{plan.displayName}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <CardTitle className="text-lg">{plan.displayName}</CardTitle>
               {plan.isDefault && (
-                <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full">
-                  Default
-                </span>
+                <Badge variant="info">Default</Badge>
               )}
               {isHidden && (
-                <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
-                  Hidden
-                </span>
+                <Badge variant="secondary">Hidden</Badge>
               )}
               {isDeprecated && (
-                <span className="text-xs px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded-full">
-                  Deprecated
-                </span>
+                <Badge variant="warning">Deprecated</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+            <CardDescription>{plan.description}</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onToggleStatus(plan)}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
               title={isHidden ? 'Show plan' : 'Hide plan'}
             >
               {isHidden ? (
-                <Eye className="h-4 w-4 text-muted-foreground" />
+                <Eye className="h-4 w-4" />
               ) : (
-                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                <EyeOff className="h-4 w-4" />
               )}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onEdit(plan)}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
             >
-              <Edit2 className="h-4 w-4 text-muted-foreground" />
-            </button>
+              <Edit2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      </CardHeader>
 
+      <CardContent className="space-y-4">
         {/* Price */}
-        <div className="mb-4">
+        <div>
           {isEnterprise ? (
-            <div className="text-3xl font-bold text-foreground">Custom</div>
+            <div className="text-2xl font-bold text-foreground">Custom</div>
           ) : (
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-foreground">
+              <span className="text-2xl font-bold text-foreground">
                 {formatCurrency(plan.baseCost, plan.currency)}
               </span>
               <span className="text-muted-foreground">/mo</span>
@@ -123,155 +145,159 @@ function PlanCard({ plan, onEdit, onToggleStatus, expanded, onToggleExpand }: Pl
           <div className="flex items-center gap-2 text-sm">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              {formatNumber(plan.included.transactions)} txns
+              {formatNumber(plan.included?.transactions || 0)} txns
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              {formatNumber(plan.included.companies)} companies
+              {formatNumber(plan.included?.companies || 0)} companies
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{formatNumber(plan.included.users)} users</span>
+            <span className="text-muted-foreground">
+              {formatNumber(plan.included?.users || 0)} users
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Server className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              {formatNumber(plan.included.merchantAccounts)} merchants
+              {formatNumber(plan.included?.merchantAccounts || 0)} merchants
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Expand Toggle */}
-      <button
-        onClick={onToggleExpand}
-        className="w-full px-6 py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border"
-      >
-        {expanded ? (
-          <>
-            <ChevronUp className="h-4 w-4" />
-            Hide Details
-          </>
-        ) : (
-          <>
-            <ChevronDown className="h-4 w-4" />
-            View Details
-          </>
+        {/* Expand Toggle */}
+        <Button
+          variant="ghost"
+          className="w-full justify-center gap-2"
+          onClick={onToggleExpand}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-4 w-4" />
+              Hide Details
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-4 w-4" />
+              View Details
+            </>
+          )}
+        </Button>
+
+        {/* Expanded Details */}
+        {expanded && (
+          <div className="space-y-6 pt-4 border-t border-border">
+            {/* Included Allowances */}
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-3">Included Allowances</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Transactions</span>
+                  <span className="text-foreground">{formatNumber(plan.included?.transactions || 0)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Volume</span>
+                  <span className="text-foreground">
+                    {(plan.included?.volume || 0) === 0
+                      ? 'Unlimited'
+                      : formatCurrency(plan.included?.volume || 0, plan.currency)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">API Calls</span>
+                  <span className="text-foreground">{formatNumber(plan.included?.apiCalls || 0)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Webhooks</span>
+                  <span className="text-foreground">{formatNumber(plan.included?.webhooks || 0)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                  <span className="text-muted-foreground">Vault Entries</span>
+                  <span className="text-foreground">{formatNumber(plan.included?.vaultEntries || 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Overage Pricing */}
+            {!isEnterprise && (
+              <div>
+                <h4 className="text-sm font-medium text-foreground mb-3">Overage Pricing</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Per Transaction</span>
+                    <span className="text-foreground">
+                      {formatCurrency(plan.overage?.transactionPrice || 0, plan.currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Volume Fee</span>
+                    <span className="text-foreground">{((plan.overage?.volumePercent || 0) * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Per User</span>
+                    <span className="text-foreground">
+                      {formatCurrency(plan.overage?.userPrice || 0, plan.currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Per Company</span>
+                    <span className="text-foreground">
+                      {formatCurrency(plan.overage?.companyPrice || 0, plan.currency)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Features */}
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-3">Features</h4>
+              <div className="flex flex-wrap gap-2">
+                {getFeatures(plan.features).map((feature) => (
+                  <Badge
+                    key={feature}
+                    variant="success"
+                    className="text-xs"
+                  >
+                    {getFeatureLabel(feature)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Limits */}
+            {plan.limits && (
+              <div>
+                <h4 className="text-sm font-medium text-foreground mb-3">Limits</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {plan.limits.maxCompanies && (
+                    <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Max Companies</span>
+                      <span className="text-foreground">{plan.limits.maxCompanies}</span>
+                    </div>
+                  )}
+                  {plan.limits.maxUsers && (
+                    <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Max Users</span>
+                      <span className="text-foreground">{plan.limits.maxUsers}</span>
+                    </div>
+                  )}
+                  {plan.limits.maxMerchantAccounts && (
+                    <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Max Merchants</span>
+                      <span className="text-foreground">{plan.limits.maxMerchantAccounts}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
-      </button>
-
-      {/* Expanded Details */}
-      {expanded && (
-        <div className="px-6 pb-6 border-t border-border space-y-6">
-          {/* Included Allowances */}
-          <div className="pt-4">
-            <h4 className="text-sm font-medium text-foreground mb-3">Included Allowances</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                <span className="text-muted-foreground">Transactions</span>
-                <span className="text-foreground">{formatNumber(plan.included.transactions)}</span>
-              </div>
-              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                <span className="text-muted-foreground">Volume</span>
-                <span className="text-foreground">
-                  {plan.included.volume === 0
-                    ? 'Unlimited'
-                    : formatCurrency(plan.included.volume, plan.currency)}
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                <span className="text-muted-foreground">API Calls</span>
-                <span className="text-foreground">{formatNumber(plan.included.apiCalls)}</span>
-              </div>
-              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                <span className="text-muted-foreground">Webhooks</span>
-                <span className="text-foreground">{formatNumber(plan.included.webhooks)}</span>
-              </div>
-              <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                <span className="text-muted-foreground">Vault Entries</span>
-                <span className="text-foreground">{formatNumber(plan.included.vaultEntries)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Overage Pricing */}
-          {!isEnterprise && (
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-3">Overage Pricing</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                  <span className="text-muted-foreground">Per Transaction</span>
-                  <span className="text-foreground">
-                    {formatCurrency(plan.overage.transactionPrice, plan.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                  <span className="text-muted-foreground">Volume Fee</span>
-                  <span className="text-foreground">{(plan.overage.volumePercent * 100).toFixed(2)}%</span>
-                </div>
-                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                  <span className="text-muted-foreground">Per User</span>
-                  <span className="text-foreground">
-                    {formatCurrency(plan.overage.userPrice, plan.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                  <span className="text-muted-foreground">Per Company</span>
-                  <span className="text-foreground">
-                    {formatCurrency(plan.overage.companyPrice, plan.currency)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Features */}
-          <div>
-            <h4 className="text-sm font-medium text-foreground mb-3">Features</h4>
-            <div className="flex flex-wrap gap-2">
-              {plan.features.map((feature) => (
-                <span
-                  key={feature}
-                  className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded-full border border-green-500/20"
-                >
-                  {getFeatureLabel(feature)}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Limits */}
-          {plan.limits && (
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-3">Limits</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {plan.limits.maxCompanies && (
-                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                    <span className="text-muted-foreground">Max Companies</span>
-                    <span className="text-foreground">{plan.limits.maxCompanies}</span>
-                  </div>
-                )}
-                {plan.limits.maxUsers && (
-                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                    <span className="text-muted-foreground">Max Users</span>
-                    <span className="text-foreground">{plan.limits.maxUsers}</span>
-                  </div>
-                )}
-                {plan.limits.maxMerchantAccounts && (
-                  <div className="flex justify-between py-1.5 px-2 bg-muted/50 rounded">
-                    <span className="text-muted-foreground">Max Merchants</span>
-                    <span className="text-foreground">{plan.limits.maxMerchantAccounts}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -367,17 +393,18 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
     { id: 'features', label: 'Features' },
   ] as const;
 
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">
             {isEditing ? 'Edit Plan' : 'Create New Plan'}
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <X className="h-5 w-5 text-muted-foreground" />
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -388,7 +415,7 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'text-foreground border-b-2 border-blue-500'
+                  ? 'text-foreground border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -401,97 +428,99 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           {activeTab === 'basic' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Internal Name</label>
-                  <input
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Internal Name</Label>
+                  <Input
+                    id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="e.g., starter"
                     required
                     disabled={isEditing}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Display Name</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="displayName">Display Name</Label>
+                  <Input
+                    id="displayName"
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="e.g., Starter"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Description</label>
-                <textarea
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
-                  rows={2}
                   placeholder="Brief description of this plan..."
+                  rows={2}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Base Price (in cents)</label>
-                  <input
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="baseCost">Base Price (in cents)</Label>
+                  <Input
+                    id="baseCost"
                     type="number"
                     value={formData.baseCost}
                     onChange={(e) =>
                       setFormData({ ...formData, baseCost: parseInt(e.target.value) || 0 })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground">
                     {formatCurrency(formData.baseCost, formData.currency || 'USD')}/month
                   </p>
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Sort Order</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="sortOrder">Sort Order</Label>
+                  <Input
+                    id="sortOrder"
                     type="number"
                     value={formData.sortOrder}
                     onChange={(e) =>
                       setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isDefault}
-                    onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                    className="rounded border-border bg-muted text-blue-500"
-                  />
-                  <span className="text-sm text-foreground">Default Plan</span>
-                </label>
+              <div className="flex items-center gap-2 pt-2">
+                <Checkbox
+                  id="isDefault"
+                  checked={formData.isDefault}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isDefault: checked === true })
+                  }
+                />
+                <Label htmlFor="isDefault" className="cursor-pointer">
+                  Default Plan
+                </Label>
               </div>
             </div>
           )}
 
           {activeTab === 'included' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground">
                 Set the included allowances for this plan. Use 0 for unlimited.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Transactions</label>
-                  <input
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="transactions">Transactions</Label>
+                  <Input
+                    id="transactions"
                     type="number"
                     value={formData.included.transactions}
                     onChange={(e) =>
@@ -503,13 +532,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Volume (in cents)</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="volume">Volume (in cents)</Label>
+                  <Input
+                    id="volume"
                     type="number"
                     value={formData.included.volume}
                     onChange={(e) =>
@@ -518,13 +547,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         included: { ...formData.included, volume: parseInt(e.target.value) || 0 },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Companies</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="companies">Companies</Label>
+                  <Input
+                    id="companies"
                     type="number"
                     value={formData.included.companies}
                     onChange={(e) =>
@@ -536,13 +565,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Users</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="users">Users</Label>
+                  <Input
+                    id="users"
                     type="number"
                     value={formData.included.users}
                     onChange={(e) =>
@@ -551,13 +580,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         included: { ...formData.included, users: parseInt(e.target.value) || 0 },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Merchant Accounts</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="merchantAccounts">Merchant Accounts</Label>
+                  <Input
+                    id="merchantAccounts"
                     type="number"
                     value={formData.included.merchantAccounts}
                     onChange={(e) =>
@@ -569,13 +598,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">API Calls</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="apiCalls">API Calls</Label>
+                  <Input
+                    id="apiCalls"
                     type="number"
                     value={formData.included.apiCalls}
                     onChange={(e) =>
@@ -587,13 +616,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Vault Entries</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="vaultEntries">Vault Entries</Label>
+                  <Input
+                    id="vaultEntries"
                     type="number"
                     value={formData.included.vaultEntries}
                     onChange={(e) =>
@@ -605,13 +634,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Webhooks</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="webhooks">Webhooks</Label>
+                  <Input
+                    id="webhooks"
                     type="number"
                     value={formData.included.webhooks}
                     onChange={(e) =>
@@ -623,7 +652,6 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
@@ -633,16 +661,15 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
           {activeTab === 'overage' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground">
                 Set the overage pricing when usage exceeds included amounts.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">
-                    Per Transaction (cents)
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="transactionPrice">Per Transaction (cents)</Label>
+                  <Input
+                    id="transactionPrice"
                     type="number"
                     value={formData.overage.transactionPrice}
                     onChange={(e) =>
@@ -654,15 +681,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">
-                    Volume Fee (decimal, e.g., 0.0025 = 0.25%)
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="volumePercent">Volume Fee (decimal, e.g., 0.0025 = 0.25%)</Label>
+                  <Input
+                    id="volumePercent"
                     type="number"
                     step="0.0001"
                     value={formData.overage.volumePercent}
@@ -675,13 +700,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Per User (cents)</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="userPrice">Per User (cents)</Label>
+                  <Input
+                    id="userPrice"
                     type="number"
                     value={formData.overage.userPrice}
                     onChange={(e) =>
@@ -693,13 +718,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Per Company (cents)</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="companyPrice">Per Company (cents)</Label>
+                  <Input
+                    id="companyPrice"
                     type="number"
                     value={formData.overage.companyPrice}
                     onChange={(e) =>
@@ -711,15 +736,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">
-                    Per Merchant Account (cents)
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="merchantAccountPrice">Per Merchant Account (cents)</Label>
+                  <Input
+                    id="merchantAccountPrice"
                     type="number"
                     value={formData.overage.merchantAccountPrice}
                     onChange={(e) =>
@@ -731,15 +754,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">
-                    Per 1K API Calls (cents)
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="apiCallPrice">Per 1K API Calls (cents)</Label>
+                  <Input
+                    id="apiCallPrice"
                     type="number"
                     value={formData.overage.apiCallPrice}
                     onChange={(e) =>
@@ -751,15 +772,13 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">
-                    Per Vault Entry (cents)
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="vaultEntryPrice">Per Vault Entry (cents)</Label>
+                  <Input
+                    id="vaultEntryPrice"
                     type="number"
                     value={formData.overage.vaultEntryPrice}
                     onChange={(e) =>
@@ -771,7 +790,6 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                         },
                       })
                     }
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
                     min="0"
                   />
                 </div>
@@ -781,11 +799,11 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
           {activeTab === 'features' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground">
                 Select the features included in this plan.
               </p>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {availableFeatures.map((feature) => (
                   <button
                     key={feature}
@@ -793,8 +811,8 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
                     onClick={() => toggleFeature(feature)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
                       formData.features.includes(feature)
-                        ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                        : 'bg-muted border-border text-muted-foreground hover:border-border'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                        : 'bg-muted border-border text-muted-foreground hover:border-muted-foreground/30'
                     }`}
                   >
                     {formData.features.includes(feature) ? (
@@ -812,24 +830,24 @@ function PlanModal({ plan, onClose, onSave, isLoading }: PlanModalProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditing ? 'Save Changes' : 'Create Plan'}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -880,8 +898,10 @@ export default function BillingPlansPage() {
     try {
       const newStatus = plan.status === 'hidden' ? 'active' : 'hidden';
       await billingApi.updatePlan(plan.id, { status: newStatus });
+      toast.success(`Plan ${newStatus === 'hidden' ? 'hidden' : 'shown'} successfully`);
       await loadPlans();
     } catch (err) {
+      toast.error('Failed to update plan status');
       console.error('Failed to update plan status:', err);
     }
   };
@@ -891,93 +911,111 @@ export default function BillingPlansPage() {
       setIsSaving(true);
       if (modalPlan) {
         await billingApi.updatePlan(modalPlan.id, data);
+        toast.success('Plan updated successfully');
       } else {
         await billingApi.createPlan(data as CreatePricingPlanDto);
+        toast.success('Plan created successfully');
       }
       await loadPlans();
       setModalPlan(undefined);
     } catch (err) {
+      toast.error('Failed to save plan');
       console.error('Failed to save plan:', err);
     } finally {
       setIsSaving(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <>
+        <Header title="Pricing Plans" subtitle="Manage subscription plans for your platform" />
+        <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Loading plans...</span>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header title="Pricing Plans" subtitle="Manage subscription plans for your platform" />
+        <div className="p-4 md:p-6">
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
+              <p className="text-destructive">{error}</p>
+              <Button variant="outline" className="mt-4" onClick={() => loadPlans()}>
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Pricing Plans</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage subscription plans for your platform
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showHidden}
-              onChange={(e) => setShowHidden(e.target.checked)}
-              className="rounded border-border bg-muted text-blue-500"
-            />
-            Show hidden
-          </label>
-          <button
-            onClick={() => setModalPlan(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Plan
-          </button>
-        </div>
+    <>
+      <Header
+        title="Pricing Plans"
+        subtitle="Manage subscription plans for your platform"
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="showHidden"
+                checked={showHidden}
+                onCheckedChange={(checked) => setShowHidden(checked === true)}
+              />
+              <Label htmlFor="showHidden" className="text-sm cursor-pointer">
+                Show hidden
+              </Label>
+            </div>
+            <Button onClick={() => setModalPlan(null)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Plan
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="p-4 md:p-6">
+        {plans.length === 0 ? (
+          /* Empty State */
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No plans found</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {showHidden ? 'No pricing plans exist yet.' : 'No active plans. Try showing hidden plans.'}
+              </p>
+              <Button onClick={() => setModalPlan(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Plan
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Plans Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                onEdit={setModalPlan}
+                onToggleStatus={handleToggleStatus}
+                expanded={expandedPlans.has(plan.id)}
+                onToggleExpand={() => handleToggleExpand(plan.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        /* Plans Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              onEdit={setModalPlan}
-              onToggleStatus={handleToggleStatus}
-              expanded={expandedPlans.has(plan.id)}
-              onToggleExpand={() => handleToggleExpand(plan.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && plans.length === 0 && (
-        <div className="text-center py-20">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No plans found</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {showHidden ? 'No pricing plans exist yet.' : 'No active plans. Try showing hidden plans.'}
-          </p>
-          <button
-            onClick={() => setModalPlan(null)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Create First Plan
-          </button>
-        </div>
-      )}
 
       {/* Create/Edit Modal */}
       {modalPlan !== undefined && (
@@ -988,6 +1026,6 @@ export default function BillingPlansPage() {
           isLoading={isSaving}
         />
       )}
-    </div>
+    </>
   );
 }

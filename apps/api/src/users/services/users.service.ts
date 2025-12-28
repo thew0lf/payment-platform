@@ -213,6 +213,31 @@ export class UsersService {
     const tempPassword = this.generateTempPassword();
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+    // Resolve the full hierarchy IDs for the user
+    const clientId = dto.clientId || (dto.scopeType === 'CLIENT' ? dto.scopeId : undefined);
+    const companyId = dto.companyId || (dto.scopeType === 'COMPANY' ? dto.scopeId : undefined);
+
+    // Look up organizationId from the hierarchy if not directly set
+    let organizationId: string | undefined = dto.scopeType === 'ORGANIZATION' ? dto.scopeId : undefined;
+
+    if (!organizationId && clientId) {
+      // Look up organizationId from client
+      const client = await this.prisma.client.findUnique({
+        where: { id: clientId },
+        select: { organizationId: true },
+      });
+      organizationId = client?.organizationId || undefined;
+    }
+
+    if (!organizationId && companyId) {
+      // Look up organizationId from company's client
+      const company = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        include: { client: { select: { organizationId: true } } },
+      });
+      organizationId = company?.client?.organizationId || undefined;
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -223,9 +248,9 @@ export class UsersService {
         status: 'ACTIVE',
         scopeType: dto.scopeType,
         scopeId: dto.scopeId,
-        organizationId: dto.scopeType === 'ORGANIZATION' ? dto.scopeId : undefined,
-        clientId: dto.clientId || (dto.scopeType === 'CLIENT' ? dto.scopeId : undefined),
-        companyId: dto.companyId || (dto.scopeType === 'COMPANY' ? dto.scopeId : undefined),
+        organizationId,
+        clientId,
+        companyId,
         departmentId: dto.departmentId || (dto.scopeType === 'DEPARTMENT' ? dto.scopeId : undefined),
         emailVerified: false,
       },

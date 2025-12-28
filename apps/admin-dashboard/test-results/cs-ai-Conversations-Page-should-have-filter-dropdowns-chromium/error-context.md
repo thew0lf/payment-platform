@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Main navigation" [ref=e4]:
+      - generic [ref=e5]:
+        - link "avnz.io" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e10]: avnz.io
+        - button "Collapse sidebar" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+      - button "A All Clients Platform view" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: A
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: All Clients
+          - paragraph [ref=e20]: Platform view
+        - img [ref=e21]
+      - navigation "Sidebar navigation" [ref=e23]
+      - generic [ref=e26]: Theme
+      - button "P Platform Admin super admin" [ref=e29] [cursor=pointer]:
+        - generic [ref=e30]: P
+        - generic [ref=e31]:
+          - paragraph [ref=e32]: Platform Admin
+          - paragraph [ref=e33]: super admin
+        - img [ref=e34]
+    - main [ref=e36]:
+      - generic [ref=e37]:
+        - button "Search... ⌘ K" [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+          - generic [ref=e43]: Search...
+          - generic [ref=e44]:
+            - generic [ref=e45]: ⌘
+            - generic [ref=e46]: K
+        - generic [ref=e47]:
+          - button [ref=e48] [cursor=pointer]:
+            - img [ref=e49]
+          - link [ref=e53] [cursor=pointer]:
+            - /url: /settings/general
+            - img [ref=e54]
+          - button "P" [ref=e57] [cursor=pointer]
+      - generic [ref=e60]:
+        - heading "Conversations" [level=1] [ref=e62]
+        - paragraph [ref=e63]: CS AI chat sessions
+      - img [ref=e65]
+  - region "Notifications alt+T"
+  - alert [ref=e67]
+```

@@ -54,6 +54,7 @@ const categoryLabels: Record<IntegrationCategory, string> = {
   [IntegrationCategory.WEBHOOK]: 'Webhooks',
   [IntegrationCategory.DEPLOYMENT]: 'Deployment',
   [IntegrationCategory.LOCATION_SERVICES]: 'Location Services',
+  [IntegrationCategory.FULFILLMENT]: 'Fulfillment',
 };
 
 // Provider configuration with icons and brand colors
@@ -362,8 +363,8 @@ export function EditIntegrationModal({
               </div>
             )}
 
-            {/* Default checkbox for client view */}
-            {!isPlatformView && (
+            {/* Default checkbox for client view - only for payment gateways */}
+            {!isPlatformView && integration?.category === IntegrationCategory.PAYMENT_GATEWAY && (
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"

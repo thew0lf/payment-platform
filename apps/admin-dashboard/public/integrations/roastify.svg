@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Coffee bean shape - stylized -->
+  <ellipse cx="32" cy="36" rx="22" ry="24" fill="#5D4037"/>
+  <path d="M32 12C24 12 17 24 17 36C17 48 24 60 32 60C40 60 47 48 47 36C47 24 40 12 32 12ZM32 56C26 56 21 46 21 36C21 26 26 16 32 16C38 16 43 26 43 36C43 46 38 56 32 56Z" fill="#3E2723"/>
+  <!-- Bean crease -->
+  <path d="M32 18C30 18 28 20 28 24C28 30 30 40 32 48C34 40 36 30 36 24C36 20 34 18 32 18Z" fill="#6D4C41" stroke="#3E2723" stroke-width="1"/>
+  <!-- Roasting flame accent at top -->
+  <path d="M26 8C26 8 28 4 32 4C36 4 38 8 38 8C38 8 36 10 32 10C28 10 26 8 26 8Z" fill="#FF6F00"/>
+  <path d="M28 9C28 9 30 6 32 6C34 6 36 9 36 9C36 9 34 10 32 10C30 10 28 9 28 9Z" fill="#FFA000"/>
+  <!-- Highlight -->
+  <ellipse cx="24" cy="30" rx="4" ry="8" fill="#8D6E63" opacity="0.4"/>
+</svg>
