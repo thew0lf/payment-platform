@@ -348,13 +348,15 @@ payment-platform/
 
 ---
 
-## Current Status (December 19, 2025)
+## Current Status (December 28, 2025)
 
 | Feature | Backend | Frontend | Notes |
 |---------|---------|----------|-------|
 | Feature 01: Integrations Framework | ✅ Complete | ✅ Complete | UI-configurable credentials |
 | Feature 02: Dynamic RBAC | ✅ Spec Complete | 🔲 Pending | Hierarchical permissions |
 | Feature 03: Vendor System | ✅ Spec Complete | 🔲 Pending | Two-tier Vendor/VendorCompany |
+| Feature 04: Gateway Risk Management | ✅ Complete | ✅ Complete | Chargebacks, reserves, risk profiles |
+| Product Import System | ✅ Complete | 🔲 Pending | Roastify, field mapping, images |
 | Client & Company Management | ✅ Complete | ✅ Complete | Org-level CRUD with audit logging |
 | Auth & Auth0 SSO | ✅ Complete | ✅ Complete | JWT-based |
 | Password Reset | ✅ Complete | ✅ Complete | SOC2/ISO compliant |
@@ -1459,6 +1461,139 @@ DELETE /api/admin/users/:id/roles/:roleId  # Remove role
 ### Key Files
 - `apps/api/src/products/` - Products backend
 - `apps/admin-dashboard/src/app/(dashboard)/products/` - Products UI
+
+---
+
+## Product Import System
+
+### Overview
+Import products from external fulfillment providers (Roastify, Shopify, etc.) with field mapping, image processing, and real-time progress tracking.
+
+### Architecture
+
+```
+External Provider → Fetch Products → Field Mapping → Create/Update Products
+                                           ↓
+                              Download Images → S3 Storage → Generate Thumbnails
+                                           ↓
+                              SSE Progress Events → Frontend Updates
+```
+
+### Import Phases
+```typescript
+enum ImportJobPhase {
+  QUEUED,              // Job created, waiting to start
+  FETCHING,            // Fetching products from provider
+  MAPPING,             // Applying field mappings
+  CREATING,            // Creating/updating products in database
+  DOWNLOADING_IMAGES,  // Downloading images from provider
+  UPLOADING_IMAGES,    // Uploading to S3
+  GENERATING_THUMBNAILS, // Creating thumbnail variants
+  FINALIZING,          // Cleanup and final status
+  DONE,                // Complete
+}
+```
+
+### Conflict Resolution Strategies
+| Strategy | Behavior |
+|----------|----------|
+| `SKIP` | Skip products that already exist |
+| `UPDATE` | Update existing products with new data |
+| `MERGE` | Merge new data with existing (preserve non-null) |
+| `FORCE_CREATE` | Create duplicate (new SKU) |
+
+### API Endpoints
+```
+# Import Jobs
+POST   /api/product-import/jobs              # Create import job
+GET    /api/product-import/jobs              # List jobs
+GET    /api/product-import/jobs/:id          # Get job details
+POST   /api/product-import/jobs/:id/cancel   # Cancel job
+POST   /api/product-import/jobs/:id/retry    # Retry failed job
+GET    /api/product-import/jobs/:id/events   # SSE progress stream
+
+# Field Mappings
+GET    /api/product-import/field-mappings         # List profiles
+POST   /api/product-import/field-mappings         # Create profile
+PATCH  /api/product-import/field-mappings/:id     # Update profile
+DELETE /api/product-import/field-mappings/:id     # Delete profile
+
+# Storage & Billing
+GET    /api/product-import/storage           # Storage usage stats
+GET    /api/product-import/history           # Import history
+GET    /api/product-import/estimate-cost     # Cost estimation
+
+# Preview
+POST   /api/product-import/preview           # Preview import
+```
+
+### Field Mapping System
+```typescript
+interface FieldMapping {
+  sourceField: string;      // External field name
+  targetField: string;      // Product model field
+  transform?: 'uppercase' | 'lowercase' | 'trim' | 'number' | 'boolean' | 'date';
+  defaultValue?: any;       // Default if source is null
+  validation?: {
+    required?: boolean;
+    format?: string;        // Regex pattern
+    minLength?: number;
+    maxLength?: number;
+  };
+}
+```
+
+### Key Models
+```prisma
+model ProductImportJob {
+  id                String           @id @default(cuid())
+  companyId         String
+  status            ImportJobStatus  // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  phase             ImportJobPhase
+  totalProducts     Int
+  processedProducts Int
+  importedCount     Int
+  skippedCount      Int
+  errorCount        Int
+  config            Json             // Import configuration
+  errorLog          Json?            // Error details
+}
+
+model ProductImage {
+  id              String   @id @default(cuid())
+  productId       String
+  companyId       String
+  s3Key           String   @unique
+  cdnUrl          String
+  size            Int      // bytes
+  thumbnailSmall  String?
+  thumbnailMedium String?
+  thumbnailLarge  String?
+  thumbnailBytes  Int      @default(0)
+}
+
+model ProductFieldMappingProfile {
+  id        String   @id @default(cuid())
+  companyId String
+  provider  String   // ROASTIFY, SHOPIFY, etc.
+  name      String
+  mappings  Json     // Array of FieldMapping
+  isDefault Boolean  @default(false)
+}
+```
+
+### Key Files
+- `apps/api/src/product-import/` - Product Import module
+- `apps/api/src/product-import/services/product-import.service.ts` - Core service
+- `apps/api/src/product-import/services/field-mapping.service.ts` - Field mapping
+- `apps/api/src/product-import/services/image-import.service.ts` - Image processing
+- `apps/api/src/product-import/processors/product-import.processor.ts` - Queue processor
+- `apps/api/src/integrations/services/providers/roastify.service.ts` - Roastify provider
+- `docs/roadmap/PRODUCT_IMPORT_SPECIFICATION.md` - Full specification
+
+### Test Coverage
+- 209 unit tests covering all phases
+- Bootstrap test to catch DI errors (`app.module.spec.ts`)
 
 ---
 
