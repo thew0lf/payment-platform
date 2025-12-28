@@ -48,6 +48,8 @@ import { LaunchDarklyService } from './services/providers/launchdarkly.service';
 import { VercelService } from './services/providers/vercel.service';
 // OAuth/Communication
 import { SlackService } from './services/providers/slack.service';
+// Fulfillment Providers
+import { RoastifyService } from './services/providers/roastify.service';
 // Location Services
 import { GooglePlacesService } from './services/providers/google-places.service';
 
@@ -102,6 +104,8 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     SlackService,
     // Location Services
     GooglePlacesService,
+    // Fulfillment Providers
+    RoastifyService,
   ],
   exports: [
     CredentialEncryptionService,
@@ -149,6 +153,8 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     SlackService,
     // Location Services
     GooglePlacesService,
+    // Fulfillment Providers
+    RoastifyService,
   ],
 })
 export class IntegrationsModule {}
