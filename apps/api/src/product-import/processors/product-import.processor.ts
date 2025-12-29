@@ -592,32 +592,41 @@ export class ProductImportProcessor {
         const roastifyProducts = await this.roastifyService.importAllProducts({
           apiKey: credentials.apiKey,
         });
-        return roastifyProducts.map((p) => ({
-          id: p.id,
-          sku: p.sku,
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          currency: p.currency,
-          images: p.images.map((img) => ({
-            id: img.id,
-            url: img.url,
-            altText: img.altText,
-            position: img.position,
-          })),
-          variants: p.variants.map((v) => ({
-            id: v.id,
-            sku: v.sku,
-            name: v.name,
-            price: v.price,
-            inventory: v.inventory,
-          })),
-          metadata: {
-            productType: p.productType,
-            roastLevel: p.roastLevel,
-            origin: p.origin,
-          },
-        }));
+        return roastifyProducts.map((p) => {
+          // Roastify API returns 'title' for product name
+          const productName = p.title || p.name || 'Untitled Product';
+          // Extract first variant SKU if product-level SKU is not available
+          const productSku = p.sku || p.variants?.[0]?.sku || `ROAST-${p.id.substring(0, 8)}`;
+          // Get price from first variant if product-level price not available
+          const productPrice = p.price ?? p.retailPrice ?? p.variants?.[0]?.retailPrice ?? 0;
+
+          return {
+            id: p.id,
+            sku: productSku,
+            name: productName,
+            description: p.description || '',
+            price: productPrice,
+            currency: p.currency || 'USD',
+            images: (p.images || []).map((img: any, index: number) => ({
+              id: img.id || `img-${index}`,
+              url: img.url,
+              altText: img.altText || productName,
+              position: img.position ?? index,
+            })),
+            variants: (p.variants || []).map((v: any) => ({
+              id: v.id,
+              sku: v.sku,
+              name: v.title || v.name || '',
+              price: v.retailPrice ?? v.price ?? 0,
+              inventory: v.stockQty ?? v.inventory ?? 0,
+            })),
+            metadata: {
+              productType: p.productType,
+              roastLevel: p.roastLevel,
+              origin: p.origin,
+            },
+          };
+        });
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);
