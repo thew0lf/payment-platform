@@ -2,7 +2,28 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { JwtPayload, AuthService } from '../auth.service';
+
+/**
+ * Custom JWT extractor that checks:
+ * 1. Authorization header (Bearer token)
+ * 2. Query parameter 'token' (for SSE connections)
+ */
+function extractJwtFromRequestOrQuery(req: Request): string | null {
+  // First, try to extract from Authorization header
+  const headerToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+  if (headerToken) {
+    return headerToken;
+  }
+
+  // Fallback: extract from query parameter (for SSE)
+  if (req.query && typeof req.query.token === 'string') {
+    return req.query.token;
+  }
+
+  return null;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly authService: AuthService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: extractJwtFromRequestOrQuery,
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
     });

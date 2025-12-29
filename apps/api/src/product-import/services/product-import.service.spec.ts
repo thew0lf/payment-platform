@@ -4,6 +4,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ProductImportService } from './product-import.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RoastifyService } from '../../integrations/services/providers/roastify.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
 import { FieldMappingService } from './field-mapping.service';
 import { ImportEventService } from './import-event.service';
 import { PRODUCT_IMPORT_QUEUE } from '../types/product-import.types';
@@ -171,6 +172,13 @@ describe('ProductImportService', () => {
           },
         },
         {
+          provide: CredentialEncryptionService,
+          useValue: {
+            decrypt: jest.fn().mockReturnValue({ apiKey: 'test_api_key' }),
+            encrypt: jest.fn().mockReturnValue({ iv: 'test_iv', encryptedData: 'test_data', authTag: 'test_tag' }),
+          },
+        },
+        {
           provide: ImportEventService,
           useValue: {
             emitJobStarted: jest.fn(),
@@ -295,6 +303,8 @@ describe('ProductImportService', () => {
       ];
       (prisma.clientIntegration.findFirst as jest.Mock).mockResolvedValue(createMockIntegration());
       (roastifyService.importAllProducts as jest.Mock).mockResolvedValue(mockProducts);
+      // Reset and set up the product.findMany mock explicitly
+      (prisma.product.findMany as jest.Mock).mockReset();
       (prisma.product.findMany as jest.Mock).mockResolvedValue([
         { id: 'existing_1', sku: 'SKU-001', externalId: null, importSource: null },
       ]);
@@ -302,8 +312,15 @@ describe('ProductImportService', () => {
 
       const result = await service.previewImport(previewDto, mockCompanyId, mockClientId);
 
-      // willSkip should be 1 since SKU-001 exists
+      // Verify product.findMany was called to check for duplicates
+      expect(prisma.product.findMany).toHaveBeenCalledWith({
+        where: { companyId: mockCompanyId },
+        select: { sku: true, externalId: true, importSource: true },
+      });
+
+      // willSkip should be 1 since SKU-001 already exists in the database
       expect(result.willSkip).toBe(1);
+      expect(result.willImport).toBe(1);
     });
 
     it('should throw NotFoundException for missing integration', async () => {

@@ -28,6 +28,8 @@ import {
   FieldMappingDto,
 } from '../dto/product-import.dto';
 import { RoastifyService } from '../../integrations/services/providers/roastify.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { EncryptedCredentials } from '../../integrations/types/integration.types';
 import { FieldMappingService } from './field-mapping.service';
 import { ImportEventService } from './import-event.service';
 
@@ -39,6 +41,7 @@ export class ProductImportService {
     private readonly prisma: PrismaService,
     @InjectQueue(PRODUCT_IMPORT_QUEUE) private readonly importQueue: Queue<ImportJobData>,
     private readonly roastifyService: RoastifyService,
+    private readonly credentialEncryptionService: CredentialEncryptionService,
     private readonly fieldMappingService: FieldMappingService,
     private readonly importEventService: ImportEventService,
   ) {}
@@ -93,6 +96,7 @@ export class ProductImportService {
       generateThumbnails: dto.generateThumbnails ?? true,
       skipDuplicates: dto.skipDuplicates ?? true,
       updateExisting: dto.updateExisting ?? false,
+      conflictStrategy: dto.conflictStrategy,
       fieldMappingProfileId: dto.fieldMappingProfileId,
       customMappings: dto.customMappings,
     };
@@ -361,6 +365,11 @@ export class ProductImportService {
         existingExternalIds.has(product.id) || existingSkuSet.has(product.sku);
       const willImport = !isDuplicate;
 
+      // Handle variant count - could be in variants array or metadata
+      const variantCount: number = Array.isArray(product.variants)
+        ? product.variants.length
+        : (typeof product.metadata?.variantCount === 'number' ? product.metadata.variantCount : 0);
+
       return {
         externalId: product.id,
         sku: product.sku,
@@ -369,7 +378,7 @@ export class ProductImportService {
         price: product.price,
         currency: product.currency,
         imageCount: product.images?.length || 0,
-        variantCount: product.variants?.length || 0,
+        variantCount,
         willImport,
         skipReason: isDuplicate ? 'Product already exists in your catalog (matching SKU or product ID)' : undefined,
         mappedData: this.fieldMappingService.applyMappings(product, mappings).data,
@@ -382,13 +391,20 @@ export class ProductImportService {
       .filter((p) => p.willImport)
       .reduce((sum, p) => sum + p.imageCount, 0);
 
-    // Get default mappings and convert to DTO format (simple transforms only)
+    // Extract available source fields from the actual product data
+    const availableSourceFields = this.extractAvailableFields(products);
+
+    // Get default mappings and filter to only include fields that exist in source data
     const defaultMappings = this.getDefaultMappings(integration.provider);
-    const suggestedMappings: FieldMappingDto[] = defaultMappings.map((m) => ({
-      sourceField: m.sourceField,
-      targetField: m.targetField,
-      transform: typeof m.transform === 'string' ? m.transform : undefined,
-    }));
+    const suggestedMappings: FieldMappingDto[] = defaultMappings.map((m) => {
+      // Only set sourceField if it exists in the available fields
+      const sourceExists = availableSourceFields.includes(m.sourceField);
+      return {
+        sourceField: sourceExists ? m.sourceField : '', // Empty if field doesn't exist
+        targetField: m.targetField,
+        transform: typeof m.transform === 'string' ? m.transform : undefined,
+      };
+    });
 
     return {
       provider: integration.provider,
@@ -398,6 +414,7 @@ export class ProductImportService {
       estimatedImages,
       products: previewProducts,
       suggestedMappings,
+      availableSourceFields,
     };
   }
 
@@ -507,6 +524,18 @@ export class ProductImportService {
 
   /**
    * Fetch products from a provider integration
+   *
+   * IMPORTANT: Each provider handler is responsible for normalizing data
+   * to the standard ExternalProduct format:
+   * - price: Always in dollars (not cents)
+   * - name: Product title/name
+   * - sku: Stock keeping unit
+   * - description: Product description
+   * - images: Array of { id, url, altText, position }
+   * - variants: Array of variant data
+   *
+   * This normalization happens HERE, so default field mappings can be generic.
+   * When adding new providers, follow the Roastify example for data transformation.
    */
   private async fetchProductsFromProvider(
     integration: {
@@ -514,47 +543,71 @@ export class ProductImportService {
       credentials: Prisma.JsonValue | null;
     },
   ): Promise<ExternalProduct[]> {
-    const credentials = integration.credentials as Record<string, string> | null;
-
-    if (!credentials) {
+    if (!integration.credentials) {
       throw new BadRequestException(
         'Integration credentials not configured. Please add your credentials in Settings > Integrations before importing products.',
       );
     }
 
+    // Decrypt credentials before using them
+    const encryptedCredentials = integration.credentials as unknown as EncryptedCredentials;
+    const credentials = this.credentialEncryptionService.decrypt(encryptedCredentials) as Record<string, string>;
+
     switch (integration.provider) {
       case 'ROASTIFY':
+        // Fetch USER products from GET /products endpoint
         const roastifyProducts = await this.roastifyService.importAllProducts({
           apiKey: credentials.apiKey,
         });
-        return roastifyProducts.map((p) => ({
-          id: p.id,
-          sku: p.sku,
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          currency: p.currency,
-          images: p.images.map((img) => ({
-            id: img.id,
-            url: img.url,
-            altText: img.altText,
-            position: img.position,
-          })),
-          variants: p.variants.map((v) => ({
+        // Log raw data from Roastify
+        this.logger.log(`RAW Roastify products: ${JSON.stringify(roastifyProducts)}`);
+
+        // Map Roastify product format to our format
+        // Roastify: { id, title, description, imageUrl, images[], variants[], productType }
+        return roastifyProducts.map((p: any) => {
+          // Collect all images
+          const images: { id: string; url: string; altText?: string; position: number }[] = [];
+          if (p.imageUrl) {
+            images.push({ id: `${p.id}-main`, url: p.imageUrl, altText: p.title, position: 0 });
+          }
+          if (Array.isArray(p.images)) {
+            p.images.forEach((img: any, idx: number) => {
+              if (img.url && img.url !== p.imageUrl) {
+                images.push({ id: `${p.id}-${idx}`, url: img.url, altText: p.title, position: idx + 1 });
+              }
+            });
+          }
+
+          // Map variants (retailPrice is in cents, convert to dollars)
+          const variants = Array.isArray(p.variants) ? p.variants.map((v: any) => ({
             id: v.id,
-            sku: v.sku,
-            name: v.name,
-            price: v.price,
-            inventory: v.inventory,
-            options: v.grindType ? { grindType: v.grindType } : undefined,
-          })),
-          metadata: {
-            productType: p.productType,
-            roastLevel: p.roastLevel,
-            origin: p.origin,
-            flavorNotes: p.flavorNotes,
-          },
-        }));
+            sku: v.sku || v.id,
+            name: v.title || v.size || 'Default',
+            price: (v.retailPrice || 0) / 100,
+            inventory: v.stockQty || 0,
+            inStock: v.inStock ?? true,
+          })) : [];
+
+          // Get price from first variant if available
+          const firstVariant = variants[0];
+          const price = firstVariant?.price || 0;
+
+          return {
+            id: p.id,
+            // Use product-level SKU first, then variant SKU, then fallback to product ID
+            sku: p.sku || firstVariant?.sku || p.id,
+            name: p.title || 'Unnamed Product',
+            description: p.description || '',
+            price,
+            currency: 'USD',
+            images,
+            variants,
+            metadata: {
+              productType: p.productType,
+              createdAt: p.createdAt,
+            },
+          };
+        });
 
       default:
         throw new BadRequestException(
@@ -601,16 +654,70 @@ export class ProductImportService {
 
   /**
    * Get default field mappings for a provider
+   *
+   * These mappings include sensible default transforms:
+   * - 'trim' for text fields to clean up whitespace
+   * - 'uppercase' for SKU for consistency
+   * - 'stripHtml' for description to ensure clean text
+   *
+   * Note: Price normalization (cents to dollars) happens in fetchProductsFromProvider()
+   * so no price transform is needed here.
    */
   private getDefaultMappings(provider: string): FieldMapping[] {
-    // Default mappings that work for most providers
-    return [
-      { sourceField: 'name', targetField: 'name' },
-      { sourceField: 'description', targetField: 'description' },
-      { sourceField: 'sku', targetField: 'sku' },
-      { sourceField: 'price', targetField: 'basePrice', transform: 'centsToDecimal' },
-      { sourceField: 'currency', targetField: 'currency' },
-    ];
+    // Provider-specific mappings with recommended transforms
+    switch (provider) {
+      case 'ROASTIFY':
+        // Roastify data is pre-normalized in fetchProductsFromProvider
+        // Add helpful text transforms for cleaner data
+        return [
+          { sourceField: 'name', targetField: 'name', transform: 'trim' },
+          { sourceField: 'sku', targetField: 'sku', transform: 'uppercase' },
+          { sourceField: 'price', targetField: 'price' },
+          { sourceField: 'description', targetField: 'description', transform: 'stripHtml' },
+        ];
+
+      default:
+        // Generic mappings for unknown providers
+        return [
+          { sourceField: 'name', targetField: 'name', transform: 'trim' },
+          { sourceField: 'sku', targetField: 'sku', transform: 'uppercase' },
+          { sourceField: 'price', targetField: 'price' },
+          { sourceField: 'description', targetField: 'description', transform: 'trim' },
+        ];
+    }
+  }
+
+  /**
+   * Extract available source fields from product data
+   * Returns list of field names that have non-empty values in at least one product
+   */
+  private extractAvailableFields(products: ExternalProduct[]): string[] {
+    if (!products.length) return [];
+
+    const fieldsSet = new Set<string>();
+
+    // Check first product for available fields (all products should have same structure)
+    const sampleProduct = products[0];
+
+    // Check standard fields
+    if (sampleProduct.name) fieldsSet.add('name');
+    if (sampleProduct.sku) fieldsSet.add('sku');
+    if (sampleProduct.description) fieldsSet.add('description');
+    if (typeof sampleProduct.price === 'number') fieldsSet.add('price');
+    if (sampleProduct.currency) fieldsSet.add('currency');
+    if (sampleProduct.images?.length) fieldsSet.add('images');
+    if (sampleProduct.variants?.length) fieldsSet.add('variants');
+
+    // Check metadata fields
+    if (sampleProduct.metadata) {
+      Object.keys(sampleProduct.metadata).forEach((key) => {
+        if (sampleProduct.metadata![key] !== undefined && sampleProduct.metadata![key] !== null) {
+          fieldsSet.add(key);
+        }
+      });
+    }
+
+    return Array.from(fieldsSet).sort();
   }
 
   // Note: Field mapping application is now handled by FieldMappingService

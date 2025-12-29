@@ -4,12 +4,20 @@ import {
   IsOptional,
   IsArray,
   IsEnum,
+  IsIn,
   ValidateNested,
   IsNotEmpty,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ImportJobStatus, ImportJobPhase } from '@prisma/client';
-import { FieldTransform } from '../types/product-import.types';
+import {
+  FieldTransform,
+  FieldTransformConfig,
+  FieldMappingCondition,
+  FieldValidationRule,
+  ConflictStrategy,
+} from '../types/product-import.types';
 
 // ═══════════════════════════════════════════════════════════════
 // FIELD MAPPING DTO
@@ -25,8 +33,18 @@ export class FieldMappingDto {
   targetField: string;
 
   @IsOptional()
-  @IsString()
-  transform?: FieldTransform;
+  transform?: FieldTransform | FieldTransformConfig | FieldTransformConfig[];
+
+  @IsOptional()
+  @IsObject()
+  condition?: FieldMappingCondition;
+
+  @IsOptional()
+  @IsArray()
+  validation?: FieldValidationRule[];
+
+  @IsOptional()
+  defaultValue?: unknown;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -58,6 +76,10 @@ export class CreateImportJobDto {
   @IsOptional()
   @IsBoolean()
   updateExisting?: boolean = false;
+
+  @IsOptional()
+  @IsIn(['SKIP', 'UPDATE', 'MERGE', 'FORCE_CREATE'])
+  conflictStrategy?: ConflictStrategy;
 
   @IsOptional()
   @IsString()
@@ -149,6 +171,10 @@ export class ListImportJobsQueryDto {
   @IsOptional()
   @IsString()
   offset?: string;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -198,6 +224,7 @@ export class PreviewImportResponseDto {
   estimatedImages: number;
   products: PreviewProductDto[];
   suggestedMappings: FieldMappingDto[];
+  availableSourceFields: string[]; // Fields that exist in the source data
 }
 
 export class ImportJobListResponseDto {

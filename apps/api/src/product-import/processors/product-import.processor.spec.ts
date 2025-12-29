@@ -3,6 +3,7 @@ import { Job } from 'bull';
 import { ProductImportProcessor } from './product-import.processor';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RoastifyService } from '../../integrations/services/providers/roastify.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
 import { FieldMappingService } from '../services/field-mapping.service';
 import { ImageImportService } from '../services/image-import.service';
 import { ImportEventService } from '../services/import-event.service';
@@ -14,6 +15,7 @@ describe('ProductImportProcessor', () => {
   let processor: ProductImportProcessor;
   let prisma: jest.Mocked<PrismaService>;
   let roastifyService: jest.Mocked<RoastifyService>;
+  let credentialEncryptionService: jest.Mocked<CredentialEncryptionService>;
   let fieldMappingService: jest.Mocked<FieldMappingService>;
 
   // ═══════════════════════════════════════════════════════════════
@@ -127,6 +129,13 @@ describe('ProductImportProcessor', () => {
           },
         },
         {
+          provide: CredentialEncryptionService,
+          useValue: {
+            decrypt: jest.fn().mockReturnValue({ apiKey: 'test_api_key' }),
+            encrypt: jest.fn().mockReturnValue({ iv: 'test_iv', encryptedData: 'test_data', authTag: 'test_tag' }),
+          },
+        },
+        {
           provide: FieldMappingService,
           useValue: {
             applyMappings: jest.fn().mockReturnValue({
@@ -169,6 +178,7 @@ describe('ProductImportProcessor', () => {
     processor = module.get<ProductImportProcessor>(ProductImportProcessor);
     prisma = module.get(PrismaService);
     roastifyService = module.get(RoastifyService);
+    credentialEncryptionService = module.get(CredentialEncryptionService);
     fieldMappingService = module.get(FieldMappingService);
   });
 

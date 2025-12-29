@@ -10,18 +10,32 @@ import { ImportEventService } from './services/import-event.service';
 import { ProductImportProcessor } from './processors/product-import.processor';
 import { PRODUCT_IMPORT_QUEUE } from './types/product-import.types';
 import { IntegrationsModule } from '../integrations';
+import { HierarchyModule } from '../hierarchy/hierarchy.module';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', maxListeners: 20 }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST', 'localhost'),
-          port: configService.get('REDIS_PORT', 6379),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        // Support both REDIS_URL and separate HOST/PORT
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (redisUrl) {
+          const url = new URL(redisUrl);
+          return {
+            redis: {
+              host: url.hostname,
+              port: parseInt(url.port || '6379', 10),
+            },
+          };
+        }
+        return {
+          redis: {
+            host: configService.get('REDIS_HOST', 'localhost'),
+            port: configService.get('REDIS_PORT', 6379),
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue({
@@ -37,6 +51,7 @@ import { IntegrationsModule } from '../integrations';
       },
     }),
     IntegrationsModule,
+    HierarchyModule, // For RBAC access validation
   ],
   controllers: [ProductImportController],
   providers: [

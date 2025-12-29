@@ -9945,8 +9945,11 @@ model ProductImportJob {
   // Relations
   company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  @@index([companyId, status])
-  @@index([status, createdAt])
+  // Indexes for common query patterns
+  @@index([companyId])              // Company-scoped job listings
+  @@index([companyId, status])      // Company + status filtering
+  @@index([status, createdAt])      // Status filtering with time ordering
+  @@index([provider])               // Provider-specific analytics
   @@map("product_import_jobs")
 }
 
@@ -10037,6 +10040,8 @@ model FieldMappingProfile {
   // Relations
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  // Indexes for common query patterns
+  @@index([companyId, provider])    // Listing profiles by company and provider
   @@unique([companyId, provider, name])
   @@map("field_mapping_profiles")
 }

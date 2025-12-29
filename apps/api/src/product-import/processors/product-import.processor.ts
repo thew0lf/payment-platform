@@ -17,6 +17,8 @@ import {
   ImportJobConfig,
 } from '../types/product-import.types';
 import { RoastifyService } from '../../integrations/services/providers/roastify.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { EncryptedCredentials } from '../../integrations/types/integration.types';
 import { FieldMappingService } from '../services/field-mapping.service';
 import { ImageImportService } from '../services/image-import.service';
 import { ImportEventService } from '../services/import-event.service';
@@ -29,6 +31,7 @@ export class ProductImportProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roastifyService: RoastifyService,
+    private readonly credentialEncryptionService: CredentialEncryptionService,
     private readonly fieldMappingService: FieldMappingService,
     private readonly imageImportService: ImageImportService,
     private readonly importEventService: ImportEventService,
@@ -119,7 +122,9 @@ export class ProductImportProcessor {
         throw new Error('Integration not found or credentials missing');
       }
 
-      const credentials = integration.credentials as Record<string, string>;
+      // Decrypt credentials before using them
+      const encryptedCredentials = integration.credentials as unknown as EncryptedCredentials;
+      const credentials = this.credentialEncryptionService.decrypt(encryptedCredentials) as Record<string, string>;
 
       // Fetch products from provider
       const products = await this.fetchProducts(config.provider, credentials);
@@ -225,6 +230,11 @@ export class ProductImportProcessor {
 
             // Create or update product based on conflict resolution
             if (updateExistingId) {
+              // Calculate the import price once with proper null handling
+              const importPrice = mappedData.price != null
+                ? (mappedData.price as number)
+                : product.price / 100;
+
               // Update existing product
               if (conflictStrategy === 'MERGE') {
                 // MERGE: Get existing product and only update empty fields
@@ -236,9 +246,9 @@ export class ProductImportProcessor {
                   where: { id: updateExistingId },
                   data: {
                     name: existingProduct?.name || (mappedData.name as string),
-                    description: existingProduct?.description || (mappedData.description as string),
-                    price: existingProduct?.price ?? (mappedData.price as number),
-                    currency: existingProduct?.currency || (mappedData.currency as string) || 'USD',
+                    description: existingProduct?.description ?? (mappedData.description as string),
+                    price: existingProduct?.price ?? importPrice,
+                    currency: existingProduct?.currency ?? (mappedData.currency as string) ?? 'USD',
                     lastSyncedAt: new Date(),
                   },
                 });
@@ -248,9 +258,9 @@ export class ProductImportProcessor {
                   where: { id: updateExistingId },
                   data: {
                     name: mappedData.name as string,
-                    description: mappedData.description as string,
-                    price: mappedData.price as number,
-                    currency: (mappedData.currency as string) || 'USD',
+                    description: (mappedData.description as string) ?? product.description ?? '',
+                    price: importPrice,
+                    currency: (mappedData.currency as string) ?? 'USD',
                     lastSyncedAt: new Date(),
                   },
                 });
@@ -267,15 +277,22 @@ export class ProductImportProcessor {
               const productName = (mappedData.name as string) || product.name;
               const slug = this.generateSlug(productName, effectiveSku);
 
+              // Use nullish coalescing (??) to handle 0 as a valid price
+              // mappedData.price already has transforms applied (e.g., centsToDecimal)
+              // Fall back to raw product.price / 100 only when mappedData.price is null/undefined
+              const finalPrice = mappedData.price != null
+                ? (mappedData.price as number)
+                : product.price / 100;
+
               const newProduct = await this.prisma.product.create({
                 data: {
                   companyId,
                   name: productName,
-                  description: (mappedData.description as string) || product.description || '',
+                  description: (mappedData.description as string) ?? product.description ?? '',
                   sku: effectiveSku,
                   slug,
-                  price: (mappedData.price as number) || product.price / 100,
-                  currency: (mappedData.currency as string) || product.currency || 'USD',
+                  price: finalPrice,
+                  currency: (mappedData.currency as string) ?? product.currency ?? 'USD',
                   status: 'DRAFT',
                   importSource: config.provider,
                   externalId: product.id,

@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ProductImportController } from './product-import.controller';
 import { ProductImportService } from '../services/product-import.service';
 import { ImportEventService } from '../services/import-event.service';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { ImportJobStatus, ImportJobPhase } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -11,6 +12,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 describe('ProductImportController', () => {
   let controller: ProductImportController;
   let service: jest.Mocked<ProductImportService>;
+  let hierarchyService: jest.Mocked<HierarchyService>;
 
   // ═══════════════════════════════════════════════════════════════
   // TEST DATA FACTORIES
@@ -19,6 +21,7 @@ describe('ProductImportController', () => {
   const mockCompanyId = 'company_123';
   const mockClientId = 'client_456';
   const mockUserId = 'user_789';
+  const mockOtherCompanyId = 'other_company_999';
 
   const createMockUser = (overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser => ({
     id: mockUserId,
@@ -26,6 +29,8 @@ describe('ProductImportController', () => {
     organizationId: 'org_123',
     clientId: mockClientId,
     companyId: mockCompanyId,
+    scopeType: 'COMPANY',
+    scopeId: mockCompanyId,
     permissions: ['products:write', 'products:read'],
     ...overrides,
   } as AuthenticatedUser);
@@ -106,6 +111,16 @@ describe('ProductImportController', () => {
             getSubscriptionCount: jest.fn().mockReturnValue(0),
           },
         },
+        {
+          provide: HierarchyService,
+          useValue: {
+            canAccessCompany: jest.fn().mockResolvedValue(true),
+            validateCompanyAccess: jest.fn().mockResolvedValue(undefined),
+            denyAccess: jest.fn().mockImplementation(() => {
+              throw new ForbiddenException('Access denied');
+            }),
+          },
+        },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -116,6 +131,7 @@ describe('ProductImportController', () => {
 
     controller = module.get<ProductImportController>(ProductImportController);
     service = module.get(ProductImportService);
+    hierarchyService = module.get(HierarchyService);
   });
 
   afterEach(() => {
@@ -165,13 +181,14 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId available', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const companyUser = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
-      await expect(controller.createImportJob(createDto, '', user)).rejects.toThrow(
+      await expect(controller.createImportJob(createDto, '', companyUser)).rejects.toThrow(
         BadRequestException,
       );
-      await expect(controller.createImportJob(createDto, '', user)).rejects.toThrow(
-        'Company ID is required',
+      await expect(controller.createImportJob(createDto, '', companyUser)).rejects.toThrow(
+        'Company context required for this operation',
       );
     });
 
@@ -218,6 +235,7 @@ describe('ProductImportController', () => {
       willSkip: 0,
       estimatedImages: 0,
       suggestedMappings: [{ sourceField: 'name', targetField: 'name' }],
+      availableSourceFields: ['name', 'sku', 'price', 'description'],
     };
 
     it('should return preview data successfully', async () => {
@@ -231,10 +249,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.previewImport(previewDto, '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
 
@@ -271,10 +290,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.listImportJobs(queryDto, '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -295,10 +315,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.getImportJob('job_123', '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -320,10 +341,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.cancelImportJob('job_123', '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -345,10 +367,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.retryImportJob('job_123', '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -380,10 +403,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.createFieldMappingProfile(createDto, '', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -400,10 +424,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.listFieldMappingProfiles('', 'ROASTIFY', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -434,11 +459,12 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(
         controller.updateFieldMappingProfile('profile_123', updateDto, '', user),
-      ).rejects.toThrow('Company ID is required');
+      ).rejects.toThrow('Company context required');
     });
   });
 
@@ -454,11 +480,12 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(
         controller.deleteFieldMappingProfile('profile_123', '', user),
-      ).rejects.toThrow('Company ID is required');
+      ).rejects.toThrow('Company context required');
     });
   });
 
@@ -502,10 +529,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.getStorageUsage('', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -547,10 +575,11 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(controller.getImportHistory('', user)).rejects.toThrow(
-        'Company ID is required',
+        'Company context required',
       );
     });
   });
@@ -643,11 +672,12 @@ describe('ProductImportController', () => {
     });
 
     it('should throw BadRequestException if no companyId', async () => {
-      const user = createMockUser({ companyId: undefined });
+      // COMPANY-scoped users without companyId get "context required"
+      const user = createMockUser({ companyId: undefined, scopeType: 'COMPANY', scopeId: 'company-scope' });
 
       await expect(
         controller.estimateImportCost('', '100', '200', 'true', user),
-      ).rejects.toThrow('Company ID is required');
+      ).rejects.toThrow('Company context required');
     });
 
     it('should default productCount and imageCount to 0 when empty', async () => {
@@ -661,6 +691,178 @@ describe('ProductImportController', () => {
       await controller.estimateImportCost(mockCompanyId, '', '', 'true', user);
 
       expect(service.estimateImportCost).toHaveBeenCalledWith(mockCompanyId, 0, 0, true);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // RBAC ACCESS CONTROL TESTS (SOC2/ISO27001 Compliance)
+  // ═══════════════════════════════════════════════════════════════
+
+  describe('RBAC Access Control', () => {
+    describe('COMPANY-scoped users', () => {
+      it('should always use user companyId regardless of query param', async () => {
+        const companyUser = createMockUser({ scopeType: 'COMPANY', scopeId: mockCompanyId });
+        service.listImportJobs.mockResolvedValue({ items: [], total: 0, limit: 10, offset: 0 });
+
+        // Even if user tries to pass a different companyId, should use their own
+        await controller.listImportJobs({} as any, mockOtherCompanyId, companyUser);
+
+        // Service should be called with user's companyId, not the query param
+        expect(service.listImportJobs).toHaveBeenCalledWith(mockCompanyId, expect.any(Object));
+      });
+
+      it('should use user companyId for write operations', async () => {
+        const companyUser = createMockUser({ scopeType: 'COMPANY', scopeId: mockCompanyId });
+        service.createImportJob.mockResolvedValue(mockImportJob);
+
+        await controller.createImportJob(
+          { integrationId: 'int_123' } as any,
+          mockOtherCompanyId, // Attempting to access another company
+          companyUser,
+        );
+
+        expect(service.createImportJob).toHaveBeenCalledWith(
+          expect.any(Object),
+          mockCompanyId, // Should use user's companyId
+          mockClientId,
+          mockUserId,
+        );
+      });
+    });
+
+    describe('CLIENT-scoped users', () => {
+      it('should validate access to requested company', async () => {
+        const clientUser = createMockUser({
+          scopeType: 'CLIENT',
+          scopeId: mockClientId,
+          companyId: undefined,
+        });
+        service.listImportJobs.mockResolvedValue({ items: [], total: 0, limit: 10, offset: 0 });
+        hierarchyService.canAccessCompany.mockResolvedValue(true);
+
+        await controller.listImportJobs({} as any, mockCompanyId, clientUser);
+
+        expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
+        expect(service.listImportJobs).toHaveBeenCalledWith(mockCompanyId, expect.any(Object));
+      });
+
+      it('should throw ForbiddenException when accessing unauthorized company', async () => {
+        const clientUser = createMockUser({
+          scopeType: 'CLIENT',
+          scopeId: mockClientId,
+          companyId: undefined,
+        });
+        hierarchyService.canAccessCompany.mockResolvedValue(false);
+
+        await expect(
+          controller.listImportJobs({} as any, mockOtherCompanyId, clientUser),
+        ).rejects.toThrow(ForbiddenException);
+        expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
+      });
+    });
+
+    describe('ORGANIZATION-scoped users', () => {
+      it('should allow access to any company after validation', async () => {
+        const orgUser = createMockUser({
+          scopeType: 'ORGANIZATION',
+          scopeId: 'org_123',
+          companyId: undefined,
+        });
+        service.listImportJobs.mockResolvedValue({ items: [], total: 0, limit: 10, offset: 0 });
+        hierarchyService.canAccessCompany.mockResolvedValue(true);
+
+        await controller.listImportJobs({} as any, mockCompanyId, orgUser);
+
+        expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
+        expect(service.listImportJobs).toHaveBeenCalledWith(mockCompanyId, expect.any(Object));
+      });
+
+      it('should require companyId for operations', async () => {
+        const orgUser = createMockUser({
+          scopeType: 'ORGANIZATION',
+          scopeId: 'org_123',
+          companyId: undefined,
+        });
+
+        await expect(controller.listImportJobs({} as any, '', orgUser)).rejects.toThrow(
+          BadRequestException,
+        );
+      });
+    });
+
+    describe('Cross-tenant isolation for write operations', () => {
+      it('should prevent creating jobs in unauthorized companies', async () => {
+        const clientUser = createMockUser({
+          scopeType: 'CLIENT',
+          scopeId: mockClientId,
+          companyId: undefined,
+        });
+        hierarchyService.canAccessCompany.mockResolvedValue(false);
+
+        await expect(
+          controller.createImportJob({ integrationId: 'int_123' } as any, mockOtherCompanyId, clientUser),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('should prevent cancelling jobs in unauthorized companies', async () => {
+        const clientUser = createMockUser({
+          scopeType: 'CLIENT',
+          scopeId: mockClientId,
+          companyId: undefined,
+        });
+        hierarchyService.canAccessCompany.mockResolvedValue(false);
+
+        await expect(
+          controller.cancelImportJob('job_123', mockOtherCompanyId, clientUser),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('should prevent creating field mappings in unauthorized companies', async () => {
+        const clientUser = createMockUser({
+          scopeType: 'CLIENT',
+          scopeId: mockClientId,
+          companyId: undefined,
+        });
+        hierarchyService.canAccessCompany.mockResolvedValue(false);
+
+        await expect(
+          controller.createFieldMappingProfile(
+            { name: 'Test', provider: 'ROASTIFY', mappings: [] } as any,
+            mockOtherCompanyId,
+            clientUser,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('DEPARTMENT/TEAM-scoped users', () => {
+      it('should use parent company for department users', async () => {
+        const deptUser = createMockUser({
+          scopeType: 'DEPARTMENT',
+          scopeId: 'dept_123',
+          companyId: mockCompanyId,
+        });
+        service.listImportJobs.mockResolvedValue({ items: [], total: 0, limit: 10, offset: 0 });
+
+        await controller.listImportJobs({} as any, mockOtherCompanyId, deptUser);
+
+        // Should use user's companyId, not the query param
+        expect(service.listImportJobs).toHaveBeenCalledWith(mockCompanyId, expect.any(Object));
+      });
+
+      it('should use parent company for team users', async () => {
+        const teamUser = createMockUser({
+          scopeType: 'TEAM',
+          scopeId: 'team_123',
+          companyId: mockCompanyId,
+        });
+        service.listImportJobs.mockResolvedValue({ items: [], total: 0, limit: 10, offset: 0 });
+
+        await controller.listImportJobs({} as any, mockOtherCompanyId, teamUser);
+
+        // Should use user's companyId, not the query param
+        expect(service.listImportJobs).toHaveBeenCalledWith(mockCompanyId, expect.any(Object));
+      });
     });
   });
 });
