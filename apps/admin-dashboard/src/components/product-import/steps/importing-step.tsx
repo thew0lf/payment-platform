@@ -58,13 +58,13 @@ const PHASE_ICONS: Record<ImportJobPhase, typeof Package> = {
   DONE: CheckCircle,
 };
 
-// Status configurations
+// Status configurations (must match Prisma ImportJobStatus enum)
 const STATUS_CONFIG: Record<
   ImportJobStatus,
   { icon: typeof CheckCircle; color: string; bgColor: string }
 > = {
   PENDING: { icon: Loader2, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  PROCESSING: { icon: Loader2, color: 'text-primary', bgColor: 'bg-primary/10' },
+  IN_PROGRESS: { icon: Loader2, color: 'text-primary', bgColor: 'bg-primary/10' },
   COMPLETED: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
   FAILED: { icon: XCircle, color: 'text-destructive', bgColor: 'bg-destructive/10' },
   CANCELLED: { icon: XCircle, color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
@@ -108,7 +108,7 @@ export function ImportingStep() {
   const isComplete = currentJob?.status === 'COMPLETED';
   const isFailed = currentJob?.status === 'FAILED';
   const isCancelled = currentJob?.status === 'CANCELLED';
-  const isProcessing = currentJob?.status === 'PROCESSING';
+  const isProcessing = currentJob?.status === 'IN_PROGRESS';
   const isFinished = isComplete || isFailed || isCancelled;
 
   // Start the import job

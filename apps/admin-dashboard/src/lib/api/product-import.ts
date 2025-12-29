@@ -6,7 +6,7 @@ import { apiRequest } from '../api';
 
 export type ImportJobStatus =
   | 'PENDING'
-  | 'PROCESSING'
+  | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'FAILED'
   | 'CANCELLED';
