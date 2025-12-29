@@ -637,20 +637,39 @@ export class ProductImportProcessor {
     config: ImportJobData['config'],
     companyId: string,
   ): Promise<FieldMapping[]> {
-    if (config.customMappings?.length) {
-      return config.customMappings;
-    }
+    let mappings: FieldMapping[];
 
-    if (config.fieldMappingProfileId) {
+    if (config.customMappings?.length) {
+      mappings = config.customMappings;
+    } else if (config.fieldMappingProfileId) {
       const profile = await this.prisma.fieldMappingProfile.findFirst({
         where: { id: config.fieldMappingProfileId, companyId },
       });
       if (profile) {
-        return profile.mappings as unknown as FieldMapping[];
+        mappings = profile.mappings as unknown as FieldMapping[];
+      } else {
+        mappings = this.getDefaultMappings();
       }
+    } else {
+      mappings = this.getDefaultMappings();
     }
 
-    // Default mappings
+    // Apply provider-specific transforms for price fields
+    // Roastify prices are in cents, so we need to convert to dollars
+    if (config.provider === 'ROASTIFY') {
+      mappings = mappings.map((m) => {
+        if (m.targetField === 'price' && !m.transform) {
+          this.logger.debug('Auto-applying centsToDecimal transform for Roastify price field');
+          return { ...m, transform: 'centsToDecimal' as const };
+        }
+        return m;
+      });
+    }
+
+    return mappings;
+  }
+
+  private getDefaultMappings(): FieldMapping[] {
     return [
       { sourceField: 'name', targetField: 'name' },
       { sourceField: 'description', targetField: 'description' },
