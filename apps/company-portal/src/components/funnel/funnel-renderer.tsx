@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Funnel } from '@/lib/api';
 import { FunnelProvider, useFunnel } from '@/contexts/funnel-context';
+import { BrandProvider, useBrand } from '@/contexts/brand-context';
 import { InterventionProvider, UrgencyBanner } from '@/components/interventions';
 import { LandingStage } from './stages/landing-stage';
 import { ProductSelectionStage } from './stages/product-selection-stage';
@@ -10,6 +11,8 @@ import { CheckoutStage } from './stages/checkout-stage';
 import { SuccessStage } from './stages/success-stage';
 import { ProgressBar } from './progress-bar';
 import { CartSummary } from './cart-summary';
+import { LogoDisplay } from '@/components/brand/LogoDisplay';
+import { FontLoader } from '@/components/brand/FontLoader';
 
 interface FunnelRendererProps {
   funnel: Funnel;
@@ -17,9 +20,11 @@ interface FunnelRendererProps {
 
 export function FunnelRenderer({ funnel }: FunnelRendererProps) {
   return (
-    <FunnelProvider>
-      <FunnelContent funnel={funnel} />
-    </FunnelProvider>
+    <BrandProvider funnel={funnel}>
+      <FunnelProvider>
+        <FunnelContent funnel={funnel} />
+      </FunnelProvider>
+    </BrandProvider>
   );
 }
 
@@ -34,15 +39,19 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
     cart,
   } = useFunnel();
 
+  // Get resolved brand kit and CSS variables from context
+  const { brandKit, cssVariables } = useBrand();
+
   useEffect(() => {
     initializeFunnel(funnel);
   }, [funnel, initializeFunnel]);
 
-  // Apply branding
-  const { branding } = funnel.settings;
+  // Use CSS variables from BrandProvider context
+  // Also include legacy --primary-color/--secondary-color for backward compatibility
   const brandStyles = {
-    '--primary-color': branding.primaryColor || '#6366f1',
-    '--secondary-color': branding.secondaryColor || '#3b82f6',
+    ...cssVariables,
+    '--primary-color': brandKit.colors.primary,
+    '--secondary-color': brandKit.colors.secondary || '#3b82f6',
   } as React.CSSProperties;
 
   if (isLoading) {
@@ -95,9 +104,14 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
         className="min-h-screen bg-gray-50"
         style={{
           ...brandStyles,
-          fontFamily: branding.fontFamily || 'inherit',
+          fontFamily: brandKit.typography.bodyFont
+            ? `"${brandKit.typography.bodyFont}", system-ui, sans-serif`
+            : 'system-ui, sans-serif',
         }}
       >
+        {/* Load custom fonts from Google Fonts */}
+        <FontLoader brandKit={brandKit} preconnect />
+
         {/* Urgency Banner (shows at top when configured) */}
         <UrgencyBanner />
 
@@ -105,11 +119,12 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
         <header className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              {branding.logoUrl ? (
-                <img src={branding.logoUrl} alt={funnel.name} className="h-8" />
-              ) : (
-                <h1 className="text-xl font-semibold text-gray-900">{funnel.name}</h1>
-              )}
+              <LogoDisplay
+                brandKit={brandKit}
+                context="full"
+                size="md"
+                companyName={funnel.company?.name || funnel.name}
+              />
 
               {/* Cart indicator for product/checkout stages */}
               {currentStage.type !== 'LANDING' && cart.length > 0 && (

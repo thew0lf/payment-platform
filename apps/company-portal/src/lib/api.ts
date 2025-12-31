@@ -9,8 +9,47 @@ export interface FunnelBranding {
   fontFamily?: string;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// BRAND KIT TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export interface BrandKitLogo {
+  fullUrl?: string;
+  iconUrl?: string;
+  monochromeUrl?: string;
+  reversedUrl?: string;
+}
+
+export interface BrandKitColors {
+  primary: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+  text?: string;
+  success?: string;
+  warning?: string;
+  error?: string;
+}
+
+export interface BrandKitTypography {
+  headingFont?: string;
+  bodyFont?: string;
+  baseFontSize?: number;
+  headingScale?: number;
+  customFonts?: string[];
+}
+
+export interface BrandKit {
+  logos: BrandKitLogo;
+  colors: BrandKitColors;
+  typography: BrandKitTypography;
+  faviconUrl?: string;
+  preset?: 'minimal' | 'bold' | 'elegant' | 'playful' | 'custom';
+}
+
 export interface FunnelSettings {
   branding: FunnelBranding;
+  brandKit?: BrandKit;
   urls: {
     successUrl?: string;
     cancelUrl?: string;
@@ -130,6 +169,20 @@ export interface FunnelStage {
   config: StageConfig;
 }
 
+/**
+ * Company data included with funnel response
+ * Contains settings with optional brand kit for fallback branding
+ */
+export interface FunnelCompany {
+  id: string;
+  name: string;
+  code: string;
+  settings?: {
+    brandKit?: BrandKit;
+    [key: string]: unknown;
+  };
+}
+
 export interface Funnel {
   id: string;
   companyId: string;
@@ -142,6 +195,10 @@ export interface Funnel {
   stages: FunnelStage[];
   totalVisits: number;
   totalConversions: number;
+  /** Company data with settings for brand kit fallback */
+  company?: FunnelCompany;
+  /** Funnel-specific brand kit (overrides company defaults) */
+  brandKit?: BrandKit;
 }
 
 export interface FunnelSession {

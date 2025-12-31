@@ -1,3 +1,173 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   BRAND KIT CSS VARIABLES
+   These are dynamically overridden by funnel-specific brand settings
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Brand Colors */
+  --brand-primary: #6366f1;
+  --brand-secondary: #3b82f6;
+  --brand-accent: #f97316;
+  --brand-background: #ffffff;
+  --brand-text: #1f2937;
+  --brand-success: #10b981;
+  --brand-warning: #f59e0b;
+  --brand-error: #ef4444;
+
+  /* Typography - matches brand-kit-resolver output */
+  --brand-font-heading: 'Inter', sans-serif;
+  --brand-font-body: 'Inter', sans-serif;
+  --brand-font-size-base: 16px;
+  --brand-heading-scale: 1.25;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BRAND KIT UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* Text Colors */
+  .text-brand-primary {
+    color: var(--brand-primary);
+  }
+  .text-brand-secondary {
+    color: var(--brand-secondary);
+  }
+  .text-brand-accent {
+    color: var(--brand-accent);
+  }
+  .text-brand-text {
+    color: var(--brand-text);
+  }
+  .text-brand-success {
+    color: var(--brand-success);
+  }
+  .text-brand-warning {
+    color: var(--brand-warning);
+  }
+  .text-brand-error {
+    color: var(--brand-error);
+  }
+
+  /* Background Colors */
+  .bg-brand-primary {
+    background-color: var(--brand-primary);
+  }
+  .bg-brand-secondary {
+    background-color: var(--brand-secondary);
+  }
+  .bg-brand-accent {
+    background-color: var(--brand-accent);
+  }
+  .bg-brand-background {
+    background-color: var(--brand-background);
+  }
+  .bg-brand-success {
+    background-color: var(--brand-success);
+  }
+  .bg-brand-warning {
+    background-color: var(--brand-warning);
+  }
+  .bg-brand-error {
+    background-color: var(--brand-error);
+  }
+
+  /* Border Colors */
+  .border-brand-primary {
+    border-color: var(--brand-primary);
+  }
+  .border-brand-secondary {
+    border-color: var(--brand-secondary);
+  }
+  .border-brand-accent {
+    border-color: var(--brand-accent);
+  }
+
+  /* Ring Colors (for focus states) */
+  .ring-brand-primary {
+    --tw-ring-color: var(--brand-primary);
+  }
+  .ring-brand-secondary {
+    --tw-ring-color: var(--brand-secondary);
+  }
+
+  /* Typography */
+  .font-heading {
+    font-family: var(--brand-font-heading);
+  }
+  .font-body {
+    font-family: var(--brand-font-body);
+  }
+  .text-base-brand {
+    font-size: var(--brand-font-size-base);
+  }
+
+  /* Hover States */
+  .hover\:bg-brand-primary:hover {
+    background-color: var(--brand-primary);
+  }
+  .hover\:bg-brand-secondary:hover {
+    background-color: var(--brand-secondary);
+  }
+  .hover\:text-brand-primary:hover {
+    color: var(--brand-primary);
+  }
+  .hover\:text-brand-secondary:hover {
+    color: var(--brand-secondary);
+  }
+
+  /* Primary color with opacity variants - with fallbacks for Safari < 16.2 */
+  .bg-brand-primary\/10 {
+    background-color: rgba(99, 102, 241, 0.1); /* fallback */
+    background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  }
+  .bg-brand-primary\/20 {
+    background-color: rgba(99, 102, 241, 0.2); /* fallback */
+    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  }
+  .bg-brand-primary\/50 {
+    background-color: rgba(99, 102, 241, 0.5); /* fallback */
+    background-color: color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  }
+  .bg-brand-primary\/80 {
+    background-color: rgba(99, 102, 241, 0.8); /* fallback */
+    background-color: color-mix(in srgb, var(--brand-primary) 80%, transparent);
+  }
+
+  /* Focus States */
+  .focus\:ring-brand-primary:focus {
+    --tw-ring-color: var(--brand-primary);
+  }
+  .focus\:ring-brand-secondary:focus {
+    --tw-ring-color: var(--brand-secondary);
+  }
+  .focus\:border-brand-primary:focus {
+    border-color: var(--brand-primary);
+  }
+  .focus\:border-brand-secondary:focus {
+    border-color: var(--brand-secondary);
+  }
+
+  /* Active States */
+  .active\:bg-brand-primary:active {
+    background-color: var(--brand-primary);
+  }
+  .active\:bg-brand-secondary:active {
+    background-color: var(--brand-secondary);
+  }
+  .active\:scale-brand {
+    transform: scale(0.98);
+  }
+
+  /* Focus-visible States (keyboard navigation) */
+  .focus-visible\:ring-brand-primary:focus-visible {
+    --tw-ring-color: var(--brand-primary);
+  }
+  .focus-visible\:outline-brand-primary:focus-visible {
+    outline-color: var(--brand-primary);
+  }
+}
