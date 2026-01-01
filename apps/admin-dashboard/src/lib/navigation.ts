@@ -54,6 +54,7 @@ import {
   Headphones,
   ShieldAlert,
   DollarSign,
+  Upload,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -150,6 +151,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Headphones,
   ShieldAlert,
   DollarSign,
+  Upload,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -177,6 +179,7 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'main', label: 'Dashboard', href: '/', icon: LayoutDashboard },
       { id: 'revenue-analytics', label: 'Revenue', href: '/insights/revenue', icon: TrendingUp },
+      { id: 'buyer-intent', label: 'Buyer Intent', href: '/insights/ecommerce', icon: Store, badge: 'New' },
       { id: 'orders-analytics', label: 'Orders', href: '/insights/orders', icon: ShoppingCart },
       { id: 'customers-analytics', label: 'Customers', href: '/insights/customers', icon: Users },
       { id: 'funnels-analytics', label: 'Funnels', href: '/insights/funnels', icon: Workflow },
@@ -232,6 +235,7 @@ export const navigationSections: NavSection[] = [
     items: [
       // Products & Catalog
       { id: 'products', label: 'Products', href: '/products', icon: ShoppingBag, badgeKey: 'lowStock' },
+      { id: 'import-products', label: 'Import Products', href: '/products/import', icon: Upload },
       { id: 'subscription-plans', label: 'Subscription Plans', href: '/subscription-plans', icon: Repeat },
       { id: 'categories', label: 'Categories', href: '/products/categories', icon: FolderTree },
       { id: 'tags', label: 'Tags', href: '/products/tags', icon: Tags },
@@ -312,6 +316,7 @@ export const navigationSections: NavSection[] = [
       // General
       { id: 'general', label: 'General', href: '/settings/general', icon: SlidersHorizontal },
       { id: 'appearance', label: 'Appearance', href: '/settings/appearance', icon: Palette },
+      { id: 'brand-kit', label: 'Brand Kit', href: '/settings/brand-kit', icon: Palette },
       // Payments & Routing
       { id: 'merchant-accounts', label: 'Merchant Accounts', href: '/settings/merchant-accounts', icon: CreditCard },
       { id: 'routing-rules', label: 'Routing Rules', href: '/routing', icon: GitBranch },

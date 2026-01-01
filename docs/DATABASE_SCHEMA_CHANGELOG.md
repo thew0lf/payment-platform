@@ -29,6 +29,36 @@ _None currently_
 
 ## Migrated (Ready for Deployment)
 
+### 20251231201625_add_cart_and_session_partial_indexes
+- **Status:** `MIGRATED`
+- **Date Added:** December 31, 2025
+- **Date Migrated:** December 31, 2025
+- **Description:** Priority 1 performance indexes from DBA review recommendations
+- **Changes:**
+  - New partial index `idx_carts_recovery_candidates` on `carts` table
+    - Columns: `companyId`, `abandonedAt`, `recoveryEmailSent`
+    - WHERE: `status = 'ABANDONED' AND "recoveryEmailSent" = false`
+    - Purpose: Optimize abandoned cart recovery email campaigns
+  - New partial index `idx_cross_site_sessions_cleanup` on `cross_site_sessions` table
+    - Columns: `expiresAt`
+    - WHERE: `status = 'ACTIVE'`
+    - Purpose: Optimize session cleanup background jobs
+  - New partial index `idx_carts_expiration` on `carts` table
+    - Columns: `expiresAt`
+    - WHERE: `status = 'ACTIVE' AND "expiresAt" IS NOT NULL`
+    - Purpose: Optimize cart expiration background jobs
+- **Migration File:** `prisma/migrations/20251231201625_add_cart_and_session_partial_indexes/migration.sql`
+- **Risk Level:** Low (additive indexes only, no table modifications)
+- **Rollback:** `DROP INDEX idx_carts_recovery_candidates; DROP INDEX idx_cross_site_sessions_cleanup; DROP INDEX idx_carts_expiration;`
+- **Production Notes:**
+  - All changes are additive (CREATE INDEX)
+  - Partial indexes reduce index size and improve write performance
+  - Index creation is non-blocking in PostgreSQL (default behavior)
+  - Estimated execution time: < 5 seconds (depends on table size)
+  - 25 lines of SQL
+
+---
+
 ### 20241224000000_add_sites_model
 - **Status:** `MIGRATED`
 - **Date Added:** December 2024
@@ -66,6 +96,34 @@ _None currently_
   - No existing data will be affected
   - Estimated execution time: < 1 second
   - Depends on existing `cs_sessions` and `voice_calls` tables for FKs
+
+---
+
+### 20251227_add_product_import_system
+- **Status:** `MIGRATED`
+- **Date Added:** December 27, 2025
+- **Date Migrated:** December 27, 2025
+- **Description:** Product Import system with intelligent field mapping, image CDN import, and background processing
+- **Changes:**
+  - New `ImportJobStatus` enum (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`)
+  - New `ImportJobPhase` enum (`VALIDATION`, `FIELD_MAPPING`, `IMAGE_DOWNLOAD`, `PRODUCT_CREATION`, `FINALIZATION`)
+  - New `product_import_jobs` table - Background import job tracking with progress
+  - New `product_images` table - Product image storage and CDN URLs
+  - New `storage_usage` table - Storage usage tracking by client/company for billing
+  - New `field_mapping_profiles` table - Reusable field mapping templates
+  - Altered `products` table - Added 4 columns: `importSource`, `externalId`, `externalSku`, `lastSyncedAt`
+  - 10 new indexes for multi-tenant query optimization
+- **Migration File:** `prisma/migrations/20251227_add_product_import_system/migration.sql`
+- **Risk Level:** Low (additive changes only)
+- **Rollback:** DROP tables, DROP enums, ALTER TABLE products DROP COLUMN (SQL provided in signoff)
+- **Production Notes:**
+  - All changes are additive (CREATE TYPE, CREATE TABLE, ALTER TABLE ADD COLUMN)
+  - New columns on `products` are nullable, no backfill required
+  - Unique constraint on `products.companyId + externalId + importSource` prevents duplicates
+  - Indexes optimized for `companyId + status` queries
+  - Estimated execution time: < 2 seconds
+  - 152 lines of SQL, verified safe for production
+- **Deployed:** December 28, 2025
 
 ---
 
@@ -138,4 +196,4 @@ If local database has changes not in migrations:
 
 ---
 
-*Last Updated: December 24, 2025*
+*Last Updated: December 28, 2025*
