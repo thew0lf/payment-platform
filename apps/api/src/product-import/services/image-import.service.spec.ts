@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ImageImportService, ImageImportOptions, ImageImportProgress } from './image-import.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { S3StorageService, S3Credentials, UploadResult } from '../../integrations/services/providers/s3-storage.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
 import { ExternalProductImage, ImportImageResult } from '../types/product-import.types';
 import axios from 'axios';
 
@@ -11,13 +12,21 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('ImageImportService', () => {
   let service: ImageImportService;
+  let mockTx: {
+    productImage: { createMany: jest.Mock; findMany: jest.Mock; deleteMany: jest.Mock };
+    productMedia: { createMany: jest.Mock; deleteMany: jest.Mock };
+    product: { update: jest.Mock };
+  };
   let mockPrisma: {
     clientIntegration: { findFirst: jest.Mock };
     platformIntegration: { findFirst: jest.Mock };
-    productImage: { createMany: jest.Mock };
+    productImage: { createMany: jest.Mock; findMany: jest.Mock; deleteMany: jest.Mock };
+    productMedia: { createMany: jest.Mock; deleteMany: jest.Mock };
     product: { update: jest.Mock };
+    $transaction: jest.Mock;
   };
   let mockS3Storage: { uploadFile: jest.Mock };
+  let mockCredentialEncryption: { decrypt: jest.Mock };
 
   const mockS3Credentials: S3Credentials = {
     region: 'us-east-1',
@@ -35,9 +44,10 @@ describe('ImageImportService', () => {
     generateThumbnails: true,
   };
 
+  // Use allowlisted domains for SSRF protection tests
   const mockExternalImages: ExternalProductImage[] = [
-    { id: 'img1', url: 'https://example.com/image1.jpg', altText: 'Image 1', position: 0 },
-    { id: 'img2', url: 'https://example.com/image2.png', altText: 'Image 2', position: 1 },
+    { id: 'img1', url: 'https://storage.roastify.app/image1.jpg', altText: 'Image 1', position: 0 },
+    { id: 'img2', url: 'https://storage.roastify.app/image2.png', altText: 'Image 2', position: 1 },
   ];
 
   const createMockUploadResult = (overrides: Partial<UploadResult> = {}): UploadResult => ({
@@ -53,22 +63,46 @@ describe('ImageImportService', () => {
     // Reset all mocks
     jest.clearAllMocks();
 
+    // Create transaction mock that receives and calls the callback
+    mockTx = {
+      productImage: { createMany: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
+      productMedia: { createMany: jest.fn(), deleteMany: jest.fn() },
+      product: { update: jest.fn() },
+    };
+
     mockPrisma = {
       clientIntegration: { findFirst: jest.fn() },
       platformIntegration: { findFirst: jest.fn() },
-      productImage: { createMany: jest.fn() },
+      productImage: { createMany: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
+      productMedia: { createMany: jest.fn(), deleteMany: jest.fn() },
       product: { update: jest.fn() },
+      $transaction: jest.fn((callback) => callback(mockTx)),
     };
 
     mockS3Storage = {
       uploadFile: jest.fn(),
     };
 
+    mockCredentialEncryption = {
+      decrypt: jest.fn(),
+    };
+
+    // Default mock for transaction findMany - returns images matching what was created
+    mockTx.productImage.findMany.mockResolvedValue([
+      { cdnUrl: 'https://cdn.example.com/image.jpg' },
+    ]);
+    mockTx.productImage.deleteMany.mockResolvedValue({ count: 0 });
+    mockTx.productMedia.deleteMany.mockResolvedValue({ count: 0 });
+    mockTx.productImage.createMany.mockResolvedValue({ count: 1 });
+    mockTx.productMedia.createMany.mockResolvedValue({ count: 1 });
+    mockTx.product.update.mockResolvedValue({});
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ImageImportService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: S3StorageService, useValue: mockS3Storage },
+        { provide: CredentialEncryptionService, useValue: mockCredentialEncryption },
       ],
     }).compile();
 
@@ -340,7 +374,7 @@ describe('ImageImportService', () => {
           metadata: {
             productId: 'product-456',
             importJobId: 'job-789',
-            originalUrl: 'https://example.com/image1.jpg',
+            originalUrl: 'https://storage.roastify.app/image1.jpg',
             altText: 'Image 1',
             position: '0',
           },
@@ -350,11 +384,167 @@ describe('ImageImportService', () => {
     });
   });
 
+  describe('SSRF protection', () => {
+    it('should reject HTTP URLs (require HTTPS)', async () => {
+      const httpImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'http://storage.roastify.app/image.jpg',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [httpImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('Only HTTPS URLs are allowed');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject URLs from non-allowlisted domains', async () => {
+      const blockedDomainImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://evil-site.com/image.jpg',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [blockedDomainImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toContain('Domain not in allowlist');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject localhost URLs', async () => {
+      const localhostImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://localhost/image.jpg',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [localhostImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('URL points to blocked host');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject private IP addresses', async () => {
+      const privateIpImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://192.168.1.1/image.jpg',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [privateIpImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('URL points to blocked network range');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject cloud metadata endpoints', async () => {
+      const metadataImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://169.254.169.254/latest/meta-data/',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [metadataImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('URL points to blocked network range');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('should allow URLs from storage.roastify.app', async () => {
+      const allowedImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://storage.roastify.app/images/product.jpg',
+        position: 0,
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: Buffer.alloc(1000, 'x'),
+        headers: { 'content-type': 'image/jpeg' },
+      });
+      mockS3Storage.uploadFile.mockResolvedValue(createMockUploadResult());
+
+      const results = await service.importProductImages(
+        [allowedImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(true);
+      expect(mockedAxios.get).toHaveBeenCalled();
+    });
+
+    it('should allow URLs from cdn.shopify.com', async () => {
+      const shopifyImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'https://cdn.shopify.com/s/files/1/image.jpg',
+        position: 0,
+      };
+
+      mockedAxios.get.mockResolvedValue({
+        data: Buffer.alloc(1000, 'x'),
+        headers: { 'content-type': 'image/jpeg' },
+      });
+      mockS3Storage.uploadFile.mockResolvedValue(createMockUploadResult());
+
+      const results = await service.importProductImages(
+        [shopifyImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(true);
+      expect(mockedAxios.get).toHaveBeenCalled();
+    });
+
+    it('should reject invalid URLs', async () => {
+      const invalidUrlImage: ExternalProductImage = {
+        id: 'img1',
+        url: 'not-a-valid-url',
+        position: 0,
+      };
+
+      const results = await service.importProductImages(
+        [invalidUrlImage],
+        mockImageOptions,
+        mockS3Credentials,
+      );
+
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('Invalid URL format');
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateProductImages', () => {
     const mockSuccessfulImages: ImportImageResult[] = [
       {
         success: true,
-        originalUrl: 'https://example.com/image1.jpg',
+        originalUrl: 'https://storage.roastify.app/image1.jpg',
         cdnUrl: 'https://cdn.example.com/image1.jpg',
         s3Key: 'products/test/image1.jpg',
         filename: 'product-456_0_123456.jpg',
@@ -368,7 +558,7 @@ describe('ImageImportService', () => {
       },
       {
         success: true,
-        originalUrl: 'https://example.com/image2.png',
+        originalUrl: 'https://storage.roastify.app/image2.png',
         cdnUrl: 'https://cdn.example.com/image2.png',
         s3Key: 'products/test/image2.png',
         filename: 'product-456_1_123457.png',
@@ -377,9 +567,37 @@ describe('ImageImportService', () => {
       },
     ];
 
+    it('should use a transaction for atomicity', async () => {
+      await service.updateProductImages(
+        'product-456',
+        'company-123',
+        mockSuccessfulImages,
+        'SHOPIFY',
+      );
+
+      // Verify transaction was used
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('should delete existing ProductImage and ProductMedia records before creating new ones', async () => {
+      await service.updateProductImages(
+        'product-456',
+        'company-123',
+        mockSuccessfulImages,
+        'SHOPIFY',
+      );
+
+      // Verify delete operations were called within transaction
+      expect(mockTx.productImage.deleteMany).toHaveBeenCalledWith({
+        where: { productId: 'product-456' },
+      });
+      expect(mockTx.productMedia.deleteMany).toHaveBeenCalledWith({
+        where: { productId: 'product-456' },
+      });
+    });
+
     it('should create ProductImage records for successful images', async () => {
-      mockPrisma.productImage.createMany.mockResolvedValue({ count: 2 });
-      mockPrisma.product.update.mockResolvedValue({});
+      mockTx.productImage.createMany.mockResolvedValue({ count: 2 });
 
       await service.updateProductImages(
         'product-456',
@@ -388,14 +606,14 @@ describe('ImageImportService', () => {
         'SHOPIFY',
       );
 
-      expect(mockPrisma.productImage.createMany).toHaveBeenCalledWith({
+      expect(mockTx.productImage.createMany).toHaveBeenCalledWith({
         data: [
           {
             productId: 'product-456',
             companyId: 'company-123',
             s3Key: 'products/test/image1.jpg',
             cdnUrl: 'https://cdn.example.com/image1.jpg',
-            originalUrl: 'https://example.com/image1.jpg',
+            originalUrl: 'https://storage.roastify.app/image1.jpg',
             importSource: 'SHOPIFY',
             filename: 'product-456_0_123456.jpg',
             contentType: 'image/jpeg',
@@ -412,7 +630,7 @@ describe('ImageImportService', () => {
             companyId: 'company-123',
             s3Key: 'products/test/image2.png',
             cdnUrl: 'https://cdn.example.com/image2.png',
-            originalUrl: 'https://example.com/image2.png',
+            originalUrl: 'https://storage.roastify.app/image2.png',
             importSource: 'SHOPIFY',
             filename: 'product-456_1_123457.png',
             contentType: 'image/png',
@@ -428,9 +646,33 @@ describe('ImageImportService', () => {
       });
     });
 
-    it('should update product images JSON array', async () => {
-      mockPrisma.productImage.createMany.mockResolvedValue({ count: 2 });
-      mockPrisma.product.update.mockResolvedValue({});
+    it('should create ProductMedia records for the admin dashboard UI', async () => {
+      await service.updateProductImages(
+        'product-456',
+        'company-123',
+        mockSuccessfulImages,
+        'SHOPIFY',
+      );
+
+      expect(mockTx.productMedia.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            productId: 'product-456',
+            type: 'IMAGE',
+            url: 'https://cdn.example.com/image1.jpg',
+            storageProvider: 'S3',
+            storageKey: 'products/test/image1.jpg',
+          }),
+        ]),
+      });
+    });
+
+    it('should update product images JSON array with verified URLs from database', async () => {
+      // Mock findMany within transaction to return the images that were created
+      mockTx.productImage.findMany.mockResolvedValue([
+        { cdnUrl: 'https://cdn.example.com/image1.jpg' },
+        { cdnUrl: 'https://cdn.example.com/image2.png' },
+      ]);
 
       await service.updateProductImages(
         'product-456',
@@ -438,7 +680,15 @@ describe('ImageImportService', () => {
         mockSuccessfulImages,
       );
 
-      expect(mockPrisma.product.update).toHaveBeenCalledWith({
+      // Verify findMany was called to get verified URLs within transaction
+      expect(mockTx.productImage.findMany).toHaveBeenCalledWith({
+        where: { productId: 'product-456' },
+        orderBy: { position: 'asc' },
+        select: { cdnUrl: true },
+      });
+
+      // Verify product.update uses verified URLs from database within transaction
+      expect(mockTx.product.update).toHaveBeenCalledWith({
         where: { id: 'product-456' },
         data: {
           images: [
@@ -451,12 +701,13 @@ describe('ImageImportService', () => {
 
     it('should skip failed images when updating', async () => {
       const mixedResults: ImportImageResult[] = [
-        { success: false, originalUrl: 'https://example.com/failed.jpg', error: 'Download failed' },
+        { success: false, originalUrl: 'https://storage.roastify.app/failed.jpg', error: 'Download failed' },
         mockSuccessfulImages[0],
       ];
 
-      mockPrisma.productImage.createMany.mockResolvedValue({ count: 1 });
-      mockPrisma.product.update.mockResolvedValue({});
+      mockTx.productImage.findMany.mockResolvedValue([
+        { cdnUrl: 'https://cdn.example.com/image1.jpg' },
+      ]);
 
       await service.updateProductImages(
         'product-456',
@@ -464,7 +715,7 @@ describe('ImageImportService', () => {
         mixedResults,
       );
 
-      expect(mockPrisma.productImage.createMany).toHaveBeenCalledWith({
+      expect(mockTx.productImage.createMany).toHaveBeenCalledWith({
         data: [expect.objectContaining({
           cdnUrl: 'https://cdn.example.com/image1.jpg',
         })],
@@ -473,8 +724,8 @@ describe('ImageImportService', () => {
 
     it('should not update anything if all images failed', async () => {
       const failedResults: ImportImageResult[] = [
-        { success: false, originalUrl: 'https://example.com/failed1.jpg', error: 'Error 1' },
-        { success: false, originalUrl: 'https://example.com/failed2.jpg', error: 'Error 2' },
+        { success: false, originalUrl: 'https://storage.roastify.app/failed1.jpg', error: 'Error 1' },
+        { success: false, originalUrl: 'https://storage.roastify.app/failed2.jpg', error: 'Error 2' },
       ];
 
       await service.updateProductImages(
@@ -483,23 +734,24 @@ describe('ImageImportService', () => {
         failedResults,
       );
 
-      expect(mockPrisma.productImage.createMany).not.toHaveBeenCalled();
-      expect(mockPrisma.product.update).not.toHaveBeenCalled();
+      // Transaction should not be called when there are no successful images
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('should use default values for missing fields', async () => {
       const minimalImages: ImportImageResult[] = [
         {
           success: true,
-          originalUrl: 'https://example.com/minimal.jpg',
+          originalUrl: 'https://storage.roastify.app/minimal.jpg',
           cdnUrl: 'https://cdn.example.com/minimal.jpg',
           s3Key: 'products/test/minimal.jpg',
           // Missing filename, contentType, size
         },
       ];
 
-      mockPrisma.productImage.createMany.mockResolvedValue({ count: 1 });
-      mockPrisma.product.update.mockResolvedValue({});
+      mockTx.productImage.findMany.mockResolvedValue([
+        { cdnUrl: 'https://cdn.example.com/minimal.jpg' },
+      ]);
 
       await service.updateProductImages(
         'product-456',
@@ -507,7 +759,7 @@ describe('ImageImportService', () => {
         minimalImages,
       );
 
-      expect(mockPrisma.productImage.createMany).toHaveBeenCalledWith({
+      expect(mockTx.productImage.createMany).toHaveBeenCalledWith({
         data: [expect.objectContaining({
           filename: 'image_0',
           contentType: 'image/jpeg',
@@ -537,8 +789,9 @@ describe('ImageImportService', () => {
     it('should return client integration credentials when available', async () => {
       mockPrisma.clientIntegration.findFirst.mockResolvedValue({
         id: 'int-1',
-        credentials: mockClientCredentials,
+        credentials: { encrypted: 'data' }, // Encrypted credentials
       });
+      mockCredentialEncryption.decrypt.mockReturnValue(mockClientCredentials);
 
       const result = await service.getS3Credentials('company-123', 'client-456');
 
@@ -564,8 +817,9 @@ describe('ImageImportService', () => {
       mockPrisma.clientIntegration.findFirst.mockResolvedValue(null);
       mockPrisma.platformIntegration.findFirst.mockResolvedValue({
         id: 'plat-1',
-        credentials: mockPlatformCredentials,
+        credentials: { encrypted: 'data' }, // Encrypted credentials
       });
+      mockCredentialEncryption.decrypt.mockReturnValue(mockPlatformCredentials);
 
       const result = await service.getS3Credentials('company-123', 'client-456');
 
@@ -602,8 +856,9 @@ describe('ImageImportService', () => {
 
       mockPrisma.clientIntegration.findFirst.mockResolvedValue({
         id: 'int-1',
-        credentials: credsWithoutRegion,
+        credentials: { encrypted: 'data' },
       });
+      mockCredentialEncryption.decrypt.mockReturnValue(credsWithoutRegion);
 
       const result = await service.getS3Credentials('company-123', 'client-456');
 
@@ -691,7 +946,7 @@ describe('ImageImportService', () => {
     it('should handle images without position', async () => {
       const imageWithoutPosition: ExternalProductImage = {
         id: 'img1',
-        url: 'https://example.com/no-position.jpg',
+        url: 'https://storage.roastify.app/no-position.jpg',
         position: undefined as any,
       };
 
@@ -724,7 +979,7 @@ describe('ImageImportService', () => {
     it('should handle images without altText', async () => {
       const imageWithoutAltText: ExternalProductImage = {
         id: 'img1',
-        url: 'https://example.com/no-alt.jpg',
+        url: 'https://storage.roastify.app/no-alt.jpg',
         position: 0,
       };
 

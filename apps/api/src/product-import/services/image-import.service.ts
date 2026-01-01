@@ -5,8 +5,11 @@ import {
   S3Credentials,
   UploadResult,
 } from '../../integrations/services/providers/s3-storage.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { EncryptedCredentials } from '../../integrations/types/integration.types';
 import { ExternalProductImage, ImportImageResult } from '../types/product-import.types';
 import axios from 'axios';
+import { URL } from 'url';
 
 export interface ImageImportOptions {
   companyId: string;
@@ -29,9 +32,104 @@ export class ImageImportService {
   private readonly REQUEST_TIMEOUT = 30000; // 30 seconds
   private readonly MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+  /**
+   * Allowlist of trusted image source domains for SSRF protection
+   * Only URLs from these domains will be downloaded
+   */
+  private readonly ALLOWED_IMAGE_DOMAINS = [
+    'storage.roastify.app',
+    'cdn.shopify.com',
+    'images.shopify.com',
+    'cdn.shopifycdn.net',
+    // S3 buckets (for cross-account imports)
+    'avnz-platform-assets.s3.us-east-1.amazonaws.com',
+    'avnz-platform-assets.s3.amazonaws.com',
+  ];
+
+  /**
+   * Blocked IP ranges for SSRF protection
+   * Prevents requests to internal networks, cloud metadata, etc.
+   */
+  private readonly BLOCKED_IP_PATTERNS = [
+    /^127\./,                      // Loopback
+    /^10\./,                       // Private Class A
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Private Class B
+    /^192\.168\./,                 // Private Class C
+    /^169\.254\./,                 // Link-local / Cloud metadata
+    /^0\./,                        // Current network
+    /^224\./,                      // Multicast
+    /^::1$/,                       // IPv6 loopback
+    /^fe80:/i,                     // IPv6 link-local
+    /^fc00:/i,                     // IPv6 private
+    /^fd00:/i,                     // IPv6 private
+  ];
+
+  /**
+   * Validate URL for SSRF protection
+   * Returns error message if URL is blocked, null if allowed
+   */
+  private validateUrlForSsrf(urlString: string): string | null {
+    try {
+      const url = new URL(urlString);
+
+      // Must be HTTPS
+      if (url.protocol !== 'https:') {
+        return 'Only HTTPS URLs are allowed';
+      }
+
+      // Check against blocked IP patterns
+      const hostname = url.hostname.toLowerCase();
+      for (const pattern of this.BLOCKED_IP_PATTERNS) {
+        if (pattern.test(hostname)) {
+          return 'URL points to blocked network range';
+        }
+      }
+
+      // Block localhost variations
+      if (
+        hostname === 'localhost' ||
+        hostname === '0.0.0.0' ||
+        hostname.endsWith('.localhost') ||
+        hostname === 'metadata.google.internal'
+      ) {
+        return 'URL points to blocked host';
+      }
+
+      // Check against allowlist
+      const isAllowed = this.ALLOWED_IMAGE_DOMAINS.some(
+        (domain) => hostname === domain || hostname.endsWith('.' + domain),
+      );
+
+      if (!isAllowed) {
+        this.logger.warn(`Image URL from non-allowlisted domain blocked: ${hostname}`);
+        return `Domain not in allowlist: ${hostname}`;
+      }
+
+      return null; // URL is allowed
+    } catch (error) {
+      return 'Invalid URL format';
+    }
+  }
+
+  /**
+   * Sanitize a string for use in S3 metadata
+   * AWS S3 metadata values must be ASCII-safe (US-ASCII characters only)
+   * Non-ASCII characters cause signature calculation failures
+   */
+  private sanitizeForS3Metadata(value: string): string {
+    if (!value) return '';
+    // Replace non-ASCII characters with their closest ASCII equivalent or remove them
+    return value
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+      .replace(/[^\x00-\x7F]/g, '') // Remove any remaining non-ASCII
+      .substring(0, 1024); // S3 metadata value limit
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3Storage: S3StorageService,
+    private readonly credentialEncryptionService: CredentialEncryptionService,
   ) {}
 
   /**
@@ -126,8 +224,8 @@ export class ImageImportService {
           metadata: {
             productId: options.productId,
             importJobId: options.jobId,
-            originalUrl: image.url,
-            altText: image.altText || '',
+            originalUrl: this.sanitizeForS3Metadata(image.url),
+            altText: this.sanitizeForS3Metadata(image.altText || ''),
             position: String(image.position || 0),
           },
         },
@@ -158,6 +256,7 @@ export class ImageImportService {
 
   /**
    * Download an image from an external URL
+   * Includes SSRF protection via URL validation
    */
   private async downloadImage(url: string): Promise<{
     success: boolean;
@@ -165,6 +264,16 @@ export class ImageImportService {
     contentType: string;
     error?: string;
   }> {
+    // SSRF Protection: Validate URL before making request
+    const ssrfError = this.validateUrlForSsrf(url);
+    if (ssrfError) {
+      return {
+        success: false,
+        contentType: 'unknown',
+        error: ssrfError,
+      };
+    }
+
     try {
       const response = await axios.get(url, {
         responseType: 'arraybuffer',
@@ -241,7 +350,32 @@ export class ImageImportService {
   }
 
   /**
+   * Safely extract file extension from content type
+   * Returns default extension if content type is invalid
+   */
+  private getExtensionFromMimeType(mimeType: string | undefined): string {
+    if (!mimeType || typeof mimeType !== 'string') {
+      return 'jpg';
+    }
+    const parts = mimeType.split('/');
+    if (parts.length !== 2 || !parts[1]) {
+      return 'jpg';
+    }
+    // Sanitize the extension (alphanumeric only)
+    return parts[1].replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
+  }
+
+  /**
    * Update product with imported image URLs
+   *
+   * IMPORTANT: This method syncs products.images with the ProductImage table
+   * to ensure the JSON array only contains URLs that actually exist.
+   * This prevents broken image references when S3 uploads fail.
+   *
+   * Uses a Prisma transaction to ensure atomicity - if any operation fails,
+   * all changes are rolled back to maintain data consistency.
+   *
+   * Handles re-import scenarios by deleting existing images before creating new ones.
    */
   async updateProductImages(
     productId: string,
@@ -249,45 +383,89 @@ export class ImageImportService {
     images: ImportImageResult[],
     importSource?: string,
   ): Promise<void> {
-    const successfulImages = images.filter((img) => img.success);
+    const successfulImages = images.filter((img) => img.success && img.s3Key && img.cdnUrl);
 
     if (successfulImages.length === 0) {
       return;
     }
 
-    // Create ProductImage records with all required fields
-    await this.prisma.productImage.createMany({
-      data: successfulImages.map((img, index) => ({
-        productId,
-        companyId,
-        s3Key: img.s3Key!,
-        cdnUrl: img.cdnUrl!,
-        originalUrl: img.originalUrl,
-        importSource,
-        filename: img.filename || `image_${index}`,
-        contentType: img.contentType || 'image/jpeg',
-        size: img.size || 0,
-        altText: '',
-        position: index,
-        isPrimary: index === 0,
-        thumbnailSmall: img.thumbnails?.small,
-        thumbnailMedium: img.thumbnails?.medium,
-        thumbnailLarge: img.thumbnails?.large,
-      })),
-    });
+    // Use a transaction to ensure atomicity
+    // All operations succeed or all are rolled back
+    await this.prisma.$transaction(async (tx) => {
+      // Delete existing ProductImage records for this product (re-import support)
+      // This prevents duplicate records when re-importing a product
+      await tx.productImage.deleteMany({
+        where: { productId },
+      });
 
-    // Update product's images JSON array with CDN URLs
-    const imageUrls = successfulImages.map((img) => img.cdnUrl!);
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        images: imageUrls,
-      },
+      // Delete existing ProductMedia records for this product (re-import support)
+      await tx.productMedia.deleteMany({
+        where: { productId },
+      });
+
+      // Create ProductImage records with all required fields
+      await tx.productImage.createMany({
+        data: successfulImages.map((img, index) => ({
+          productId,
+          companyId,
+          s3Key: img.s3Key!,
+          cdnUrl: img.cdnUrl!,
+          originalUrl: img.originalUrl,
+          importSource,
+          filename: img.filename || `image_${index}`,
+          contentType: img.contentType || 'image/jpeg',
+          size: img.size || 0,
+          altText: '',
+          position: index,
+          isPrimary: index === 0,
+          thumbnailSmall: img.thumbnails?.small,
+          thumbnailMedium: img.thumbnails?.medium,
+          thumbnailLarge: img.thumbnails?.large,
+        })),
+      });
+
+      // Also create ProductMedia records for the product detail page UI
+      // The ProductMedia table is used by the admin dashboard product detail page
+      await tx.productMedia.createMany({
+        data: successfulImages.map((img, index) => ({
+          productId,
+          type: 'IMAGE' as const,
+          url: img.cdnUrl!,
+          filename: img.filename || `imported-image-${index}.${this.getExtensionFromMimeType(img.contentType)}`,
+          mimeType: img.contentType || 'image/jpeg',
+          size: img.size || 0,
+          altText: '',
+          sortOrder: index,
+          isPrimary: index === 0,
+          storageProvider: 'S3',
+          storageKey: img.s3Key!,
+          cdnUrl: img.cdnUrl!,
+        })),
+      });
+
+      // Query the actual ProductImage records from database
+      // to ensure products.images only contains verified URLs
+      // This prevents broken references when S3 uploads fail silently
+      const productImages = await tx.productImage.findMany({
+        where: { productId },
+        orderBy: { position: 'asc' },
+        select: { cdnUrl: true },
+      });
+
+      // Update product's images JSON array with verified CDN URLs from database
+      const verifiedImageUrls = productImages.map((img) => img.cdnUrl);
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          images: verifiedImageUrls,
+        },
+      });
     });
   }
 
   /**
    * Get S3 credentials for a company
+   * Credentials are stored encrypted and must be decrypted before use
    */
   async getS3Credentials(companyId: string, clientId: string): Promise<S3Credentials | null> {
     // First check for company-level S3 integration
@@ -300,15 +478,21 @@ export class ImageImportService {
     });
 
     if (integration?.credentials) {
-      const creds = integration.credentials as Record<string, string>;
-      return {
-        region: creds.region || 'us-east-1',
-        bucket: creds.bucket,
-        accessKeyId: creds.accessKeyId,
-        secretAccessKey: creds.secretAccessKey,
-        cloudfrontDomain: creds.cloudfrontDomain,
-        keyPrefix: `products/${companyId}/`,
-      };
+      try {
+        // Decrypt the encrypted credentials
+        const encryptedCreds = integration.credentials as unknown as EncryptedCredentials;
+        const creds = this.credentialEncryptionService.decrypt(encryptedCreds) as Record<string, string>;
+        return {
+          region: creds.region || 'us-east-1',
+          bucket: creds.bucket,
+          accessKeyId: creds.accessKeyId,
+          secretAccessKey: creds.secretAccessKey,
+          cloudfrontDomain: creds.cloudfrontDomain,
+          keyPrefix: `products/${companyId}/`,
+        };
+      } catch (error) {
+        this.logger.error(`Failed to decrypt client S3 credentials: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     // Fall back to platform-level S3 integration
@@ -321,15 +505,21 @@ export class ImageImportService {
     });
 
     if (platformIntegration?.credentials) {
-      const creds = platformIntegration.credentials as Record<string, string>;
-      return {
-        region: creds.region || 'us-east-1',
-        bucket: creds.bucket,
-        accessKeyId: creds.accessKeyId,
-        secretAccessKey: creds.secretAccessKey,
-        cloudfrontDomain: creds.cloudfrontDomain,
-        keyPrefix: `clients/${clientId}/products/${companyId}/`,
-      };
+      try {
+        // Decrypt the encrypted credentials
+        const encryptedCreds = platformIntegration.credentials as unknown as EncryptedCredentials;
+        const creds = this.credentialEncryptionService.decrypt(encryptedCreds) as Record<string, string>;
+        return {
+          region: creds.region || 'us-east-1',
+          bucket: creds.bucket,
+          accessKeyId: creds.accessKeyId,
+          secretAccessKey: creds.secretAccessKey,
+          cloudfrontDomain: creds.cloudfrontDomain,
+          keyPrefix: `clients/${clientId}/products/${companyId}/`,
+        };
+      } catch (error) {
+        this.logger.error(`Failed to decrypt platform S3 credentials: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     return null;

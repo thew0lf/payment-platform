@@ -13,6 +13,9 @@ import {
   UpdateProductDto,
   ProductQueryDto,
 } from '../dto/product.dto';
+import { S3StorageService, S3Credentials } from '../../integrations/services/providers/s3-storage.service';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
+import { IntegrationProvider } from '../../integrations/types/integration.types';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -23,6 +26,8 @@ export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly s3StorageService: S3StorageService,
+    private readonly platformIntegrationService: PlatformIntegrationService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════
@@ -136,6 +141,9 @@ export class ProductsService {
               category: true,
             },
           },
+          productImages: {
+            orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
+          },
         },
         orderBy: { name: 'asc' },
         take: limit,
@@ -159,6 +167,9 @@ export class ProductsService {
             category: true,
           },
         },
+        productImages: {
+          orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
+        },
       },
     });
 
@@ -177,6 +188,9 @@ export class ProductsService {
           include: {
             category: true,
           },
+        },
+        productImages: {
+          orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
         },
       },
     });
@@ -329,25 +343,146 @@ export class ProductsService {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // DELETE (Archive)
+  // DELETE (Soft Delete with S3 Cleanup)
   // ═══════════════════════════════════════════════════════════════
 
   async archive(id: string, companyId: string, userId: string): Promise<void> {
     const existing = await this.prisma.product.findFirst({
       where: { id, companyId, deletedAt: null },
+      include: {
+        company: {
+          select: {
+            client: {
+              select: { organizationId: true },
+            },
+          },
+        },
+      },
     });
 
     if (!existing) {
       throw new NotFoundException(`Product ${id} not found`);
     }
 
+    // Delete S3 images before soft deleting the product
+    const organizationId = existing.company?.client?.organizationId;
+    if (organizationId) {
+      await this.cleanupProductImages(id, organizationId);
+    }
+
+    // Soft delete the product
     await this.prisma.product.update({
       where: { id },
-      data: { status: 'ARCHIVED' },
+      data: {
+        status: 'ARCHIVED',
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
     });
 
-    this.logger.log(`Archived product: ${existing.sku} by user ${userId}`);
-    this.eventEmitter.emit('product.archived', { productId: id, userId });
+    this.logger.log(`Deleted product: ${existing.sku} by user ${userId}`);
+    this.eventEmitter.emit('product.deleted', { productId: id, userId });
+  }
+
+  /**
+   * Clean up all S3 images for a product (ProductImage and ProductMedia)
+   */
+  private async cleanupProductImages(productId: string, organizationId: string): Promise<void> {
+    let s3Credentials: S3Credentials | null = null;
+
+    try {
+      s3Credentials = await this.getS3Credentials(organizationId);
+    } catch (error) {
+      this.logger.warn(`Could not get S3 credentials for cleanup: ${error.message}`);
+      return;
+    }
+
+    if (!s3Credentials) {
+      this.logger.warn('No S3 credentials available for image cleanup');
+      return;
+    }
+
+    // Get all ProductImage records
+    const productImages = await this.prisma.productImage.findMany({
+      where: { productId },
+      select: { id: true, s3Key: true },
+    });
+
+    // Get all ProductMedia records
+    const productMedia = await this.prisma.productMedia.findMany({
+      where: { productId },
+      select: { id: true, storageKey: true },
+    });
+
+    let deletedCount = 0;
+    let failedCount = 0;
+
+    // Delete ProductImage files from S3
+    for (const image of productImages) {
+      try {
+        await this.s3StorageService.deleteFile(s3Credentials, image.s3Key);
+        deletedCount++;
+      } catch (error) {
+        this.logger.warn(`Failed to delete ProductImage from S3: ${image.s3Key} - ${error.message}`);
+        failedCount++;
+      }
+    }
+
+    // Delete ProductMedia files from S3
+    for (const media of productMedia) {
+      try {
+        if (media.storageKey) {
+          await this.s3StorageService.deleteFile(s3Credentials, media.storageKey);
+          deletedCount++;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to delete ProductMedia from S3: ${media.storageKey} - ${error.message}`);
+        failedCount++;
+      }
+    }
+
+    // Soft delete ProductImage records
+    if (productImages.length > 0) {
+      await this.prisma.productImage.deleteMany({
+        where: { productId },
+      });
+    }
+
+    // Delete ProductMedia records (no soft delete on this model)
+    if (productMedia.length > 0) {
+      await this.prisma.productMedia.deleteMany({
+        where: { productId },
+      });
+    }
+
+    this.logger.log(
+      `Cleaned up ${deletedCount} images for product ${productId} (${failedCount} failures)`,
+    );
+  }
+
+  /**
+   * Get S3 credentials from platform integration
+   */
+  private async getS3Credentials(organizationId: string): Promise<S3Credentials | null> {
+    const integration = await this.platformIntegrationService.getByProvider(
+      organizationId,
+      IntegrationProvider.AWS_S3,
+    );
+
+    if (!integration) {
+      return null;
+    }
+
+    const credentials = await this.platformIntegrationService.getDecryptedCredentials(integration.id);
+
+    return {
+      region: credentials.region,
+      bucket: credentials.bucket,
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      cloudfrontDomain: credentials.cloudfrontDomain,
+      keyPrefix: credentials.keyPrefix,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -370,6 +505,18 @@ export class ProductsService {
       isPrimary: assignment.isPrimary,
     })) || [];
 
+    // Build images array as plain URL strings for frontend compatibility
+    // The ProductMedia endpoint provides richer data (thumbnails, alt text, etc.)
+    let images: string[] = [];
+
+    if (data.productImages && data.productImages.length > 0) {
+      // Use ProductImage relation data - extract just the CDN URLs
+      images = data.productImages.map((img: any) => img.cdnUrl || img.originalUrl);
+    } else if (data.images && Array.isArray(data.images)) {
+      // Fallback to JSON field (legacy or simple products)
+      images = data.images;
+    }
+
     return {
       id: data.id,
       companyId: data.companyId,
@@ -391,7 +538,7 @@ export class ProductsService {
       lowStockThreshold: data.lowStockThreshold,
       status: data.status,
       isVisible: data.isVisible,
-      images: data.images || [],
+      images,
       metaTitle: data.metaTitle,
       metaDescription: data.metaDescription,
       createdAt: data.createdAt,
