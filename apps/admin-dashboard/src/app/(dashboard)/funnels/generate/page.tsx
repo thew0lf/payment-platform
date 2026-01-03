@@ -264,7 +264,7 @@ export default function AIFunnelGeneratorPage() {
           selectedCompanyId || undefined
         );
         toast.success('Funnel created successfully!');
-        router.push(`/funnels/${result.funnelId}`);
+        router.push(`/funnels/builder?id=${result.funnelId}`);
       } catch {
         toast.error('Failed to save funnel');
       } finally {
@@ -317,7 +317,7 @@ export default function AIFunnelGeneratorPage() {
         );
 
         toast.success('Draft saved! You can continue editing anytime.');
-        router.push(`/funnels/${funnel.id}`);
+        router.push(`/funnels/builder?id=${funnel.id}`);
       } catch (error) {
         toast.error('Failed to save draft');
       } finally {

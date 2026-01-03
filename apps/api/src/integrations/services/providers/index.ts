@@ -34,6 +34,8 @@ export { SlackService } from './slack.service';
 export { GooglePlacesService } from './google-places.service';
 // Fulfillment / Dropship
 export { RoastifyService } from './roastify.service';
+// Stock Images
+export { StockImageService } from './stock-image.service';
 
 // Re-export types
 export type {
@@ -248,3 +250,11 @@ export type {
   RoastifyShippingEvent,
   RoastifyShippingRate,
 } from './roastify.service';
+
+// Stock Image types
+export type {
+  StockImageResult,
+  StockImageSearchOptions,
+  UnsplashCredentials,
+  PexelsCredentials,
+} from './stock-image.service';

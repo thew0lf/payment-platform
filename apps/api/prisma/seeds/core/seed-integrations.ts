@@ -132,6 +132,7 @@ async function loadIntegrationDefaults(): Promise<IntegrationDefaults | null> {
 
 /**
  * Encrypt credentials using AES-256-GCM
+ * IMPORTANT: Must match CredentialEncryptionService.encrypt() exactly
  */
 function encryptCredentials(credentials: Record<string, unknown>): {
   encrypted: string;
@@ -140,19 +141,22 @@ function encryptCredentials(credentials: Record<string, unknown>): {
   keyVersion: number;
   encryptedAt: string;
 } {
-  const encryptionKey = getEncryptionKey();
-  const key = crypto.scryptSync(encryptionKey, 'salt', 32);
+  const encryptionKeyHex = getEncryptionKey();
+  // Use the key directly as a hex buffer - matches CredentialEncryptionService
+  const key = Buffer.from(encryptionKeyHex, 'hex');
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv, { authTagLength: 16 });
 
   const jsonData = JSON.stringify(credentials);
-  let encrypted = cipher.update(jsonData, 'utf8', 'base64');
-  encrypted += cipher.final('base64');
+  const encryptedBuffer = Buffer.concat([
+    cipher.update(jsonData, 'utf8'),
+    cipher.final(),
+  ]);
 
   const authTag = cipher.getAuthTag();
 
   return {
-    encrypted,
+    encrypted: encryptedBuffer.toString('base64'),
     iv: iv.toString('base64'),
     authTag: authTag.toString('base64'),
     keyVersion: 1,

@@ -188,11 +188,12 @@ model Company {
   reviewConfig       ReviewConfig?
 
   // Landing Pages
-  landingPages     LandingPage[]
-  abTests          ABTest[]
-  landingPopups    LandingPagePopup[]
-  dynamicTextRules DynamicTextRule[]
-  conversionGoals  ConversionGoal[]
+  landingPages         LandingPage[]
+  landingPageSessions  LandingPageSession[]
+  abTests              ABTest[]
+  landingPopups        LandingPagePopup[]
+  dynamicTextRules     DynamicTextRule[]
+  conversionGoals      ConversionGoal[]
 
   // Subscription Plans
   subscriptionPlans    SubscriptionPlan[]
@@ -232,6 +233,9 @@ model Company {
   productImages        ProductImage[]
   fieldMappingProfiles FieldMappingProfile[]
 
+  // Shopify-Inspired: Sales Channels
+  salesChannels SalesChannel[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -240,8 +244,27 @@ model Company {
   // Sites (multiple storefronts per company)
   sites Site[]
 
+  // Carts
+  carts Cart[]
+
+  // Wishlists
+  wishlists Wishlist[]
+
+  // Product Comparisons
+  productComparisons ProductComparison[]
+
+  // Cross-Site Sessions
+  crossSiteSessions CrossSiteSession[]
+
+  // Cart Promotion & Pricing System
+  promotions    Promotion[]
+  taxRates      TaxRate[]
+  shippingZones ShippingZone[]
+  inventoryHolds InventoryHold[]
+
   @@unique([clientId, slug])
   @@index([clientId])
+  @@index([status])
   @@index([deletedAt])
   @@map("companies")
 }
@@ -254,6 +277,9 @@ model Site {
   name      String
   slug      String
   code      String? @unique // 4-char alphanumeric code - globally unique
+
+  // Site type
+  type SiteType @default(STOREFRONT)
 
   // Site-specific configuration
   domain      String?  // Custom domain for this site
@@ -274,6 +300,17 @@ model Site {
 
   // Site settings
   settings Json @default("{}")
+
+  // E-commerce features
+  enableCart         Boolean @default(true)
+  enableWishlist     Boolean @default(true)
+  enableCompare      Boolean @default(false)
+  enableQuickView    Boolean @default(true)
+  enableBundleBuilder Boolean @default(false)
+  maxCompareItems    Int     @default(4)
+  cartExpirationDays Int     @default(30)
+  checkoutMode       String  @default("standard")
+  guestCheckout      Boolean @default(true)
 
   // Localization (can differ from company defaults)
   timezone String?
@@ -296,6 +333,15 @@ model Site {
 
   // Landing pages can be site-specific
   landingPages LandingPage[]
+
+  // Carts
+  carts Cart[]
+
+  // Wishlists
+  wishlists Wishlist[]
+
+  // Product Comparisons
+  productComparisons ProductComparison[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -430,7 +476,9 @@ model User {
   marketingVideos      MarketingVideo[]
 
   // Soft delete tracking
-  deletedCategories Category[] @relation("CategoryDeletedBy")
+  deletedCategories      Category[]                    @relation("CategoryDeletedBy")
+  deletedMetafields      CategoryMetafieldDefinition[] @relation("MetafieldDeletedBy")
+  deletedSalesChannels   SalesChannel[]                @relation("SalesChannelDeletedBy")
 
   // Feature 02: RBAC Relations
   roleAssignments  UserRoleAssignment[]
@@ -557,6 +605,18 @@ model Customer {
 
   // Card Vault (stored payment methods)
   cardVaults CardVault[]
+
+  // Carts
+  carts Cart[]
+
+  // Wishlists
+  wishlists Wishlist[]
+
+  // Product Comparisons
+  productComparisons ProductComparison[]
+
+  // Cross-Site Sessions
+  crossSiteSessions CrossSiteSession[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -845,6 +905,20 @@ model Product {
   // Fulfillment Providers
   fulfillmentAssignments ProductFulfillmentAssignment[]
 
+  // Shopify-Inspired: Metafields and Sales Channels
+  metafieldValues ProductMetafieldValue[]
+  salesChannels   ProductSalesChannel[]
+
+  // Cart items
+  cartItems      CartItem[]
+  savedCartItems SavedCartItem[]
+
+  // Wishlist items
+  wishlistItems WishlistItem[]
+
+  // Product Comparison items
+  comparisonItems ProductComparisonItem[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -858,6 +932,452 @@ model Product {
   @@index([companyId, importSource])
   @@index([deletedAt])
   @@map("products")
+}
+
+// =============================================================================
+// CART SYSTEM
+// =============================================================================
+
+model Cart {
+  id            String     @id @default(cuid())
+  companyId     String
+  siteId        String?
+  customerId    String?
+  sessionToken  String?    @unique
+  visitorId     String?
+
+  status        CartStatus @default(ACTIVE)
+  currency      String     @default("USD")
+
+  subtotal      Decimal    @default(0) @db.Decimal(12, 2)
+  discountTotal Decimal    @default(0) @db.Decimal(12, 2)
+  taxTotal      Decimal    @default(0) @db.Decimal(12, 2)
+  shippingTotal Decimal    @default(0) @db.Decimal(12, 2)
+  grandTotal    Decimal    @default(0) @db.Decimal(12, 2)
+  itemCount     Int        @default(0)
+
+  discountCodes Json       @default("[]")
+
+  shippingPostalCode String?
+  shippingCountry    String?
+
+  notes         String?
+  metadata      Json       @default("{}")
+
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+
+  recoveryEmailSent   Boolean   @default(false)
+  recoveryEmailSentAt DateTime?
+  recoveryClicks      Int       @default(0)
+
+  mergedIntoCartId String?
+  mergedAt         DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastActivityAt DateTime @default(now())
+  expiresAt      DateTime?
+  convertedAt    DateTime?
+  abandonedAt    DateTime?
+
+  orderId        String?  @unique
+
+  // Landing Page Integration (attribution tracking)
+  landingPageId  String?
+  sourceType     CartSourceType @default(DIRECT)
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site      Site?     @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
+  items     CartItem[]
+  savedItems SavedCartItem[]
+  inventoryHolds InventoryHold[]
+  landingPageSession LandingPageSession?
+
+  @@index([companyId, status])
+  @@index([companyId, customerId])
+  @@index([sessionToken])
+  @@index([visitorId])
+  @@index([status, expiresAt])
+  @@index([companyId, siteId, status])
+  @@index([landingPageId])
+  @@index([sourceType, companyId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id          String @id @default(cuid())
+  cartId      String
+
+  productId   String
+  variantId   String?
+
+  productSnapshot Json
+
+  quantity       Int     @default(1)
+  unitPrice      Decimal @db.Decimal(10, 2)
+  originalPrice  Decimal @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  lineTotal      Decimal @db.Decimal(10, 2)
+
+  customFields   Json    @default("{}")
+  giftMessage    String?
+  isGift         Boolean @default(false)
+
+  addedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model SavedCartItem {
+  id        String @id @default(cuid())
+  cartId    String
+
+  productId String
+  variantId String?
+
+  quantity    Int     @default(1)
+  priceAtSave Decimal @db.Decimal(10, 2)
+
+  savedAt   DateTime @default(now())
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@map("saved_cart_items")
+}
+
+model InventoryHold {
+  id        String @id @default(cuid())
+  companyId String
+  cartId    String
+  orderId   String?
+
+  productId String
+  /// Empty string is used as sentinel for "no variant" to ensure unique constraint
+  /// works correctly. In PostgreSQL, NULL values are treated as distinct in unique
+  /// constraints, which would allow duplicate holds for the same cart+product.
+  /// Using "" as sentinel ensures exactly one hold per cart+product+variant.
+  variantId String @default("")
+
+  quantity  Int
+  status    String @default("ACTIVE") // ACTIVE, RELEASED, CONVERTED, EXPIRED
+
+  expiresAt   DateTime
+  releasedAt  DateTime?
+  convertedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, variantId])
+  @@index([companyId, status])
+  @@index([status, expiresAt])
+  @@index([productId, variantId, status])
+  @@map("inventory_holds")
+}
+
+// =============================================================================
+// CART PROMOTION & PRICING SYSTEM
+// =============================================================================
+
+model Promotion {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Promotion Code
+  code        String
+  name        String
+  description String?
+
+  // Promotion Type and Scope
+  type  PromotionType
+  scope PromotionScope
+
+  // Value Configuration
+  value              Decimal  @db.Decimal(10, 2) // Amount or percentage
+  minimumOrderAmount Decimal? @db.Decimal(10, 2) // Minimum cart total required
+  maximumDiscount    Decimal? @db.Decimal(10, 2) // Cap on discount amount
+
+  // Buy X Get Y Configuration (when type = BUY_X_GET_Y)
+  buyQuantity  Int? // Buy this many
+  getQuantity  Int? // Get this many free/discounted
+  getProductId String? // Specific product to get (optional)
+
+  // Usage Limits
+  maxUsesTotal       Int? // Total uses across all customers
+  maxUsesPerCustomer Int? // Uses per customer
+  currentUses        Int  @default(0)
+
+  // Validity Period
+  startsAt  DateTime
+  expiresAt DateTime?
+
+  // Targeting (JSON for flexibility)
+  // e.g., {"productIds": [], "categoryIds": [], "customerTags": [], "excludeProductIds": []}
+  targeting Json @default("{}")
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  usageRecords PromotionUsage[]
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@index([code])
+  @@index([startsAt, expiresAt])
+  @@map("promotions")
+}
+
+model PromotionUsage {
+  id          String @id @default(cuid())
+  promotionId String
+  cartId      String?
+  orderId     String?
+  customerId  String?
+
+  // Discount applied
+  discountAmount Decimal @db.Decimal(10, 2)
+
+  // Timestamps
+  appliedAt DateTime @default(now())
+
+  // Relations
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([customerId])
+  @@index([orderId])
+  @@map("promotion_usages")
+}
+
+model TaxRate {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Geographic Scope
+  country String  // ISO 3166-1 alpha-2 (e.g., "US", "CA", "GB")
+  state   String? // State/Province code (e.g., "CA", "NY", "ON")
+  city    String? // Optional city-level tax
+  zipCode String? // Optional zip code pattern (e.g., "90210", "902*")
+
+  // Tax Configuration
+  taxType TaxType
+  name    String  // Display name (e.g., "California Sales Tax")
+  rate    Decimal @db.Decimal(6, 4) // Rate as decimal (e.g., 0.0725 for 7.25%)
+
+  // Compound tax (applied on top of other taxes)
+  isCompound Boolean @default(false)
+  priority   Int     @default(0) // Order of application for compound taxes
+
+  // Product Category Exemptions (JSON array of category IDs)
+  exemptCategories Json @default("[]")
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, isActive])
+  @@index([country, state])
+  @@index([country, state, city])
+  @@map("tax_rates")
+}
+
+model ShippingZone {
+  id        String @id @default(cuid())
+  companyId String
+
+  // Zone Identification
+  name        String
+  description String?
+
+  // Geographic Coverage (JSON arrays for flexibility)
+  countries String[] // ISO 3166-1 alpha-2 codes
+  states    String[] // State/Province codes (with country prefix, e.g., "US-CA")
+  zipCodes  String[] // Zip code patterns (supports wildcards, e.g., "902*")
+
+  // Priority (higher = more specific, checked first)
+  priority Int @default(0)
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rules   ShippingRule[]
+
+  @@index([companyId, isActive])
+  @@index([priority])
+  @@map("shipping_zones")
+}
+
+model ShippingRule {
+  id             String @id @default(cuid())
+  shippingZoneId String
+
+  // Rule Identification
+  name        String // e.g., "Standard Shipping", "Express", "Free Shipping"
+  description String?
+  carrier     String? // e.g., "USPS", "UPS", "FedEx"
+  serviceCode String? // Carrier service code
+
+  // Rule Type
+  type ShippingRuleType
+
+  // Pricing Configuration (based on type)
+  baseRate          Decimal  @db.Decimal(10, 2) // Base shipping cost
+  perItemRate       Decimal? @db.Decimal(10, 2) // Additional per item
+  perWeightUnitRate Decimal? @db.Decimal(10, 2) // Per lb/kg
+  weightUnit        String   @default("lb") // "lb" or "kg"
+
+  // Free Shipping Threshold
+  freeShippingThreshold Decimal? @db.Decimal(10, 2)
+
+  // Weight/Size Limits
+  minWeight   Decimal? @db.Decimal(10, 2)
+  maxWeight   Decimal? @db.Decimal(10, 2)
+  minOrderTotal Decimal? @db.Decimal(10, 2)
+  maxOrderTotal Decimal? @db.Decimal(10, 2)
+
+  // Delivery Time
+  estimatedDaysMin Int?
+  estimatedDaysMax Int?
+
+  // Display Order
+  sortOrder Int @default(0)
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  zone ShippingZone @relation(fields: [shippingZoneId], references: [id], onDelete: Cascade)
+
+  @@index([shippingZoneId, isActive])
+  @@index([sortOrder])
+  @@map("shipping_rules")
+}
+
+// Cart-Promotion Application (tracks which promotions are applied to a cart)
+model CartPromotion {
+  id        String @id @default(cuid())
+  cartId    String
+  promotionId String
+
+  // Applied discount
+  discountAmount Decimal @db.Decimal(10, 2)
+
+  // Timestamps
+  appliedAt DateTime @default(now())
+
+  @@unique([cartId, promotionId])
+  @@index([cartId])
+  @@index([promotionId])
+  @@map("cart_promotions")
+}
+
+// =============================================================================
+// WISHLIST SYSTEM
+// =============================================================================
+
+model Wishlist {
+  id        String  @id @default(cuid())
+  companyId String
+  siteId    String?
+
+  // Owner - either customer or session
+  customerId   String?
+  sessionToken String? @unique
+
+  // Wishlist metadata
+  name     String  @default("My Wishlist")
+  isPublic Boolean @default(false)
+
+  // Shareable URL slug (generated when isPublic = true)
+  sharedUrl String? @unique
+
+  // Counts
+  itemCount Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site     Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  customer Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    WishlistItem[]
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([siteId])
+  @@index([sharedUrl])
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String @id @default(cuid())
+  wishlistId String
+
+  // Product reference
+  productId String
+  variantId String?
+
+  // Snapshot at time of addition
+  productSnapshot Json
+
+  // Priority for ordering (lower = higher priority)
+  priority Int @default(100)
+
+  // Personal notes
+  notes String?
+
+  // Timestamps
+  addedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([wishlistId, productId, variantId])
+  @@index([wishlistId])
+  @@index([productId])
+  @@map("wishlist_items")
 }
 
 // =============================================================================
@@ -2530,6 +3050,76 @@ enum EntityStatus {
   INACTIVE
   SUSPENDED
   DELETED
+}
+
+// Site Types
+enum SiteType {
+  STOREFRONT
+  FUNNEL
+  TRIAL
+  MARKETPLACE
+  B2B_PORTAL
+}
+
+// Cart Status
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+  MERGED
+  EXPIRED
+}
+
+// Cart Source Type - Attribution tracking
+enum CartSourceType {
+  DIRECT        // Direct site visit
+  LANDING_PAGE  // From landing page
+  FUNNEL        // From funnel flow
+  EMAIL         // From email campaign
+}
+
+// Landing Page Session Status
+enum LandingPageSessionStatus {
+  ACTIVE     // Visitor actively browsing
+  CONVERTED  // Cart converted to order
+  ABANDONED  // Session abandoned (no activity)
+  EXPIRED    // Session token expired
+}
+
+// Promotion Types
+enum PromotionType {
+  PERCENTAGE_OFF     // e.g., 20% off
+  FIXED_AMOUNT_OFF   // e.g., $10 off
+  BUY_X_GET_Y        // e.g., Buy 2 Get 1 Free
+  FREE_SHIPPING      // Free shipping
+  FREE_GIFT          // Free product with purchase
+}
+
+enum PromotionScope {
+  CART              // Applies to entire cart
+  PRODUCT           // Applies to specific products
+  CATEGORY          // Applies to specific categories
+  SHIPPING          // Applies to shipping only
+}
+
+// Tax Types
+enum TaxType {
+  SALES_TAX         // US Sales Tax
+  VAT               // Value Added Tax (EU)
+  GST               // Goods and Services Tax (CA, AU)
+  HST               // Harmonized Sales Tax (Canada)
+  PST               // Provincial Sales Tax (Canada)
+  CONSUMPTION       // Consumption Tax (Japan, etc.)
+}
+
+// Shipping Rule Types
+enum ShippingRuleType {
+  FLAT_RATE         // Fixed cost regardless of order
+  PER_ITEM          // Cost per item in cart
+  WEIGHT_BASED      // Based on total weight
+  PRICE_BASED       // Based on order total
+  FREE              // Always free
+  CALCULATED        // Real-time carrier rates (future)
 }
 
 enum ScopeType {
@@ -5077,6 +5667,9 @@ model Category {
   products      ProductCategoryAssignment[]
   deletedByUser User?                       @relation("CategoryDeletedBy", fields: [deletedBy], references: [id])
 
+  // Shopify-Inspired: Category Metafield Definitions
+  metafieldDefinitions CategoryMetafieldDefinition[]
+
   @@unique([companyId, slug, deletedAt])
   @@unique([companyId, parentId, name, deletedAt])
   @@index([companyId, parentId])
@@ -5683,6 +6276,28 @@ enum AdjustmentReason {
   TRANSFERRED // Moved between locations
   COUNT_ADJUSTMENT // Physical count correction
   OTHER
+}
+
+// Shopify-Inspired Product Management Enums
+enum MetafieldType {
+  TEXT         // Single-line text input
+  TEXTAREA     // Multi-line text input
+  NUMBER       // Numeric input
+  SELECT       // Single-select dropdown
+  MULTI_SELECT // Multi-select checkboxes
+  BOOLEAN      // Toggle/checkbox
+  DATE         // Date picker
+  COLOR        // Color picker
+  URL          // URL input with validation
+}
+
+enum SalesChannelType {
+  ONLINE_STORE // Primary web storefront
+  POS          // Point of sale / in-person
+  WHOLESALE    // B2B wholesale channel
+  MARKETPLACE  // Third-party marketplaces
+  SOCIAL       // Social commerce (Instagram, TikTok, etc.)
+  CUSTOM       // Custom/API-only channel
 }
 
 enum MarketingVideoType {
@@ -6704,12 +7319,70 @@ model LandingPage {
   popups   LandingPagePopup[]
   dynamicTextRules DynamicTextRule[]
   conversionGoals  ConversionGoal[]
+  // Cart Integration
+  sessions LandingPageSession[]
+  carts    Cart[]
 
   @@unique([companyId, slug, deletedAt])
   @@index([subdomain])
   @@index([status])
   @@index([deletedAt])
   @@map("landing_pages")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LANDING PAGE SESSIONS - Visitor tracking for landing page → cart attribution
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model LandingPageSession {
+  id            String   @id @default(cuid())
+  sessionToken  String   @unique // 256-bit random, base64url encoded (~43 chars)
+  landingPageId String
+
+  // Visitor Identification
+  visitorId     String?  // Persistent visitor ID (from cookie)
+  ipAddressHash String?  // SHA-256 hash for privacy (with salt)
+  userAgent     String?
+  referrer      String?
+
+  // Device Detection
+  deviceType    String?  // 'desktop', 'mobile', 'tablet'
+  browser       String?  // 'Chrome', 'Safari', 'Firefox', etc.
+  os            String?  // 'Windows', 'macOS', 'iOS', 'Android', etc.
+
+  // UTM Parameters
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmTerm       String?
+  utmContent    String?
+
+  // Conversion Tracking
+  cartId        String?  @unique
+  status        LandingPageSessionStatus @default(ACTIVE)
+  convertedAt   DateTime?
+  orderId       String?
+  abandonedAt   DateTime?
+
+  // Timestamps
+  startedAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+
+  // Company Scope
+  companyId     String
+
+  // Relations
+  landingPage   LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cart          Cart?       @relation(fields: [cartId], references: [id], onDelete: SetNull)
+
+  // Performance-optimized indexes (per DBA review)
+  @@index([landingPageId, startedAt])
+  @@index([landingPageId, status])
+  @@index([companyId, startedAt])
+  @@index([companyId, convertedAt])
+  @@index([status])
+  @@map("landing_page_sessions")
 }
 
 model LandingPageSection {
@@ -6956,6 +7629,7 @@ enum AIFeature {
   PRODUCT_DESCRIPTION     // Product descriptions
   SEO_OPTIMIZATION        // Meta tags, keywords
   IMAGE_ALT_TEXT          // Alt text generation
+  LOGO_GENERATION         // AI-generated logo images (Titan Image Generator)
 }
 
 enum AIUsageStatus {
@@ -10044,4 +10718,289 @@ model FieldMappingProfile {
   @@index([companyId, provider])    // Listing profiles by company and provider
   @@unique([companyId, provider, name])
   @@map("field_mapping_profiles")
+}
+
+// ============================================================================
+// Shopify-Inspired Product Management System
+// ============================================================================
+
+// Category Metafield Definition - defines what custom fields each category has
+// Based on Shopify's category metafields concept
+model CategoryMetafieldDefinition {
+  id          String        @id @default(cuid())
+  categoryId  String
+
+  // Field definition
+  key         String        // e.g., "roast_level", "origin"
+  name        String        // Display name: "Roast Level", "Origin"
+  type        MetafieldType // TEXT, NUMBER, SELECT, etc.
+
+  // Configuration
+  required    Boolean       @default(false)
+  options     Json?         // For SELECT/MULTI_SELECT: ["Light", "Medium", "Dark"]
+  validation  Json?         // Validation rules: { min: 0, max: 100, pattern: "..." }
+  helpText    String?       // Help text shown below field
+  placeholder String?       // Placeholder text in input
+  defaultValue String?      // Default value for new products
+
+  // Display
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+
+  // Timestamps
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Soft Delete
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  // Relations
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  values      ProductMetafieldValue[]
+  deletedByUser User?       @relation("MetafieldDeletedBy", fields: [deletedBy], references: [id])
+
+  @@unique([categoryId, key, deletedAt])
+  @@index([categoryId, isActive])
+  @@index([deletedAt])
+  @@map("category_metafield_definitions")
+}
+
+// Product Metafield Value - stores actual custom field values per product
+// NOTE: Application layer MUST enforce that only ONE value column is populated based on definition type
+// Multi-category behavior: Products inherit metafield definitions from ALL assigned categories
+model ProductMetafieldValue {
+  id           String   @id @default(cuid())
+  productId    String
+  definitionId String
+
+  // Typed value storage - only one should be set based on definition type
+  // Application validation required: only populate the column matching definition.type
+  textValue    String?      // For TEXT, TEXTAREA, SELECT, URL, COLOR
+  numberValue  Decimal?     @db.Decimal(20, 6) // For NUMBER
+  booleanValue Boolean?     // For BOOLEAN
+  dateValue    DateTime?    // For DATE
+  jsonValue    Json?        // For MULTI_SELECT (array of values)
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  definition   CategoryMetafieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, definitionId])
+  @@index([definitionId])
+  @@index([productId]) // For loading all metafields for a product
+  @@index([definitionId, textValue]) // For filtering products by text metafield values
+  @@map("product_metafield_values")
+}
+
+// Sales Channel - where products can be published
+// Based on Shopify's publishing/channels concept
+model SalesChannel {
+  id          String           @id @default(cuid())
+  companyId   String
+
+  // Channel identity
+  name        String           // "Online Store", "POS", "Wholesale"
+  slug        String           // URL-safe identifier
+  type        SalesChannelType // ONLINE_STORE, POS, WHOLESALE, etc.
+
+  // Configuration
+  description String?
+  iconUrl     String?          // Channel icon/logo
+  settings    Json?            // Channel-specific settings
+
+  // Status
+  isActive    Boolean          @default(true)
+  isDefault   Boolean          @default(false) // Products added to this by default
+
+  // Display
+  sortOrder   Int              @default(0)
+
+  // Timestamps
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Soft Delete
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  // Relations
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products    ProductSalesChannel[]
+  deletedByUser User?          @relation("SalesChannelDeletedBy", fields: [deletedBy], references: [id])
+
+  @@unique([companyId, slug, deletedAt])
+  @@index([companyId, isActive])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("sales_channels")
+}
+
+// Product-Channel junction - tracks which products are published where
+model ProductSalesChannel {
+  id          String    @id @default(cuid())
+  productId   String
+  channelId   String
+
+  // Publishing status
+  isPublished Boolean   @default(true)
+  publishedAt DateTime? // When product was first published to this channel
+
+  // Channel-specific overrides (optional)
+  channelPrice Decimal?  @db.Decimal(12, 4) // Override price (increased precision for multi-currency)
+  isVisible    Boolean   @default(true)      // Can be hidden from specific channels
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  channel     SalesChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, channelId])
+  @@index([channelId])
+  @@index([isPublished])
+  @@index([productId, isPublished]) // For querying product's published channels
+  @@index([channelId, isPublished, isVisible]) // For channel product listings
+  @@map("product_sales_channels")
+}
+
+// =============================================================================
+// PRODUCT COMPARISON SYSTEM
+// =============================================================================
+// Allows customers to compare up to 4 products side-by-side.
+// Supports both anonymous (session-based) and authenticated users.
+// Comparisons can be shared via unique share tokens.
+
+model ProductComparison {
+  id        String  @id @default(cuid())
+  companyId String
+
+  // Site association (for multi-site support)
+  siteId String?
+
+  // User identification (one of these should be set)
+  customerId   String? // Authenticated user
+  sessionToken String? @unique // Anonymous session
+  visitorId    String? // Cross-session visitor tracking
+
+  // Comparison metadata
+  name String? // Optional user-defined name (e.g., "Coffee Makers")
+
+  // Sharing functionality
+  shareToken String?   @unique // Unique token for sharing
+  isShared   Boolean   @default(false)
+  sharedAt   DateTime? // When sharing was enabled
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime? // Optional expiration
+
+  // Merge tracking (when anonymous comparison is merged with user account)
+  mergedIntoComparisonId String?
+  mergedAt               DateTime?
+
+  // Relations
+  company  Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site     Site?                   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  customer Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    ProductComparisonItem[]
+
+  @@index([companyId])
+  @@index([companyId, customerId])
+  @@index([sessionToken])
+  @@index([visitorId])
+  @@index([shareToken])
+  @@index([companyId, siteId])
+  @@index([expiresAt])
+  @@map("product_comparisons")
+}
+
+model ProductComparisonItem {
+  id           String @id @default(cuid())
+  comparisonId String
+
+  // Product reference
+  productId String
+  variantId String? // Optional variant for products with variants
+
+  // Snapshot of product data at time of addition
+  // Allows display even if product is updated/deleted
+  productSnapshot Json
+
+  // Position in comparison (0-3, max 4 items)
+  position Int @default(0)
+
+  // Timestamps
+  addedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  comparison ProductComparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  product    Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  // Ensure unique product per comparison (no duplicates)
+  @@unique([comparisonId, productId, variantId])
+  @@index([comparisonId])
+  @@index([productId])
+  @@map("product_comparison_items")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CROSS-SITE SESSION MODEL
+// Unified session management across multiple sites within a company
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum CrossSiteSessionStatus {
+  ACTIVE
+  EXPIRED
+  MERGED
+  REVOKED
+}
+
+model CrossSiteSession {
+  id           String   @id @default(cuid())
+  companyId    String
+  sessionToken String   @unique
+
+  // User identification (optional for guest sessions)
+  visitorId  String? // Anonymous visitor ID
+  customerId String? // Linked customer when logged in
+
+  // Session status
+  status CrossSiteSessionStatus @default(ACTIVE)
+
+  // Linked data references (stored as JSON for flexibility)
+  // Format: [{ type: 'CART' | 'WISHLIST' | 'COMPARISON', entityId, siteId, lastUpdated }]
+  dataReferences Json @default("[]")
+
+  // Device/browser information
+  deviceInfo Json? // { userAgent, ipAddress, fingerprint }
+
+  // Activity tracking
+  firstSeenAt  DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+  expiresAt    DateTime
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Indexes
+  @@index([companyId])
+  @@index([customerId])
+  @@index([sessionToken])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("cross_site_sessions")
 }

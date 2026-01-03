@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Filter,
@@ -286,7 +287,10 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
     e.preventDefault();
     setLoading(true);
     try {
-      await onSave(formData);
+      // Exclude flavorNotes from payload - it's not a supported field yet
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { flavorNotes, ...payload } = formData;
+      await onSave(payload);
       onClose();
     } catch (err) {
       console.error('Failed to save product:', err);
@@ -760,6 +764,7 @@ function ProductModal({ product, onClose, onSave, onRefresh }: ProductModalProps
 // ═══════════════════════════════════════════════════════════════
 
 export default function ProductsPage() {
+  const router = useRouter();
   const { accessLevel, selectedCompanyId } = useHierarchy();
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -1055,7 +1060,8 @@ export default function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="bg-card/50 border border-border rounded-xl overflow-hidden hover:border-border transition-colors"
+                className="bg-card/50 border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => router.push(`/products/${product.id}`)}
               >
                 {/* Image Placeholder */}
                 <div className="aspect-square bg-muted flex items-center justify-center">
@@ -1075,7 +1081,10 @@ export default function ProductsPage() {
                     </div>
                     <div className="relative">
                       <button
-                        onClick={() => setOpenMenuId(openMenuId === product.id ? null : product.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === product.id ? null : product.id);
+                        }}
                         className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <MoreHorizontal className="w-4 h-4" />
@@ -1084,13 +1093,17 @@ export default function ProductsPage() {
                         <>
                           <div
                             className="fixed inset-0 z-10"
-                            onClick={() => setOpenMenuId(null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                            }}
                           />
                           <div className="absolute right-0 top-full mt-1 z-20 w-32 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
                             <button
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                              onClick={() => {
-                                openEditModal(product);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/products/${product.id}`);
                                 setOpenMenuId(null);
                               }}
                             >
@@ -1099,7 +1112,8 @@ export default function ProductsPage() {
                             </button>
                             <button
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setProductToDelete(product);
                                 setOpenMenuId(null);
                               }}

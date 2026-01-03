@@ -72,6 +72,31 @@ export class S3StorageService {
   private clientCache = new Map<string, S3Client>();
 
   /**
+   * Sanitize a string for use in S3 metadata
+   * AWS S3 metadata values must be ASCII-safe (US-ASCII characters only)
+   * Non-ASCII characters cause signature calculation failures
+   */
+  private sanitizeForS3Metadata(value: string): string {
+    if (!value) return '';
+    return value
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+      .replace(/[^\x00-\x7F]/g, '') // Remove any remaining non-ASCII
+      .substring(0, 1024); // S3 metadata value limit
+  }
+
+  /**
+   * Sanitize all metadata values for S3
+   */
+  private sanitizeMetadata(metadata: Record<string, string>): Record<string, string> {
+    const sanitized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(metadata)) {
+      sanitized[key] = this.sanitizeForS3Metadata(value);
+    }
+    return sanitized;
+  }
+
+  /**
    * Get or create an S3 client for the given credentials
    */
   private getClient(credentials: S3Credentials): S3Client {
@@ -208,6 +233,7 @@ export class S3StorageService {
           Body: thumbnailBuffer,
           ContentType: 'image/webp',
           CacheControl: 'public, max-age=31536000',
+          ServerSideEncryption: 'AES256',
         }));
 
         thumbnails[size] = this.getUrl(credentials, thumbnailKey);
@@ -252,18 +278,21 @@ export class S3StorageService {
     }
 
     // Upload main file
+    // Sanitize all metadata values to ASCII-safe strings to avoid S3 signature errors
+    const rawMetadata = {
+      ...options.metadata,
+      originalFilename,
+      companyId: options.companyId,
+      uploadedAt: new Date().toISOString(),
+    };
     await client.send(new PutObjectCommand({
       Bucket: credentials.bucket,
       Key: key,
       Body: uploadBuffer,
       ContentType: finalContentType,
       CacheControl: 'public, max-age=31536000',
-      Metadata: {
-        ...options.metadata,
-        originalFilename,
-        companyId: options.companyId,
-        uploadedAt: new Date().toISOString(),
-      },
+      ServerSideEncryption: 'AES256',
+      Metadata: this.sanitizeMetadata(rawMetadata),
     }));
 
     const result: UploadResult = {
@@ -390,6 +419,7 @@ export class S3StorageService {
       Bucket: credentials.bucket,
       CopySource: `${credentials.bucket}/${sourceKey}`,
       Key: destinationKey,
+      ServerSideEncryption: 'AES256',
     }));
 
     return this.getUrl(credentials, destinationKey);

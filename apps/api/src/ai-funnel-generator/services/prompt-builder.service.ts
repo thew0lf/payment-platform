@@ -100,34 +100,23 @@ Generate 3-4 benefits and 3-5 FAQ items. Ensure all copy follows the ${methodolo
   buildProductPrompt(context: FunnelPromptContext, product: ProductContext): string {
     const { methodology, discoveryAnswers } = context;
 
-    return `Generate enhanced product content for the ${methodology.name} methodology.
+    return `Generate product content for ${methodology.name} methodology.
 
-PRODUCT:
-Name: ${product.name}
-${product.description ? `Description: ${product.description}` : ''}
-${product.shortDescription ? `Short Description: ${product.shortDescription}` : ''}
+PRODUCT: ${product.name}
+${product.description ? `Description: ${product.description.substring(0, 200)}` : ''}
 Price: ${product.currency} ${product.price}
-${product.compareAtPrice ? `Compare At: ${product.currency} ${product.compareAtPrice}` : ''}
-${product.attributes ? `Attributes: ${JSON.stringify(product.attributes)}` : ''}
-
-KEY METHODOLOGY ANSWERS:
-${Object.entries(discoveryAnswers).slice(0, 3).map(([key, value]) => {
-  const question = methodology.discoveryQuestions.find(q => q.id === key);
-  return `${question?.question || key}: ${value}`;
-}).join('\n')}
 
 TONE: ${methodology.toneGuidelines}
 
-REQUIRED OUTPUT FORMAT (JSON only):
+RESPOND WITH VALID JSON ONLY. Keep descriptions concise (max 150 words).
+
 {
   "productId": "${product.id}",
-  "enhancedDescription": "2-3 paragraph description following methodology",
-  "bulletPoints": ["Benefit-focused bullet 1", "Benefit-focused bullet 2", "Benefit-focused bullet 3", "Benefit-focused bullet 4"],
-  "socialProofLine": "One line of social proof or credibility",
-  "valueProposition": "One sentence value proposition"
-}
-
-Generate 4-6 bullet points focused on benefits, not features.`;
+  "enhancedDescription": "1-2 paragraph description (max 150 words)",
+  "bulletPoints": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4"],
+  "socialProofLine": "One credibility line",
+  "valueProposition": "One sentence value prop"
+}`;
   }
 
   /**
@@ -277,13 +266,59 @@ The success page should reinforce the purchase decision and get customers excite
       // Remove markdown code blocks if present
       let cleaned = response.trim();
       cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      cleaned = cleaned.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/, '$1');
+
+      // Try to extract JSON object from the response
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleaned = jsonMatch[0];
+      }
+
+      // Attempt to fix common JSON issues
+      cleaned = this.attemptJsonRepair(cleaned);
 
       return JSON.parse(cleaned) as T;
     } catch (error) {
       this.logger.error(`Failed to parse AI response: ${error}`);
-      this.logger.debug(`Raw response: ${response.substring(0, 500)}...`);
+      this.logger.debug(`Raw response (first 1000 chars): ${response.substring(0, 1000)}`);
+      this.logger.debug(`Raw response (last 500 chars): ${response.substring(Math.max(0, response.length - 500))}`);
       throw new Error('Failed to parse AI response as JSON');
     }
+  }
+
+  /**
+   * Attempt to repair common JSON issues from AI responses
+   */
+  private attemptJsonRepair(json: string): string {
+    let repaired = json;
+
+    // Remove trailing commas before closing braces/brackets
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // If JSON appears truncated (no closing brace), try to close it
+    const openBraces = (repaired.match(/\{/g) || []).length;
+    const closeBraces = (repaired.match(/\}/g) || []).length;
+
+    if (openBraces > closeBraces) {
+      this.logger.warn(`JSON appears truncated (${openBraces} open braces, ${closeBraces} close braces). Attempting repair.`);
+
+      // Find the last complete property and truncate there
+      const lastCompleteMatch = repaired.match(/^([\s\S]*"[^"]+"\s*:\s*(?:"[^"]*"|[\d.]+|true|false|null|\[[^\]]*\]|\{[^}]*\}))\s*,?\s*"[^"]*$/);
+      if (lastCompleteMatch) {
+        repaired = lastCompleteMatch[1];
+      }
+
+      // Close any unclosed strings
+      const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
+      if (quoteCount % 2 !== 0) {
+        repaired += '"';
+      }
+
+      // Add missing closing braces
+      for (let i = closeBraces; i < openBraces; i++) {
+        repaired += '}';
+      }
+    }
+
+    return repaired;
   }
 }

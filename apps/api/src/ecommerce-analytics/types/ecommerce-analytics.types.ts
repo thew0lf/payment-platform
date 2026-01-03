@@ -258,3 +258,170 @@ export interface TrackEventInput {
   visitorId?: string;
   metadata?: Record<string, unknown>;
 }
+
+/**
+ * Time grouping options for time series data
+ */
+export type TimeGrouping = 'day' | 'week' | 'month';
+
+/**
+ * Abandonment Time Series Analytics
+ * Tracks cart abandonment rate over time
+ */
+export interface AbandonmentTimeSeriesPoint {
+  date: string;
+  totalCarts: number;
+  abandonedCarts: number;
+  abandonmentRate: number;
+  averageCartValue: number;
+}
+
+export interface AbandonmentTimeSeriesData {
+  companyId: string;
+  dateRange: DateRange;
+  groupBy: TimeGrouping;
+  data: AbandonmentTimeSeriesPoint[];
+  summary: {
+    totalCarts: number;
+    totalAbandoned: number;
+    overallAbandonmentRate: number;
+    peakAbandonmentDate: string | null;
+    lowestAbandonmentDate: string | null;
+  };
+}
+
+/**
+ * Recovery Analytics by Channel
+ * Tracks recovery success rates by different channels (email, sms, etc.)
+ */
+export type RecoveryChannel = 'email' | 'sms' | 'push' | 'retargeting' | 'direct';
+
+export interface RecoveryChannelMetrics {
+  channel: RecoveryChannel;
+  attemptedRecoveries: number;
+  successfulRecoveries: number;
+  recoveryRate: number;
+  totalValueRecovered: number;
+  averageValueRecovered: number;
+}
+
+export interface RecoveryAnalyticsData {
+  companyId: string;
+  dateRange: DateRange;
+  groupBy: TimeGrouping;
+  overallRecoveryRate: number;
+  totalValueRecovered: number;
+  channelBreakdown: RecoveryChannelMetrics[];
+  timeSeries: Array<{
+    date: string;
+    totalRecovered: number;
+    valueRecovered: number;
+    byChannel: Partial<Record<RecoveryChannel, number>>;
+  }>;
+}
+
+/**
+ * Cart Value Distribution
+ * Breaks down carts by value ranges
+ */
+export interface CartValueBucket {
+  minValue: number;
+  maxValue: number;
+  label: string;
+  cartCount: number;
+  percentageOfTotal: number;
+  totalValue: number;
+  averageItems: number;
+}
+
+export interface CartValueDistributionData {
+  companyId: string;
+  dateRange: DateRange;
+  currency: string;
+  buckets: CartValueBucket[];
+  statistics: {
+    minCartValue: number;
+    maxCartValue: number;
+    averageCartValue: number;
+    medianCartValue: number;
+    totalCartValue: number;
+    totalCarts: number;
+  };
+  valueByStatus: {
+    active: number;
+    abandoned: number;
+    converted: number;
+  };
+}
+
+/**
+ * Funnel Drop-off Analytics
+ * Tracks where users abandon in the funnel
+ */
+export interface FunnelStageDropoff {
+  stageOrder: number;
+  stageName: string;
+  stageType: 'LANDING' | 'PRODUCT_SELECTION' | 'CHECKOUT';
+  sessionsEntered: number;
+  sessionsCompleted: number;
+  sessionsAbandoned: number;
+  dropoffRate: number;
+  averageTimeOnStage: number; // in seconds
+}
+
+export interface FunnelDropoffData {
+  companyId: string;
+  dateRange: DateRange;
+  funnelId?: string; // Optional: filter by specific funnel
+  funnelName?: string;
+  totalSessions: number;
+  completedSessions: number;
+  overallConversionRate: number;
+  stages: FunnelStageDropoff[];
+  criticalDropoffStage: FunnelStageDropoff | null; // Stage with highest dropoff
+  timeSeries: Array<{
+    date: string;
+    totalSessions: number;
+    completedSessions: number;
+    conversionRate: number;
+  }>;
+}
+
+/**
+ * Admin Overview Data
+ * Combined metrics for the admin dashboard overview
+ */
+export interface AdminEcommerceOverviewData {
+  companyId: string;
+  dateRange: DateRange;
+
+  // Cart metrics
+  totalCarts: number;
+  activeCarts: number;
+  abandonedCarts: number;
+  convertedCarts: number;
+  abandonmentRate: number;
+  conversionRate: number;
+
+  // Value metrics
+  averageCartValue: number;
+  totalCartValue: number;
+  potentialRevenueLost: number;
+
+  // Recovery metrics
+  recoveredCarts: number;
+  recoveryRate: number;
+  totalValueRecovered: number;
+
+  // Funnel metrics
+  totalFunnelSessions: number;
+  funnelCompletionRate: number;
+
+  // Trends (compared to previous period)
+  trends: {
+    abandonmentRateChange: number;
+    conversionRateChange: number;
+    cartValueChange: number;
+    recoveryRateChange: number;
+  };
+}

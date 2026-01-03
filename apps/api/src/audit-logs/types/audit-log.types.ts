@@ -309,6 +309,19 @@ export const AuditAction = {
   AUTOMATION_FAILED: 'AUTOMATION_FAILED',
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // FUNNEL & BRANDING
+  // ─────────────────────────────────────────────────────────────────────────────
+  FUNNEL_CREATED: 'FUNNEL_CREATED',
+  FUNNEL_UPDATED: 'FUNNEL_UPDATED',
+  FUNNEL_PUBLISHED: 'FUNNEL_PUBLISHED',
+  FUNNEL_UNPUBLISHED: 'FUNNEL_UNPUBLISHED',
+  FUNNEL_DELETED: 'FUNNEL_DELETED',
+  LOGO_UPLOADED: 'LOGO_UPLOADED',
+  LOGO_REMOVED: 'LOGO_REMOVED',
+  LOGO_PROCESSED: 'LOGO_PROCESSED',
+  LOGO_GENERATED: 'LOGO_GENERATED',
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // EMAIL & COMMUNICATION (GDPR Art. 21, CAN-SPAM, CASL)
   // ─────────────────────────────────────────────────────────────────────────────
   EMAIL_QUEUED: 'EMAIL_QUEUED', // Email added to SQS queue
@@ -424,6 +437,15 @@ export const AuditEntity = {
   VENDOR_PRODUCT: 'VendorProduct',
   VENDOR_ORDER: 'VendorOrder',
   VENDOR_CONNECTION: 'VendorConnection',
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FUNNELS
+  // ─────────────────────────────────────────────────────────────────────────────
+  FUNNEL: 'Funnel',
+  FUNNEL_STAGE: 'FunnelStage',
+  FUNNEL_VARIANT: 'FunnelVariant',
+  FUNNEL_SESSION: 'FunnelSession',
+  FUNNEL_LOGO: 'FunnelLogo',
 
   // ─────────────────────────────────────────────────────────────────────────────
   // MOMENTUM INTELLIGENCE

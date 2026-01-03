@@ -428,9 +428,14 @@ export class FunnelGeneratorService {
       const response = await this.bedrockService.generateContent(credentials, {
         prompt,
         systemPrompt: this.promptBuilder.buildSystemPrompt(methodology),
-        maxTokens: 1000,
+        maxTokens: 4000,
         temperature: 0.7,
       });
+
+      // Log if we hit the token limit
+      if (response.stopReason === 'max_tokens') {
+        this.logger.warn(`[Product ${product.id}] Response truncated due to max_tokens. Used ${response.usage.outputTokens} output tokens.`);
+      }
 
       results.push(this.promptBuilder.parseAIResponse<ProductContent>(response.content));
     }
@@ -470,7 +475,7 @@ export class FunnelGeneratorService {
     const response = await this.bedrockService.generateContent(credentials, {
       prompt,
       systemPrompt: this.promptBuilder.buildSystemPrompt(methodology),
-      maxTokens: 500,
+      maxTokens: 1000,
       temperature: 0.7,
     });
 
@@ -489,7 +494,7 @@ export class FunnelGeneratorService {
     const response = await this.bedrockService.generateContent(credentials, {
       prompt,
       systemPrompt: this.promptBuilder.buildSystemPrompt(methodology),
-      maxTokens: 500,
+      maxTokens: 1000,
       temperature: 0.7,
     });
 
@@ -508,7 +513,7 @@ export class FunnelGeneratorService {
     const response = await this.bedrockService.generateContent(credentials, {
       prompt,
       systemPrompt: this.promptBuilder.buildSystemPrompt(methodology),
-      maxTokens: 500,
+      maxTokens: 1000,
       temperature: 0.7,
     });
 

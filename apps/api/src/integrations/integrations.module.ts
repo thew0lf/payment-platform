@@ -52,6 +52,8 @@ import { SlackService } from './services/providers/slack.service';
 import { RoastifyService } from './services/providers/roastify.service';
 // Location Services
 import { GooglePlacesService } from './services/providers/google-places.service';
+// Stock Images
+import { StockImageService } from './services/providers/stock-image.service';
 
 @Global()
 @Module({
@@ -106,6 +108,8 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     GooglePlacesService,
     // Fulfillment Providers
     RoastifyService,
+    // Stock Images
+    StockImageService,
   ],
   exports: [
     CredentialEncryptionService,
@@ -155,6 +159,8 @@ import { GooglePlacesService } from './services/providers/google-places.service'
     GooglePlacesService,
     // Fulfillment Providers
     RoastifyService,
+    // Stock Images
+    StockImageService,
   ],
 })
 export class IntegrationsModule {}

@@ -4,7 +4,7 @@ import { take, toArray } from 'rxjs/operators';
 import { firstValueFrom, timeout } from 'rxjs';
 import { ImportEventService, IMPORT_EVENT_PREFIX } from './import-event.service';
 import { ImportJobStatus, ImportJobPhase } from '@prisma/client';
-import { ImportJobProgress, ImportJobError, ConflictInfo } from '../types/product-import.types';
+import { ImportJobProgressEvent, ImportJobError, ConflictInfo } from '../types/product-import.types';
 
 describe('ImportEventService', () => {
   let service: ImportEventService;
@@ -13,7 +13,7 @@ describe('ImportEventService', () => {
   const mockJobId = 'job-123';
   const mockCompanyId = 'company-456';
 
-  const mockProgress: ImportJobProgress = {
+  const mockProgress: ImportJobProgressEvent = {
     id: mockJobId,
     status: ImportJobStatus.IN_PROGRESS,
     phase: ImportJobPhase.CREATING,

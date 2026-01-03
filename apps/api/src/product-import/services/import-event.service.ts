@@ -4,7 +4,7 @@ import { Subject, Observable, filter, map } from 'rxjs';
 import {
   ImportEvent,
   ImportEventType,
-  ImportJobProgress,
+  ImportJobProgressEvent,
   ImportJobError,
   ConflictInfo,
 } from '../types/product-import.types';
@@ -54,21 +54,21 @@ export class ImportEventService {
   /**
    * Emit a job started event
    */
-  emitJobStarted(jobId: string, companyId: string, progress: ImportJobProgress): void {
+  emitJobStarted(jobId: string, companyId: string, progress: ImportJobProgressEvent): void {
     this.emitEvent(jobId, companyId, 'job:started', progress);
   }
 
   /**
    * Emit a progress update event
    */
-  emitProgress(jobId: string, companyId: string, progress: ImportJobProgress): void {
+  emitProgress(jobId: string, companyId: string, progress: ImportJobProgressEvent): void {
     this.emitEvent(jobId, companyId, 'job:progress', progress);
   }
 
   /**
    * Emit a phase change event
    */
-  emitPhaseChanged(jobId: string, companyId: string, progress: ImportJobProgress): void {
+  emitPhaseChanged(jobId: string, companyId: string, progress: ImportJobProgressEvent): void {
     this.emitEvent(jobId, companyId, 'job:phase-changed', progress);
   }
 
@@ -121,7 +121,7 @@ export class ImportEventService {
   /**
    * Emit a job completed event
    */
-  emitJobCompleted(jobId: string, companyId: string, progress: ImportJobProgress): void {
+  emitJobCompleted(jobId: string, companyId: string, progress: ImportJobProgressEvent): void {
     this.emitEvent(jobId, companyId, 'job:completed', progress);
     this.cleanupJob(jobId);
   }
@@ -137,7 +137,7 @@ export class ImportEventService {
   /**
    * Emit a job cancelled event
    */
-  emitJobCancelled(jobId: string, companyId: string, progress: ImportJobProgress): void {
+  emitJobCancelled(jobId: string, companyId: string, progress: ImportJobProgressEvent): void {
     this.emitEvent(jobId, companyId, 'job:cancelled', progress);
     this.cleanupJob(jobId);
   }
@@ -156,7 +156,7 @@ export class ImportEventService {
     jobId: string,
     companyId: string,
     type: ImportEventType,
-    data: ImportJobProgress | ImportJobError | ConflictInfo | { productId: string; sku: string },
+    data: ImportJobProgressEvent | ImportJobError | ConflictInfo | { productId: string; sku: string },
   ): void {
     const event: ImportEvent = {
       type,

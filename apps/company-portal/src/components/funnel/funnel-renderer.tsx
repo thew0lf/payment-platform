@@ -13,6 +13,7 @@ import { ProgressBar } from './progress-bar';
 import { CartSummary } from './cart-summary';
 import { LogoDisplay } from '@/components/brand/LogoDisplay';
 import { FontLoader } from '@/components/brand/FontLoader';
+import { DemoBadge } from '@/components/demo';
 
 interface FunnelRendererProps {
   funnel: Funnel;
@@ -37,6 +38,7 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
     progress,
     session,
     cart,
+    isDemoMode,
   } = useFunnel();
 
   // Get resolved brand kit and CSS variables from context
@@ -111,6 +113,9 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
       >
         {/* Load custom fonts from Google Fonts */}
         <FontLoader brandKit={brandKit} preconnect />
+
+        {/* Demo Badge (shows when in demo mode) */}
+        <DemoBadge isVisible={isDemoMode} />
 
         {/* Urgency Banner (shows at top when configured) */}
         <UrgencyBanner />

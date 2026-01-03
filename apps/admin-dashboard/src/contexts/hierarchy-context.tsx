@@ -86,6 +86,12 @@ export function HierarchyProvider({ children }: { children: ReactNode }) {
       // Auto-select based on user scope
       if (user.scopeType === 'CLIENT' && user.clientId) {
         setSelectedClientId(user.clientId);
+        // If CLIENT user has only one company, auto-select it for convenience
+        const companies = response.data.companies || [];
+        if (companies.length === 1) {
+          setSelectedCompanyId(companies[0].id);
+          console.log('[Hierarchy Context] Auto-selected single company:', companies[0].name);
+        }
       } else if (user.scopeType === 'COMPANY' && user.companyId) {
         setSelectedCompanyId(user.companyId);
       }

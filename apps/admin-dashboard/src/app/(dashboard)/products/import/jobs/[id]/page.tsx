@@ -51,6 +51,7 @@ import {
   type ImportJob,
   type ImportJobError,
   type ImportJobStatus,
+  type ImportJobPhase,
   type ImportEvent,
   getStatusVariant,
   getPhaseDisplayName,
@@ -237,7 +238,7 @@ export default function ImportJobDetailPage() {
     switch (status) {
       case 'COMPLETED':
         return <CheckCircle2 className="h-6 w-6 text-green-500" />;
-      case 'PROCESSING':
+      case 'IN_PROGRESS':
         return <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />;
       case 'FAILED':
         return <XCircle className="h-6 w-6 text-red-500" />;
@@ -358,7 +359,7 @@ export default function ImportJobDetailPage() {
   }
 
   const provider = getProvider(job.provider);
-  const isActive = job.status === 'PROCESSING' || job.status === 'PENDING';
+  const isActive = job.status === 'IN_PROGRESS' || job.status === 'PENDING';
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -481,13 +482,20 @@ export default function ImportJobDetailPage() {
               {/* Phase timeline */}
               <div className="flex items-center justify-between text-xs">
                 {['INITIALIZING', 'FETCHING', 'IMPORTING', 'IMAGES', 'FINALIZING'].map((phase, i) => {
-                  const phases = ['INITIALIZING', 'FETCHING', 'MAPPING', 'IMPORTING', 'IMAGES', 'THUMBNAILS', 'FINALIZING'];
-                  const currentIndex = phases.indexOf(job.phase);
-                  const phaseIndex = phases.indexOf(phase);
-                  const isComplete = phaseIndex < currentIndex;
-                  const isCurrent = phase === job.phase ||
-                    (phase === 'IMPORTING' && job.phase === 'MAPPING') ||
-                    (phase === 'IMAGES' && job.phase === 'THUMBNAILS');
+                  // Map display phases to actual job phases for comparison
+                  const phaseOrder: ImportJobPhase[] = ['QUEUED', 'FETCHING', 'MAPPING', 'CREATING', 'DOWNLOADING_IMAGES', 'UPLOADING_IMAGES', 'GENERATING_THUMBNAILS', 'FINALIZING', 'DONE'];
+                  const displayPhaseMapping: Record<string, ImportJobPhase[]> = {
+                    'INITIALIZING': ['QUEUED'],
+                    'FETCHING': ['FETCHING'],
+                    'IMPORTING': ['MAPPING', 'CREATING'],
+                    'IMAGES': ['DOWNLOADING_IMAGES', 'UPLOADING_IMAGES', 'GENERATING_THUMBNAILS'],
+                    'FINALIZING': ['FINALIZING', 'DONE'],
+                  };
+                  const currentPhaseIndex = phaseOrder.indexOf(job.phase);
+                  const displayPhases = displayPhaseMapping[phase] || [];
+                  const displayPhaseMinIndex = Math.min(...displayPhases.map(p => phaseOrder.indexOf(p)));
+                  const isComplete = currentPhaseIndex > displayPhaseMinIndex + displayPhases.length - 1;
+                  const isCurrent = displayPhases.includes(job.phase);
 
                   return (
                     <div key={phase} className="flex items-center gap-1">

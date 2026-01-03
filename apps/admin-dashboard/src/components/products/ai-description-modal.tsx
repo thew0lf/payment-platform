@@ -50,10 +50,17 @@ export function AIDescriptionModal({
     setError(null);
 
     try {
+      // Merge existing attributes with current description for context
+      const enrichedAttributes = {
+        ...attributes,
+        // Include current description so AI can improve upon it or use as reference
+        ...(currentDescription && { existingDescription: currentDescription }),
+      };
+
       const generated = await aiApi.generateDescription({
         productName,
         category,
-        attributes,
+        attributes: enrichedAttributes,
         tone,
         length,
         targetAudience: targetAudience || undefined,
@@ -66,7 +73,7 @@ export function AIDescriptionModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [productName, category, attributes, tone, length, targetAudience, includeSEO, companyId]);
+  }, [productName, category, attributes, currentDescription, tone, length, targetAudience, includeSEO, companyId]);
 
   const handleCopy = useCallback(async (text: string, field: string) => {
     await navigator.clipboard.writeText(text);

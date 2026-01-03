@@ -19,6 +19,14 @@ import { ProductVariantController } from './controllers/product-variant.controll
 import { BundleController } from './controllers/bundle.controller';
 import { MarketingVideoController } from './controllers/marketing-video.controller';
 import { PriceRuleController } from './controllers/price-rule.controller';
+import {
+  CategoryMetafieldController,
+  ProductMetafieldController,
+} from './controllers/category-metafield.controller';
+import {
+  SalesChannelController,
+  ProductChannelsController,
+} from './controllers/sales-channel.controller';
 
 // Services
 import { ProductsService } from './services/products.service';
@@ -32,6 +40,8 @@ import { ProductVariantService } from './services/product-variant.service';
 import { BundleService } from './services/bundle.service';
 import { MarketingVideoService } from './services/marketing-video.service';
 import { PriceRuleService } from './services/price-rule.service';
+import { CategoryMetafieldService } from './services/category-metafield.service';
+import { SalesChannelService } from './services/sales-channel.service';
 
 @Module({
   imports: [
@@ -47,6 +57,7 @@ import { PriceRuleService } from './services/price-rule.service';
     // More specific routes must come FIRST to avoid being caught by :id param
     PublicProductsController, // Public endpoints (no auth) - must be before ProductsController
     CategoryController,
+    CategoryMetafieldController,
     TagController,
     CollectionController,
     ProductMediaController,
@@ -56,6 +67,9 @@ import { PriceRuleService } from './services/price-rule.service';
     BundleController,
     MarketingVideoController,
     PriceRuleController,
+    SalesChannelController,
+    ProductChannelsController,
+    ProductMetafieldController,
     ProductsController,
   ],
   providers: [
@@ -70,6 +84,8 @@ import { PriceRuleService } from './services/price-rule.service';
     BundleService,
     MarketingVideoService,
     PriceRuleService,
+    CategoryMetafieldService,
+    SalesChannelService,
   ],
   exports: [
     ProductsService,
@@ -83,6 +99,8 @@ import { PriceRuleService } from './services/price-rule.service';
     BundleService,
     MarketingVideoService,
     PriceRuleService,
+    CategoryMetafieldService,
+    SalesChannelService,
   ],
 })
 export class ProductsModule {}

@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
-import { Product } from '../types/product.types';
+import { Product, ProductImageData } from '../types/product.types';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -505,16 +505,31 @@ export class ProductsService {
       isPrimary: assignment.isPrimary,
     })) || [];
 
-    // Build images array as plain URL strings for frontend compatibility
-    // The ProductMedia endpoint provides richer data (thumbnails, alt text, etc.)
-    let images: string[] = [];
+    // Build images array with full ProductImageData structure
+    let images: ProductImageData[] = [];
 
     if (data.productImages && data.productImages.length > 0) {
-      // Use ProductImage relation data - extract just the CDN URLs
-      images = data.productImages.map((img: any) => img.cdnUrl || img.originalUrl);
+      // Use ProductImage relation data
+      images = data.productImages.map((img: any, index: number) => ({
+        id: img.id || `img-${index}`,
+        url: img.cdnUrl || img.originalUrl || '',
+        alt: img.altText || data.name,
+        position: img.position ?? index,
+        thumbnails: img.thumbnailSmall || img.thumbnailMedium || img.thumbnailLarge
+          ? {
+              small: img.thumbnailSmall,
+              medium: img.thumbnailMedium,
+              large: img.thumbnailLarge,
+            }
+          : undefined,
+      }));
     } else if (data.images && Array.isArray(data.images)) {
       // Fallback to JSON field (legacy or simple products)
-      images = data.images;
+      images = data.images.map((url: string, index: number) => ({
+        id: `legacy-${index}`,
+        url,
+        position: index,
+      }));
     }
 
     return {

@@ -713,7 +713,7 @@ describe('useBrand resolves funnel brandKit with company fallback', () => {
       type: 'FULL_FUNNEL',
       status: 'PUBLISHED',
       settings: {
-        branding: {}, // No legacy branding
+        branding: { primaryColor: '#0ea5e9' }, // Minimal branding
         urls: {},
         behavior: {
           allowBackNavigation: true,
@@ -1219,7 +1219,7 @@ describe('BrandProvider edge cases', () => {
       type: 'FULL_FUNNEL',
       status: 'PUBLISHED',
       settings: {
-        branding: {}, // No legacy branding colors
+        branding: { primaryColor: '#0ea5e9' }, // Minimal branding
         urls: {},
         behavior: {
           allowBackNavigation: true,

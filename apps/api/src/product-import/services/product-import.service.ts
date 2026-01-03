@@ -7,6 +7,7 @@ import {
   ImportJobConfig,
   ImportJobData,
   ImportJobProgress,
+  ImportJobError,
   PRODUCT_IMPORT_QUEUE,
   ExternalProduct,
   FieldMapping,
@@ -233,8 +234,24 @@ export class ProductImportService {
 
     const progress = this.mapToProgress(updated);
 
-    // Emit job cancelled event for SSE subscribers
-    this.importEventService.emitJobCancelled(jobId, companyId, progress);
+    // Emit job cancelled event for SSE subscribers (convert to event format)
+    this.importEventService.emitJobCancelled(jobId, companyId, {
+      id: progress.id,
+      status: progress.status,
+      phase: progress.phase,
+      progress: progress.progress,
+      totalProducts: progress.totalProducts,
+      processedProducts: progress.processedProducts,
+      totalImages: progress.totalImages,
+      processedImages: progress.processedImages,
+      importedCount: progress.importedCount,
+      skippedCount: progress.skippedCount,
+      errorCount: progress.errorCount,
+      currentItem: progress.currentItem,
+      estimatedSecondsRemaining: progress.estimatedSecondsRemaining,
+      startedAt: progress.startedAt,
+      completedAt: progress.completedAt,
+    });
 
     return progress;
   }
@@ -729,6 +746,8 @@ export class ProductImportService {
    */
   private mapToProgress(job: {
     id: string;
+    companyId: string;
+    provider: string;
     status: ImportJobStatus;
     phase: ImportJobPhase;
     progress: number;
@@ -741,11 +760,18 @@ export class ProductImportService {
     errorCount: number;
     currentItem: string | null;
     estimatedSecondsRemaining: number | null;
+    errorLog: unknown;
+    createdAt: Date;
     startedAt: Date | null;
     completedAt: Date | null;
   }): ImportJobProgress {
+    // Parse error log if available
+    const errors = this.parseErrorLog(job.errorLog);
+
     return {
       id: job.id,
+      companyId: job.companyId,
+      provider: job.provider,
       status: job.status,
       phase: job.phase,
       progress: job.progress,
@@ -758,9 +784,28 @@ export class ProductImportService {
       errorCount: job.errorCount,
       currentItem: job.currentItem ?? undefined,
       estimatedSecondsRemaining: job.estimatedSecondsRemaining ?? undefined,
+      errors: errors.length > 0 ? errors : undefined,
+      createdAt: job.createdAt,
       startedAt: job.startedAt ?? undefined,
       completedAt: job.completedAt ?? undefined,
     };
+  }
+
+  /**
+   * Parse error log from JSON to typed errors
+   */
+  private parseErrorLog(errorLog: unknown): ImportJobError[] {
+    if (!errorLog) return [];
+    if (!Array.isArray(errorLog)) return [];
+
+    return errorLog.map((err: any) => ({
+      productId: err.productId,
+      sku: err.sku,
+      message: err.message || 'Unknown error',
+      code: err.code || 'UNKNOWN_ERROR',
+      timestamp: err.timestamp ? new Date(err.timestamp) : new Date(),
+      details: err.details,
+    }));
   }
 
   // ═══════════════════════════════════════════════════════════════

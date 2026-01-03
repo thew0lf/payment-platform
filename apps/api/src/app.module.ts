@@ -47,6 +47,11 @@ import { CompaniesModule } from './companies/companies.module';
 import { SitesModule } from './sites/sites.module';
 import { GatewayRiskModule } from './gateway-risk/gateway-risk.module';
 import { ProductImportModule } from './product-import';
+import { CartModule } from './cart/cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { ComparisonModule } from './comparison/comparison.module';
+import { CrossSiteSessionModule } from './cross-site-session/cross-site-session.module';
+import { EcommerceAnalyticsModule } from './ecommerce-analytics/ecommerce-analytics.module';
 
 @Module({
   imports: [
@@ -96,6 +101,11 @@ import { ProductImportModule } from './product-import';
     SitesModule,
     GatewayRiskModule,
     ProductImportModule,
+    CartModule,
+    WishlistModule,
+    ComparisonModule,
+    CrossSiteSessionModule,
+    EcommerceAnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

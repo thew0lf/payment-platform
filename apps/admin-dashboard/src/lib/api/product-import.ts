@@ -674,7 +674,7 @@ export function getStatusVariant(
   switch (status) {
     case 'COMPLETED':
       return 'default'; // Use default (primary color) for success
-    case 'PROCESSING':
+    case 'IN_PROGRESS':
       return 'secondary';
     case 'PENDING':
       return 'outline';
@@ -718,7 +718,7 @@ export function getStatusColor(status: ImportJobStatus): string {
   switch (status) {
     case 'COMPLETED':
       return 'text-green-600';
-    case 'PROCESSING':
+    case 'IN_PROGRESS':
       return 'text-blue-600';
     case 'PENDING':
       return 'text-muted-foreground';

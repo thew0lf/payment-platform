@@ -5,3 +5,6 @@ export * from './input';
 export * from './table';
 export * from './dropdown-menu';
 export * from './cursor-pagination';
+export * from './separator';
+export * from './collapsible-card';
+export * from './sheet';

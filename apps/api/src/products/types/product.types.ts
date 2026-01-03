@@ -12,6 +12,19 @@ export interface ProductCategoryInfo {
   isPrimary?: boolean;
 }
 
+// Product image with optional thumbnails
+export interface ProductImageData {
+  id: string;
+  url: string;
+  alt?: string;
+  position: number;
+  thumbnails?: {
+    small?: string;
+    medium?: string;
+    large?: string;
+  };
+}
+
 export interface Product {
   id: string;
   companyId: string;
@@ -46,8 +59,8 @@ export interface Product {
   status: string;
   isVisible: boolean;
 
-  // Media
-  images: string[];
+  // Media - array of image objects with URLs and metadata
+  images: ProductImageData[];
 
   // SEO
   metaTitle?: string;

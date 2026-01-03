@@ -24,6 +24,7 @@ import { seedCodeReviewChecklist } from './seeds/seed-code-review-checklist';
 import { seedQAChecklist } from './seeds/seed-qa-checklist';
 import { seedEmailTemplates } from './seeds/core/seed-email-templates';
 import { seedGatewayRisk } from './seeds/core/seed-gateway-risk';
+import { seedSalesChannels } from './seeds/core/seed-sales-channels';
 
 // Demo seeds
 import {
@@ -36,6 +37,7 @@ import {
   seedDemoClientSubscription,
   seedCoffeeExplorer,
   seedCoffeeFunnel,
+  seedDemoCarts,
   seedCSAI,
 } from './seeds/demo';
 
@@ -128,8 +130,14 @@ async function main() {
     // Seed Coffee Explorer funnel
     await seedCoffeeFunnel(prisma);
 
+    // Seed demo carts (after products and funnels)
+    await seedDemoCarts(prisma);
+
     // Seed CS AI demo data
     await seedCSAI(prisma);
+
+    // Seed sales channels and category metafields
+    await seedSalesChannels(prisma);
   }
 
   // ═══════════════════════════════════════════════════════════════

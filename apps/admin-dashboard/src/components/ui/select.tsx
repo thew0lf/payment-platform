@@ -66,10 +66,16 @@ SelectTrigger.displayName = 'SelectTrigger';
 
 interface SelectValueProps {
   placeholder?: string;
+  children?: React.ReactNode;
 }
 
-function SelectValue({ placeholder }: SelectValueProps) {
+function SelectValue({ placeholder, children }: SelectValueProps) {
   const { value } = useSelectContext();
+  // If children are provided and value exists, render children
+  // Otherwise fall back to value or placeholder
+  if (value && children) {
+    return <span>{children}</span>;
+  }
   return <span className={cn(!value && 'text-muted-foreground')}>{value || placeholder}</span>;
 }
 
@@ -143,4 +149,43 @@ const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
 );
 SelectItem.displayName = 'SelectItem';
 
-export { Select, SelectTrigger, SelectValue, SelectContent, SelectItem };
+interface SelectGroupProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+function SelectGroup({ children, className }: SelectGroupProps) {
+  return (
+    <div className={cn('py-1', className)}>
+      {children}
+    </div>
+  );
+}
+
+interface SelectLabelProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+function SelectLabel({ children, className }: SelectLabelProps) {
+  return (
+    <div
+      className={cn(
+        'px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface SelectSeparatorProps {
+  className?: string;
+}
+
+function SelectSeparator({ className }: SelectSeparatorProps) {
+  return <div className={cn('h-px my-1 bg-border', className)} />;
+}
+
+export { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel, SelectSeparator };

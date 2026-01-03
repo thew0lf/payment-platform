@@ -1,8 +1,9 @@
 # Funnel System - Alpha Launch Requirements
 
-> **Last Updated:** December 13, 2025
+> **Last Updated:** December 30, 2025
 > **Status:** COMPLETE - All P0-P2 Features Implemented
 > **Target:** Alpha Launch - Ready for Deployment
+> **Beta Requirement:** 80 funnel templates (see Beta Deployment Requirements section)
 
 ---
 
@@ -16,8 +17,9 @@
 6. [Form & Field Tracking](#form--field-tracking)
 7. [Payment Infrastructure](#payment-infrastructure)
 8. [Subscription & Billing](#subscription--billing)
-9. [Future Roadmap](#future-roadmap)
-10. [Technical Debt](#technical-debt)
+9. [Beta Deployment Requirements](#beta-deployment-requirements)
+10. [Future Roadmap](#future-roadmap)
+11. [Technical Debt](#technical-debt)
 
 ---
 
@@ -893,6 +895,50 @@ interface MIPlanSettings {
 // 4. Dunning Communications (as needed)
 // Sends payment failure emails, SMS reminders
 ```
+
+---
+
+## Beta Deployment Requirements
+
+### 🔲 Template Library Expansion (80 Templates)
+
+**Status:** 🔲 PENDING
+**Priority:** P1 - Required before Beta Launch
+**Current:** 11 templates (5 full funnels + 6 components)
+**Target:** 80 templates minimum
+
+#### Template Categories to Create
+
+| Category | Current | Target | Notes |
+|----------|---------|--------|-------|
+| **E-commerce** | 1 | 15 | Fashion, Electronics, Home, Beauty, Sports, Food |
+| **SaaS/Software** | 1 | 10 | B2B, B2C, Freemium, Enterprise, API Products |
+| **Courses/Education** | 1 | 10 | Online courses, Coaching, Workshops, Masterclasses |
+| **Events** | 1 | 8 | Conferences, Webinars, Workshops, Meetups, Virtual |
+| **Nonprofit/Donation** | 1 | 5 | Charity, Fundraising, Membership, Monthly giving |
+| **Services** | 0 | 10 | Consulting, Agencies, Freelancers, Appointments |
+| **Subscriptions** | 0 | 8 | Box subscriptions, Memberships, Digital access |
+| **Lead Generation** | 0 | 8 | Webinar signup, Ebook download, Demo request |
+| **Component Templates** | 6 | 12 | Hero variants, Checkout variants, Testimonials |
+
+#### Template Quality Requirements
+
+All templates must include:
+- [x] Full `sections` array structure (hero, benefits, testimonials, FAQ, cta)
+- [x] CMO-approved headlines and value propositions
+- [x] Copywriter-approved messaging matching AVNZ brand voice
+- [x] Social proof with stats and testimonial content
+- [x] FAQ sections where appropriate
+- [x] Urgency/scarcity messaging
+- [x] Compelling CTAs with action + benefit format
+- [ ] Industry-specific terminology and pain points
+- [ ] Mobile-optimized layouts
+- [ ] Thumbnail images for template browser
+
+#### Files to Modify
+
+- `apps/api/prisma/seeds/demo/seed-funnel-templates.ts` - Add 69 more templates
+- `apps/admin-dashboard/public/templates/` - Add thumbnail images
 
 ---
 

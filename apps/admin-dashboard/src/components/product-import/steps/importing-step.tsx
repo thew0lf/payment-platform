@@ -103,6 +103,9 @@ export function ImportingStep() {
   const [isConnected, setIsConnected] = useState(false);
   const [hasStartedJob, setHasStartedJob] = useState(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const hasShownCompletionToast = useRef(false);
+  // Ref to prevent duplicate job creation (React StrictMode protection)
+  const isCreatingJobRef = useRef(false);
 
   // Derived states
   const isComplete = currentJob?.status === 'COMPLETED';
@@ -113,7 +116,8 @@ export function ImportingStep() {
 
   // Start the import job
   const startImportJob = useCallback(async () => {
-    if (!selectedIntegrationId || hasStartedJob) return;
+    // Use ref to prevent duplicate calls from React StrictMode
+    if (!selectedIntegrationId || hasStartedJob || isCreatingJobRef.current) return;
 
     if (!selectedCompanyId) {
       setError('Please select a company from the header dropdown first');
@@ -121,6 +125,8 @@ export function ImportingStep() {
       return;
     }
 
+    // Set ref immediately to prevent race conditions
+    isCreatingJobRef.current = true;
     setHasStartedJob(true);
     setLoading(true);
     clearImportErrors();
@@ -165,7 +171,80 @@ export function ImportingStep() {
     setError,
   ]);
 
-  // Subscribe to job events via SSE
+  // Poll for job status (catches fast-completing jobs that finish before SSE connects)
+  useEffect(() => {
+    if (!currentJobId || !selectedCompanyId) {
+      console.log('[ImportingStep] Polling effect skipped - missing jobId or companyId');
+      return;
+    }
+
+    console.log('[ImportingStep] Starting polling for job:', currentJobId);
+    let pollInterval: NodeJS.Timeout | null = null;
+    let isMounted = true;
+
+    const pollJobStatus = async () => {
+      try {
+        console.log('[ImportingStep] Polling job status...');
+        const job = await productImportApi.getJob(currentJobId, selectedCompanyId);
+        console.log('[ImportingStep] Poll response:', {
+          id: job.id,
+          status: job.status,
+          phase: job.phase,
+          progress: job.progress,
+          importedCount: job.importedCount,
+        });
+
+        if (!isMounted) {
+          console.log('[ImportingStep] Component unmounted, skipping update');
+          return;
+        }
+
+        // Update job state
+        console.log('[ImportingStep] Calling setCurrentJob with status:', job.status);
+        setCurrentJob(job);
+
+        // If job is finished, show appropriate toast and stop polling
+        if (job.status === 'COMPLETED') {
+          console.log('[ImportingStep] Job COMPLETED!');
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.success(`Import complete! ${job.importedCount} products imported.`);
+          }
+          if (pollInterval) clearInterval(pollInterval);
+        } else if (job.status === 'FAILED') {
+          console.log('[ImportingStep] Job FAILED');
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.error('Import failed');
+          }
+          if (pollInterval) clearInterval(pollInterval);
+        } else if (job.status === 'CANCELLED') {
+          console.log('[ImportingStep] Job CANCELLED');
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.info('Import cancelled');
+          }
+          if (pollInterval) clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('[ImportingStep] Failed to poll job status:', error);
+      }
+    };
+
+    // Immediately fetch current status
+    pollJobStatus();
+
+    // Poll every 2 seconds until job is finished
+    pollInterval = setInterval(pollJobStatus, 2000);
+
+    return () => {
+      console.log('[ImportingStep] Cleaning up polling');
+      isMounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [currentJobId, selectedCompanyId, setCurrentJob]);
+
+  // Subscribe to job events via SSE (for real-time updates)
   useEffect(() => {
     if (!currentJobId || isFinished) return;
 
@@ -179,17 +258,26 @@ export function ImportingStep() {
 
         case 'job:completed':
           setCurrentJob(event.data);
-          toast.success(`Import complete! ${event.data.importedCount} products imported.`);
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.success(`Import complete! ${event.data.importedCount} products imported.`);
+          }
           break;
 
         case 'job:failed':
           setCurrentJob(event.data);
-          toast.error('Import failed');
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.error('Import failed');
+          }
           break;
 
         case 'job:cancelled':
           setCurrentJob(event.data);
-          toast.info('Import cancelled');
+          if (!hasShownCompletionToast.current) {
+            hasShownCompletionToast.current = true;
+            toast.info('Import cancelled');
+          }
           break;
 
         case 'job:product-error':
@@ -261,6 +349,8 @@ export function ImportingStep() {
 
   // Retry the import
   const handleRetry = () => {
+    hasShownCompletionToast.current = false;
+    isCreatingJobRef.current = false; // Reset the ref to allow new job creation
     setHasStartedJob(false);
     setCurrentJobId(null);
     setCurrentJob(null);

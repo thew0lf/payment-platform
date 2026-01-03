@@ -73,7 +73,7 @@ const ITEMS_PER_PAGE = 10;
 const STATUS_OPTIONS: { value: ImportJobStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All Statuses' },
   { value: 'COMPLETED', label: 'Completed' },
-  { value: 'PROCESSING', label: 'In Progress' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'PENDING', label: 'Pending' },
   { value: 'FAILED', label: 'Failed' },
   { value: 'CANCELLED', label: 'Cancelled' },
@@ -166,7 +166,7 @@ export default function ImportJobsPage() {
     switch (status) {
       case 'COMPLETED':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'PROCESSING':
+      case 'IN_PROGRESS':
         return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
       case 'FAILED':
         return <XCircle className="h-4 w-4 text-red-500" />;

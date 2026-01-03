@@ -68,6 +68,11 @@ export class PublicProductsController {
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
+        include: {
+          productImages: {
+            orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
+          },
+        },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -89,6 +94,11 @@ export class PublicProductsController {
         status: 'ACTIVE',
         isVisible: true,
         deletedAt: null,
+      },
+      include: {
+        productImages: {
+          orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
+        },
       },
     });
 
@@ -112,6 +122,32 @@ export class PublicProductsController {
       isPrimary: assignment.isPrimary,
     })) || [];
 
+    // Build images array from productImages relation (preferred) or JSON field (fallback)
+    let images: Array<{ id: string; url: string; alt?: string; position: number }> = [];
+
+    if (product.productImages && product.productImages.length > 0) {
+      // Use ProductImage relation data (includes thumbnails, CDN URLs)
+      images = product.productImages.map((img: any, index: number) => ({
+        id: img.id,
+        url: img.cdnUrl || img.originalUrl, // Prefer CDN URL
+        alt: img.altText || undefined,
+        position: img.position ?? index,
+        // Include thumbnails for responsive loading
+        thumbnails: {
+          small: img.thumbnailSmall,
+          medium: img.thumbnailMedium,
+          large: img.thumbnailLarge,
+        },
+      }));
+    } else if (product.images && Array.isArray(product.images)) {
+      // Fallback to JSON field (legacy or simple products)
+      images = product.images.map((url: string, index: number) => ({
+        id: `legacy-${index}`,
+        url,
+        position: index,
+      }));
+    }
+
     return {
       id: product.id,
       companyId: product.companyId,
@@ -133,7 +169,7 @@ export class PublicProductsController {
       lowStockThreshold: product.lowStockThreshold,
       status: product.status,
       isVisible: product.isVisible,
-      images: product.images || [],
+      images,
       metaTitle: product.metaTitle || undefined,
       metaDescription: product.metaDescription || undefined,
       createdAt: product.createdAt,

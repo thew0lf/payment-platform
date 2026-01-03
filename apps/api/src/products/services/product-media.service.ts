@@ -27,7 +27,7 @@ export class ProductMediaService {
   ) {}
 
   /**
-   * List media for a product
+   * List media for a product (combines ProductMedia and ProductImage)
    */
   async listMedia(
     productId: string,
@@ -38,10 +38,58 @@ export class ProductMediaService {
       where.variantId = variantId;
     }
 
-    return this.prisma.productMedia.findMany({
+    // Get manually uploaded media (ProductMedia)
+    const productMedia = await this.prisma.productMedia.findMany({
       where,
       orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
     });
+
+    // Get imported images (ProductImage) - only if not filtering by variant
+    let importedImages: any[] = [];
+    if (!variantId) {
+      importedImages = await this.prisma.productImage.findMany({
+        where: { productId },
+        orderBy: [{ isPrimary: 'desc' }, { position: 'asc' }],
+      });
+    }
+
+    // Convert ProductImage to ProductMedia format
+    const convertedImages: ProductMedia[] = importedImages.map((img) => ({
+      id: img.id,
+      productId: img.productId,
+      variantId: null,
+      type: 'IMAGE' as const,
+      url: img.cdnUrl,
+      thumbnailUrl: img.thumbnailMedium || img.thumbnailSmall || img.cdnUrl,
+      filename: img.filename,
+      mimeType: img.contentType,
+      size: img.size,
+      width: img.width,
+      height: img.height,
+      duration: null,
+      altText: img.altText,
+      caption: null,
+      sortOrder: img.position + 1000, // Offset to keep imported images after uploaded ones
+      isPrimary: img.isPrimary && productMedia.length === 0, // Only primary if no uploaded media
+      storageProvider: 'S3',
+      storageKey: img.s3Key,
+      cdnUrl: img.cdnUrl,
+      generatedBy: img.importSource || 'IMPORT',
+      generationMetadata: img.originalUrl ? { originalUrl: img.originalUrl } : null,
+      createdAt: img.createdAt,
+      updatedAt: img.updatedAt,
+    }));
+
+    // Combine and sort: uploaded media first, then imported images
+    const combined = [...productMedia, ...convertedImages];
+
+    // Sort by isPrimary (true first), then by sortOrder
+    combined.sort((a, b) => {
+      if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+      return a.sortOrder - b.sortOrder;
+    });
+
+    return combined;
   }
 
   /**
@@ -162,7 +210,7 @@ export class ProductMediaService {
   }
 
   /**
-   * Update media metadata
+   * Update media metadata (handles both ProductMedia and ProductImage)
    */
   async updateMedia(
     productId: string,
@@ -170,6 +218,7 @@ export class ProductMediaService {
     dto: UpdateMediaDto,
     user: UserContext,
   ): Promise<ProductMedia> {
+    // Try to find in ProductMedia first
     const media = await this.prisma.productMedia.findFirst({
       where: { id: mediaId, productId },
       include: {
@@ -179,34 +228,84 @@ export class ProductMediaService {
       },
     });
 
-    if (!media) {
+    // If not found, check ProductImage (imported images)
+    const importedImage = media ? null : await this.prisma.productImage.findFirst({
+      where: { id: mediaId, productId },
+      include: {
+        product: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    if (!media && !importedImage) {
       throw new NotFoundException('Media not found');
     }
 
+    const targetMedia = media || importedImage;
+
     // Validate user has access
-    const hasAccess = await this.hierarchyService.canAccessCompany(user, media.product.companyId);
+    const hasAccess = await this.hierarchyService.canAccessCompany(user, targetMedia.product.companyId);
     if (!hasAccess) {
       throw new ForbiddenException('Access denied');
     }
 
-    return this.prisma.productMedia.update({
-      where: { id: mediaId },
-      data: {
-        altText: dto.altText,
-        caption: dto.caption,
-        variantId: dto.variantId,
-      },
-    });
+    if (media) {
+      return this.prisma.productMedia.update({
+        where: { id: mediaId },
+        data: {
+          altText: dto.altText,
+          caption: dto.caption,
+          variantId: dto.variantId,
+        },
+      });
+    } else {
+      // Update ProductImage and return in ProductMedia format
+      const updated = await this.prisma.productImage.update({
+        where: { id: mediaId },
+        data: {
+          altText: dto.altText,
+          // Note: ProductImage doesn't have caption or variantId fields
+        },
+      });
+
+      return {
+        id: updated.id,
+        productId: updated.productId,
+        variantId: null,
+        type: 'IMAGE' as const,
+        url: updated.cdnUrl,
+        thumbnailUrl: updated.thumbnailMedium || updated.thumbnailSmall || updated.cdnUrl,
+        filename: updated.filename,
+        mimeType: updated.contentType,
+        size: updated.size,
+        width: updated.width,
+        height: updated.height,
+        duration: null,
+        altText: updated.altText,
+        caption: null,
+        sortOrder: updated.position + 1000,
+        isPrimary: updated.isPrimary,
+        storageProvider: 'S3',
+        storageKey: updated.s3Key,
+        cdnUrl: updated.cdnUrl,
+        generatedBy: updated.importSource || 'IMPORT',
+        generationMetadata: updated.originalUrl ? { originalUrl: updated.originalUrl } : null,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      } as ProductMedia;
+    }
   }
 
   /**
-   * Delete media
+   * Delete media (handles both ProductMedia and ProductImage)
    */
   async deleteMedia(
     productId: string,
     mediaId: string,
     user: UserContext,
   ): Promise<void> {
+    // Try to find in ProductMedia first
     const media = await this.prisma.productMedia.findFirst({
       where: { id: mediaId, productId },
       include: {
@@ -225,34 +324,65 @@ export class ProductMediaService {
       },
     });
 
-    if (!media) {
+    // If not found in ProductMedia, check ProductImage (imported images)
+    const importedImage = media ? null : await this.prisma.productImage.findFirst({
+      where: { id: mediaId, productId },
+      include: {
+        product: {
+          select: {
+            companyId: true,
+            company: {
+              select: {
+                client: {
+                  select: { organizationId: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!media && !importedImage) {
       throw new NotFoundException('Media not found');
     }
 
+    const targetMedia = media || importedImage;
+    const companyId = targetMedia.product.companyId;
+    const organizationId = targetMedia.product.company?.client?.organizationId;
+    const storageKey = media ? media.storageKey : importedImage.s3Key;
+    const wasPrimary = media ? media.isPrimary : importedImage.isPrimary;
+
     // Validate user has access
-    const hasAccess = await this.hierarchyService.canAccessCompany(user, media.product.companyId);
+    const hasAccess = await this.hierarchyService.canAccessCompany(user, companyId);
     if (!hasAccess) {
       throw new ForbiddenException('Access denied');
     }
 
     // Delete from S3
     try {
-      const organizationId = media.product.company?.client?.organizationId;
       if (organizationId) {
         const s3Credentials = await this.getS3Credentials(organizationId);
-        await this.s3StorageService.deleteFile(s3Credentials, media.storageKey);
+        await this.s3StorageService.deleteFile(s3Credentials, storageKey);
       }
     } catch (error) {
       this.logger.warn(`Failed to delete S3 file: ${error.message}`);
     }
 
-    // Delete from database
-    await this.prisma.productMedia.delete({
-      where: { id: mediaId },
-    });
+    // Delete from appropriate table
+    if (media) {
+      await this.prisma.productMedia.delete({
+        where: { id: mediaId },
+      });
+    } else {
+      await this.prisma.productImage.delete({
+        where: { id: mediaId },
+      });
+    }
 
     // If this was primary, set another as primary
-    if (media.isPrimary) {
+    if (wasPrimary) {
+      // Check ProductMedia first
       const nextMedia = await this.prisma.productMedia.findFirst({
         where: { productId },
         orderBy: { sortOrder: 'asc' },
@@ -262,6 +392,18 @@ export class ProductMediaService {
           where: { id: nextMedia.id },
           data: { isPrimary: true },
         });
+      } else {
+        // If no ProductMedia, check ProductImage
+        const nextImage = await this.prisma.productImage.findFirst({
+          where: { productId },
+          orderBy: { position: 'asc' },
+        });
+        if (nextImage) {
+          await this.prisma.productImage.update({
+            where: { id: nextImage.id },
+            data: { isPrimary: true },
+          });
+        }
       }
     }
 
@@ -305,13 +447,14 @@ export class ProductMediaService {
   }
 
   /**
-   * Set a media as primary
+   * Set a media as primary (handles both ProductMedia and ProductImage)
    */
   async setAsPrimary(
     productId: string,
     mediaId: string,
     user: UserContext,
   ): Promise<ProductMedia> {
+    // Try to find in ProductMedia first
     const media = await this.prisma.productMedia.findFirst({
       where: { id: mediaId, productId },
       include: {
@@ -321,26 +464,76 @@ export class ProductMediaService {
       },
     });
 
-    if (!media) {
+    // If not found, check ProductImage (imported images)
+    const importedImage = media ? null : await this.prisma.productImage.findFirst({
+      where: { id: mediaId, productId },
+      include: {
+        product: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    if (!media && !importedImage) {
       throw new NotFoundException('Media not found');
     }
 
-    const hasAccess = await this.hierarchyService.canAccessCompany(user, media.product.companyId);
+    const targetMedia = media || importedImage;
+    const hasAccess = await this.hierarchyService.canAccessCompany(user, targetMedia.product.companyId);
     if (!hasAccess) {
       throw new ForbiddenException('Access denied');
     }
 
-    // Remove primary from all other media
+    // Remove primary from all media in both tables
     await this.prisma.productMedia.updateMany({
       where: { productId, isPrimary: true },
       data: { isPrimary: false },
     });
-
-    // Set this one as primary and move to top
-    return this.prisma.productMedia.update({
-      where: { id: mediaId },
-      data: { isPrimary: true, sortOrder: 0 },
+    await this.prisma.productImage.updateMany({
+      where: { productId, isPrimary: true },
+      data: { isPrimary: false },
     });
+
+    // Set this one as primary
+    if (media) {
+      const updated = await this.prisma.productMedia.update({
+        where: { id: mediaId },
+        data: { isPrimary: true, sortOrder: 0 },
+      });
+      return updated;
+    } else {
+      // Update ProductImage and return in ProductMedia format
+      const updated = await this.prisma.productImage.update({
+        where: { id: mediaId },
+        data: { isPrimary: true, position: 0 },
+      });
+
+      return {
+        id: updated.id,
+        productId: updated.productId,
+        variantId: null,
+        type: 'IMAGE' as const,
+        url: updated.cdnUrl,
+        thumbnailUrl: updated.thumbnailMedium || updated.thumbnailSmall || updated.cdnUrl,
+        filename: updated.filename,
+        mimeType: updated.contentType,
+        size: updated.size,
+        width: updated.width,
+        height: updated.height,
+        duration: null,
+        altText: updated.altText,
+        caption: null,
+        sortOrder: 0,
+        isPrimary: true,
+        storageProvider: 'S3',
+        storageKey: updated.s3Key,
+        cdnUrl: updated.cdnUrl,
+        generatedBy: updated.importSource || 'IMPORT',
+        generationMetadata: updated.originalUrl ? { originalUrl: updated.originalUrl } : null,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      } as ProductMedia;
+    }
   }
 
   /**

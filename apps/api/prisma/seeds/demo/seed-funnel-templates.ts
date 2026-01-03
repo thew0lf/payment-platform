@@ -18,6 +18,7 @@ interface TemplateData {
 const templates: TemplateData[] = [
   // ═══════════════════════════════════════════════════════════════
   // FULL FUNNEL TEMPLATES
+  // CMO & Copywriter Approved - December 2025
   // ═══════════════════════════════════════════════════════════════
   {
     name: 'E-commerce Starter',
@@ -38,9 +39,52 @@ const templates: TemplateData[] = [
           order: 0,
           config: {
             layout: 'hero-cta',
-            headline: 'Discover Our Collection',
-            subheadline: 'Premium products at unbeatable prices',
-            ctaText: 'Shop Now',
+            sections: [
+              {
+                id: 'hero',
+                type: 'hero',
+                config: {
+                  headline: 'Quality You Can Feel. Prices You\'ll Love.',
+                  subheadline: 'Handpicked products from brands you trust. Free shipping on orders over $50.',
+                  ctaText: 'Browse Collection',
+                  backgroundType: 'gradient',
+                },
+              },
+              {
+                id: 'benefits',
+                type: 'features',
+                config: {
+                  sectionTitle: 'Why Shop With Us',
+                  benefits: [
+                    { title: 'Free Shipping', description: 'On all orders over $50. No surprises at checkout.', iconSuggestion: 'truck' },
+                    { title: 'Easy Returns', description: '30-day hassle-free returns. No questions asked.', iconSuggestion: 'package' },
+                    { title: 'Secure Checkout', description: 'Your payment info is always protected.', iconSuggestion: 'shield' },
+                    { title: 'Fast Delivery', description: 'Most orders ship within 24 hours.', iconSuggestion: 'zap' },
+                  ],
+                },
+              },
+              {
+                id: 'social',
+                type: 'testimonials',
+                config: {
+                  sectionTitle: 'Loved by 50,000+ Happy Customers',
+                  statsToHighlight: ['4.9/5 average rating', '50,000+ orders shipped'],
+                  testimonialPrompts: [
+                    'Fast shipping and exactly as described. Will definitely order again!',
+                    'Great quality for the price. My new favorite store.',
+                  ],
+                },
+              },
+              {
+                id: 'cta',
+                type: 'cta',
+                config: {
+                  headline: 'Ready to Find Something You\'ll Love?',
+                  subheadline: 'Join thousands of happy customers who shop with confidence.',
+                  buttonText: 'Start Shopping',
+                },
+              },
+            ],
           },
         },
         {
@@ -73,6 +117,11 @@ const templates: TemplateData[] = [
               showOrderSummary: true,
               allowCoupons: true,
             },
+            trust: {
+              showSecurityBadges: true,
+              showGuarantee: true,
+              guaranteeText: 'Not happy? Return within 30 days for a full refund.',
+            },
           },
         },
         {
@@ -80,8 +129,13 @@ const templates: TemplateData[] = [
           type: 'THANK_YOU',
           order: 3,
           config: {
-            headline: 'Thank you for your order!',
-            message: 'Your order has been confirmed. Check your email for details.',
+            headline: 'You\'ve got great taste! 🎉',
+            message: 'Your order is confirmed and on its way. Check your email for tracking details.',
+            nextSteps: [
+              'Confirmation email sent to your inbox',
+              'We\'ll notify you when it ships',
+              'Track your order anytime',
+            ],
           },
         },
       ],
@@ -111,14 +165,53 @@ const templates: TemplateData[] = [
           order: 0,
           config: {
             layout: 'feature-grid',
-            headline: 'Start Your Free Trial',
-            subheadline: '14 days free. No credit card required.',
-            features: [
-              { title: 'Feature 1', description: 'Description of feature 1' },
-              { title: 'Feature 2', description: 'Description of feature 2' },
-              { title: 'Feature 3', description: 'Description of feature 3' },
+            sections: [
+              {
+                id: 'hero',
+                type: 'hero',
+                config: {
+                  headline: 'Work Smarter, Not Harder',
+                  subheadline: 'Join 10,000+ teams who save 10+ hours every week. Try it free for 14 days—no credit card needed.',
+                  ctaText: 'Start My Free Trial',
+                  backgroundType: 'gradient',
+                },
+              },
+              {
+                id: 'benefits',
+                type: 'features',
+                config: {
+                  sectionTitle: 'Everything You Need to Succeed',
+                  benefits: [
+                    { title: 'Lightning Fast Setup', description: 'Get started in under 5 minutes. No technical skills required.', iconSuggestion: 'zap' },
+                    { title: 'Powerful Automation', description: 'Automate repetitive tasks and focus on what matters.', iconSuggestion: 'sparkles' },
+                    { title: 'Real-Time Analytics', description: 'Make data-driven decisions with live dashboards.', iconSuggestion: 'chart' },
+                    { title: 'World-Class Support', description: 'Our team is here 24/7 to help you succeed.', iconSuggestion: 'users' },
+                  ],
+                },
+              },
+              {
+                id: 'social',
+                type: 'testimonials',
+                config: {
+                  sectionTitle: 'Trusted by Teams at Companies You Know',
+                  statsToHighlight: ['10,000+ active teams', '4.8/5 on G2 and Capterra', '99.9% uptime'],
+                  testimonialPrompts: [
+                    'This tool paid for itself in the first week. Game changer for our team.',
+                    'Finally, software that just works. Our productivity has doubled.',
+                  ],
+                },
+              },
+              {
+                id: 'cta',
+                type: 'cta',
+                config: {
+                  headline: 'Ready to Transform Your Workflow?',
+                  subheadline: '14 days free. No credit card. Cancel anytime.',
+                  buttonText: 'Start My Free Trial',
+                  urgencyText: 'Takes just 2 minutes to set up',
+                },
+              },
             ],
-            ctaText: 'Start Free Trial',
           },
         },
         {
@@ -152,8 +245,13 @@ const templates: TemplateData[] = [
           type: 'THANK_YOU',
           order: 2,
           config: {
-            headline: 'Welcome aboard!',
-            message: 'Your trial has started. Check your email for login details.',
+            headline: 'Welcome to the team! 🚀',
+            message: 'Your trial is active and ready to go. Check your inbox for next steps.',
+            nextSteps: [
+              'Login link sent to your email',
+              'Quick start guide included',
+              'Schedule a free onboarding call',
+            ],
           },
         },
       ],
@@ -183,14 +281,65 @@ const templates: TemplateData[] = [
           order: 0,
           config: {
             layout: 'video-hero',
-            headline: 'Master [Skill] in 30 Days',
-            subheadline: 'Join 10,000+ students who have transformed their careers',
-            videoUrl: '',
-            testimonials: [
-              { name: 'John D.', text: 'This course changed my life!', rating: 5 },
-              { name: 'Sarah M.', text: 'Best investment I ever made.', rating: 5 },
+            sections: [
+              {
+                id: 'hero',
+                type: 'hero',
+                config: {
+                  headline: 'Finally Master the Skills That Actually Matter',
+                  subheadline: 'Join 10,000+ students who\'ve transformed their careers. Get lifetime access, hands-on projects, and a supportive community.',
+                  ctaText: 'Enroll Now',
+                  backgroundType: 'gradient',
+                },
+              },
+              {
+                id: 'benefits',
+                type: 'features',
+                config: {
+                  sectionTitle: 'What You\'ll Get',
+                  benefits: [
+                    { title: 'Lifetime Access', description: 'Learn at your own pace. Access content forever, including all future updates.', iconSuggestion: 'clock' },
+                    { title: 'Hands-On Projects', description: 'Build real-world projects you can add to your portfolio.', iconSuggestion: 'box' },
+                    { title: 'Expert Instruction', description: 'Learn from industry professionals with years of experience.', iconSuggestion: 'award' },
+                    { title: 'Community Support', description: 'Join a private community of students and mentors.', iconSuggestion: 'users' },
+                  ],
+                },
+              },
+              {
+                id: 'social',
+                type: 'testimonials',
+                config: {
+                  sectionTitle: 'What Our Students Say',
+                  statsToHighlight: ['10,000+ students enrolled', '4.9/5 average rating', '97% completion rate'],
+                  testimonials: [
+                    { name: 'John D.', text: 'This course changed my career trajectory. I landed my dream job within 3 months of completing it.', rating: 5, role: 'Software Engineer' },
+                    { name: 'Sarah M.', text: 'Best investment I\'ve made in myself. The hands-on projects were exactly what I needed.', rating: 5, role: 'Product Manager' },
+                  ],
+                },
+              },
+              {
+                id: 'faq',
+                type: 'faq',
+                config: {
+                  sectionTitle: 'Frequently Asked Questions',
+                  items: [
+                    { question: 'How long do I have access to the course?', answer: 'Forever! Once you enroll, you get lifetime access to all course materials, including future updates.' },
+                    { question: 'What if I\'m not satisfied?', answer: 'We offer a 30-day money-back guarantee. If you\'re not happy, just let us know and we\'ll refund you in full.' },
+                    { question: 'Do I need any prior experience?', answer: 'No prior experience required. This course is designed to take you from beginner to proficient.' },
+                  ],
+                },
+              },
+              {
+                id: 'cta',
+                type: 'cta',
+                config: {
+                  headline: 'Ready to Transform Your Career?',
+                  subheadline: 'Join thousands of students who\'ve already made the leap.',
+                  buttonText: 'Enroll Now',
+                  urgencyText: 'Enrollment closes soon',
+                },
+              },
             ],
-            ctaText: 'Enroll Now',
           },
         },
         {
@@ -218,7 +367,7 @@ const templates: TemplateData[] = [
             trust: {
               showSecurityBadges: true,
               showGuarantee: true,
-              guaranteeText: '30-day money-back guarantee',
+              guaranteeText: '30-day money-back guarantee. No questions asked.',
             },
           },
         },
@@ -227,8 +376,13 @@ const templates: TemplateData[] = [
           type: 'THANK_YOU',
           order: 2,
           config: {
-            headline: 'You\'re in!',
-            message: 'Check your email for instant access to the course.',
+            headline: 'Welcome to the course! 🎓',
+            message: 'You\'re officially enrolled. Check your inbox for login details and your first lesson.',
+            nextSteps: [
+              'Login link sent to your email',
+              'Start with Lesson 1 today',
+              'Join the student community',
+            ],
           },
         },
       ],
@@ -258,9 +412,52 @@ const templates: TemplateData[] = [
           order: 0,
           config: {
             layout: 'hero-cta',
-            headline: 'Make a Difference Today',
-            subheadline: 'Your donation helps us continue our mission',
-            ctaText: 'Donate Now',
+            sections: [
+              {
+                id: 'hero',
+                type: 'hero',
+                config: {
+                  headline: 'Your Gift Changes Lives',
+                  subheadline: 'Every dollar you give directly supports our mission. Together, we\'re making a real difference in our community.',
+                  ctaText: 'Give Today',
+                  backgroundType: 'gradient',
+                },
+              },
+              {
+                id: 'benefits',
+                type: 'features',
+                config: {
+                  sectionTitle: 'Your Impact',
+                  benefits: [
+                    { title: '$25 Provides', description: 'School supplies for one child for an entire semester.', iconSuggestion: 'heart' },
+                    { title: '$50 Provides', description: 'A week of meals for a family in need.', iconSuggestion: 'heart' },
+                    { title: '$100 Provides', description: 'Medical care for three people without access.', iconSuggestion: 'heart' },
+                    { title: '$250 Provides', description: 'Job training and placement for one person.', iconSuggestion: 'heart' },
+                  ],
+                },
+              },
+              {
+                id: 'social',
+                type: 'testimonials',
+                config: {
+                  sectionTitle: 'Trusted by Our Community',
+                  statsToHighlight: ['10,000+ donors', '$2M+ raised', '50+ lives changed every day'],
+                  testimonialPrompts: [
+                    'Knowing my donation directly helps families in my community means everything.',
+                    'I\'ve been donating for 5 years and have seen the real impact firsthand.',
+                  ],
+                },
+              },
+              {
+                id: 'cta',
+                type: 'cta',
+                config: {
+                  headline: 'Ready to Make a Difference?',
+                  subheadline: 'Your generosity creates lasting change. Every gift matters.',
+                  buttonText: 'Donate Now',
+                },
+              },
+            ],
           },
         },
         {
@@ -295,8 +492,13 @@ const templates: TemplateData[] = [
           type: 'THANK_YOU',
           order: 2,
           config: {
-            headline: 'Thank You for Your Generosity!',
-            message: 'Your donation makes a real difference. A receipt has been sent to your email.',
+            headline: 'Thank you for your generosity! 💚',
+            message: 'Your donation is already making a difference. A tax-deductible receipt has been sent to your email.',
+            nextSteps: [
+              'Receipt sent to your email',
+              'Share your gift on social media',
+              'Sign up for our impact newsletter',
+            ],
           },
         },
       ],
@@ -326,9 +528,53 @@ const templates: TemplateData[] = [
           order: 0,
           config: {
             layout: 'hero-cta',
-            headline: '[Event Name] 2025',
-            subheadline: 'Join us for an unforgettable experience',
-            ctaText: 'Get Tickets',
+            sections: [
+              {
+                id: 'hero',
+                type: 'hero',
+                config: {
+                  headline: 'The Event You Don\'t Want to Miss',
+                  subheadline: 'Join industry leaders, connect with peers, and gain insights that will transform your approach. Limited seats available.',
+                  ctaText: 'Get My Ticket',
+                  backgroundType: 'gradient',
+                },
+              },
+              {
+                id: 'benefits',
+                type: 'features',
+                config: {
+                  sectionTitle: 'What to Expect',
+                  benefits: [
+                    { title: 'Expert Speakers', description: 'Learn from the best in the industry with actionable insights.', iconSuggestion: 'award' },
+                    { title: 'Networking', description: 'Connect with like-minded professionals and expand your network.', iconSuggestion: 'users' },
+                    { title: 'Workshops', description: 'Hands-on sessions to apply what you learn immediately.', iconSuggestion: 'zap' },
+                    { title: 'Premium Perks', description: 'Catered lunch, swag bag, and exclusive after-party access.', iconSuggestion: 'star' },
+                  ],
+                },
+              },
+              {
+                id: 'social',
+                type: 'testimonials',
+                config: {
+                  sectionTitle: 'Past Attendees Loved It',
+                  statsToHighlight: ['1,000+ attendees last year', '4.9/5 event rating', '95% would recommend'],
+                  testimonialPrompts: [
+                    'The networking alone was worth the ticket price. Made connections that changed my career.',
+                    'Best conference I\'ve attended. Leaving with actionable strategies I can use immediately.',
+                  ],
+                },
+              },
+              {
+                id: 'cta',
+                type: 'cta',
+                config: {
+                  headline: 'Secure Your Spot Today',
+                  subheadline: 'Early bird pricing ends soon. Don\'t miss out.',
+                  buttonText: 'Get My Ticket',
+                  urgencyText: 'Only 50 early bird tickets left',
+                },
+              },
+            ],
           },
         },
         {
@@ -370,8 +616,13 @@ const templates: TemplateData[] = [
           type: 'THANK_YOU',
           order: 3,
           config: {
-            headline: 'You\'re Registered!',
-            message: 'Your tickets have been sent to your email. See you there!',
+            headline: 'You\'re registered! 🎟️',
+            message: 'Your tickets are confirmed. Check your email for your QR code and event details.',
+            nextSteps: [
+              'Tickets sent to your email',
+              'Add event to your calendar',
+              'Join the attendee community',
+            ],
           },
         },
       ],
@@ -385,6 +636,7 @@ const templates: TemplateData[] = [
 
   // ═══════════════════════════════════════════════════════════════
   // COMPONENT TEMPLATES (Single Stage)
+  // CMO & Copywriter Approved - December 2025
   // ═══════════════════════════════════════════════════════════════
   {
     name: 'Hero Landing',
@@ -400,10 +652,27 @@ const templates: TemplateData[] = [
       type: 'LANDING',
       config: {
         layout: 'hero-cta',
-        headline: 'Your Headline Here',
-        subheadline: 'A compelling subheadline that explains your value proposition',
-        ctaText: 'Get Started',
-        backgroundImage: '',
+        sections: [
+          {
+            id: 'hero',
+            type: 'hero',
+            config: {
+              headline: 'The Solution You\'ve Been Looking For',
+              subheadline: 'Join thousands who\'ve already made the switch. Experience the difference today.',
+              ctaText: 'Get Started Now',
+              backgroundType: 'gradient',
+            },
+          },
+          {
+            id: 'cta',
+            type: 'cta',
+            config: {
+              headline: 'Ready to Get Started?',
+              subheadline: 'No credit card required. Start free today.',
+              buttonText: 'Start Free',
+            },
+          },
+        ],
       },
     },
   },
@@ -421,10 +690,27 @@ const templates: TemplateData[] = [
       type: 'LANDING',
       config: {
         layout: 'video-hero',
-        headline: 'Watch How It Works',
-        subheadline: 'See our product in action',
-        videoUrl: '',
-        ctaText: 'Try It Free',
+        sections: [
+          {
+            id: 'hero',
+            type: 'hero',
+            config: {
+              headline: 'See It In Action',
+              subheadline: 'Watch how our product can transform your workflow in just 2 minutes.',
+              ctaText: 'Watch Demo',
+              backgroundType: 'gradient',
+            },
+          },
+          {
+            id: 'cta',
+            type: 'cta',
+            config: {
+              headline: 'Ready to Experience It Yourself?',
+              subheadline: 'Try it free for 14 days. No commitment.',
+              buttonText: 'Start My Free Trial',
+            },
+          },
+        ],
       },
     },
   },

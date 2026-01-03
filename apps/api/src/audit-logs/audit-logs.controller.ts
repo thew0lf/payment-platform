@@ -54,8 +54,8 @@ export class AuditLogsController {
     const userScope = this.getUserScope(user);
 
     // Determine effective scope - user's scope takes precedence, query can narrow but not widen
-    let effectiveScopeType = userScope.scopeType;
-    let effectiveScopeId = userScope.scopeId;
+    const effectiveScopeType = userScope.scopeType;
+    const effectiveScopeId = userScope.scopeId;
 
     // If query specifies a scope, validate it's within user's access
     if (queryScopeType && queryScopeId) {
@@ -105,7 +105,7 @@ export class AuditLogsController {
     const userScope = this.getUserScope(user);
 
     // Security: Use user's scope - query param can narrow but not widen
-    let effectiveScopeId = userScope.scopeId;
+    const effectiveScopeId = userScope.scopeId;
     if (queryScopeId && queryScopeId !== userScope.scopeId) {
       throw new ForbiddenException('Cannot access audit log stats outside your scope');
     }

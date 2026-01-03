@@ -132,9 +132,16 @@ describe('RoastifyService', () => {
     ...overrides,
   });
 
+  // Helper for old-style paginated responses (catalog endpoints)
   const createPaginatedResponse = <T>(data: T[], hasMore = false, cursor?: string): RoastifyPaginatedResponse<T> => ({
     data,
     pagination: { cursor, hasMore, total: data.length },
+  });
+
+  // Helper for new-style product responses (GET /products endpoint)
+  const createProductsResponse = (products: any[], hasNextPage = false, endCursor?: string) => ({
+    products,
+    pageInfo: { hasNextPage, endCursor },
   });
 
   // ═══════════════════════════════════════════════════════════════
@@ -254,15 +261,15 @@ describe('RoastifyService', () => {
   describe('getProducts', () => {
     it('should fetch products with pagination', async () => {
       const products = [createMockProduct(), createMockProduct({ id: 'prod_124', name: 'Colombian Supremo' })];
-      mockFetchResponse(createPaginatedResponse(products, false));
+      mockFetchResponse(createProductsResponse(products, false));
 
       const result = await service.getProducts(mockCredentials, { limit: 50 });
 
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0].name).toBe('Ethiopian Yirgacheffe');
-      expect(result.pagination.hasMore).toBe(false);
+      expect(result.products).toHaveLength(2);
+      expect(result.products[0].name).toBe('Ethiopian Yirgacheffe');
+      expect(result.pageInfo.hasNextPage).toBe(false);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/catalog/products'),
+        expect.stringContaining('/products'),
         expect.objectContaining({
           headers: expect.objectContaining({ 'x-api-key': mockCredentials.apiKey }),
         }),
@@ -270,7 +277,7 @@ describe('RoastifyService', () => {
     });
 
     it('should pass cursor for pagination', async () => {
-      mockFetchResponse(createPaginatedResponse([], false, 'next_cursor'));
+      mockFetchResponse(createProductsResponse([], false, 'next_cursor'));
 
       await service.getProducts(mockCredentials, { cursor: 'abc123', limit: 100 });
 
@@ -281,12 +288,12 @@ describe('RoastifyService', () => {
     });
 
     it('should handle empty product list', async () => {
-      mockFetchResponse(createPaginatedResponse([], false));
+      mockFetchResponse(createProductsResponse([], false));
 
       const result = await service.getProducts(mockCredentials);
 
-      expect(result.data).toHaveLength(0);
-      expect(result.pagination.hasMore).toBe(false);
+      expect(result.products).toHaveLength(0);
+      expect(result.pageInfo.hasNextPage).toBe(false);
     });
   });
 
@@ -340,9 +347,9 @@ describe('RoastifyService', () => {
 
   describe('importAllProducts', () => {
     it('should fetch all products across multiple pages', async () => {
-      const page1 = createPaginatedResponse([createMockProduct({ id: 'prod_1' })], true, 'cursor_1');
-      const page2 = createPaginatedResponse([createMockProduct({ id: 'prod_2' })], true, 'cursor_2');
-      const page3 = createPaginatedResponse([createMockProduct({ id: 'prod_3' })], false);
+      const page1 = createProductsResponse([createMockProduct({ id: 'prod_1' })], true, 'cursor_1');
+      const page2 = createProductsResponse([createMockProduct({ id: 'prod_2' })], true, 'cursor_2');
+      const page3 = createProductsResponse([createMockProduct({ id: 'prod_3' })], false);
 
       mockFetchResponse(page1);
       mockFetchResponse(page2);
@@ -355,7 +362,7 @@ describe('RoastifyService', () => {
     });
 
     it('should handle empty catalog', async () => {
-      mockFetchResponse(createPaginatedResponse([], false));
+      mockFetchResponse(createProductsResponse([], false));
 
       const result = await service.importAllProducts(mockCredentials);
 

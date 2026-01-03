@@ -12,6 +12,12 @@ export interface AuthenticatedUser {
   clientId?: string;
   companyId?: string;
   departmentId?: string;
+  client?: {
+    id: string;
+    name: string;
+    plan: string;
+    status: string;
+  };
 }
 
 /**

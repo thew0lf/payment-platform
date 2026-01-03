@@ -19,7 +19,7 @@ export interface ProcessImageOptions {
   /** S3 URL of the source image */
   sourceUrl: string;
   /** Operation to perform */
-  operation: 'background_removal' | 'smart_crop' | 'enhance' | 'upscale';
+  operation: 'background_removal' | 'smart_crop' | 'enhance' | 'upscale' | 'grayscale';
   /** Additional options for the operation */
   options?: {
     /** For smart_crop: target aspect ratio */
@@ -177,6 +177,11 @@ export class CloudinaryService {
           height: request.options?.targetHeight,
         });
         transformations.push({ format: 'webp', quality: 'auto:best' });
+        break;
+
+      case 'grayscale':
+        transformations.push({ effect: 'grayscale' });
+        transformations.push({ format: 'webp', quality: 'auto' });
         break;
     }
 

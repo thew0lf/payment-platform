@@ -1,6 +1,12 @@
 import { apiRequest } from '../api';
 
 // ═══════════════════════════════════════════════════════════════
+// CART STATUS ENUM
+// ═══════════════════════════════════════════════════════════════
+
+export type CartStatus = 'ACTIVE' | 'ABANDONED' | 'CONVERTED' | 'EXPIRED' | 'ARCHIVED' | 'MERGED';
+
+// ═══════════════════════════════════════════════════════════════
 // CART TYPES
 // ═══════════════════════════════════════════════════════════════
 
@@ -58,7 +64,7 @@ export interface Cart {
   sessionToken: string;
   siteId?: string;
   visitorId?: string;
-  status: 'ACTIVE' | 'CONVERTED' | 'ABANDONED' | 'MERGED';
+  status: CartStatus;
   currency: string;
   items: CartItem[];
   savedItems: CartItem[];
@@ -71,8 +77,110 @@ export interface Cart {
   utmCampaign?: string;
   abandonedAt?: string;
   convertedAt?: string;
+  expiresAt?: string;
+  lastActivityAt?: string;
   createdAt: string;
   updatedAt: string;
+  customer?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+  };
+  funnel?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN CART TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export interface AdminCartQueryParams {
+  companyId?: string;
+  status?: CartStatus;
+  funnelId?: string;
+  startDate?: string;
+  endDate?: string;
+  minValue?: number;
+  maxValue?: number;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AdminCartsResponse {
+  items: Cart[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface CartStats {
+  totalCarts: number;
+  activeCarts: number;
+  abandonedCarts: number;
+  convertedCarts: number;
+  expiredCarts: number;
+  archivedCarts: number;
+  totalValue: number;
+  totalAbandonedValue: number;
+  abandonmentRate: number;
+  conversionRate: number;
+  avgCartValue: number;
+  averageCartValue: number;
+}
+
+export interface CartActivity {
+  id: string;
+  cartId: string;
+  action: string;
+  details?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface CartFilters {
+  status?: CartStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  minValue?: number;
+  maxValue?: number;
+  funnelId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'grandTotal' | 'abandonedAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CartListResponse {
+  items: Cart[];
+  total: number;
+  pagination: {
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+export interface AbandonedCartsResponse {
+  items: Cart[];
+  total: number;
+  summary: {
+    totalAbandoned: number;
+    totalValue: number;
+    avgValue: number;
+    recoveryRate: number;
+  };
+}
+
+export interface RecoveryEmailResponse {
+  success: boolean;
+  emailId?: string;
+  sentAt?: string;
+  message?: string;
 }
 
 export interface AddToCartInput {
@@ -367,3 +475,120 @@ export const publicCartApi = {
     });
   },
 };
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN CART API CLIENT (Authenticated - Dashboard)
+// ═══════════════════════════════════════════════════════════════
+
+export const adminCartsApi = {
+  /**
+   * List all carts with filters and pagination
+   * GET /api/admin/carts
+   */
+  list: async (params: CartFilters = {}): Promise<CartListResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query.set(key, String(value));
+      }
+    });
+    return apiRequest.get<CartListResponse>(`/api/admin/carts?${query}`);
+  },
+
+  /**
+   * Get cart by ID
+   * GET /api/admin/carts/:id
+   */
+  get: async (id: string, companyId?: string): Promise<Cart> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<Cart>(`/api/admin/carts/${id}${params}`);
+  },
+
+  /**
+   * Get cart statistics
+   * GET /api/admin/carts/stats
+   */
+  getStats: async (params: { dateFrom?: string; dateTo?: string; funnelId?: string; companyId?: string } = {}): Promise<CartStats> => {
+    const query = new URLSearchParams();
+    if (params.dateFrom) query.set('dateFrom', params.dateFrom);
+    if (params.dateTo) query.set('dateTo', params.dateTo);
+    if (params.funnelId) query.set('funnelId', params.funnelId);
+    if (params.companyId) query.set('companyId', params.companyId);
+    const queryStr = query.toString();
+    return apiRequest.get<CartStats>(`/api/admin/carts/stats${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  /**
+   * Get abandoned carts
+   * GET /api/admin/carts/abandoned
+   */
+  getAbandoned: async (params: CartFilters = {}): Promise<AbandonedCartsResponse> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query.set(key, String(value));
+      }
+    });
+    return apiRequest.get<AbandonedCartsResponse>(`/api/admin/carts/abandoned?${query}`);
+  },
+
+  /**
+   * Send recovery email for abandoned cart
+   * POST /api/admin/carts/:id/recovery
+   */
+  sendRecoveryEmail: async (id: string, options?: { templateId?: string; customMessage?: string }): Promise<RecoveryEmailResponse> => {
+    return apiRequest.post<RecoveryEmailResponse>(`/api/admin/carts/${id}/recovery`, options || {});
+  },
+
+  /**
+   * Archive cart
+   * POST /api/admin/carts/:id/archive
+   */
+  archive: async (id: string): Promise<Cart> => {
+    return apiRequest.post<Cart>(`/api/admin/carts/${id}/archive`);
+  },
+
+  /**
+   * Get cart activity/timeline
+   * GET /api/admin/carts/:id/activity
+   */
+  getActivity: async (id: string): Promise<CartActivity[]> => {
+    return apiRequest.get<CartActivity[]>(`/api/admin/carts/${id}/activity`);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // BULK OPERATIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Archive multiple carts
+   * POST /api/admin/carts/archive-bulk
+   */
+  archiveBulk: async (ids: string[]): Promise<{ archived: number; failed: number }> => {
+    return apiRequest.post<{ archived: number; failed: number }>('/api/admin/carts/archive-bulk', { ids });
+  },
+
+  /**
+   * Send recovery emails to multiple abandoned carts
+   * POST /api/admin/carts/recovery-bulk
+   */
+  sendRecoveryEmailBulk: async (ids: string[], options?: { templateId?: string }): Promise<{ sent: number; failed: number }> => {
+    return apiRequest.post<{ sent: number; failed: number }>('/api/admin/carts/recovery-bulk', { ids, ...options });
+  },
+
+  /**
+   * Get available funnels for filtering
+   */
+  getFunnels: async (companyId?: string): Promise<{ id: string; name: string }[]> => {
+    const params = companyId ? `?companyId=${companyId}` : '';
+    return apiRequest.get<{ id: string; name: string }[]>(`/api/funnels${params}`).then(
+      (response: unknown) => {
+        const res = response as { items?: { id: string; name: string }[] } | { id: string; name: string }[];
+        return (res as { items?: { id: string; name: string }[] }).items || (res as { id: string; name: string }[]) || [];
+      }
+    );
+  },
+};
+
+// Alias for backwards compatibility
+export const adminCartApi = adminCartsApi;

@@ -7,6 +7,7 @@ import {
   AnalyticsEventType,
   TrackEventInput,
   EcommerceOverviewData,
+  AdminEcommerceOverviewData,
   CartAnalyticsData,
   WishlistAnalyticsData,
   ComparisonAnalyticsData,
@@ -18,6 +19,11 @@ jest.mock('../services/ecommerce-analytics.service', () => {
   return {
     EcommerceAnalyticsService: jest.fn().mockImplementation(() => ({
       getOverview: jest.fn(),
+      getAdminOverview: jest.fn(),
+      getAbandonmentTimeSeries: jest.fn(),
+      getRecoveryAnalytics: jest.fn(),
+      getCartValueDistribution: jest.fn(),
+      getFunnelDropoff: jest.fn(),
       getCartAnalytics: jest.fn(),
       getWishlistAnalytics: jest.fn(),
       getComparisonAnalytics: jest.fn(),
@@ -105,6 +111,31 @@ describe('EcommerceAnalyticsController', () => {
       wishlistGrowthTrend: 10.5,
       comparisonEngagementTrend: -2.3,
       crossSiteEngagementTrend: 8.1,
+    },
+  };
+
+  const mockAdminOverviewData: AdminEcommerceOverviewData = {
+    companyId: mockCompanyId,
+    dateRange: mockDateRange,
+    totalCarts: 100,
+    activeCarts: 25,
+    abandonedCarts: 40,
+    convertedCarts: 35,
+    abandonmentRate: 0.4,
+    conversionRate: 0.35,
+    averageCartValue: 75.5,
+    totalCartValue: 7550,
+    potentialRevenueLost: 3020,
+    recoveredCarts: 15,
+    recoveryRate: 0.375,
+    totalValueRecovered: 1132.5,
+    totalFunnelSessions: 500,
+    funnelCompletionRate: 0.35,
+    trends: {
+      abandonmentRateChange: -5.2,
+      conversionRateChange: 10.5,
+      cartValueChange: 8.1,
+      recoveryRateChange: 2.3,
     },
   };
 
@@ -235,6 +266,11 @@ describe('EcommerceAnalyticsController', () => {
   beforeEach(async () => {
     const mockServiceInstance = {
       getOverview: jest.fn(),
+      getAdminOverview: jest.fn(),
+      getAbandonmentTimeSeries: jest.fn(),
+      getRecoveryAnalytics: jest.fn(),
+      getCartValueDistribution: jest.fn(),
+      getFunnelDropoff: jest.fn(),
       getCartAnalytics: jest.fn(),
       getWishlistAnalytics: jest.fn(),
       getComparisonAnalytics: jest.fn(),
@@ -290,11 +326,11 @@ describe('EcommerceAnalyticsController', () => {
     describe('COMPANY-scoped users', () => {
       it('should use user scopeId for COMPANY scope', async () => {
         const companyUser = createMockUser({ scopeType: 'COMPANY', scopeId: mockCompanyId });
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         await controller.getOverview(companyUser);
 
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -302,11 +338,11 @@ describe('EcommerceAnalyticsController', () => {
 
       it('should ignore query companyId for COMPANY scope users', async () => {
         const companyUser = createMockUser({ scopeType: 'COMPANY', scopeId: mockCompanyId });
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         await controller.getOverview(companyUser, mockOtherCompanyId);
 
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -322,12 +358,12 @@ describe('EcommerceAnalyticsController', () => {
           companyId: undefined,
         });
         hierarchyService.canAccessCompany.mockResolvedValue(true);
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         await controller.getOverview(orgUser, mockCompanyId);
 
         expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -340,12 +376,12 @@ describe('EcommerceAnalyticsController', () => {
           companyId: undefined,
         });
         hierarchyService.canAccessCompany.mockResolvedValue(true);
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         await controller.getOverview(clientUser, mockCompanyId);
 
         expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -388,11 +424,11 @@ describe('EcommerceAnalyticsController', () => {
           scopeId: mockClientId,
           companyId: mockCompanyId,
         });
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         await controller.getOverview(userWithCompany);
 
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -422,24 +458,24 @@ describe('EcommerceAnalyticsController', () => {
   describe('getOverview', () => {
     it('should return overview data with valid auth', async () => {
       const user = createMockUser();
-      analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+      analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
       const result = await controller.getOverview(user);
 
-      expect(analyticsService.getOverview).toHaveBeenCalledWith(
+      expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
         mockCompanyId,
         expect.any(Object),
       );
-      expect(result).toEqual(mockOverviewData);
+      expect(result).toEqual(mockAdminOverviewData);
     });
 
     it('should handle date range query params', async () => {
       const user = createMockUser();
-      analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+      analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
       await controller.getOverview(user, undefined, '2025-01-01', '2025-01-31');
 
-      expect(analyticsService.getOverview).toHaveBeenCalledWith(
+      expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
         mockCompanyId,
         expect.objectContaining({
           startDate: expect.any(Date),
@@ -450,11 +486,11 @@ describe('EcommerceAnalyticsController', () => {
 
     it('should use default date range when not provided (last 30 days)', async () => {
       const user = createMockUser();
-      analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+      analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
       await controller.getOverview(user);
 
-      const call = analyticsService.getOverview.mock.calls[0];
+      const call = analyticsService.getAdminOverview.mock.calls[0];
       const dateRange = call[1];
       const daysDiff = Math.round(
         (dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -866,7 +902,7 @@ describe('EcommerceAnalyticsController', () => {
           companyId: undefined,
         });
         hierarchyService.canAccessCompany.mockResolvedValue(true);
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
         analyticsService.getCartAnalytics.mockResolvedValue(mockCartAnalytics);
         analyticsService.getWishlistAnalytics.mockResolvedValue(mockWishlistAnalytics);
         analyticsService.getComparisonAnalytics.mockResolvedValue(mockComparisonAnalytics);
@@ -889,12 +925,12 @@ describe('EcommerceAnalyticsController', () => {
           scopeId: 'dept_123',
           companyId: mockCompanyId,
         });
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         // When no query param is provided, should use user's companyId
         await controller.getOverview(deptUser);
 
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -906,12 +942,12 @@ describe('EcommerceAnalyticsController', () => {
           scopeId: 'team_123',
           companyId: mockCompanyId,
         });
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         // When no query param is provided, should use user's companyId
         await controller.getOverview(teamUser);
 
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockCompanyId,
           expect.any(Object),
         );
@@ -924,13 +960,13 @@ describe('EcommerceAnalyticsController', () => {
           companyId: mockCompanyId,
         });
         hierarchyService.canAccessCompany.mockResolvedValue(true);
-        analyticsService.getOverview.mockResolvedValue(mockOverviewData);
+        analyticsService.getAdminOverview.mockResolvedValue(mockAdminOverviewData);
 
         // When query param is provided, should validate access
         await controller.getOverview(deptUser, mockOtherCompanyId);
 
         expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
-        expect(analyticsService.getOverview).toHaveBeenCalledWith(
+        expect(analyticsService.getAdminOverview).toHaveBeenCalledWith(
           mockOtherCompanyId,
           expect.any(Object),
         );

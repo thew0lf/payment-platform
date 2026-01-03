@@ -6,7 +6,7 @@ import { ImportJobStatus, ImportJobPhase, Prisma } from '@prisma/client';
 import {
   ImportJobData,
   ImportJobError,
-  ImportJobProgress,
+  ImportJobProgressEvent,
   ImportErrorCode,
   PRODUCT_IMPORT_QUEUE,
   FieldMapping,
@@ -683,7 +683,7 @@ export class ProductImportProcessor {
     jobId: string,
     companyId: string,
     phase: ImportJobPhase,
-    progress?: Partial<ImportJobProgress>,
+    progress?: Partial<ImportJobProgressEvent>,
   ): Promise<void> {
     await this.prisma.productImportJob.update({
       where: { id: jobId },

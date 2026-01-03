@@ -179,7 +179,7 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'main', label: 'Dashboard', href: '/', icon: LayoutDashboard },
       { id: 'revenue-analytics', label: 'Revenue', href: '/insights/revenue', icon: TrendingUp },
-      { id: 'buyer-intent', label: 'Buyer Intent', href: '/insights/ecommerce', icon: Store, badge: 'New' },
+      { id: 'ecommerce-analytics', label: 'E-commerce', href: '/insights/ecommerce', icon: ShoppingCart, badge: 'New' },
       { id: 'orders-analytics', label: 'Orders', href: '/insights/orders', icon: ShoppingCart },
       { id: 'customers-analytics', label: 'Customers', href: '/insights/customers', icon: Users },
       { id: 'funnels-analytics', label: 'Funnels', href: '/insights/funnels', icon: Workflow },
@@ -215,6 +215,7 @@ export const navigationSections: NavSection[] = [
     defaultExpanded: true,
     items: [
       { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
+      { id: 'carts', label: 'Carts', href: '/carts', icon: ShoppingBag },
       { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },

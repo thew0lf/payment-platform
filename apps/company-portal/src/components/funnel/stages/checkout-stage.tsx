@@ -6,11 +6,21 @@ import { useFunnel } from '@/contexts/funnel-context';
 import { COUNTRIES, getCountryByCode } from '@/lib/address-data';
 import { AddressAutocomplete } from '@/components/address';
 import {
+  cartApi,
+  CartResponse,
+  CartDiscountCode,
+  CartApiError,
+  isEmptyCart,
+} from '@/lib/cart-api';
+import {
   ShieldCheckIcon,
   LockClosedIcon,
   CreditCardIcon,
   TruckIcon,
   CheckCircleIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
 
 interface CheckoutStageProps {
@@ -29,6 +39,35 @@ interface ShippingAddress {
   country: string;
 }
 
+interface StockWarning {
+  productId: string;
+  productName: string;
+  requested: number;
+  available: number;
+}
+
+/** Unified display cart item type for both frontend and backend cart items */
+interface DisplayCartItem {
+  id: string;
+  productId: string;
+  productSnapshot: {
+    name: string;
+    sku: string;
+    image?: string;
+    originalPrice: number;
+  };
+  quantity: number;
+  unitPrice: number;
+  originalPrice: number;
+  discountAmount: number;
+  lineTotal: number;
+  isGift: boolean;
+  addedAt: string;
+  // Frontend-specific fields that may be present
+  imageUrl?: string;
+  name?: string;
+}
+
 export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
   const {
     cart,
@@ -39,12 +78,28 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     trackEvent,
     customerInfo,
     session,
+    isDemoMode,
   } = useFunnel();
   const config = stage.config as CheckoutStageConfig;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Backend cart state
+  const [backendCart, setBackendCart] = useState<CartResponse | null>(null);
+  const [isLoadingCart, setIsLoadingCart] = useState(true);
+  const [cartError, setCartError] = useState<string | null>(null);
+
+  // Discount code state
+  const [discountCode, setDiscountCode] = useState('');
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountSuccess, setDiscountSuccess] = useState<string | null>(null);
+
+  // Stock validation state
+  const [stockWarnings, setStockWarnings] = useState<StockWarning[]>([]);
+  const [isValidatingStock, setIsValidatingStock] = useState(false);
 
   // Form state
   const [email, setEmail] = useState(customerInfo?.email || '');
@@ -84,6 +139,32 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
   // Progressive field capture - save customer info as they type
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef<string>('');
+
+  // Load backend cart on mount
+  useEffect(() => {
+    const loadCart = async () => {
+      if (!session?.sessionToken || !funnel.companyId) {
+        setIsLoadingCart(false);
+        return;
+      }
+
+      try {
+        setIsLoadingCart(true);
+        const cartData = await cartApi.getCart(session.sessionToken, funnel.companyId);
+
+        if (!isEmptyCart(cartData)) {
+          setBackendCart(cartData as CartResponse);
+        }
+      } catch (err) {
+        console.error('Failed to load cart:', err);
+        setCartError('Hmm, we couldn\'t load your cart. A quick refresh should fix it!');
+      } finally {
+        setIsLoadingCart(false);
+      }
+    };
+
+    loadCart();
+  }, [session?.sessionToken, funnel.companyId]);
 
   // Debounced save function for progressive capture
   const saveCustomerInfoProgressively = useCallback(() => {
@@ -129,15 +210,68 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     };
   }, [email, firstName, lastName, phone, company, saveCustomerInfoProgressively]);
 
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  // Apply discount code handler
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim() || !backendCart?.id || !session?.sessionToken) {
+      return;
+    }
 
-  const shippingCost = 5.99; // Would be calculated based on address
-  const taxRate = 0.08;
-  const discount = appliedCoupon?.discount || 0;
-  const subtotal = cartTotal;
-  const tax = (subtotal - discount) * taxRate;
-  const total = subtotal - discount + tax + shippingCost;
+    setIsApplyingDiscount(true);
+    setDiscountError(null);
+    setDiscountSuccess(null);
+
+    try {
+      const updatedCart = await cartApi.applyDiscount(
+        backendCart.id,
+        session.sessionToken,
+        funnel.companyId,
+        discountCode.trim().toUpperCase()
+      );
+
+      setBackendCart(updatedCart);
+      setDiscountSuccess(`Discount code "${discountCode.toUpperCase()}" applied!`);
+      setDiscountCode('');
+
+      trackEvent('COUPON_APPLIED', { code: discountCode.toUpperCase() });
+    } catch (err) {
+      const errorMessage = err instanceof CartApiError
+        ? err.message
+        : 'Failed to apply discount code';
+      setDiscountError(errorMessage);
+    } finally {
+      setIsApplyingDiscount(false);
+    }
+  };
+
+  // Remove discount code handler
+  const handleRemoveDiscount = async (code: string) => {
+    if (!backendCart?.id || !session?.sessionToken) {
+      return;
+    }
+
+    try {
+      const updatedCart = await cartApi.removeDiscount(
+        backendCart.id,
+        session.sessionToken,
+        funnel.companyId,
+        code
+      );
+
+      setBackendCart(updatedCart);
+      trackEvent('COUPON_REMOVED', { code });
+    } catch (err) {
+      console.error('Failed to remove discount:', err);
+    }
+  };
+
+  // Validate stock before checkout
+  const validateStockBeforeCheckout = async (): Promise<boolean> => {
+    // For now, we'll do a simple client-side check
+    // The backend will validate stock during checkout as well
+    // TODO: Add a dedicated stock validation endpoint when available
+    setStockWarnings([]);
+    return true;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -145,21 +279,38 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     setIsProcessing(true);
 
     try {
+      // Validate stock before proceeding
+      const stockValid = await validateStockBeforeCheckout();
+      if (!stockValid) {
+        setIsProcessing(false);
+        return;
+      }
+
       // Save customer info
       const info: CustomerInfo = { email, firstName, lastName, phone, company };
       setCustomerInfo(info);
 
+      // Get totals from backend cart if available, otherwise use frontend calculation
+      const totals = backendCart?.totals || {
+        subtotal: cartTotal,
+        discountTotal: 0,
+        taxTotal: cartTotal * 0.08,
+        shippingTotal: 5.99,
+        grandTotal: cartTotal + (cartTotal * 0.08) + 5.99,
+      };
+
       trackEvent('CHECKOUT_SUBMITTED', {
-        subtotal,
-        shipping: shippingCost,
-        tax,
-        total,
-        itemCount: cart.length,
+        subtotal: totals.subtotal,
+        shipping: totals.shippingTotal,
+        tax: totals.taxTotal,
+        discount: totals.discountTotal,
+        total: totals.grandTotal,
+        itemCount: backendCart?.totals.itemCount || cart.length,
       });
 
       // Validate session exists
       if (!session?.sessionToken) {
-        throw new Error('Session not found. Please refresh and try again.');
+        throw new Error('Something went wrong. Please refresh the page to continue.');
       }
 
       // Parse card expiry (MM/YY format)
@@ -196,9 +347,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
         throw new Error(result.error || 'Payment failed. Please try again.');
       }
 
-      await completeOrder(result.orderId!, total, 'USD');
+      await completeOrder(result.orderId!, totals.grandTotal, backendCart?.currency || 'USD');
 
-      trackEvent('CHECKOUT_COMPLETED', { orderId: result.orderId, total });
+      trackEvent('CHECKOUT_COMPLETED', { orderId: result.orderId, total: totals.grandTotal });
     } catch (err) {
       console.error('Checkout failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
@@ -209,25 +360,55 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     }
   };
 
-  const handleApplyCoupon = () => {
-    // Demo coupon logic
-    if (couponCode.toUpperCase() === 'SAVE10') {
-      setAppliedCoupon({ code: 'SAVE10', discount: subtotal * 0.1 });
-      trackEvent('COUPON_APPLIED', { code: couponCode });
-    } else {
-      setError('Invalid coupon code');
-    }
+  // Calculate display totals - prefer backend cart data
+  const displayTotals = backendCart?.totals || {
+    subtotal: cartTotal,
+    discountTotal: 0,
+    taxTotal: cartTotal * 0.08,
+    shippingTotal: 5.99,
+    grandTotal: cartTotal + (cartTotal * 0.08) + 5.99,
+    itemCount: cart.length,
   };
 
-  if (cart.length === 0) {
+  // Get cart items to display - prefer backend cart data
+  // Using DisplayCartItem type to unify frontend/backend item structure
+  const displayItems: DisplayCartItem[] = backendCart?.items || cart.map(item => ({
+    id: item.productId,
+    productId: item.productId,
+    productSnapshot: {
+      name: item.name,
+      sku: '',
+      image: item.imageUrl,
+      originalPrice: item.price,
+    },
+    quantity: item.quantity,
+    unitPrice: item.price,
+    originalPrice: item.price,
+    discountAmount: 0,
+    lineTotal: item.price * item.quantity,
+    isGift: false,
+    addedAt: new Date().toISOString(),
+    // Include frontend-specific fields for fallback access
+    imageUrl: item.imageUrl,
+    name: item.name,
+  }));
+
+  // Check if checkout should be disabled
+  const isCheckoutDisabled = isProcessing || stockWarnings.length > 0 || isLoadingCart;
+
+  if (cart.length === 0 && !isLoadingCart && (!backendCart || backendCart.items.length === 0)) {
     return (
       <div className="py-16 text-center">
-        <p className="text-gray-500 mb-4">Your cart is empty</p>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <ShieldCheckIcon className="w-8 h-8 text-gray-300" />
+        </div>
+        <p className="text-gray-600 mb-2 font-medium">Nothing here yet</p>
+        <p className="text-gray-500 text-sm mb-6">Let&apos;s find something you&apos;ll love!</p>
         <button
           onClick={prevStage}
-          className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg"
+          className="px-6 py-3 bg-[var(--primary-color)] text-white rounded-lg min-h-[44px] touch-manipulation hover:opacity-90 transition-opacity"
         >
-          Continue Shopping
+          Keep Browsing
         </button>
       </div>
     );
@@ -241,6 +422,64 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
             {/* Left Column - Form */}
             <div className={config.layout === 'two-column' ? 'lg:col-span-3' : ''}>
               <h2 className="text-2xl font-bold text-gray-900 mb-8">Checkout</h2>
+
+              {/* Demo Mode Banner */}
+              {isDemoMode && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-800">Demo Mode - No Real Charges</p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        This is a demo checkout. No actual payment will be processed.
+                        Use test card: <span className="font-mono font-medium">4111 1111 1111 1111</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════════════════════════════
+                  EXPRESS CHECKOUT SECTION (Phase 4.3+ - Placeholder)
+
+                  TODO: Implement Express Checkout options:
+                  - Apple Pay (via Stripe/Payment Request API)
+                  - Google Pay (via Stripe/Payment Request API)
+                  - PayPal Express
+
+                  Implementation notes:
+                  - Check for browser/device support before showing buttons
+                  - Use Payment Request API for Apple Pay/Google Pay
+                  - PayPal requires separate SDK integration
+                  - All express methods should skip the card form
+                  ═══════════════════════════════════════════════════════════════ */}
+              {/*
+              <section className="mb-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-sm text-gray-500">Express Checkout</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <button type="button" className="h-12 border rounded-lg flex items-center justify-center bg-black text-white">
+                    Apple Pay
+                  </button>
+                  <button type="button" className="h-12 border rounded-lg flex items-center justify-center bg-white">
+                    Google Pay
+                  </button>
+                  <button type="button" className="h-12 border rounded-lg flex items-center justify-center bg-[#0070ba] text-white">
+                    PayPal
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4 mt-6">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-sm text-gray-500">Or pay with card</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+              </section>
+              */}
 
               {/* Contact Information */}
               <section className="mb-8">
@@ -482,6 +721,28 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                 )}
               </section>
 
+              {/* Stock Warnings */}
+              {stockWarnings.length > 0 && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-800">Some items have limited stock</p>
+                      <ul className="mt-2 text-sm text-amber-700 space-y-1">
+                        {stockWarnings.map((warning) => (
+                          <li key={warning.productId}>
+                            {warning.productName}: Only {warning.available} available (you requested {warning.requested})
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-sm text-amber-600">
+                        Please update your cart quantities to proceed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Error */}
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -493,7 +754,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
               <div className="lg:hidden mb-8">
                 <button
                   type="submit"
-                  disabled={isProcessing}
+                  disabled={isCheckoutDisabled}
                   className="w-full py-4 bg-[var(--primary-color)] text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isProcessing ? (
@@ -504,7 +765,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                   ) : (
                     <>
                       <LockClosedIcon className="h-5 w-5" />
-                      Pay ${total.toFixed(2)}
+                      Pay ${displayTotals.grandTotal.toFixed(2)}
                     </>
                   )}
                 </button>
@@ -517,99 +778,180 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                 <div className="bg-gray-50 rounded-xl p-6 sticky top-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
 
-                  {/* Cart Items */}
-                  <div className="space-y-4 mb-6">
-                    {cart.map((item) => (
-                      <div key={`${item.productId}-${item.variantId || ''}`} className="flex gap-3">
-                        {item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-16 h-16 rounded-lg object-cover bg-white"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">{item.name}</p>
-                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                        </div>
-                        <p className="font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Loading State */}
+                  {isLoadingCart && (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mb-3" />
+                      <p className="text-sm text-gray-500">Getting your items ready...</p>
+                    </div>
+                  )}
 
-                  {/* Coupon */}
-                  {config.payment.allowCoupons && (
+                  {/* Cart Error */}
+                  {cartError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {cartError}
+                    </div>
+                  )}
+
+                  {/* Cart Items */}
+                  {!isLoadingCart && (
+                    <div className="space-y-4 mb-6">
+                      {displayItems.map((item) => {
+                        // Get image and name from either backend snapshot or frontend fields
+                        const itemImage = item.productSnapshot?.image || item.imageUrl;
+                        const itemName = item.productSnapshot?.name || item.name || 'Product';
+
+                        return (
+                          <div key={item.id} className="flex gap-3">
+                            {itemImage && (
+                              <img
+                                src={itemImage}
+                                alt={itemName}
+                                className="w-16 h-16 rounded-lg object-cover bg-white"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 text-sm">
+                                {itemName}
+                              </p>
+                              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                              {item.discountAmount > 0 && (
+                                <p className="text-xs text-green-600">
+                                  Save ${item.discountAmount.toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                            <p className="font-medium text-gray-900">
+                              ${item.lineTotal.toFixed(2)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Discount Code Input */}
+                  {config.payment.allowCoupons && !isLoadingCart && (
                     <div className="mb-6">
-                      {appliedCoupon ? (
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg text-green-700">
-                          <span className="flex items-center gap-2">
-                            <CheckCircleIcon className="h-5 w-5" />
-                            {appliedCoupon.code}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setAppliedCoupon(null)}
-                            className="text-sm hover:underline"
-                          >
-                            Remove
-                          </button>
+                      {/* Applied Discounts */}
+                      {backendCart?.discountCodes && backendCart.discountCodes.length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {backendCart.discountCodes.map((discount: CartDiscountCode) => (
+                            <div
+                              key={discount.code}
+                              className="flex items-center justify-between p-3 bg-green-50 rounded-lg text-green-700"
+                            >
+                              <span className="flex items-center gap-2">
+                                <TagIcon className="h-4 w-4" />
+                                <span className="font-medium">{discount.code}</span>
+                                {discount.description && (
+                                  <span className="text-sm text-green-600">
+                                    - {discount.description}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  -${discount.discountAmount.toFixed(2)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveDiscount(discount.code)}
+                                  className="p-1 hover:bg-green-100 rounded"
+                                  aria-label="Remove discount"
+                                >
+                                  <XMarkIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ) : (
+                      )}
+
+                      {/* Discount Input */}
+                      <div className="space-y-2">
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            placeholder="Coupon code"
-                            value={couponCode}
-                            onChange={(e) => setCouponCode(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white"
+                            placeholder="Discount code"
+                            value={discountCode}
+                            onChange={(e) => {
+                              setDiscountCode(e.target.value.toUpperCase());
+                              setDiscountError(null);
+                              setDiscountSuccess(null);
+                            }}
+                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                           />
                           <button
                             type="button"
-                            onClick={handleApplyCoupon}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-300"
+                            onClick={handleApplyDiscount}
+                            disabled={isApplyingDiscount || !discountCode.trim()}
+                            className="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
+                            {isApplyingDiscount ? (
+                              <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                            ) : null}
                             Apply
                           </button>
                         </div>
-                      )}
+
+                        {/* Discount Messages */}
+                        {discountError && (
+                          <p className="text-sm text-red-600 flex items-center gap-1">
+                            <ExclamationTriangleIcon className="h-4 w-4" />
+                            {discountError}
+                          </p>
+                        )}
+                        {discountSuccess && (
+                          <p className="text-sm text-green-600 flex items-center gap-1">
+                            <CheckCircleIcon className="h-4 w-4" />
+                            {discountSuccess}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Totals */}
-                  <div className="space-y-2 border-t border-gray-200 pt-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="text-gray-900">${subtotal.toFixed(2)}</span>
-                    </div>
-                    {appliedCoupon && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Discount</span>
-                        <span>-${discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="text-gray-900">${shippingCost.toFixed(2)}</span>
-                    </div>
-                    {config.payment.showTaxEstimate && (
+                  {!isLoadingCart && (
+                    <div className="space-y-2 border-t border-gray-200 pt-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Tax</span>
-                        <span className="text-gray-900">${tax.toFixed(2)}</span>
+                        <span className="text-gray-600">Subtotal</span>
+                        <span className="text-gray-900">${displayTotals.subtotal.toFixed(2)}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
-                      <span className="text-gray-900">Total</span>
-                      <span className="text-gray-900">${total.toFixed(2)}</span>
+                      {displayTotals.discountTotal > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount</span>
+                          <span>-${displayTotals.discountTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Shipping</span>
+                        <span className="text-gray-900">
+                          {displayTotals.shippingTotal > 0
+                            ? `$${displayTotals.shippingTotal.toFixed(2)}`
+                            : 'Free'
+                          }
+                        </span>
+                      </div>
+                      {config.payment.showTaxEstimate && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Tax</span>
+                          <span className="text-gray-900">${displayTotals.taxTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
+                        <span className="text-gray-900">Total</span>
+                        <span className="text-gray-900">${displayTotals.grandTotal.toFixed(2)}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Submit Button (Desktop) */}
                   <div className="hidden lg:block mt-6">
                     <button
                       type="submit"
-                      disabled={isProcessing}
+                      disabled={isCheckoutDisabled}
                       className="w-full py-4 bg-[var(--primary-color)] text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isProcessing ? (
@@ -620,7 +962,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                       ) : (
                         <>
                           <LockClosedIcon className="h-5 w-5" />
-                          Pay ${total.toFixed(2)}
+                          Pay ${displayTotals.grandTotal.toFixed(2)}
                         </>
                       )}
                     </button>

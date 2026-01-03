@@ -171,3 +171,173 @@
     outline-color: var(--brand-primary);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CART ANIMATIONS
+   Feedback animations for cart interactions
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* Badge pulse animation - scales up briefly when item added */
+  .animate-badge-pulse {
+    animation: badge-pulse 0.6s ease-out;
+  }
+
+  /* Cart icon/container pulse animation */
+  .animate-cart-pulse {
+    animation: cart-pulse 0.6s ease-out;
+  }
+
+  /* Add to cart button success animation */
+  .animate-add-success {
+    animation: add-success 0.5s ease-out;
+  }
+
+  /* Checkmark draw animation */
+  .animate-checkmark {
+    animation: checkmark-draw 0.4s ease-out forwards;
+  }
+}
+
+/* Badge pulse keyframes - scale and glow effect */
+@keyframes badge-pulse {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.3);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Cart container pulse keyframes */
+@keyframes cart-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+/* Add to cart success animation - brief green flash */
+@keyframes add-success {
+  0% {
+    background-color: var(--primary-color, #6366f1);
+    transform: scale(1);
+  }
+  30% {
+    background-color: #10b981;
+    transform: scale(0.95);
+  }
+  60% {
+    background-color: #10b981;
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: var(--primary-color, #6366f1);
+    transform: scale(1);
+  }
+}
+
+/* Checkmark SVG draw animation */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 24;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CART COMPONENT STYLES
+   Additional styles for cart components
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Success checkmark icon styles */
+.cart-checkmark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+
+.cart-checkmark.animate {
+  animation: checkmark-draw 0.4s ease-out forwards;
+}
+
+/* Smooth slide-up transition for sticky cart bar */
+.cart-bar-enter {
+  transform: translateY(100%);
+}
+
+.cart-bar-enter-active {
+  transform: translateY(0);
+  transition: transform 300ms ease-out;
+}
+
+.cart-bar-exit {
+  transform: translateY(0);
+}
+
+.cart-bar-exit-active {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REDUCED MOTION ACCESSIBILITY
+   Respect user preferences for reduced motion
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable or reduce animations for users who prefer reduced motion */
+  .animate-badge-pulse,
+  .animate-cart-pulse,
+  .animate-add-success,
+  .animate-checkmark,
+  .cart-checkmark.animate {
+    animation: none !important;
+  }
+
+  .cart-bar-enter-active,
+  .cart-bar-exit-active {
+    transition: none !important;
+  }
+
+  /* Reduce keyframe animations to simple opacity changes */
+  @keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+  }
+
+  @keyframes cart-pulse {
+    0%, 100% { opacity: 1; }
+  }
+
+  @keyframes add-success {
+    0%, 100% { opacity: 1; }
+  }
+
+  @keyframes checkmark-draw {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+}

@@ -57,6 +57,8 @@ export interface Funnel {
   companyId: string;
   name: string;
   slug: string;
+  shortId: string;
+  seoUrl: string;
   description?: string;
   type: FunnelType;
   status: FunnelStatus;
@@ -138,6 +140,58 @@ export interface FunnelQueryParams {
   search?: string;
   limit?: number;
   offset?: number;
+}
+
+// Logo Types
+export interface LogoCapabilities {
+  canUpload: boolean;
+  canProcess: boolean;
+  canGenerate: boolean;
+  generationsRemaining?: number;
+  maxFileSize: number;
+  allowedTypes: string[];
+  processingOptions: string[];
+  features: string[];
+  message?: string;
+}
+
+export interface UploadedLogo {
+  key: string;
+  url: string;
+  cdnUrl?: string;
+  size: number;
+  mimeType: string;
+  width?: number;
+  height?: number;
+}
+
+export interface LogoProcessingOptions {
+  removeBackground?: boolean;
+  resize?: { width: number; height: number };
+  format?: 'png' | 'webp' | 'svg';
+  optimize?: boolean;
+}
+
+export interface LogoGenerationRequest {
+  brandName: string;
+  industry: string;
+  style: 'modern' | 'classic' | 'playful' | 'elegant' | 'minimal' | 'bold';
+  primaryColor?: string;
+  secondaryColor?: string;
+  elements?: ('icon' | 'text' | 'abstract')[];
+  description?: string;
+}
+
+export interface LogoGenerationResult {
+  jobId: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  progress: number;
+  logos?: Array<{
+    url: string;
+    id: string;
+    variant: number;
+  }>;
+  error?: string;
 }
 
 // Analytics Types
@@ -288,6 +342,73 @@ export const funnelsApi = {
     if (companyId) params.append('companyId', companyId);
     params.append('days', days.toString());
     return apiRequest.get<FunnelAnalytics>(`/api/funnels/${id}/analytics?${params.toString()}`);
+  },
+
+  // Logo Management
+  getLogoCapabilities: async (companyId: string): Promise<LogoCapabilities> => {
+    return apiRequest.get<LogoCapabilities>(`/api/funnels/logo/capabilities?companyId=${companyId}`);
+  },
+
+  uploadLogo: async (
+    funnelId: string,
+    file: File,
+    companyId: string,
+    processOptions?: LogoProcessingOptions,
+  ): Promise<UploadedLogo> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (processOptions) {
+      formData.append('process', JSON.stringify(processOptions));
+    }
+
+    const token = localStorage.getItem('avnz_token');
+
+    const response = await fetch(`${API_BASE}/api/funnels/${funnelId}/logo?companyId=${companyId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(error.message || 'Failed to upload logo');
+    }
+
+    return response.json();
+  },
+
+  removeLogo: async (funnelId: string, companyId: string): Promise<void> => {
+    return apiRequest.delete(`/api/funnels/${funnelId}/logo?companyId=${companyId}`);
+  },
+
+  processLogo: async (
+    funnelId: string,
+    logoUrl: string,
+    options: LogoProcessingOptions,
+    companyId: string,
+  ): Promise<{ url: string }> => {
+    return apiRequest.post<{ url: string }>(
+      `/api/funnels/${funnelId}/logo/process?companyId=${companyId}`,
+      { logoUrl, options },
+    );
+  },
+
+  generateLogo: async (
+    request: LogoGenerationRequest,
+    companyId: string,
+  ): Promise<LogoGenerationResult> => {
+    return apiRequest.post<LogoGenerationResult>(
+      `/api/funnels/logo/generate?companyId=${companyId}`,
+      request,
+    );
+  },
+
+  getGenerationStatus: async (jobId: string, companyId: string): Promise<LogoGenerationResult> => {
+    return apiRequest.get<LogoGenerationResult>(
+      `/api/funnels/logo/generate/${jobId}?companyId=${companyId}`,
+    );
   },
 };
 

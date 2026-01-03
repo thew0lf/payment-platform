@@ -209,7 +209,7 @@ export class FunnelsService {
             id: true,
             name: true,
             code: true,
-            // Add logo/branding fields if they exist
+            settings: true, // Includes company.settings.brandKit for fallback branding
           },
         },
         stages: { orderBy: { order: 'asc' } },

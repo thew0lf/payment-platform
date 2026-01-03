@@ -478,7 +478,7 @@ export default function FunnelsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    window.open(`/f/${funnel.slug}`, '_blank');
+                    window.open(`/f/${funnel.seoUrl}`, '_blank');
                     setMenuOpen(null);
                     setMenuPosition(null);
                   }}

@@ -29,6 +29,61 @@ _None currently_
 
 ## Migrated (Ready for Deployment)
 
+### 20260102215624_add_landing_page_cart_integration
+- **Status:** `MIGRATED`
+- **Date Added:** January 2, 2026
+- **Date Migrated:** January 2, 2026
+- **Description:** LandingPage ↔ Cart integration for attribution tracking
+- **Changes:**
+  - New enum `CartSourceType` (DIRECT, LANDING_PAGE, FUNNEL, EMAIL)
+  - New enum `LandingPageSessionStatus` (ACTIVE, CONVERTED, ABANDONED, EXPIRED)
+  - New columns on `carts` table:
+    - `landingPageId` (nullable FK to `landing_pages`)
+    - `sourceType` (CartSourceType, default DIRECT)
+  - New indexes on `carts` table:
+    - `carts_landingPageId_idx`
+    - `carts_sourceType_companyId_status_idx`
+  - New `landing_page_sessions` table with 17 columns:
+    - `id`, `sessionToken` (unique), `landingPageId`, `visitorId`
+    - `ipAddressHash`, `userAgent`, `referrer`
+    - `deviceType`, `browser`, `os`
+    - `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`
+    - `cartId` (unique), `status`, `convertedAt`, `orderId`, `abandonedAt`
+    - `startedAt`, `lastActivityAt`, `companyId`
+  - Performance indexes on `landing_page_sessions`:
+    - `landing_page_sessions_sessionToken_key` (unique)
+    - `landing_page_sessions_cartId_key` (unique)
+    - `landing_page_sessions_landingPageId_startedAt_idx`
+    - `landing_page_sessions_landingPageId_status_idx`
+    - `landing_page_sessions_companyId_startedAt_idx`
+    - `landing_page_sessions_companyId_convertedAt_idx`
+    - `landing_page_sessions_status_idx`
+  - Foreign keys with proper cascade behavior:
+    - `carts.landingPageId` → `landing_pages.id` ON DELETE SET NULL
+    - `landing_page_sessions.landingPageId` → `landing_pages.id` ON DELETE CASCADE
+    - `landing_page_sessions.companyId` → `companies.id` ON DELETE CASCADE
+    - `landing_page_sessions.cartId` → `carts.id` ON DELETE SET NULL
+  - Also includes `inventory_holds` table (was pending in schema)
+- **Migration File:** `prisma/migrations/20260102215624_add_landing_page_cart_integration/migration.sql`
+- **Risk Level:** Low (additive changes only)
+- **Rollback:**
+  ```sql
+  ALTER TABLE "carts" DROP COLUMN "landingPageId";
+  ALTER TABLE "carts" DROP COLUMN "sourceType";
+  DROP TABLE "landing_page_sessions";
+  DROP TABLE "inventory_holds";
+  DROP TYPE "CartSourceType";
+  DROP TYPE "LandingPageSessionStatus";
+  ```
+- **Production Notes:**
+  - All changes are additive
+  - No existing data will be affected
+  - New FK columns are nullable, so no backfill required
+  - Estimated execution time: < 5 seconds
+  - 115 lines of SQL
+
+---
+
 ### 20251231201625_add_cart_and_session_partial_indexes
 - **Status:** `MIGRATED`
 - **Date Added:** December 31, 2025

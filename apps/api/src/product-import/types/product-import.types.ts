@@ -237,7 +237,36 @@ export interface ValidationError {
 // IMPORT JOB TRACKING
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Full import job progress response (returned by API endpoints)
+ * Includes all fields needed for complete job status display
+ */
 export interface ImportJobProgress {
+  id: string;
+  companyId: string;
+  provider: string;
+  status: ImportJobStatus;
+  phase: ImportJobPhase;
+  progress: number;
+  totalProducts: number;
+  processedProducts: number;
+  totalImages: number;
+  processedImages: number;
+  importedCount: number;
+  skippedCount: number;
+  errorCount: number;
+  currentItem?: string;
+  estimatedSecondsRemaining?: number;
+  errors?: ImportJobError[];
+  createdAt: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+}
+
+/**
+ * Progress data for SSE events (doesn't need companyId/provider since those are in event metadata)
+ */
+export interface ImportJobProgressEvent {
   id: string;
   status: ImportJobStatus;
   phase: ImportJobPhase;
@@ -394,7 +423,7 @@ export interface ImportEvent {
   type: ImportEventType;
   jobId: string;
   timestamp: Date;
-  data: ImportJobProgress | ImportJobError | ConflictInfo | { productId: string; sku: string };
+  data: ImportJobProgressEvent | ImportJobError | ConflictInfo | { productId: string; sku: string };
 }
 
 // ═══════════════════════════════════════════════════════════════

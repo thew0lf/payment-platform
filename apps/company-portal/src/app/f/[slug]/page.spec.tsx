@@ -98,8 +98,8 @@ describe('Funnel Page Metadata', () => {
     it('should use seo.title when available', () => {
       const funnel = createMinimalFunnel({
         settings: {
-          branding: {},
-          behavior: { showProgressBar: true, exitIntent: false, abandonedCartEmail: false },
+          branding: { primaryColor: '#0ea5e9' },
+          behavior: { showProgressBar: true, allowBackNavigation: true, autoSaveProgress: true, sessionTimeout: 1800, abandonmentEmail: false },
           seo: { title: 'SEO Title', description: 'Description' },
           urls: {},
         },
@@ -113,8 +113,8 @@ describe('Funnel Page Metadata', () => {
       const funnel = createMinimalFunnel({
         name: 'My Funnel Name',
         settings: {
-          branding: {},
-          behavior: { showProgressBar: true, exitIntent: false, abandonedCartEmail: false },
+          branding: { primaryColor: '#0ea5e9' },
+          behavior: { showProgressBar: true, allowBackNavigation: true, autoSaveProgress: true, sessionTimeout: 1800, abandonmentEmail: false },
           seo: { title: '', description: 'Description' },
           urls: {},
         },
@@ -129,8 +129,8 @@ describe('Funnel Page Metadata', () => {
     it('should include ogImage when available', () => {
       const funnel = createMinimalFunnel({
         settings: {
-          branding: {},
-          behavior: { showProgressBar: true, exitIntent: false, abandonedCartEmail: false },
+          branding: { primaryColor: '#0ea5e9' },
+          behavior: { showProgressBar: true, allowBackNavigation: true, autoSaveProgress: true, sessionTimeout: 1800, abandonmentEmail: false },
           seo: {
             title: 'Title',
             description: 'Description',

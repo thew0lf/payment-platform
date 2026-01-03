@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Funnel, FunnelStage, ProductSelectionConfig, Product, getProducts } from '@/lib/api';
 import { useFunnel } from '@/contexts/funnel-context';
-import { ShoppingCartIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, MinusIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { FloatingCartSummary } from '@/components/cart/floating-cart-summary';
+import { StickyCartBar } from '@/components/cart/sticky-cart-bar';
+import { CartDrawer } from '@/components/cart/cart-drawer';
 
 interface ProductSelectionStageProps {
   stage: FunnelStage;
@@ -26,6 +29,25 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [recentlyAddedProductId, setRecentlyAddedProductId] = useState<string | null>(null);
+
+  // Handle opening cart drawer
+  const handleOpenCart = useCallback(() => {
+    setIsCartDrawerOpen(true);
+  }, []);
+
+  // Handle closing cart drawer
+  const handleCloseCart = useCallback(() => {
+    setIsCartDrawerOpen(false);
+  }, []);
+
+  // Handle checkout from sticky bar
+  const handleCheckout = useCallback(() => {
+    if (cart.length === 0) return;
+    if (config.selection.minItems && cart.length < config.selection.minItems) return;
+    nextStage();
+  }, [cart.length, config.selection.minItems, nextStage]);
 
   useEffect(() => {
     loadProducts();
@@ -59,7 +81,7 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
     }
   }
 
-  const handleAddToCart = (product: Product, quantity: number = 1) => {
+  const handleAddToCart = useCallback((product: Product, quantity: number = 1) => {
     addToCart({
       productId: product.id,
       quantity,
@@ -68,7 +90,12 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
       imageUrl: product.images[0]?.url,
     });
     trackEvent('PRODUCT_SELECTED', { productId: product.id });
-  };
+
+    // Trigger add animation
+    setRecentlyAddedProductId(product.id);
+    const timeout = setTimeout(() => setRecentlyAddedProductId(null), 600);
+    return () => clearTimeout(timeout);
+  }, [addToCart, trackEvent]);
 
   const handleContinue = () => {
     if (cart.length === 0 && config.selection.minItems && config.selection.minItems > 0) {
@@ -167,6 +194,7 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
               onAdd={() => handleAddToCart(product)}
               onUpdateQuantity={(qty) => updateCartItem(product.id, qty)}
               mode={config.selection.mode}
+              isRecentlyAdded={recentlyAddedProductId === product.id}
             />
           ))}
         </div>
@@ -219,6 +247,21 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
       {(config.cta.position === 'fixed-bottom' || config.cta.position === 'both') && (
         <div className="h-24" />
       )}
+
+      {/* Bottom spacing for sticky cart bar on mobile */}
+      <div className="md:hidden h-24" />
+
+      {/* Floating Cart Summary - Desktop only */}
+      <FloatingCartSummary onOpenCart={handleOpenCart} />
+
+      {/* Sticky Cart Bar - Mobile only */}
+      <StickyCartBar
+        onCheckout={handleCheckout}
+        onOpenCart={handleOpenCart}
+      />
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartDrawerOpen} onClose={handleCloseCart} />
     </div>
   );
 }
@@ -231,6 +274,7 @@ function ProductCard({
   onAdd,
   onUpdateQuantity,
   mode,
+  isRecentlyAdded = false,
 }: {
   product: Product;
   config: ProductSelectionConfig;
@@ -238,15 +282,33 @@ function ProductCard({
   onAdd: () => void;
   onUpdateQuantity: (qty: number) => void;
   mode: 'single' | 'multiple';
+  isRecentlyAdded?: boolean;
 }) {
+  const [showCheckmark, setShowCheckmark] = useState(false);
+
+  // Show checkmark animation when item is added
+  useEffect(() => {
+    if (isRecentlyAdded) {
+      setShowCheckmark(true);
+      const timeout = setTimeout(() => setShowCheckmark(false), 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRecentlyAdded]);
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden">
         {product.images[0] ? (
           <img
-            src={product.images[0].url}
+            src={product.images[0].thumbnails?.medium || product.images[0].url}
+            srcSet={
+              product.images[0].thumbnails
+                ? `${product.images[0].thumbnails.small || product.images[0].url} 200w, ${product.images[0].thumbnails.medium || product.images[0].url} 400w, ${product.images[0].thumbnails.large || product.images[0].url} 800w`
+                : undefined
+            }
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             alt={product.images[0].alt || product.name}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -285,34 +347,73 @@ function ProductCard({
 
         {/* Add to Cart / Quantity Controls */}
         {config.cta.position !== 'fixed-bottom' && (
-          <div>
+          <div className="relative">
             {quantity === 0 ? (
               <button
                 onClick={onAdd}
-                className="w-full py-2.5 bg-[var(--primary-color)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                className={`
+                  w-full py-2.5 min-h-[44px]
+                  bg-[var(--primary-color)] text-white
+                  font-medium rounded-lg
+                  transition-all duration-200
+                  touch-manipulation
+                  active:scale-[0.98]
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary-color)]
+                  ${isRecentlyAdded ? 'animate-add-success' : 'hover:opacity-90'}
+                `}
+                aria-label={mode === 'single' ? `Select ${product.name}` : `Add ${product.name} to cart`}
               >
-                {mode === 'single' ? 'Select' : 'Add to Cart'}
+                {showCheckmark ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <CheckIcon className="h-5 w-5 animate-checkmark" aria-hidden="true" />
+                    Added!
+                  </span>
+                ) : (
+                  mode === 'single' ? 'Select' : 'Add to Cart'
+                )}
               </button>
             ) : config.selection.allowQuantity ? (
               <div className="flex items-center justify-center gap-3 bg-gray-100 rounded-lg p-2">
                 <button
                   onClick={() => onUpdateQuantity(quantity - 1)}
-                  className="p-1.5 bg-white rounded-md hover:bg-gray-50 shadow-sm"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white rounded-md hover:bg-gray-50 shadow-sm touch-manipulation"
+                  aria-label={`Decrease quantity of ${product.name}`}
                 >
-                  <MinusIcon className="h-4 w-4" />
+                  <MinusIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
-                <span className="font-medium w-8 text-center">{quantity}</span>
+                <span className="font-medium w-8 text-center" aria-label={`Quantity: ${quantity}`}>
+                  {quantity}
+                </span>
                 <button
                   onClick={() => onUpdateQuantity(quantity + 1)}
-                  className="p-1.5 bg-white rounded-md hover:bg-gray-50 shadow-sm"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white rounded-md hover:bg-gray-50 shadow-sm touch-manipulation"
+                  aria-label={`Increase quantity of ${product.name}`}
                 >
-                  <PlusIcon className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 text-[var(--primary-color)] font-medium">
-                <ShoppingCartIcon className="h-5 w-5" />
-                Added
+              <div
+                className={`
+                  flex items-center justify-center gap-2 py-2.5
+                  text-[var(--primary-color)] font-medium
+                  transition-all duration-300
+                  ${showCheckmark ? 'text-green-600' : ''}
+                `}
+                role="status"
+                aria-label={`${product.name} added to cart`}
+              >
+                {showCheckmark ? (
+                  <>
+                    <CheckIcon className="h-5 w-5 animate-checkmark" aria-hidden="true" />
+                    Added!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCartIcon className="h-5 w-5" aria-hidden="true" />
+                    Added
+                  </>
+                )}
               </div>
             )}
           </div>

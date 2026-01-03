@@ -259,21 +259,21 @@ export class RoastifyService {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Get all products from the catalog
+   * Get all USER products (not catalog templates)
+   * Endpoint: GET /products
    */
   async getProducts(
     credentials: RoastifyCredentials,
     options?: RoastifyPaginationOptions,
-  ): Promise<RoastifyPaginatedResponse<RoastifyProduct>> {
-    const url = new URL(`${this.baseUrl}/catalog/products`);
+  ): Promise<{ products: any[]; pageInfo: { hasNextPage: boolean; endCursor?: string } }> {
+    const url = new URL(`${this.baseUrl}/products`);
     if (options?.cursor) url.searchParams.append('cursor', options.cursor);
-    if (options?.limit) url.searchParams.append('limit', String(options.limit));
+    if (options?.limit) url.searchParams.append('pageSize', String(options.limit));
 
-    const response = await this.request<RoastifyPaginatedResponse<RoastifyProduct>>(
+    return this.request<{ products: any[]; pageInfo: { hasNextPage: boolean; endCursor?: string } }>(
       credentials,
       url.toString(),
     );
-    return response;
   }
 
   /**
@@ -515,22 +515,58 @@ export class RoastifyService {
   }
 
   /**
-   * Import all products from Roastify catalog
-   * Returns all products with all pages fetched
+   * Import all USER products from Roastify
+   * Uses GET /products endpoint (not /catalog/products)
    */
-  async importAllProducts(credentials: RoastifyCredentials): Promise<RoastifyProduct[]> {
-    const allProducts: RoastifyProduct[] = [];
+  async importAllProducts(credentials: RoastifyCredentials): Promise<any[]> {
+    const allProducts: any[] = [];
     let cursor: string | undefined;
     let hasMore = true;
 
     while (hasMore) {
       const response = await this.getProducts(credentials, { cursor, limit: 100 });
-      allProducts.push(...response.data);
-      cursor = response.pagination.cursor;
-      hasMore = response.pagination.hasMore;
+
+      // Response format: { products: [], pageInfo: { hasNextPage, endCursor } }
+      const products = response.products || [];
+      if (!Array.isArray(products)) {
+        this.logger.warn(`Unexpected Roastify response format: ${JSON.stringify(response).substring(0, 200)}`);
+        break;
+      }
+
+      allProducts.push(...products);
+      cursor = response.pageInfo?.endCursor;
+      hasMore = response.pageInfo?.hasNextPage ?? false;
     }
 
     this.logger.log(`Imported ${allProducts.length} products from Roastify`);
     return allProducts;
+  }
+
+  /**
+   * Import all blends (coffee products) from Roastify
+   * These are the actual coffee blends like "TRANQUILO", "EL PUENTE", etc.
+   */
+  async importAllBlends(credentials: RoastifyCredentials): Promise<RoastifyBlend[]> {
+    const allBlends: RoastifyBlend[] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await this.getBlends(credentials, { cursor, limit: 100 });
+
+      // Handle different response formats
+      const blends = response.data || (response as any).blends || (Array.isArray(response) ? response : []);
+      if (!Array.isArray(blends)) {
+        this.logger.warn(`Unexpected Roastify blends response format: ${JSON.stringify(response).substring(0, 200)}`);
+        break;
+      }
+
+      allBlends.push(...blends);
+      cursor = response.pagination?.cursor;
+      hasMore = response.pagination?.hasMore ?? false;
+    }
+
+    this.logger.log(`Imported ${allBlends.length} blends from Roastify`);
+    return allBlends;
   }
 }

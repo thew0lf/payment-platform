@@ -41,6 +41,83 @@ export interface FunnelBranding {
   fontFamily?: string;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// BRAND KIT (Enterprise Tier)
+// ═══════════════════════════════════════════════════════════════
+
+export interface BrandKitLogo {
+  /** Full logo URL */
+  fullUrl?: string;
+  /** Icon-only variant */
+  iconUrl?: string;
+  /** Monochrome/black variant */
+  monochromeUrl?: string;
+  /** White/reversed variant for dark backgrounds */
+  reversedUrl?: string;
+}
+
+export interface BrandKitColors {
+  /** Primary brand color */
+  primary: string;
+  /** Secondary brand color */
+  secondary?: string;
+  /** Accent color for CTAs, highlights */
+  accent?: string;
+  /** Background color */
+  background?: string;
+  /** Text color */
+  text?: string;
+  /** Success state color */
+  success?: string;
+  /** Warning state color */
+  warning?: string;
+  /** Error state color */
+  error?: string;
+}
+
+export interface BrandKitTypography {
+  /** Heading font family */
+  headingFont?: string;
+  /** Body text font family */
+  bodyFont?: string;
+  /** Base font size (px) */
+  baseFontSize?: number;
+  /** Heading scale multiplier */
+  headingScale?: number;
+  /** Custom fonts (CDN URLs) */
+  customFonts?: string[];
+}
+
+export interface BrandKit {
+  /** Logo variants */
+  logos: BrandKitLogo;
+  /** Color palette */
+  colors: BrandKitColors;
+  /** Typography settings */
+  typography: BrandKitTypography;
+  /** Favicon URL (auto-generated from logo if not set) */
+  faviconUrl?: string;
+  /** Brand kit preset used */
+  preset?: 'minimal' | 'bold' | 'elegant' | 'playful' | 'custom';
+  /** Last updated timestamp */
+  updatedAt?: string;
+}
+
+export interface BrandKitCapabilities {
+  /** Can manage full brand kit */
+  canManageBrandKit: boolean;
+  /** Can extract colors from logo */
+  canExtractColors: boolean;
+  /** Can generate logo variants */
+  canGenerateVariants: boolean;
+  /** Has AI color suggestions */
+  hasAIColorSuggestions: boolean;
+  /** Features available */
+  features: string[];
+  /** Message if limited */
+  message?: string;
+}
+
 export interface FunnelUrls {
   successUrl?: string;
   cancelUrl?: string;

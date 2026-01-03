@@ -39,6 +39,12 @@ export interface AuthenticatedUser {
   clientId: string | null;
   companyId: string | null;
   departmentId: string | null;
+  client?: {
+    id: string;
+    name: string;
+    plan: string;
+    status: string;
+  };
 }
 
 export interface TokenPair {
@@ -92,6 +98,14 @@ export class AuthService {
         clientId: true,
         companyId: true,
         departmentId: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            plan: true,
+            status: true,
+          },
+        },
       },
     });
 
@@ -109,7 +123,15 @@ export class AuthService {
     }
 
     const { passwordHash, status, ...result } = user;
-    return result;
+    return {
+      ...result,
+      client: user.client ? {
+        id: user.client.id,
+        name: user.client.name,
+        plan: user.client.plan,
+        status: user.client.status,
+      } : undefined,
+    };
   }
 
   private generateTokens(user: AuthenticatedUser): TokenPair {
@@ -239,6 +261,16 @@ export class AuthService {
   async getUserById(id: string): Promise<AuthenticatedUser | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+            plan: true,
+            status: true,
+          },
+        },
+      },
     });
 
     if (!user || user.status !== 'ACTIVE') {
@@ -258,6 +290,12 @@ export class AuthService {
       clientId: user.clientId,
       companyId: user.companyId,
       departmentId: user.departmentId,
+      client: user.client ? {
+        id: user.client.id,
+        name: user.client.name,
+        plan: user.client.plan,
+        status: user.client.status,
+      } : undefined,
     };
   }
 

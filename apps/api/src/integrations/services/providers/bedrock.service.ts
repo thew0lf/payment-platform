@@ -24,6 +24,30 @@ export interface ContentGenerationRequest {
   modelId?: string;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// IMAGE GENERATION TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export interface LogoGenerationRequest {
+  brandName: string;
+  industry: string;
+  style: 'modern' | 'classic' | 'playful' | 'elegant' | 'minimal' | 'bold';
+  primaryColor?: string;
+  secondaryColor?: string;
+  elements?: ('icon' | 'text' | 'abstract')[];
+  description?: string;
+}
+
+export interface GeneratedImage {
+  base64Data: string;
+  seed: number;
+}
+
+export interface ImageGenerationResponse {
+  images: GeneratedImage[];
+  modelUsed: string;
+}
+
 export interface ContentGenerationResponse {
   content: string;
   usage: {
@@ -141,6 +165,18 @@ export class BedrockService {
       long: '2-3 paragraphs (200-300 words)',
     };
 
+    // Extract existing content from attributes if provided
+    const existingDescription = request.attributes?.existingDescription as string | undefined;
+    const existingMetaDescription = request.attributes?.existingMetaDescription as string | undefined;
+
+    // Filter out special attributes from the general attributes display
+    const displayAttributes = request.attributes ?
+      Object.fromEntries(
+        Object.entries(request.attributes).filter(
+          ([key]) => !['existingDescription', 'existingMetaDescription'].includes(key)
+        )
+      ) : undefined;
+
     const systemPrompt = `You are an expert e-commerce copywriter. Generate compelling product descriptions that drive conversions while being accurate and honest. Never make unverifiable claims. Focus on benefits over features.`;
 
     const prompt = `Generate a product description for an e-commerce store.
@@ -148,7 +184,15 @@ export class BedrockService {
 Product Information:
 - Name: ${request.productName}
 ${request.category ? `- Category: ${request.category}` : ''}
-${request.attributes ? `- Attributes: ${JSON.stringify(request.attributes, null, 2)}` : ''}
+${displayAttributes && Object.keys(displayAttributes).length > 0 ? `- Attributes: ${JSON.stringify(displayAttributes, null, 2)}` : ''}
+${existingDescription ? `
+EXISTING PRODUCT DESCRIPTION (use this as the basis for SEO content):
+${existingDescription}
+` : ''}
+${existingMetaDescription ? `
+EXISTING META DESCRIPTION (improve or use as reference):
+${existingMetaDescription}
+` : ''}
 
 Requirements:
 - Tone: ${request.tone || 'professional'}
@@ -157,10 +201,17 @@ ${request.targetAudience ? `- Target Audience: ${request.targetAudience}` : ''}
 ${request.includeSEO ? '- Include SEO-friendly keywords naturally' : ''}
 
 IMPORTANT:
-- Do NOT include pricing information
+- Do NOT include pricing information in the description
 - Do NOT make claims that cannot be verified
 - Focus on benefits and unique selling points
 - Use active voice and engaging language
+${existingDescription ? `- You have an EXISTING DESCRIPTION above - use it as a foundation to create an improved, more compelling version
+- Maintain the core message and key product details from the existing description
+- Enhance the language, structure, and persuasiveness while keeping it accurate
+- The new description should be based on the existing content, not entirely different` : ''}
+${existingDescription || existingMetaDescription ? `- BASE the SEO meta title and meta description on the product information and description
+- The meta title should summarize the product's key benefit in max 60 characters
+- The meta description should be a compelling summary of the product in max 160 characters` : ''}
 
 Respond with valid JSON only (no markdown):
 {
@@ -303,5 +354,114 @@ Respond with valid JSON only:
         latencyMs: Date.now() - startTime,
       };
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // IMAGE GENERATION (Titan Image Generator)
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Generate logo images using Amazon Titan Image Generator
+   */
+  async generateLogoImages(
+    credentials: BedrockCredentials,
+    request: LogoGenerationRequest,
+    numberOfImages: number = 4,
+  ): Promise<ImageGenerationResponse> {
+    const client = this.getClient(credentials);
+    const modelId = 'amazon.titan-image-generator-v2:0';
+
+    // Build a detailed prompt for logo generation
+    const prompt = this.buildLogoPrompt(request);
+
+    // Build negative prompt to avoid common issues
+    const negativePrompt = 'blurry, low quality, distorted text, pixelated, photograph, realistic photo, watermark, signature, complex background, busy design';
+
+    const payload = {
+      taskType: 'TEXT_IMAGE',
+      textToImageParams: {
+        text: prompt,
+        negativeText: negativePrompt,
+      },
+      imageGenerationConfig: {
+        numberOfImages,
+        quality: 'premium',
+        height: 512,
+        width: 512,
+        cfgScale: 8.0,
+      },
+    };
+
+    try {
+      const command = new InvokeModelCommand({
+        modelId,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body: JSON.stringify(payload),
+      });
+
+      const response = await client.send(command);
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+      if (responseBody.error) {
+        throw new Error(responseBody.error);
+      }
+
+      const images: GeneratedImage[] = responseBody.images.map((img: string, index: number) => ({
+        base64Data: img,
+        seed: index,
+      }));
+
+      return {
+        images,
+        modelUsed: modelId,
+      };
+    } catch (error: any) {
+      this.logger.error(`Bedrock image generation error: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Build an optimized prompt for logo generation
+   */
+  private buildLogoPrompt(request: LogoGenerationRequest): string {
+    const styleDescriptions: Record<string, string> = {
+      modern: 'sleek, minimalist, contemporary, clean lines, geometric shapes',
+      classic: 'timeless, elegant, traditional, refined, sophisticated',
+      playful: 'fun, colorful, whimsical, energetic, friendly',
+      elegant: 'luxurious, premium, refined, graceful, upscale',
+      minimal: 'simple, clean, uncluttered, essential, pure',
+      bold: 'strong, impactful, dynamic, powerful, commanding',
+    };
+
+    const elements = request.elements?.length
+      ? request.elements.join(' and ')
+      : 'icon and text';
+
+    const colors = [];
+    if (request.primaryColor) {
+      colors.push(request.primaryColor);
+    }
+    if (request.secondaryColor) {
+      colors.push(request.secondaryColor);
+    }
+    const colorSpec = colors.length > 0
+      ? `using colors ${colors.join(' and ')}`
+      : '';
+
+    const styleSpec = styleDescriptions[request.style] || 'professional';
+
+    const prompt = [
+      `Professional logo design for "${request.brandName}"`,
+      `in the ${request.industry} industry`,
+      `featuring ${elements}`,
+      `style: ${styleSpec}`,
+      colorSpec,
+      request.description ? `additional details: ${request.description}` : '',
+      'vector-style logo, clean white or transparent background, suitable for business use, high quality, professional branding',
+    ].filter(Boolean).join(', ');
+
+    return prompt;
   }
 }

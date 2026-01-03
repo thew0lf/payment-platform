@@ -172,6 +172,26 @@ apiRequest.patch = <T>(endpoint: string, body?: unknown) =>
 apiRequest.delete = <T>(endpoint: string, body?: unknown) =>
   request<T>(endpoint, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }).then(r => r.data);
 
+// File upload method (uses FormData, doesn't set Content-Type to let browser set multipart boundary)
+apiRequest.upload = async <T>(endpoint: string, formData: FormData): Promise<T> => {
+  const token = getToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Note: Don't set Content-Type for FormData - browser sets it with correct boundary
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+  return response.json();
+};
+
 // Create apiClient object for subscription-plans and billing modules
 export const apiClient = {
   get: <T>(endpoint: string) => request<T>(endpoint).then(r => r.data),

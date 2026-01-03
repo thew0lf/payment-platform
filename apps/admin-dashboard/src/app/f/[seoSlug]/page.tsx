@@ -15,10 +15,21 @@ import {
   Coffee,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
   Plus,
   Minus,
   Leaf,
   Box,
+  Sparkles,
+  Zap,
+  Heart,
+  Award,
+  Clock,
+  Users,
+  ThumbsUp,
+  Quote,
+  HelpCircle,
+  Sun,
 } from 'lucide-react';
 import {
   funnelCheckoutApi,
@@ -40,16 +51,106 @@ interface HeroSection {
     headline: string;
     subheadline: string;
     backgroundImage?: string;
+    backgroundVideo?: string;
+    suggestedImageKeywords?: string[];
+    ctaText?: string;
   };
+}
+
+// Stock image mapping for fallback hero images
+const STOCK_HERO_IMAGES: Record<string, { url: string; alt: string }> = {
+  'winter': {
+    url: 'https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1920&q=80',
+    alt: 'Winter mountain landscape with snow',
+  },
+  'coffee': {
+    url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1920&q=80',
+    alt: 'Artisan coffee being poured',
+  },
+  'ecommerce': {
+    url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920&q=80',
+    alt: 'Shopping cart with colorful products',
+  },
+  'technology': {
+    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80',
+    alt: 'Modern technology abstract',
+  },
+  'business': {
+    url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80',
+    alt: 'Professional business workspace',
+  },
+  'fitness': {
+    url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80',
+    alt: 'Modern gym with equipment',
+  },
+  'food': {
+    url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
+    alt: 'Delicious gourmet food spread',
+  },
+  'nature': {
+    url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80',
+    alt: 'Beautiful forest with sunlight',
+  },
+  'sale': {
+    url: 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=1920&q=80',
+    alt: 'Colorful sale shopping bags',
+  },
+  'default': {
+    url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1920&q=80',
+    alt: 'Abstract gradient background',
+  },
+};
+
+// Resolve hero image from keywords
+function resolveHeroImage(keywords?: string[]): { url: string; alt: string } | null {
+  if (!keywords || keywords.length === 0) return null;
+
+  const normalizedKeywords = keywords.map(k => k.toLowerCase());
+
+  // Try to match keywords to stock images
+  for (const keyword of normalizedKeywords) {
+    for (const [category, image] of Object.entries(STOCK_HERO_IMAGES)) {
+      if (keyword.includes(category) || category.includes(keyword)) {
+        return image;
+      }
+    }
+
+    // Specific keyword matching
+    if (keyword.includes('winter') || keyword.includes('snow') || keyword.includes('cold') || keyword.includes('holiday')) {
+      return STOCK_HERO_IMAGES['winter'];
+    }
+    if (keyword.includes('coffee') || keyword.includes('cafe') || keyword.includes('brew') || keyword.includes('roast')) {
+      return STOCK_HERO_IMAGES['coffee'];
+    }
+    if (keyword.includes('shop') || keyword.includes('store') || keyword.includes('buy') || keyword.includes('cart')) {
+      return STOCK_HERO_IMAGES['ecommerce'];
+    }
+    if (keyword.includes('tech') || keyword.includes('software') || keyword.includes('digital') || keyword.includes('saas')) {
+      return STOCK_HERO_IMAGES['technology'];
+    }
+    if (keyword.includes('sale') || keyword.includes('discount') || keyword.includes('deal') || keyword.includes('offer')) {
+      return STOCK_HERO_IMAGES['sale'];
+    }
+  }
+
+  return STOCK_HERO_IMAGES['default'];
 }
 
 interface FeaturesSection {
   id: string;
   type: 'features';
   config: {
-    title: string;
-    features: Array<{
-      icon: string;
+    title?: string;
+    sectionTitle?: string; // AI uses sectionTitle
+    features?: Array<{
+      icon?: string;
+      iconSuggestion?: string; // AI uses iconSuggestion
+      title: string;
+      description: string;
+    }>;
+    benefits?: Array<{ // AI uses benefits instead of features
+      icon?: string;
+      iconSuggestion?: string;
       title: string;
       description: string;
     }>;
@@ -60,12 +161,28 @@ interface TestimonialsSection {
   id: string;
   type: 'testimonials';
   config: {
-    title: string;
-    testimonials: Array<{
+    title?: string;
+    sectionTitle?: string; // AI uses sectionTitle
+    testimonials?: Array<{
       name: string;
       text: string;
       rating?: number;
       role?: string;
+    }>;
+    testimonialPrompts?: string[]; // AI generates prompts
+    statsToHighlight?: string[]; // AI generates stats
+  };
+}
+
+interface FaqSection {
+  id: string;
+  type: 'faq';
+  config: {
+    title?: string;
+    sectionTitle?: string;
+    items?: Array<{
+      question: string;
+      answer: string;
     }>;
   };
 }
@@ -77,10 +194,12 @@ interface CtaSection {
     headline: string;
     subheadline: string;
     benefits?: string[];
+    buttonText?: string;
+    urgencyText?: string;
   };
 }
 
-type Section = HeroSection | FeaturesSection | TestimonialsSection | CtaSection;
+type Section = HeroSection | FeaturesSection | TestimonialsSection | FaqSection | CtaSection;
 
 interface LandingStageConfig {
   cta?: {
@@ -230,21 +349,38 @@ async function fetchProductsByIds(companyId: string, productIds: string[]): Prom
 // ═══════════════════════════════════════════════════════════════
 
 function FeatureIcon({ icon, color }: { icon: string; color: string }) {
+  if (!icon) {
+    return <Sparkles className="w-6 h-6" style={{ color }} />;
+  }
   // Handle emoji icons
   if (icon.length <= 2 || /\p{Emoji}/u.test(icon)) {
     return <span className="text-2xl">{icon}</span>;
   }
-  // Handle named icons
+  // Handle named icons - normalize to lowercase and handle variations
+  const iconKey = icon.toLowerCase().replace(/[-_]/g, '');
   const iconMap: Record<string, React.ReactNode> = {
     coffee: <Coffee className="w-6 h-6" style={{ color }} />,
+    coffeebean: <Coffee className="w-6 h-6" style={{ color }} />,
     truck: <Truck className="w-6 h-6" style={{ color }} />,
     star: <Star className="w-6 h-6" style={{ color }} />,
     shield: <Shield className="w-6 h-6" style={{ color }} />,
     leaf: <Leaf className="w-6 h-6" style={{ color }} />,
     box: <Box className="w-6 h-6" style={{ color }} />,
     package: <Package className="w-6 h-6" style={{ color }} />,
+    sparkles: <Sparkles className="w-6 h-6" style={{ color }} />,
+    zap: <Zap className="w-6 h-6" style={{ color }} />,
+    heart: <Heart className="w-6 h-6" style={{ color }} />,
+    award: <Award className="w-6 h-6" style={{ color }} />,
+    clock: <Clock className="w-6 h-6" style={{ color }} />,
+    users: <Users className="w-6 h-6" style={{ color }} />,
+    thumbsup: <ThumbsUp className="w-6 h-6" style={{ color }} />,
+    check: <Check className="w-6 h-6" style={{ color }} />,
+    sun: <Sun className="w-6 h-6" style={{ color }} />,
+    sunrise: <Sun className="w-6 h-6" style={{ color }} />,
+    palmtree: <Leaf className="w-6 h-6" style={{ color }} />, // Fallback
+    yinyang: <Sparkles className="w-6 h-6" style={{ color }} />, // Fallback for balance
   };
-  return iconMap[icon.toLowerCase()] || <span className="text-2xl">{icon}</span>;
+  return iconMap[iconKey] || <Sparkles className="w-6 h-6" style={{ color }} />;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -492,55 +628,110 @@ export default function PublicFunnelPage() {
     const heroSection = sections.find(s => s.type === 'hero') as HeroSection | undefined;
     const featuresSection = sections.find(s => s.type === 'features') as FeaturesSection | undefined;
     const testimonialsSection = sections.find(s => s.type === 'testimonials') as TestimonialsSection | undefined;
+    const faqSection = sections.find(s => s.type === 'faq') as FaqSection | undefined;
     const ctaSection = sections.find(s => s.type === 'cta') as CtaSection | undefined;
+
+    // Normalize features/benefits - AI uses 'benefits', templates use 'features'
+    const featureItems = featuresSection?.config?.features || featuresSection?.config?.benefits || [];
+    const featureTitle = featuresSection?.config?.sectionTitle || featuresSection?.config?.title || 'Why Choose Us';
+
+    // Normalize testimonials - AI uses testimonialPrompts, templates use testimonials
+    const testimonialItems = testimonialsSection?.config?.testimonials || [];
+    const testimonialPrompts = testimonialsSection?.config?.testimonialPrompts || [];
+    const statsToHighlight = testimonialsSection?.config?.statsToHighlight || [];
+    const testimonialsTitle = testimonialsSection?.config?.sectionTitle || testimonialsSection?.config?.title || 'What Our Customers Say';
 
     return (
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
-        {heroSection && (
-          <section
-            className="relative py-20 px-4 overflow-hidden"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}05 100%)`
-            }}
-          >
-            <div className="max-w-4xl mx-auto text-center relative z-10">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-                {heroSection.config.headline}
-              </h1>
-              <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                {heroSection.config.subheadline}
-              </p>
-              <button
-                onClick={advanceStage}
-                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-foreground rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {ctaText}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          </section>
-        )}
+        {heroSection && (() => {
+          // Resolve background image from config or keywords
+          const configImage = heroSection.config?.backgroundImage;
+          const stockImage = resolveHeroImage(heroSection.config?.suggestedImageKeywords);
+          const heroImageUrl = configImage || stockImage?.url;
+          const heroImageAlt = stockImage?.alt || 'Hero background';
+          const hasImage = !!heroImageUrl;
 
-        {/* Features Section */}
-        {featuresSection && featuresSection.config.features.length > 0 && (
-          <section className="py-16 px-4 bg-muted/50">
-            <div className="max-w-5xl mx-auto">
-              <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-                {featuresSection.config.title}
+          return (
+            <section
+              className="relative py-20 md:py-32 px-4 overflow-hidden min-h-[500px] flex items-center"
+              style={{
+                background: hasImage
+                  ? 'transparent'
+                  : `linear-gradient(135deg, ${primaryColor}20 0%, ${primaryColor}05 50%, white 100%)`
+              }}
+            >
+              {/* Background Image */}
+              {hasImage && (
+                <>
+                  <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url(${heroImageUrl})` }}
+                    role="img"
+                    aria-label={heroImageAlt}
+                  />
+                  {/* Overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
+                </>
+              )}
+
+              {/* Background Video (Enterprise tier) */}
+              {heroSection.config?.backgroundVideo && (
+                <>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  >
+                    <source src={heroSection.config.backgroundVideo} type="video/mp4" />
+                  </video>
+                  <div className="absolute inset-0 bg-black/50" />
+                </>
+              )}
+
+              <div className="max-w-4xl mx-auto text-center relative z-10">
+                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight ${hasImage ? 'text-white drop-shadow-lg' : 'text-gray-900'}`}>
+                  {heroSection.config?.headline}
+                </h1>
+                <p className={`text-xl md:text-2xl mb-10 max-w-2xl mx-auto leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-gray-600'}`}>
+                  {heroSection.config?.subheadline}
+                </p>
+                <button
+                  onClick={advanceStage}
+                  className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 hover:scale-105"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {heroSection.config?.ctaText || ctaText}
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Features/Benefits Section */}
+        {featuresSection && featureItems.length > 0 && (
+          <section className="py-16 md:py-20 px-4 bg-gray-50">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
+                {featureTitle}
               </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuresSection.config.features.map((feature, idx) => (
-                  <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+                Discover what makes us different
+              </p>
+              <div className={`grid gap-8 ${featureItems.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+                {featureItems.map((feature, idx) => (
+                  <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                      className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
                       style={{ backgroundColor: `${primaryColor}15` }}
                     >
-                      <FeatureIcon icon={feature.icon} color={primaryColor} />
+                      <FeatureIcon icon={feature.icon || feature.iconSuggestion || ''} color={primaryColor} />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                   </div>
                 ))}
               </div>
@@ -548,40 +739,112 @@ export default function PublicFunnelPage() {
           </section>
         )}
 
-        {/* Testimonials Section */}
-        {testimonialsSection && testimonialsSection.config.testimonials.length > 0 && (
-          <section className="py-16 px-4">
-            <div className="max-w-5xl mx-auto">
-              <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-                {testimonialsSection.config.title}
+        {/* Social Proof / Testimonials Section */}
+        {testimonialsSection && (testimonialItems.length > 0 || testimonialPrompts.length > 0 || statsToHighlight.length > 0) && (
+          <section className="py-16 md:py-20 px-4 bg-white">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+                {testimonialsTitle}
               </h2>
-              <div className="grid md:grid-cols-3 gap-6">
-                {testimonialsSection.config.testimonials.map((testimonial, idx) => (
-                  <div key={idx} className="bg-muted/50 rounded-2xl p-6">
-                    {testimonial.rating && (
-                      <div className="flex gap-1 mb-3">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${i < testimonial.rating! ? 'text-amber-400 fill-amber-400' : 'text-foreground'}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-muted-foreground mb-4 italic">"{testimonial.text}"</p>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-foreground font-semibold"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {testimonial.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">{testimonial.name}</p>
-                        {testimonial.role && <p className="text-sm text-muted-foreground">{testimonial.role}</p>}
+
+              {/* Stats Banner */}
+              {statsToHighlight.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-8 mb-12">
+                  {statsToHighlight.map((stat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-gray-700">
+                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                      <span className="font-medium">{stat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actual testimonials */}
+              {testimonialItems.length > 0 && (
+                <div className="grid md:grid-cols-3 gap-6">
+                  {testimonialItems.map((testimonial, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                      {testimonial.rating && (
+                        <div className="flex gap-1 mb-3">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${i < testimonial.rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-gray-600 mb-4 italic leading-relaxed">"{testimonial.text}"</p>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {testimonial.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                          {testimonial.role && <p className="text-sm text-gray-500">{testimonial.role}</p>}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              )}
+
+              {/* AI-generated testimonial prompts (displayed as quotes) */}
+              {testimonialItems.length === 0 && testimonialPrompts.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                  {testimonialPrompts.map((prompt, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 relative">
+                      <Quote className="w-8 h-8 text-gray-200 absolute top-4 left-4" />
+                      <div className="flex gap-1 mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 italic leading-relaxed pl-2">"{prompt}"</p>
+                      <div className="flex items-center gap-3 mt-4">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          <ThumbsUp className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Happy Customer</p>
+                          <p className="text-sm text-gray-500">Verified Purchase</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* FAQ Section */}
+        {faqSection && faqSection.config?.items && faqSection.config.items.length > 0 && (
+          <section className="py-16 md:py-20 px-4 bg-gray-50">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
+                {faqSection.config?.sectionTitle || faqSection.config?.title || 'Frequently Asked Questions'}
+              </h2>
+              <p className="text-center text-gray-600 mb-12">
+                Everything you need to know
+              </p>
+              <div className="space-y-4">
+                {faqSection.config.items.map((item, idx) => (
+                  <details key={idx} className="group bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <span className="font-semibold text-gray-900 pr-4">{item.question}</span>
+                      <ChevronDown className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="px-5 pb-5 pt-0">
+                      <p className="text-gray-600 leading-relaxed">{item.answer}</p>
+                    </div>
+                  </details>
                 ))}
               </div>
             </div>
@@ -590,26 +853,31 @@ export default function PublicFunnelPage() {
 
         {/* CTA Section */}
         {ctaSection && (
-          <section className="py-16 px-4" style={{ backgroundColor: `${primaryColor}10` }}>
+          <section className="py-16 md:py-20 px-4" style={{ backgroundColor: `${primaryColor}08` }}>
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-bold text-foreground mb-4">{ctaSection.config.headline}</h2>
-              <p className="text-lg text-muted-foreground mb-6">{ctaSection.config.subheadline}</p>
-              {ctaSection.config.benefits && ctaSection.config.benefits.length > 0 && (
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{ctaSection.config?.headline}</h2>
+              <p className="text-xl text-gray-600 mb-8">{ctaSection.config?.subheadline}</p>
+              {ctaSection.config?.urgencyText && (
+                <p className="text-sm font-medium mb-6" style={{ color: primaryColor }}>
+                  {ctaSection.config.urgencyText}
+                </p>
+              )}
+              {ctaSection.config?.benefits && ctaSection.config.benefits.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
                   {ctaSection.config.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="w-4 h-4 text-green-600" />
-                      {benefit}
+                    <div key={idx} className="flex items-center gap-2 text-gray-600">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>{benefit}</span>
                     </div>
                   ))}
                 </div>
               )}
               <button
                 onClick={advanceStage}
-                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-foreground rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="inline-flex items-center gap-2 px-10 py-4 text-lg font-semibold text-white rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                 style={{ backgroundColor: primaryColor }}
               >
-                {ctaText}
+                {ctaSection.config?.buttonText || ctaText}
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>

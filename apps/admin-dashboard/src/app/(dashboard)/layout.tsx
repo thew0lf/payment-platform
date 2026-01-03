@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { MobileTabBar } from '@/components/layout/mobile-tab-bar';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { OnboardingWizard } from '@/components/onboarding';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { HierarchyProvider, useHierarchy } from '@/contexts/hierarchy-context';
 import { MobileMenuProvider, useMobileMenu } from '@/contexts/mobile-menu-context';
@@ -15,6 +16,10 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { NavBadges } from '@/lib/navigation';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { cn } from '@/lib/utils';
+import {
+  useShouldShowOnboarding,
+  useOnboardingWizardStore,
+} from '@/stores/onboarding-wizard.store';
 
 // Default badges (shown while loading or on error)
 const DEFAULT_BADGES: NavBadges = {
@@ -29,6 +34,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { selectedCompanyId, selectedClientId } = useHierarchy();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [badges, setBadges] = useState<NavBadges>(DEFAULT_BADGES);
+
+  // Onboarding wizard state
+  const shouldShowOnboarding = useShouldShowOnboarding();
+  const { openWizard, isWizardOpen } = useOnboardingWizardStore();
+
+  // Trigger onboarding wizard for new users
+  useEffect(() => {
+    if (shouldShowOnboarding && !isWizardOpen) {
+      // Small delay to let the dashboard load first
+      const timer = setTimeout(() => {
+        openWizard();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShowOnboarding, isWizardOpen, openWizard]);
 
   // Fetch navigation badges from API
   const fetchBadges = useCallback(async () => {
@@ -78,6 +98,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Command Palette */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+
+      {/* Onboarding Wizard */}
+      <OnboardingWizard />
     </div>
   );
 }

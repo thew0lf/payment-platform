@@ -36,7 +36,9 @@ import {
   ChevronRight,
   Sparkles,
   X,
+  Palette,
 } from 'lucide-react';
+import { BrandingPanel } from '@/components/funnels/branding-panel';
 
 // Dynamically import React Flow to avoid SSR issues
 const FlowCanvas = dynamic(
@@ -539,6 +541,7 @@ function BuilderContent() {
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(!funnelId);
   const [showConfigPanel, setShowConfigPanel] = useState(false);
+  const [showBrandingPanel, setShowBrandingPanel] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -653,6 +656,9 @@ function BuilderContent() {
   const handleStageSelect = (stage: FunnelStage | null) => {
     setSelectedStage(stage);
     setShowConfigPanel(!!stage);
+    if (stage) {
+      setShowBrandingPanel(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -703,6 +709,23 @@ function BuilderContent() {
           <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
             <Eye className="w-4 h-4" />
             <span>Preview</span>
+          </button>
+          <button
+            onClick={() => {
+              setShowBrandingPanel(!showBrandingPanel);
+              if (!showBrandingPanel) {
+                setShowConfigPanel(false);
+                setSelectedStage(null);
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+              showBrandingPanel
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>Branding</span>
           </button>
           <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
             <Settings className="w-4 h-4" />
@@ -755,6 +778,17 @@ function BuilderContent() {
                 setSelectedStage(null);
                 setShowConfigPanel(false);
               }}
+            />
+          </div>
+        )}
+
+        {/* Right Sidebar - Branding Panel */}
+        {showBrandingPanel && funnel && (
+          <div className="w-80 bg-white border-l border-gray-200 shrink-0">
+            <BrandingPanel
+              funnelId={funnel.id}
+              companyId={selectedCompanyId || undefined}
+              onClose={() => setShowBrandingPanel(false)}
             />
           </div>
         )}
