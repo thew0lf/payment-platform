@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   Controller,
   Get,
@@ -151,7 +152,6 @@ export class PublicCrossSiteSessionController {
    */
   private secureTokenCompare(token1: string, token2: string): boolean {
     try {
-      const crypto = require('crypto');
       const buf1 = Buffer.from(token1, 'utf8');
       const buf2 = Buffer.from(token2, 'utf8');
 
