@@ -171,6 +171,24 @@ variable "integration_encryption_key" {
   sensitive   = true
 }
 
+variable "cart_recovery_secret" {
+  description = "HMAC secret for cart recovery token signing (64 hex chars)"
+  type        = string
+  sensitive   = true
+}
+
+variable "ip_hash_salt" {
+  description = "Salt for hashing visitor IP addresses for GDPR compliance (32 hex chars)"
+  type        = string
+  sensitive   = true
+}
+
+variable "portal_url" {
+  description = "Company portal URL for cart recovery email links"
+  type        = string
+  default     = "https://portal.avnz.io"
+}
+
 # =============================================================================
 # Optional Variables
 # =============================================================================

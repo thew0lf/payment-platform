@@ -86,6 +86,10 @@ resource "aws_ecs_task_definition" "api" {
         # Email Queue Configuration (SQS)
         { name = "EMAIL_QUEUE_URL", value = "https://sqs.${var.aws_region}.amazonaws.com/${data.aws_caller_identity.current.account_id}/${local.name_prefix}-email-queue" },
         { name = "ENABLE_EMAIL_PROCESSOR", value = "true" },
+        # Cart & Landing Page Session Configuration
+        { name = "CART_RECOVERY_SECRET", value = var.cart_recovery_secret },
+        { name = "IP_HASH_SALT", value = var.ip_hash_salt },
+        { name = "PORTAL_URL", value = var.portal_url },
       ]
 
       logConfiguration = {
