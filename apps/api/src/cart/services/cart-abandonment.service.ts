@@ -238,9 +238,8 @@ export class CartAbandonmentService {
           where: {
             companyId,
             status: CartStatus.ABANDONED,
-            OR: [
-              { customer: { email: { not: null } } },
-            ],
+            customerId: { not: null },
+            customer: { is: { email: { not: null } } },
             recoveryEmailSent: false,
           },
         }),
@@ -347,7 +346,8 @@ export class CartAbandonmentService {
         status: CartStatus.ABANDONED,
         recoveryEmailSent: false,
         abandonedAt: { lte: delayThreshold },
-        customer: { email: { not: null } },
+        customerId: { not: null },
+        customer: { is: { email: { not: null } } },
       },
       include: {
         items: { include: { product: true } },
