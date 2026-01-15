@@ -111,12 +111,9 @@ export interface AdminCartQueryParams {
   offset?: number;
 }
 
-export interface AdminCartsResponse {
-  items: Cart[];
-  total: number;
-  limit: number;
-  offset: number;
-}
+// AdminCartsResponse is deprecated - use CartListResponse instead
+// Keeping type alias for backwards compatibility
+export type AdminCartsResponse = CartListResponse;
 
 export interface CartStats {
   totalCarts: number;
@@ -124,12 +121,12 @@ export interface CartStats {
   abandonedCarts: number;
   convertedCarts: number;
   expiredCarts: number;
-  archivedCarts: number;
+  archivedCarts?: number;
   totalValue: number;
   totalAbandonedValue: number;
   abandonmentRate: number;
   conversionRate: number;
-  avgCartValue: number;
+  recoveryRate?: number;
   averageCartValue: number;
 }
 
@@ -142,6 +139,7 @@ export interface CartActivity {
 }
 
 export interface CartFilters {
+  companyId?: string;
   status?: CartStatus;
   dateFrom?: string;
   dateTo?: string;
@@ -156,13 +154,10 @@ export interface CartFilters {
 }
 
 export interface CartListResponse {
-  items: Cart[];
+  carts: Cart[];
   total: number;
-  pagination: {
-    limit: number;
-    offset: number;
-    hasMore: boolean;
-  };
+  limit: number;
+  offset: number;
 }
 
 export interface AbandonedCartsResponse {

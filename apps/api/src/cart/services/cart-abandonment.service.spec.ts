@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartAbandonmentService, AbandonmentConfig, AbandonedCartStats } from './cart-abandonment.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../../email/services/email.service';
 import { CartStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -34,6 +35,7 @@ function generateExpiredToken(cartId: string): string {
 describe('CartAbandonmentService', () => {
   let service: CartAbandonmentService;
   let prisma: any;
+  let emailService: any;
 
   const mockCompanyId = 'company-123';
   const mockCartId = 'cart-123';
@@ -77,15 +79,21 @@ describe('CartAbandonmentService', () => {
       },
     };
 
+    const mockEmailService = {
+      sendTemplatedEmail: jest.fn().mockResolvedValue({ success: true }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CartAbandonmentService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
     service = module.get<CartAbandonmentService>(CartAbandonmentService);
     prisma = module.get(PrismaService);
+    emailService = module.get(EmailService);
   });
 
   describe('detectAbandonedCarts', () => {
@@ -185,7 +193,8 @@ describe('CartAbandonmentService', () => {
       expect(prisma.cart.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            customer: { email: { not: null } },
+            customerId: { not: null },
+            customer: { is: { email: { not: null } } },
           }),
         }),
       );
@@ -349,6 +358,13 @@ describe('CartAbandonmentService', () => {
 
       await service.sendPendingRecoveryEmails();
 
+      expect(emailService.sendTemplatedEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'test@example.com',
+          templateCode: 'cart-recovery',
+          companyId: mockCompanyId,
+        }),
+      );
       expect(prisma.cart.update).toHaveBeenCalledWith({
         where: { id: mockCartId },
         data: expect.objectContaining({

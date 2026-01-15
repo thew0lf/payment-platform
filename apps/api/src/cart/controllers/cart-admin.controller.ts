@@ -50,6 +50,7 @@ export interface CartStats {
   convertedCarts: number;
   expiredCarts: number;
   totalValue: number;
+  totalAbandonedValue: number;
   averageCartValue: number;
   abandonmentRate: number;
   conversionRate: number;
@@ -147,11 +148,17 @@ export class CartAdminController {
       where.status = query.status as PrismaCartStatus;
     }
 
-    // Date range filter
-    if (query.startDate) {
+    // Date range filter with validation
+    if (query.startDate && query.endDate) {
+      const startDate = new Date(query.startDate);
+      const endDate = new Date(query.endDate);
+      if (startDate > endDate) {
+        throw new BadRequestException('Start date must be before or equal to end date');
+      }
+      where.createdAt = { gte: startDate, lte: endDate };
+    } else if (query.startDate) {
       where.createdAt = { ...(where.createdAt as object), gte: new Date(query.startDate) };
-    }
-    if (query.endDate) {
+    } else if (query.endDate) {
       where.createdAt = { ...(where.createdAt as object), lte: new Date(query.endDate) };
     }
 
@@ -240,6 +247,15 @@ export class CartAdminController {
   ): Promise<CartStats> {
     const companyId = await this.getCompanyIdForQuery(user, query.companyId);
 
+    // Validate date range
+    if (query.startDate && query.endDate) {
+      const startDate = new Date(query.startDate);
+      const endDate = new Date(query.endDate);
+      if (startDate > endDate) {
+        throw new BadRequestException('Start date must be before or equal to end date');
+      }
+    }
+
     const dateFilter: Prisma.DateTimeFilter | undefined = query.startDate || query.endDate
       ? {
           ...(query.startDate && { gte: new Date(query.startDate) }),
@@ -277,13 +293,20 @@ export class CartAdminController {
     ]);
 
     // Get value aggregations
-    const valueStats = await this.prisma.cart.aggregate({
-      where: baseWhere,
-      _sum: { grandTotal: true },
-      _avg: { grandTotal: true },
-    });
+    const [valueStats, abandonedValueStats] = await Promise.all([
+      this.prisma.cart.aggregate({
+        where: baseWhere,
+        _sum: { grandTotal: true },
+        _avg: { grandTotal: true },
+      }),
+      this.prisma.cart.aggregate({
+        where: { ...baseWhere, status: 'ABANDONED' },
+        _sum: { grandTotal: true },
+      }),
+    ]);
 
     const totalValue = Number(valueStats._sum.grandTotal || 0);
+    const totalAbandonedValue = Number(abandonedValueStats._sum.grandTotal || 0);
     const averageCartValue = Number(valueStats._avg.grandTotal || 0);
 
     // Calculate rates
@@ -304,6 +327,7 @@ export class CartAdminController {
       convertedCarts,
       expiredCarts,
       totalValue,
+      totalAbandonedValue,
       averageCartValue: Math.round(averageCartValue * 100) / 100,
       abandonmentRate: Math.round(abandonmentRate * 100) / 100,
       conversionRate: Math.round(conversionRate * 100) / 100,
@@ -345,7 +369,8 @@ export class CartAdminController {
     };
 
     if (query.hasEmail) {
-      where.customer = { email: { not: null } };
+      where.customerId = { not: null };
+      where.customer = { is: { email: { not: null } } };
     }
 
     if (query.maxRecoveryEmailsSent === 0) {

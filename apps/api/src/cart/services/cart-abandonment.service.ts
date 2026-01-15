@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../../email/services/email.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CartStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -66,11 +67,17 @@ const DEFAULT_CONFIG: AbandonmentConfig = {
   maxRecoveryEmails: 2,
 };
 
+/** Delay in milliseconds before sending first recovery email (1 hour) */
+const FIRST_EMAIL_DELAY_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class CartAbandonmentService {
   private readonly logger = new Logger(CartAbandonmentService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   /**
    * Check for abandoned carts and mark them
@@ -179,7 +186,8 @@ export class CartAbandonmentService {
     };
 
     if (options?.hasEmail) {
-      where.customer = { email: { not: null } };
+      where.customerId = { not: null };
+      where.customer = { is: { email: { not: null } } };
     }
 
     if (options?.maxRecoveryEmailsSent !== undefined) {
@@ -339,7 +347,7 @@ export class CartAbandonmentService {
 
     // Find abandoned carts with customer email that haven't received recovery email
     // Only send after the configured delay (1 hour by default)
-    const delayThreshold = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+    const delayThreshold = new Date(Date.now() - FIRST_EMAIL_DELAY_MS);
 
     const cartsNeedingEmail = await this.prisma.cart.findMany({
       where: {
@@ -385,10 +393,42 @@ export class CartAbandonmentService {
     const recoveryToken = this.generateRecoveryToken(cart.id);
     const recoveryUrl = `${process.env.PORTAL_URL || 'https://checkout.avnz.io'}/recover/${recoveryToken}`;
 
-    // TODO: Integrate with email service
+    // Calculate cart summary for email
+    const cartItems = cart.items || [];
+    const subtotal = cartItems.reduce(
+      (sum: number, item: any) => sum + Number(item.unitPrice) * item.quantity,
+      0,
+    );
+
+    // Send recovery email via EmailService
+    const result = await this.emailService.sendTemplatedEmail({
+      to: email,
+      toName: firstName !== 'there' ? firstName : undefined,
+      templateCode: 'cart-recovery',
+      variables: {
+        firstName,
+        companyName: cart.company?.name || 'Our Store',
+        recoveryUrl,
+        itemCount: cartItems.length,
+        subtotal: subtotal.toFixed(2),
+        grandTotal: subtotal.toFixed(2), // Use subtotal as fallback
+        items: cartItems.slice(0, 3).map((item: any) => ({
+          name: item.product?.name || 'Product',
+          quantity: item.quantity,
+          price: Number(item.unitPrice),
+        })),
+        currency: cart.currency || 'USD',
+      },
+      companyId: cart.companyId,
+    });
+
+    if (!result.success) {
+      this.logger.error(`Failed to send recovery email for cart ${cart.id}: ${result.error}`);
+      return;
+    }
+
     // Log without PII for GDPR compliance
-    this.logger.log(`Sending recovery email for cart ${cart.id}`);
-    this.logger.debug(`Recovery URL generated for cart ${cart.id}`);
+    this.logger.log(`Recovery email sent for cart ${cart.id}`);
 
     // Update cart with email sent info
     await this.prisma.cart.update({

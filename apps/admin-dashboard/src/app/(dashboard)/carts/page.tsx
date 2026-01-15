@@ -109,13 +109,15 @@ function StatsCard({
   value,
   icon: Icon,
   trend,
-  color = 'cyan'
+  color = 'cyan',
+  loading = false,
 }: {
   title: string;
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
   trend?: string;
   color?: 'cyan' | 'yellow' | 'green' | 'orange' | 'purple';
+  loading?: boolean;
 }) {
   const colorClasses = {
     cyan: 'bg-primary/10 text-primary border-primary/20',
@@ -125,13 +127,23 @@ function StatsCard({
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
 
+  const isLoading = loading || value === '-' || value === undefined || value === null;
+
   return (
     <div className="bg-card/50 border border-border rounded-xl p-4 md:p-5">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-xs md:text-sm text-muted-foreground mb-1">{title}</p>
-          <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
-          {trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>}
+          {isLoading ? (
+            <div className="h-7 md:h-8 w-20 bg-muted/50 rounded animate-pulse" />
+          ) : (
+            <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
+          )}
+          {isLoading ? (
+            trend && <div className="h-3 w-24 bg-muted/30 rounded mt-1.5 animate-pulse" />
+          ) : (
+            trend && <p className="text-xs text-muted-foreground mt-1">{trend}</p>
+          )}
         </div>
         <div className={cn('p-2.5 md:p-3 rounded-xl border', colorClasses[color])}>
           <Icon className="w-5 h-5 md:w-6 md:h-6" />
@@ -227,6 +239,7 @@ export default function CartsPage() {
         offset: (page - 1) * PAGE_SIZE,
       };
 
+      if (selectedCompanyId) params.companyId = selectedCompanyId;
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       if (funnelFilter) params.funnelId = funnelFilter;
@@ -246,8 +259,8 @@ export default function CartsPage() {
       }
 
       const result = await adminCartsApi.list(params);
-      setCarts(result.items);
-      setTotal(result.total);
+      setCarts(result.carts || []);
+      setTotal(result.total || 0);
     } catch (err) {
       console.error('Failed to fetch carts:', err);
       setError('Failed to load carts. Please try again.');
@@ -335,28 +348,32 @@ export default function CartsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatsCard
             title="Total Carts"
-            value={stats?.totalCarts ?? '-'}
+            value={stats?.totalCarts ?? 0}
             icon={ShoppingCart}
             color="cyan"
+            loading={!stats}
           />
           <StatsCard
             title="Active"
-            value={stats?.activeCarts ?? '-'}
+            value={stats?.activeCarts ?? 0}
             icon={Clock}
             color="green"
+            loading={!stats}
           />
           <StatsCard
             title="Abandoned"
-            value={stats?.abandonedCarts ?? '-'}
+            value={stats?.abandonedCarts ?? 0}
             icon={AlertCircle}
             color="orange"
+            loading={!stats}
           />
           <StatsCard
             title="Abandoned Value"
-            value={stats ? formatCurrencyShort(stats.totalAbandonedValue) : '-'}
+            value={stats ? formatCurrencyShort(stats.totalAbandonedValue) : '$0'}
             icon={DollarSign}
             trend={stats ? `Avg: ${formatCurrency(stats.averageCartValue)}` : undefined}
             color="purple"
+            loading={!stats}
           />
         </div>
 
@@ -550,14 +567,14 @@ export default function CartsPage() {
         )}
 
         {/* Loading State */}
-        {loading && carts.length === 0 && (
+        {loading && (!carts || carts.length === 0) && (
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {/* Empty State */}
-        {!loading && carts.length === 0 && (
+        {!loading && (!carts || carts.length === 0) && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">No carts found</h3>
@@ -570,7 +587,7 @@ export default function CartsPage() {
         )}
 
         {/* Carts Table (Desktop) */}
-        {carts.length > 0 && (
+        {carts && carts.length > 0 && (
           <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">

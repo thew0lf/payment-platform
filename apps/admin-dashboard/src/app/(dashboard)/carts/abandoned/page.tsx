@@ -242,8 +242,8 @@ export default function AbandonedCartsPage() {
       }
 
       const result = await adminCartsApi.list(params);
-      setCarts(result.items);
-      setTotal(result.total);
+      setCarts(result.carts || []);
+      setTotal(result.total || 0);
     } catch (err) {
       console.error('Failed to fetch abandoned carts:', err);
       setError('Failed to load abandoned carts. Please try again.');

@@ -116,7 +116,7 @@ export class TaxService {
     // Calculate tax for each rate
     const breakdown: TaxBreakdown[] = [];
     let totalTax = new Decimal(0);
-    let runningTaxableAmount = taxableSubtotal;
+    const runningTaxableAmount = taxableSubtotal;
 
     // Sort by priority (compound taxes calculated later)
     const sortedRates = [...taxRates].sort((a, b) => {
