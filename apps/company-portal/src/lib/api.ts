@@ -201,6 +201,8 @@ export interface Funnel {
   company?: FunnelCompany;
   /** Funnel-specific brand kit (overrides company defaults) */
   brandKit?: BrandKit;
+  /** Associated landing page ID for cart theming */
+  landingPageId?: string;
 }
 
 export interface FunnelSession {

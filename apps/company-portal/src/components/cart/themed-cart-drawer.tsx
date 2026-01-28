@@ -124,13 +124,16 @@ function ThemedCartDrawerInner({
     if (showTriggers) {
       setItemToRemove({ productId, variantId });
     } else {
-      removeFromCart(productId, variantId);
+      // Note: removeFromCart currently only supports productId
+      // TODO: Add variantId support to funnel-context if needed
+      removeFromCart(productId);
     }
   };
 
   const confirmRemove = () => {
     if (itemToRemove) {
-      removeFromCart(itemToRemove.productId, itemToRemove.variantId);
+      // Note: removeFromCart currently only supports productId
+      removeFromCart(itemToRemove.productId);
       setItemToRemove(null);
     }
   };
