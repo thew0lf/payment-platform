@@ -1,6 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 import { Cron } from '@nestjs/schedule';
+import { InventoryHoldStatus } from '@prisma/client';
 
 export interface InventoryHold {
   id: string;
@@ -9,7 +11,7 @@ export interface InventoryHold {
   variantId?: string;
   quantity: number;
   expiresAt: Date;
-  status: 'ACTIVE' | 'RELEASED' | 'CONVERTED' | 'EXPIRED';
+  status: InventoryHoldStatus;
 }
 
 export interface InventoryAvailability {
@@ -41,7 +43,10 @@ const DEFAULT_CONFIG: HoldConfig = {
 export class InventoryHoldService {
   private readonly logger = new Logger(InventoryHoldService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly companyCartSettingsService: CompanyCartSettingsService,
+  ) {}
 
   /**
    * Create inventory holds for cart items
@@ -59,7 +64,7 @@ export class InventoryHoldService {
     });
 
     if (!cart) {
-      throw new BadRequestException('Cart not found');
+      throw new BadRequestException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     const holds: InventoryHold[] = [];
@@ -112,7 +117,7 @@ export class InventoryHoldService {
         variantId: hold.variantId || undefined,
         quantity: hold.quantity,
         expiresAt: hold.expiresAt,
-        status: hold.status as 'ACTIVE' | 'RELEASED' | 'CONVERTED' | 'EXPIRED',
+        status: hold.status,
       });
     }
 
@@ -477,7 +482,7 @@ export class InventoryHoldService {
         variantId: h.variantId || undefined,
         quantity: h.quantity,
         expiresAt: h.expiresAt,
-        status: h.status as 'ACTIVE' | 'RELEASED' | 'CONVERTED' | 'EXPIRED',
+        status: h.status,
       })),
       expiresAt: holds.length > 0 ? holds[0].expiresAt : undefined,
     };
@@ -485,9 +490,9 @@ export class InventoryHoldService {
 
   /**
    * Get company hold config
+   * Loads from company settings with sensible defaults
    */
   private async getConfig(companyId: string): Promise<HoldConfig> {
-    // TODO: Load from company settings
-    return DEFAULT_CONFIG;
+    return this.companyCartSettingsService.getInventoryHoldSettings(companyId);
   }
 }

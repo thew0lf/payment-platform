@@ -216,6 +216,7 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'orders', label: 'Orders', href: '/orders', icon: ShoppingCart, badgeKey: 'orders' },
       { id: 'carts', label: 'Carts', href: '/carts', icon: ShoppingBag },
+      { id: 'cart-settings', label: 'Cart Settings', href: '/carts/settings', icon: Palette },
       { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat },
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: Receipt },
       { id: 'customers', label: 'Customers', href: '/customers', icon: Users },

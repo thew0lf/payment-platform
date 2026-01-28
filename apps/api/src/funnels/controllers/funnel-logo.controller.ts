@@ -299,12 +299,12 @@ export class FunnelLogoController {
         queryCompanyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to the requested company');
+        throw new ForbiddenException("Hmm, you don't have access to that company. Double-check your permissions or try a different one.");
       }
       return queryCompanyId;
     }
 
-    throw new ForbiddenException('Company context required for this operation');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 
   /**
@@ -334,7 +334,7 @@ export class FunnelLogoController {
         queryCompanyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to the requested company');
+        throw new ForbiddenException("Hmm, you don't have access to that company. Double-check your permissions or try a different one.");
       }
       return queryCompanyId;
     }

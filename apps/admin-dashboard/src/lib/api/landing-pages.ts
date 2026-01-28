@@ -175,6 +175,10 @@ export interface LandingPageDetail extends LandingPageSummary {
   domains: DomainDetail[];
   billingEnabled: boolean;
   monthlyFee: number;
+  /** Cart theme configuration for the cart drawer */
+  cartTheme?: Record<string, unknown>;
+  /** Product catalog configuration */
+  productCatalog?: Record<string, unknown>;
 }
 
 export interface CreateLandingPageInput {
@@ -195,6 +199,10 @@ export interface CreateLandingPageInput {
 
 export interface UpdateLandingPageInput extends Partial<CreateLandingPageInput> {
   status?: LandingPageStatus;
+  /** Cart theme configuration */
+  cartTheme?: Record<string, unknown>;
+  /** Product catalog configuration */
+  productCatalog?: Record<string, unknown>;
 }
 
 export interface CreateSectionInput {
@@ -389,9 +397,13 @@ export async function createFromTemplate(data: {
  */
 export async function updateLandingPage(
   id: string,
-  data: UpdateLandingPageInput
+  data: UpdateLandingPageInput,
+  companyId?: string
 ): Promise<LandingPageDetail> {
-  return apiRequest<LandingPageDetail>(`/api/landing-pages/${id}`, {
+  const url = companyId
+    ? `/api/landing-pages/${id}?companyId=${companyId}`
+    : `/api/landing-pages/${id}`;
+  return apiRequest<LandingPageDetail>(url, {
     method: 'PUT',
     body: JSON.stringify(data),
   });

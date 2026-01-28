@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 
 export interface UpsellProduct {
   id: string;
@@ -43,7 +44,10 @@ const DEFAULT_CONFIG: UpsellConfig = {
 export class CartUpsellService {
   private readonly logger = new Logger(CartUpsellService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly companyCartSettingsService: CompanyCartSettingsService,
+  ) {}
 
   /**
    * Get upsell suggestions for a cart
@@ -335,34 +339,333 @@ export class CartUpsellService {
   }
 
   /**
-   * Track when an upsell is shown
+   * Track when an upsell is shown (impression)
+   * Call this when upsell suggestions are displayed to the user
    */
   async trackUpsellImpression(
     cartId: string,
     productId: string,
     reason: UpsellReason,
-  ): Promise<void> {
+    options?: {
+      score?: number;
+      position?: number;
+      placement?: string;
+      sessionToken?: string;
+      customerId?: string;
+    },
+  ): Promise<string> {
     this.logger.debug(`Upsell impression: cart=${cartId}, product=${productId}, reason=${reason}`);
-    // TODO: Store impression for analytics
+
+    try {
+      // Get cart to find company
+      const cart = await this.prisma.cart.findUnique({
+        where: { id: cartId },
+        select: { companyId: true, customerId: true, sessionToken: true },
+      });
+
+      if (!cart) {
+        this.logger.warn(`Cannot track upsell impression: cart ${cartId} not found`);
+        return '';
+      }
+
+      // Get product price for tracking
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        select: { price: true },
+      });
+
+      const impression = await this.prisma.cartUpsellAnalytics.create({
+        data: {
+          companyId: cart.companyId,
+          cartId,
+          productId,
+          sessionToken: options?.sessionToken || cart.sessionToken,
+          customerId: options?.customerId || cart.customerId,
+          reason: reason,
+          score: options?.score ?? 0.5,
+          position: options?.position ?? 0,
+          placement: options?.placement || 'cart_page',
+          productPrice: product?.price,
+        },
+      });
+
+      return impression.id;
+    } catch (error) {
+      this.logger.error(`Failed to track upsell impression:`, error);
+      return '';
+    }
   }
 
   /**
-   * Track when an upsell is added to cart
+   * Track multiple upsell impressions at once (batch)
+   * Call this when displaying a list of upsell suggestions
+   */
+  async trackUpsellImpressions(
+    cartId: string,
+    suggestions: UpsellProduct[],
+    options?: {
+      placement?: string;
+      sessionToken?: string;
+      customerId?: string;
+    },
+  ): Promise<string[]> {
+    const impressionIds: string[] = [];
+
+    for (let i = 0; i < suggestions.length; i++) {
+      const suggestion = suggestions[i];
+      const id = await this.trackUpsellImpression(cartId, suggestion.id, suggestion.reason, {
+        score: suggestion.score,
+        position: i,
+        placement: options?.placement,
+        sessionToken: options?.sessionToken,
+        customerId: options?.customerId,
+      });
+      if (id) {
+        impressionIds.push(id);
+      }
+    }
+
+    return impressionIds;
+  }
+
+  /**
+   * Track when user views the upsell (visible in viewport for 1+ second)
+   */
+  async trackUpsellView(impressionId: string): Promise<void> {
+    try {
+      await this.prisma.cartUpsellAnalytics.update({
+        where: { id: impressionId },
+        data: { viewedAt: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to track upsell view:`, error);
+    }
+  }
+
+  /**
+   * Track when user clicks on the upsell to view product details
+   */
+  async trackUpsellClick(impressionId: string): Promise<void> {
+    try {
+      await this.prisma.cartUpsellAnalytics.update({
+        where: { id: impressionId },
+        data: { clickedAt: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to track upsell click:`, error);
+    }
+  }
+
+  /**
+   * Track when an upsell is added to cart (conversion)
    */
   async trackUpsellConversion(
     cartId: string,
     productId: string,
     reason: UpsellReason,
+    options?: {
+      impressionId?: string;
+      quantity?: number;
+      price?: number;
+    },
   ): Promise<void> {
     this.logger.log(`Upsell conversion: cart=${cartId}, product=${productId}, reason=${reason}`);
-    // TODO: Store conversion for analytics
+
+    try {
+      const quantity = options?.quantity ?? 1;
+      const price = options?.price;
+      const revenue = price ? price * quantity : undefined;
+
+      // If we have an impression ID, update that record
+      if (options?.impressionId) {
+        await this.prisma.cartUpsellAnalytics.update({
+          where: { id: options.impressionId },
+          data: {
+            addedAt: new Date(),
+            quantity,
+            revenue,
+          },
+        });
+        return;
+      }
+
+      // Otherwise, find the most recent impression for this cart+product and update it
+      const recentImpression = await this.prisma.cartUpsellAnalytics.findFirst({
+        where: {
+          cartId,
+          productId,
+          addedAt: null, // Not yet converted
+        },
+        orderBy: { impressedAt: 'desc' },
+      });
+
+      if (recentImpression) {
+        await this.prisma.cartUpsellAnalytics.update({
+          where: { id: recentImpression.id },
+          data: {
+            addedAt: new Date(),
+            quantity,
+            revenue: revenue ?? (recentImpression.productPrice ? Number(recentImpression.productPrice) * quantity : undefined),
+          },
+        });
+      } else {
+        // No impression found, create a direct conversion record
+        const cart = await this.prisma.cart.findUnique({
+          where: { id: cartId },
+          select: { companyId: true, customerId: true, sessionToken: true },
+        });
+
+        if (cart) {
+          const product = await this.prisma.product.findUnique({
+            where: { id: productId },
+            select: { price: true },
+          });
+
+          await this.prisma.cartUpsellAnalytics.create({
+            data: {
+              companyId: cart.companyId,
+              cartId,
+              productId,
+              sessionToken: cart.sessionToken,
+              customerId: cart.customerId,
+              reason: reason,
+              score: 0,
+              position: 0,
+              placement: 'direct_add',
+              productPrice: product?.price ?? price,
+              addedAt: new Date(),
+              quantity,
+              revenue: price ? price * quantity : (product?.price ? Number(product.price) * quantity : undefined),
+            },
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to track upsell conversion:`, error);
+    }
+  }
+
+  /**
+   * Track when user explicitly declines/dismisses an upsell
+   */
+  async trackUpsellDecline(impressionId: string): Promise<void> {
+    try {
+      await this.prisma.cartUpsellAnalytics.update({
+        where: { id: impressionId },
+        data: { declinedAt: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to track upsell decline:`, error);
+    }
+  }
+
+  /**
+   * Get upsell analytics for a company
+   * Returns aggregated metrics for impressions, conversions, and revenue
+   */
+  async getUpsellAnalytics(
+    companyId: string,
+    options?: {
+      startDate?: Date;
+      endDate?: Date;
+      reason?: UpsellReason;
+      placement?: string;
+    },
+  ): Promise<{
+    totalImpressions: number;
+    totalViews: number;
+    totalClicks: number;
+    totalConversions: number;
+    totalRevenue: number;
+    viewRate: number;
+    clickRate: number;
+    conversionRate: number;
+    avgRevenuePerConversion: number;
+    byReason: Record<string, { impressions: number; conversions: number; revenue: number }>;
+  }> {
+    const where: any = { companyId };
+
+    if (options?.startDate) {
+      where.impressedAt = { gte: options.startDate };
+    }
+    if (options?.endDate) {
+      where.impressedAt = { ...where.impressedAt, lte: options.endDate };
+    }
+    if (options?.reason) {
+      where.reason = options.reason;
+    }
+    if (options?.placement) {
+      where.placement = options.placement;
+    }
+
+    const [totals, byReason] = await Promise.all([
+      // Get aggregated totals
+      this.prisma.cartUpsellAnalytics.aggregate({
+        where,
+        _count: { id: true },
+        _sum: { revenue: true },
+      }),
+      // Get breakdowns by reason
+      this.prisma.cartUpsellAnalytics.groupBy({
+        by: ['reason'],
+        where,
+        _count: { id: true },
+        _sum: { revenue: true },
+      }),
+    ]);
+
+    // Count different stages
+    const [viewCount, clickCount, conversionCount] = await Promise.all([
+      this.prisma.cartUpsellAnalytics.count({ where: { ...where, viewedAt: { not: null } } }),
+      this.prisma.cartUpsellAnalytics.count({ where: { ...where, clickedAt: { not: null } } }),
+      this.prisma.cartUpsellAnalytics.count({ where: { ...where, addedAt: { not: null } } }),
+    ]);
+
+    const totalImpressions = totals._count.id || 0;
+    const totalRevenue = Number(totals._sum.revenue || 0);
+
+    // Build reason breakdown
+    const byReasonMap: Record<string, { impressions: number; conversions: number; revenue: number }> = {};
+    for (const item of byReason) {
+      byReasonMap[item.reason] = {
+        impressions: item._count.id,
+        conversions: 0, // Will populate below
+        revenue: Number(item._sum.revenue || 0),
+      };
+    }
+
+    // Get conversions by reason
+    const conversionsByReason = await this.prisma.cartUpsellAnalytics.groupBy({
+      by: ['reason'],
+      where: { ...where, addedAt: { not: null } },
+      _count: { id: true },
+    });
+
+    for (const item of conversionsByReason) {
+      if (byReasonMap[item.reason]) {
+        byReasonMap[item.reason].conversions = item._count.id;
+      }
+    }
+
+    return {
+      totalImpressions,
+      totalViews: viewCount,
+      totalClicks: clickCount,
+      totalConversions: conversionCount,
+      totalRevenue,
+      viewRate: totalImpressions > 0 ? viewCount / totalImpressions : 0,
+      clickRate: totalImpressions > 0 ? clickCount / totalImpressions : 0,
+      conversionRate: totalImpressions > 0 ? conversionCount / totalImpressions : 0,
+      avgRevenuePerConversion: conversionCount > 0 ? totalRevenue / conversionCount : 0,
+      byReason: byReasonMap,
+    };
   }
 
   /**
    * Get upsell config for company
+   * Loads from company settings with sensible defaults
    */
   private async getConfig(companyId: string): Promise<UpsellConfig> {
-    // TODO: Load from company settings
-    return DEFAULT_CONFIG;
+    return this.companyCartSettingsService.getUpsellSettings(companyId);
   }
 }

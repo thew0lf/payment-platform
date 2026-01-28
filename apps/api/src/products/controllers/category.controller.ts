@@ -99,7 +99,7 @@ export class CategoryController {
     if (user.companyId) {
       return user.companyId;
     }
-    throw new ForbiddenException('Company context required');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 
   private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
@@ -116,7 +116,7 @@ export class CategoryController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
         }
         return queryCompanyId;
       }

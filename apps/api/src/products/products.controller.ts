@@ -87,7 +87,7 @@ export class ProductsController {
   ): Promise<Product> {
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     if (!companyId) {
-      throw new ForbiddenException('Company context required for this operation');
+      throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.productsService.update(id, companyId, dto, user.id);
   }
@@ -102,7 +102,7 @@ export class ProductsController {
   ): Promise<void> {
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     if (!companyId) {
-      throw new ForbiddenException('Company context required for this operation');
+      throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.productsService.archive(id, companyId, user.id);
   }
@@ -121,7 +121,7 @@ export class ProductsController {
   ): Promise<Product> {
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     if (!companyId) {
-      throw new ForbiddenException('Company context required for this operation');
+      throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.productsService.updateStock(id, companyId, dto.quantity, user.id);
   }
@@ -137,7 +137,7 @@ export class ProductsController {
   ): Promise<Product> {
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     if (!companyId) {
-      throw new ForbiddenException('Company context required for this operation');
+      throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.productsService.adjustStock(id, companyId, dto.adjustment, user.id, dto.reason);
   }
@@ -162,7 +162,7 @@ export class ProductsController {
     if (user.clientId) {
       return user.clientId;
     }
-    throw new ForbiddenException('Company context required for this operation');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 
   /**
@@ -191,7 +191,7 @@ export class ProductsController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
         }
         return queryCompanyId;
       }
@@ -199,6 +199,6 @@ export class ProductsController {
       return undefined;
     }
 
-    throw new ForbiddenException('Unable to determine company context');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 }

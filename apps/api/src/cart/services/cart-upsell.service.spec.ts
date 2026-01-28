@@ -14,6 +14,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartUpsellService, UpsellReason, UpsellProduct, UpsellConfig } from './cart-upsell.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 
 describe('CartUpsellService', () => {
   let service: CartUpsellService;
@@ -74,6 +75,17 @@ describe('CartUpsellService', () => {
   // SETUP
   // ═══════════════════════════════════════════════════════════════
 
+  const mockCompanyCartSettingsService = {
+    getUpsellSettings: jest.fn().mockResolvedValue({
+      enabled: true,
+      maxSuggestions: 3,
+      minConfidenceScore: 0.3,
+      preferBundles: true,
+      excludeRecentlyPurchased: true,
+      recentPurchaseDays: 30,
+    }),
+  };
+
   beforeEach(async () => {
     prisma = {
       cart: {
@@ -95,6 +107,7 @@ describe('CartUpsellService', () => {
       providers: [
         CartUpsellService,
         { provide: PrismaService, useValue: prisma },
+        { provide: CompanyCartSettingsService, useValue: mockCompanyCartSettingsService },
       ],
     }).compile();
 
@@ -571,17 +584,23 @@ describe('CartUpsellService', () => {
   // ═══════════════════════════════════════════════════════════════
 
   describe('trackUpsellImpression', () => {
-    it('should log impression without throwing', async () => {
-      await expect(
-        service.trackUpsellImpression(mockCartId, mockProductId1, UpsellReason.FREQUENTLY_BOUGHT_TOGETHER),
-      ).resolves.toBeUndefined();
+    it('should log impression and return impression ID', async () => {
+      const result = await service.trackUpsellImpression(
+        mockCartId,
+        mockProductId1,
+        UpsellReason.FREQUENTLY_BOUGHT_TOGETHER,
+      );
+      // Returns impression ID (string) or empty string on error
+      expect(typeof result).toBe('string');
     });
 
     it('should accept all UpsellReason types', async () => {
       const reasons = Object.values(UpsellReason);
 
       for (const reason of reasons) {
-        await expect(service.trackUpsellImpression(mockCartId, mockProductId1, reason)).resolves.toBeUndefined();
+        const result = await service.trackUpsellImpression(mockCartId, mockProductId1, reason);
+        // Returns impression ID (string) or empty string on error
+        expect(typeof result).toBe('string');
       }
     });
   });

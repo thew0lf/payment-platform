@@ -296,11 +296,17 @@ export class BrandKitController {
     // CLIENT users need to specify or have access
     if (queryCompanyId) {
       const canAccess = await this.hierarchyService.canAccessCompany(
-        { sub: user.id, scopeType: user.scopeType as ScopeType, scopeId: user.scopeId },
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
         queryCompanyId,
       );
       if (!canAccess) {
-        throw new ForbiddenException('Access denied to this company');
+        throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
       }
       return queryCompanyId;
     }

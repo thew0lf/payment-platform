@@ -29,7 +29,7 @@ import {
   LandingPageDetail,
   DeploymentResult,
 } from './types/landing-page.types';
-import { LandingPageTheme } from '@prisma/client';
+import { LandingPageTheme, ScopeType } from '@prisma/client';
 
 @Controller('landing-pages')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,7 +41,44 @@ export class LandingPagesController {
   ) {}
 
   /**
-   * Get companyId for operations that require company context.
+   * Get companyId for READ operations.
+   * For COMPANY scope users, uses their scopeId.
+   * For ORGANIZATION/CLIENT scope users, validates access if companyId is passed.
+   * Returns undefined for ORG/CLIENT users without companyId (allows cross-company queries).
+   */
+  private async getCompanyIdForQuery(
+    user: AuthenticatedUser,
+    queryCompanyId?: string,
+  ): Promise<string | undefined> {
+    // For COMPANY scope users, the scopeId IS the companyId - always filter by it
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // If a specific companyId is requested, validate access
+    if (queryCompanyId) {
+      const canAccess = await this.hierarchyService.canAccessCompany(
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
+        queryCompanyId,
+      );
+      if (!canAccess) {
+        throw new ForbiddenException('You don\'t have access to this company. Please check your permissions.');
+      }
+      return queryCompanyId;
+    }
+
+    // ORG/CLIENT users without specific companyId can see all accessible data
+    return undefined;
+  }
+
+  /**
+   * Get companyId for WRITE operations.
    * For COMPANY scope users, uses their scopeId.
    * For ORGANIZATION/CLIENT scope users, requires companyId to be passed and validates access.
    */
@@ -64,29 +101,22 @@ export class LandingPagesController {
 
       // Validate they have access to this company
       const hasAccess = await this.hierarchyService.canAccessCompany(
-        { sub: user.id, scopeType: user.scopeType as any, scopeId: user.scopeId, clientId: user.clientId, companyId: user.companyId },
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
         requestedCompanyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to the requested company');
+        throw new ForbiddenException('You don\'t have access to this company. Please check your permissions.');
       }
       return requestedCompanyId;
     }
 
-    throw new ForbiddenException('Unable to determine company context');
-  }
-
-  /**
-   * Legacy helper - for backwards compatibility with endpoints not yet updated
-   */
-  private getCompanyId(user: AuthenticatedUser): string {
-    if (user.scopeType === 'COMPANY') {
-      return user.scopeId;
-    }
-    if (user.companyId) {
-      return user.companyId;
-    }
-    throw new ForbiddenException('Company selection required. Please select a company to continue.');
+    throw new ForbiddenException('Unable to determine company context. Please select a company.');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -94,8 +124,11 @@ export class LandingPagesController {
   // ═══════════════════════════════════════════════════════════════
 
   @Get()
-  async findAll(@CurrentUser() user: AuthenticatedUser): Promise<LandingPageSummary[]> {
-    const companyId = this.getCompanyId(user);
+  async findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId?: string,
+  ): Promise<LandingPageSummary[]> {
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.landingPagesService.findAll(companyId);
   }
 
@@ -103,8 +136,9 @@ export class LandingPagesController {
   async findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.landingPagesService.findOne(companyId, id);
   }
 
@@ -113,8 +147,9 @@ export class LandingPagesController {
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateLandingPageDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.create(companyId, dto, user.id);
   }
 
@@ -124,8 +159,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateLandingPageDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.update(companyId, id, dto, user.id);
   }
 
@@ -135,8 +171,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Query('permanent') permanent?: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ success: boolean }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     const isPermanent = permanent === 'true';
     await this.landingPagesService.delete(companyId, id, user.id, isPermanent);
     return { success: true };
@@ -148,8 +185,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { name: string },
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.duplicate(companyId, id, body.name, user.id);
   }
 
@@ -197,8 +235,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: CreateSectionDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.addSection(companyId, id, dto);
   }
 
@@ -209,8 +248,9 @@ export class LandingPagesController {
     @Param('id') id: string,
     @Param('sectionId') sectionId: string,
     @Body() dto: UpdateSectionDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.updateSection(companyId, id, sectionId, dto);
   }
 
@@ -220,8 +260,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('sectionId') sectionId: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.deleteSection(companyId, id, sectionId);
   }
 
@@ -231,8 +272,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: ReorderSectionsDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<LandingPageDetail> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.landingPagesService.reorderSections(companyId, id, dto.sectionIds);
   }
 
@@ -246,8 +288,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() body: { html: string; assets?: { key: string; content: string; contentType: string }[] },
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<DeploymentResult> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     // Convert base64 assets to buffers
     const assets = (body.assets || []).map(asset => ({
       key: asset.key,
@@ -263,8 +306,9 @@ export class LandingPagesController {
   async unpublish(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ success: boolean }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     await this.deployService.unpublish(companyId, id);
     return { success: true };
   }
@@ -279,8 +323,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: RequestSubdomainDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ subdomain: string; fullDomain: string }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.deployService.requestSubdomain(companyId, id, dto);
   }
 
@@ -290,8 +335,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: AddCustomDomainDto,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ domain: string; validationRecords: { name: string; type: string; value: string }[] }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     return this.deployService.addCustomDomain(companyId, id, dto);
   }
 
@@ -300,8 +346,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('domainId') domainId: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ status: string }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     const status = await this.deployService.checkDomainSslStatus(companyId, id, domainId);
     return { status };
   }
@@ -312,8 +359,9 @@ export class LandingPagesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('domainId') domainId: string,
+    @Query('companyId') queryCompanyId?: string,
   ): Promise<{ success: boolean }> {
-    const companyId = this.getCompanyId(user);
+    const companyId = await this.getCompanyIdForWrite(user, queryCompanyId);
     await this.deployService.removeCustomDomain(companyId, id, domainId);
     return { success: true };
   }

@@ -37,6 +37,7 @@ Comprehensive code/architecture review. Use: `/review [description or file path]
 10. Technical Debt - Shortcuts, things to revisit
 11. Dependencies - Impact on other systems
 12. Standards - Follows project conventions?
+13. UI Patterns - No native dialogs (alert/confirm/prompt)? Uses toast/Dialog components?
 
 **Verdict:** Approve | Approve with suggestions | Request changes
 
@@ -348,7 +349,7 @@ payment-platform/
 
 ---
 
-## Current Status (December 28, 2025)
+## Current Status (January 27, 2026)
 
 | Feature | Backend | Frontend | Notes |
 |---------|---------|----------|-------|
@@ -367,6 +368,9 @@ payment-platform/
 | Company Portal | ✅ Complete | ✅ Complete | Public funnel frontend |
 | Mobile Responsiveness | N/A | ✅ Complete | Touch-optimized, card views |
 | CS AI Module | ✅ Complete | ✅ Complete | Voice AI, chat, tiered escalation |
+| Cart Module | ✅ Complete | 🔲 Pending | Theming, catalog, upsells, inventory holds |
+| Recommendations Module | ✅ Complete | 🔲 Pending | Also bought, you might like, frequently viewed |
+| Upsell Module | ✅ Complete | 🔲 Pending | Bulk discounts, subscriptions, targeting |
 | Multi-Account Providers | 🔲 Pending | 🔲 Pending | Phase 2 |
 | Gateway Rule Engine | 🔲 Pending | 🔲 Pending | Phase 3 |
 
@@ -395,6 +399,59 @@ ORGANIZATION (avnz.io platform)
 │
 └── MARKETPLACE
     └── Connections (Company ↔ VendorCompany)
+```
+
+### Company Settings Access Standard
+
+**CRITICAL: This is the standard for ALL company-level settings across the platform.**
+
+Company settings can be managed by:
+- **ORGANIZATION** → Can manage settings for any company
+- **CLIENT** → Can manage settings for companies they own
+- **COMPANY** → Can manage their own company settings
+
+This applies to ALL company-level configurations including:
+- Cart theming and product catalog settings
+- Recommendation configurations
+- Upsell targeting rules
+- Subscription configurations
+- Bulk discount settings
+- Abandonment recovery settings
+- Any future company-level feature settings
+
+**Implementation Pattern:**
+```typescript
+// Controller helper method - use in ALL controllers with company settings
+private getCompanyId(user: AuthenticatedUser): string {
+  if (user.scopeType === 'COMPANY') {
+    return user.scopeId;
+  }
+  if (user.companyId) {
+    return user.companyId;
+  }
+  throw new ForbiddenException('Company context required for this operation');
+}
+
+// For read operations that allow cross-company access for ORG/CLIENT admins
+private async getCompanyIdForQuery(
+  user: AuthenticatedUser,
+  queryCompanyId?: string,
+): Promise<string | undefined> {
+  if (user.scopeType === 'COMPANY') {
+    return user.scopeId;
+  }
+  if (queryCompanyId) {
+    const canAccess = await this.hierarchyService.canAccessCompany(
+      { sub: user.id, scopeType: user.scopeType as ScopeType, scopeId: user.scopeId },
+      queryCompanyId,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException('Access denied to this company');
+    }
+    return queryCompanyId;
+  }
+  return undefined;
+}
 ```
 
 ---
@@ -1252,16 +1309,91 @@ Test viewports:
 
 ---
 
+## Design Pattern Enforcement (MANDATORY)
+
+**CRITICAL: All new pages and components MUST follow these design patterns. This has been a recurring issue - these patterns should be applied consistently WITHOUT reminders.**
+
+### Mandatory Page Checklist
+
+Before completing any new page, verify ALL items:
+
+| # | Check | Required Pattern | Example |
+|---|-------|------------------|---------|
+| 1 | **Page container padding** | `p-4 md:p-6` | `<div className="p-4 md:p-6 space-y-6">` |
+| 2 | **Page title typography** | `text-xl md:text-2xl` | `<h1 className="text-xl md:text-2xl font-bold">` |
+| 3 | **Button touch targets** | `min-h-[44px] touch-manipulation` | `<Button className="min-h-[44px] touch-manipulation">` |
+| 4 | **No native dialogs** | No `alert/confirm/prompt` | Use `toast` or `Dialog` components |
+| 5 | **Loading states** | Skeleton or Loader2 spinner | Shows feedback during async operations |
+| 6 | **Empty states** | Meaningful empty state UI | Icon + message when no data |
+| 7 | **Error handling** | `toast.error()` for failures | Never fails silently |
+
+### Quick Pattern Reference
+
+```tsx
+// ✅ CORRECT PAGE STRUCTURE - ALWAYS USE THIS PATTERN
+export default function MyPage() {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Page Title</h1>
+        <Button className="min-h-[44px] touch-manipulation">
+          Action
+        </Button>
+      </div>
+      {/* Content */}
+    </div>
+  );
+}
+
+// ❌ WRONG - DO NOT CREATE PAGES LIKE THIS
+export default function MyPage() {
+  return (
+    <div className="space-y-6">  {/* ❌ Missing p-4 md:p-6 */}
+      <h1 className="text-2xl font-bold">Title</h1>  {/* ❌ Missing text-xl md: */}
+      <Button>Action</Button>  {/* ❌ Missing touch targets */}
+    </div>
+  );
+}
+```
+
+### Self-Check Before Creating Pages
+
+When creating or modifying pages, mentally verify:
+
+1. ✅ Does the outer container have `p-4 md:p-6`?
+2. ✅ Do ALL h1 elements use `text-xl md:text-2xl`?
+3. ✅ Do ALL buttons have `min-h-[44px] touch-manipulation`?
+4. ✅ Are ALL confirmations using Dialog components (not `confirm()`)?
+5. ✅ Are ALL error messages using `toast.error()` (not `alert()`)?
+
+### Code Review Enforcement
+
+**These are BLOCKING issues. PRs violating these patterns must be rejected.**
+
+When reviewing frontend code, check:
+- Page wrapper div has `p-4 md:p-6`
+- H1 elements use `text-xl md:text-2xl`
+- All Button components include `min-h-[44px] touch-manipulation`
+- No usage of native browser dialogs (`alert`, `confirm`, `prompt`)
+
+The `/review` command includes these as mandatory checks.
+
+---
+
 ## Toast Notifications & Dialogs
 
 ### Convention
-**NEVER use native browser dialogs.** Always use the project's toast system and custom modals.
+**NEVER use native browser dialogs.** Always use the project's toast system and custom modals. This is a critical design requirement that should be checked in all code reviews.
 
 | ❌ Don't Use | ✅ Use Instead |
 |--------------|----------------|
 | `alert('message')` | `toast.error('message')` or `toast.info('message')` |
-| `confirm('Are you sure?')` | Custom confirmation modal with state |
+| `confirm('Are you sure?')` | Custom confirmation modal with Dialog component |
 | `window.alert()` | `toast()` from sonner |
+| `window.confirm()` | Dialog component with state management |
+| `window.prompt()` | Dialog component with Input field |
+
+**Review Checklist Item:** During code review, search for `alert(`, `confirm(`, `window.alert`, `window.confirm`, `window.prompt` and flag any usage as a blocking issue.
 
 ### Toast Library
 The project uses **sonner** for toast notifications.
@@ -1656,6 +1788,8 @@ AI-powered product management services:
 | `TWILIO_INTEGRATION_GUIDE.md` | `docs/guides/` | Twilio setup guide |
 | `CS_AI_DEPLOYMENT_CHECKLIST.md` | `docs/guides/` | CS AI deployment guide |
 | `CS_AI_PRODUCTION_PLAN.md` | `docs/plans/` | CS AI production plan |
+| `PRODUCT_IMPORT_SPECIFICATION.md` | `docs/roadmap/` | Product Import feature spec |
+| `PRODUCT_IMPORT_PRODUCTION_SIGNOFF.md` | `docs/deployments/` | Product Import production signoff |
 
 ---
 
@@ -1672,6 +1806,7 @@ AI-powered product management services:
 | Phase 7: Communications | 18-19 | Content gen, Delivery |
 | Phase 8: Revenue & Analytics | 20-21 | Upsell, Analytics |
 | Phase 9: Alpha Deployment | 22-24 | AWS, CI/CD, Launch |
+| Phase 10: Product Import | Completed | Product catalog import from integrations (Roastify, etc.) |
 
 ---
 
@@ -2571,6 +2706,224 @@ cd apps/api && npx prisma db seed  # Run all seeds
 
 ---
 
+## Cart Module
+
+### Overview
+Complete shopping cart system with theming, product catalogs, upsells, inventory holds, abandonment tracking, and express checkout.
+
+### Features Complete
+- **Cart CRUD** - Create, read, update, delete cart operations
+- **Cart Theming** - 9 preset themes with full color/layout customization
+- **Product Catalog** - Configurable product display (ALL, SELECTED, CATEGORY, TAG modes)
+- **Inventory Holds** - Reserve inventory during checkout with expiration
+- **Cart Abandonment** - Track and recover abandoned carts
+- **Express Checkout** - Streamlined checkout flow scaffolding
+- **Cart Sessions** - Session-based cart management for guests
+- **Cart Upsell Framework** - Upsell recommendations and tracking
+
+### Cart Theme Presets
+| Preset | Description |
+|--------|-------------|
+| STARTER | Clean, minimal design for any brand |
+| ARTISAN | Warm, handcrafted feel for artisanal products |
+| VELOCITY | Bold, dynamic style for high-energy brands |
+| LUXE | Elegant, premium look for luxury products |
+| WELLNESS | Calm, natural tones for health & beauty |
+| FOODIE | Appetizing, warm colors for food & beverage |
+| PROFESSIONAL | Corporate, trustworthy for B2B |
+| CREATOR | Vibrant, expressive for creative brands |
+| MARKETPLACE | Functional, efficient for multi-vendor |
+
+### API Endpoints
+```
+# Cart Theme (Public + Admin)
+GET    /api/landing-pages/:id/cart-theme              # Get cart theme
+PATCH  /api/landing-pages/:id/cart-theme              # Update cart theme (auth)
+DELETE /api/landing-pages/:id/cart-theme              # Reset to preset (auth)
+GET    /api/landing-pages/:id/cart-theme/preview      # Get theme with CSS vars
+GET    /api/landing-pages/cart-themes/presets         # List all presets
+POST   /api/landing-pages/cart-themes/generate        # Generate from brand color
+
+# Product Catalog
+GET    /api/landing-pages/:id/product-catalog         # Get catalog config
+PATCH  /api/landing-pages/:id/product-catalog         # Update catalog config (auth)
+GET    /api/landing-pages/:id/products                # Get resolved products
+POST   /api/landing-pages/:id/product-catalog/products    # Add products (auth)
+DELETE /api/landing-pages/:id/product-catalog/products    # Remove products (auth)
+POST   /api/landing-pages/:id/product-catalog/reorder     # Reorder products (auth)
+
+# Cart Operations
+POST   /api/cart                                      # Create cart
+GET    /api/cart/:id                                  # Get cart
+PATCH  /api/cart/:id                                  # Update cart
+DELETE /api/cart/:id                                  # Delete cart
+POST   /api/cart/:id/items                            # Add item to cart
+PATCH  /api/cart/:id/items/:itemId                    # Update cart item
+DELETE /api/cart/:id/items/:itemId                    # Remove cart item
+```
+
+### Pending TODOs
+All cart TODOs have been completed as of January 27, 2026.
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Shipping estimation | ✅ Complete | ShippingService integration |
+| Payment processing | ✅ Complete | Multi-gateway support (Stripe, PayPal, NMI, Authorize.Net) |
+| Tax/shipping calculations | ✅ Complete | TaxService + ShippingService |
+| Company settings loading | ✅ Complete | CompanyCartSettingsService |
+| Upsell analytics | ✅ Complete | CartUpsellAnalytics model |
+| Promotion/discount codes | ✅ Complete | Full Promotion model integration |
+| requiresShipping logic | ✅ Complete | Based on ProductFulfillmentType |
+
+### Key Files
+```
+apps/api/src/cart/
+├── cart.module.ts
+├── controllers/
+│   ├── cart.controller.ts              # Main cart operations
+│   └── cart-theme.controller.ts        # Theming + catalog endpoints
+├── services/
+│   ├── cart.service.ts                 # Core cart logic
+│   ├── cart-theme.service.ts           # Theme management
+│   ├── product-catalog.service.ts      # Catalog configuration
+│   ├── cart-upsell.service.ts          # Upsell recommendations
+│   ├── inventory-hold.service.ts       # Inventory reservation
+│   ├── cart-abandonment.service.ts     # Abandonment tracking
+│   ├── express-checkout.service.ts     # Express checkout flow
+│   └── cart-save.service.ts            # Save for later functionality
+├── types/
+│   └── cart-theme.types.ts             # Theme type definitions
+└── constants/
+    └── cart-theme-presets.ts           # Preset theme definitions
+```
+
+---
+
+## Recommendations Module
+
+### Overview
+Product recommendation engine with multiple recommendation types and behavioral tracking.
+
+### Recommendation Types
+| Type | Description |
+|------|-------------|
+| Also Bought | Products frequently purchased together |
+| You Might Like | Personalized based on browsing/purchase history |
+| Frequently Viewed | Products often viewed together |
+
+### API Endpoints
+```
+# Public Recommendations
+GET    /api/products/:productId/recommendations                    # All recommendations
+GET    /api/products/:productId/recommendations/also-bought        # Also bought
+GET    /api/products/:productId/recommendations/you-might-like     # Personalized
+GET    /api/products/:productId/recommendations/frequently-viewed  # Viewed together
+
+# Tracking (Public)
+POST   /api/recommendations/view                      # Track product view
+POST   /api/recommendations/click                     # Track recommendation click
+POST   /api/recommendations/add-to-cart               # Track add to cart
+
+# Admin
+GET    /api/admin/recommendations/config              # Get config (auth)
+PUT    /api/admin/recommendations/config              # Update config (auth)
+GET    /api/admin/recommendations/preview/:productId  # Preview recommendations (auth)
+```
+
+### Key Files
+```
+apps/api/src/recommendations/
+├── recommendations.module.ts
+├── controllers/
+│   └── recommendations.controller.ts
+├── services/
+│   └── product-recommendation.service.ts
+├── dto/
+│   └── recommendation.dto.ts
+└── types/
+    └── recommendation.types.ts
+```
+
+---
+
+## Upsell Module
+
+### Overview
+Intelligent upselling system with bulk discounts, subscription offers, and targeted upsell rules.
+
+### Upsell Types
+| Type | Description |
+|------|-------------|
+| BULK_DISCOUNT | Quantity-based pricing tiers |
+| SUBSCRIPTION | Subscribe & save offers |
+| FREE_SHIPPING_ADD | Add items to reach free shipping threshold |
+| FREE_GIFT_THRESHOLD | Free gift when cart reaches value |
+| COMPLEMENTARY | Related product suggestions |
+| SHIPPING_PROTECTION | Shipping insurance upsell |
+
+### API Endpoints
+```
+# Bulk Discount
+GET    /api/products/:productId/bulk-discount         # Get bulk discount config
+PUT    /api/products/:productId/bulk-discount         # Create/update config (auth)
+DELETE /api/products/:productId/bulk-discount         # Delete config (auth)
+GET    /api/products/:productId/bulk-recommendation   # Get bulk purchase recommendation
+POST   /api/products/pricing/bulk-calculate           # Calculate bulk pricing
+
+# Subscription
+GET    /api/products/:productId/subscription-config   # Get subscription config
+PUT    /api/products/:productId/subscription-config   # Create/update config (auth)
+GET    /api/upsell/subscription-eligibility/:productId  # Check eligibility
+GET    /api/upsell/subscription-offer/:productId      # Get subscription offer
+
+# Targeting Rules (Admin)
+GET    /api/upsell/rules                              # List rules (auth)
+POST   /api/upsell/rules                              # Create rule (auth)
+PUT    /api/upsell/rules/:ruleId                      # Update rule (auth)
+DELETE /api/upsell/rules/:ruleId                      # Delete rule (auth)
+
+# Cart Upsells (Public)
+GET    /api/upsell/cart/:cartId                       # Get upsells for cart
+
+# Tracking (Public)
+POST   /api/upsell/impressions                        # Record impression
+POST   /api/upsell/impressions/accept                 # Record acceptance
+POST   /api/upsell/impressions/decline                # Record decline
+```
+
+### Customer Segments
+| Segment | Description |
+|---------|-------------|
+| FIRST_TIME_BUYER | No previous orders |
+| REPEAT_CUSTOMER | 2+ orders |
+| LOYAL_SUBSCRIBER | Has active subscription |
+| LAPSED_CUSTOMER | No order in 90+ days |
+| BUDGET_CONSCIOUS | Low avg order value |
+| VALUE_SEEKER | Medium avg order value |
+| PREMIUM_BUYER | High avg order value |
+| SMALL_CART | Cart < $30 |
+| MEDIUM_CART | Cart $30-$100 |
+| LARGE_CART | Cart > $100 |
+
+### Key Files
+```
+apps/api/src/upsell/
+├── upsell.module.ts
+├── controllers/
+│   ├── upsell.controller.ts            # Targeting rules + cart upsells
+│   └── bulk-discount.controller.ts     # Bulk discount + subscription
+├── services/
+│   ├── upsell-targeting.service.ts     # Rule evaluation + personalization
+│   ├── bulk-discount.service.ts        # Quantity-based pricing
+│   └── subscription-intelligence.service.ts  # Subscription offers
+├── dto/
+│   └── upsell.dto.ts
+└── types/
+    └── upsell.types.ts
+```
+
+---
+
 ## Troubleshooting
 
 ### API Returns 404
@@ -2593,6 +2946,6 @@ docker-compose up -d
 
 ---
 
-*Last Updated: December 19, 2025*
-*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email, Mobile Responsiveness, Client & Company Management: Complete*
+*Last Updated: January 27, 2026*
+*Feature 01: Complete | Feature 02-03: Spec Complete | Funnels, Leads, Email, Mobile Responsiveness, Client & Company Management, Product Import, Cart, Recommendations, Upsell: Complete*
 

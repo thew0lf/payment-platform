@@ -245,7 +245,8 @@ model Company {
   sites Site[]
 
   // Carts
-  carts Cart[]
+  carts               Cart[]
+  cartUpsellAnalytics CartUpsellAnalytics[]
 
   // Wishlists
   wishlists Wishlist[]
@@ -261,6 +262,19 @@ model Company {
   taxRates      TaxRate[]
   shippingZones ShippingZone[]
   inventoryHolds InventoryHold[]
+
+  // Smart Upsell & Recommendations
+  productBulkDiscounts       ProductBulkDiscount[]
+  productSubscriptionConfigs ProductSubscriptionConfig[]
+  upsellTargetingRules       UpsellTargetingRule[]
+  upsellExperiments          UpsellExperiment[]
+  productViews               ProductView[]
+  recommendationConfig       RecommendationConfig?
+  recommendationImpressions  RecommendationImpression[]
+
+  // Cart Recovery (MI)
+  cartSaveConfig   CartSaveConfig?
+  cartSaveAttempts CartSaveAttempt[]
 
   @@unique([clientId, slug])
   @@index([clientId])
@@ -618,6 +632,15 @@ model Customer {
   // Cross-Site Sessions
   crossSiteSessions CrossSiteSession[]
 
+  // Smart Upsell & Recommendations
+  upsellImpressions         UpsellImpression[]
+  productViews              ProductView[]
+  recommendationImpressions RecommendationImpression[]
+  cartUpsellAnalytics       CartUpsellAnalytics[]
+
+  // Cart Recovery (MI)
+  cartSaveAttempts CartSaveAttempt[]
+
   // Soft delete fields
   deletedAt DateTime?
   deletedBy String?
@@ -910,14 +933,27 @@ model Product {
   salesChannels   ProductSalesChannel[]
 
   // Cart items
-  cartItems      CartItem[]
-  savedCartItems SavedCartItem[]
+  cartItems           CartItem[]
+  savedCartItems      SavedCartItem[]
+  cartUpsellAnalytics CartUpsellAnalytics[]
 
   // Wishlist items
   wishlistItems WishlistItem[]
 
   // Product Comparison items
   comparisonItems ProductComparisonItem[]
+
+  // Smart Upsell & Recommendations
+  bulkDiscount              ProductBulkDiscount?
+  subscriptionConfig        ProductSubscriptionConfig?
+  productViews              ProductView[]
+  recommendationImpressions RecommendationImpression[]
+
+  // Landing Page Catalog
+  landingPageProducts LandingPageProduct[]
+
+  // Inventory Holds
+  inventoryHolds InventoryHold[]
 
   // Soft delete fields
   deletedAt DateTime?
@@ -992,10 +1028,19 @@ model Cart {
   site      Site?     @relation(fields: [siteId], references: [id], onDelete: SetNull)
   customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
-  items     CartItem[]
-  savedItems SavedCartItem[]
-  inventoryHolds InventoryHold[]
+  items              CartItem[]
+  savedItems         SavedCartItem[]
+  inventoryHolds     InventoryHold[]
+  cartUpsellAnalytics CartUpsellAnalytics[]
   landingPageSession LandingPageSession?
+  funnelSessions     FunnelSession[]
+
+  // Smart Upsell
+  upsellImpressions UpsellImpression[]
+
+  // Cart Recovery (MI)
+  saveAttempts     CartSaveAttempt[]
+  interventions    CartIntervention[]
 
   @@index([companyId, status])
   @@index([companyId, customerId])
@@ -1005,6 +1050,7 @@ model Cart {
   @@index([companyId, siteId, status])
   @@index([landingPageId])
   @@index([sourceType, companyId, status])
+  @@index([companyId, status, lastActivityAt]) // DBA optimization for abandoned cart queries
   @@map("carts")
 }
 
@@ -1058,6 +1104,48 @@ model SavedCartItem {
   @@map("saved_cart_items")
 }
 
+// Cart Upsell Analytics - tracks impressions and conversions from algorithm-based cart upsells
+model CartUpsellAnalytics {
+  id        String @id @default(cuid())
+  companyId String
+  cartId    String
+  productId String // The upsell product shown
+
+  sessionToken  String?
+  customerId    String?
+
+  // Upsell metadata
+  reason        String   // UpsellReason enum value (FREQUENTLY_BOUGHT_TOGETHER, SIMILAR_CATEGORY, etc.)
+  score         Decimal  @db.Decimal(5, 4) // Confidence score 0.0-1.0
+  position      Int      @default(0) // Position in the suggestions list (0-indexed)
+  placement     String   @default("cart_page") // Where shown (cart_page, checkout, mini_cart)
+
+  // Tracking timestamps
+  impressedAt   DateTime  @default(now())
+  viewedAt      DateTime? // Visible for 1+ second (viewport tracking)
+  clickedAt     DateTime? // User clicked to view product details
+  addedAt       DateTime? // User added to cart (conversion)
+  declinedAt    DateTime? // User explicitly dismissed
+
+  // Revenue tracking (populated on conversion)
+  productPrice  Decimal?  @db.Decimal(10, 2) // Price at time of impression
+  quantity      Int       @default(1) // Quantity added if converted
+  revenue       Decimal?  @db.Decimal(10, 2) // Total revenue if converted
+
+  // Relations
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cart      Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, impressedAt])
+  @@index([cartId])
+  @@index([productId, impressedAt])
+  @@index([reason, impressedAt])
+  @@index([customerId, impressedAt])
+  @@map("cart_upsell_analytics")
+}
+
 model InventoryHold {
   id        String @id @default(cuid())
   companyId String
@@ -1072,7 +1160,7 @@ model InventoryHold {
   variantId String @default("")
 
   quantity  Int
-  status    String @default("ACTIVE") // ACTIVE, RELEASED, CONVERTED, EXPIRED
+  status    InventoryHoldStatus @default(ACTIVE)
 
   expiresAt   DateTime
   releasedAt  DateTime?
@@ -1083,6 +1171,7 @@ model InventoryHold {
 
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, productId, variantId])
   @@index([companyId, status])
@@ -3070,6 +3159,14 @@ enum CartStatus {
   EXPIRED
 }
 
+// Inventory Hold Status
+enum InventoryHoldStatus {
+  ACTIVE
+  RELEASED
+  CONVERTED
+  EXPIRED
+}
+
 // Cart Source Type - Attribution tracking
 enum CartSourceType {
   DIRECT        // Direct site visit
@@ -3941,15 +4038,6 @@ enum ContentStatus {
   APPROVED
   ACTIVE
   ARCHIVED
-}
-
-enum UpsellType {
-  SHIPPING_PROTECTION
-  TIER_UPGRADE
-  FREQUENCY_UPGRADE
-  ADD_ON
-  GIFT_SUBSCRIPTION
-  ANNUAL_PLAN
 }
 
 enum UpsellMoment {
@@ -7255,6 +7343,10 @@ model LandingPage {
   colorScheme Json             @default("{}") // { primary, secondary, accent, background, text }
   typography  Json             @default("{}") // { headingFont, bodyFont, scale }
 
+  // Cart Theming (NEW)
+  cartTheme      Json @default("{}") // CartTheme - colors, layout, content
+  productCatalog Json @default("{}") // ProductCatalog - mode, filters, sort
+
   // Global Settings
   favicon   String?
   ogImage   String?
@@ -7320,8 +7412,9 @@ model LandingPage {
   dynamicTextRules DynamicTextRule[]
   conversionGoals  ConversionGoal[]
   // Cart Integration
-  sessions LandingPageSession[]
-  carts    Cart[]
+  sessions        LandingPageSession[]
+  carts           Cart[]
+  catalogProducts LandingPageProduct[]
 
   @@unique([companyId, slug, deletedAt])
   @@index([subdomain])
@@ -8746,6 +8839,13 @@ model FunnelSession {
   completedStages   Int[]             @default([])
   status          FunnelSessionStatus @default(ACTIVE)
 
+  // Cart Integration (for churn detection and cart save flow)
+  cartId          String?
+  cart            Cart?               @relation(fields: [cartId], references: [id])
+
+  // Checkout Behavior Tracking (for churn detection analytics)
+  checkoutBehavior Json?
+
   // Collected Data
   selectedProducts  Json              @default("[]")
   customerInfo      Json              @default("{}")
@@ -8786,6 +8886,7 @@ model FunnelSession {
   @@index([funnelId])
   @@index([variantId])
   @@index([leadId])
+  @@index([cartId])
   @@index([status])
   @@index([startedAt])
   @@map("funnel_sessions")
@@ -11003,4 +11104,431 @@ model CrossSiteSession {
   @@index([status])
   @@index([expiresAt])
   @@map("cross_site_sessions")
+}
+
+// =============================================================================
+// SMART UPSELL & RECOMMENDATION SYSTEM
+// =============================================================================
+
+enum SubscriptionFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+}
+
+enum UpsellType {
+  BULK_DISCOUNT
+  SUBSCRIPTION
+  FREE_SHIPPING_ADD
+  FREE_GIFT_THRESHOLD
+  COMPLEMENTARY
+  BUNDLE_UPGRADE
+  PREMIUM_VERSION
+  SHIPPING_PROTECTION
+  WARRANTY
+  QUANTITY_DISCOUNT
+  TIER_UPGRADE
+  FREQUENCY_UPGRADE
+  ADD_ON
+  GIFT_SUBSCRIPTION
+  ANNUAL_PLAN
+}
+
+enum UpsellUrgency {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum UpsellExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+}
+
+// Bulk discount configuration per product
+model ProductBulkDiscount {
+  id        String @id @default(cuid())
+  productId String @unique
+  companyId String
+
+  enabled Boolean @default(true)
+  tiers   Json // BulkDiscountTier[]
+
+  stackWithOtherDiscounts Boolean @default(false)
+  maxDiscountPercent      Int     @default(30)
+
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, enabled])
+  @@map("product_bulk_discounts")
+}
+
+// Subscription configuration per product
+model ProductSubscriptionConfig {
+  id        String @id @default(cuid())
+  productId String @unique
+  companyId String
+
+  enabled       Boolean @default(true)
+  discountTiers Json // { frequency, discountPercent, label }[]
+
+  defaultFrequency     SubscriptionFrequency @default(MONTHLY)
+  freeShippingIncluded Boolean               @default(true)
+
+  eligibility Json // Eligibility rules
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, enabled])
+  @@map("product_subscription_configs")
+}
+
+// Upsell targeting rules
+model UpsellTargetingRule {
+  id        String @id @default(cuid())
+  companyId String
+
+  name        String
+  description String?
+  priority    Int     @default(100)
+  enabled     Boolean @default(true)
+
+  conditions Json // UpsellConditions
+  upsellType UpsellType
+  offer      Json // UpsellOffer
+
+  message    String
+  urgency    UpsellUrgency @default(MEDIUM)
+  placements String[]
+
+  // Limits
+  maxImpressions Int? // Per customer per day
+  maxAcceptances Int? // Total acceptances before disable
+
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  impressions UpsellImpression[]
+
+  @@index([companyId, enabled, priority])
+  @@map("upsell_targeting_rules")
+}
+
+// Upsell impression tracking
+model UpsellImpression {
+  id         String  @id @default(cuid())
+  cartId     String
+  ruleId     String
+  customerId String?
+  sessionId  String
+
+  placement String
+  variant   String? // For A/B testing
+
+  impressedAt DateTime  @default(now())
+  viewedAt    DateTime? // Visible for 1+ second
+  clickedAt   DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+
+  offer   Json // Offer shown
+  revenue Decimal? @db.Decimal(10, 2) // If accepted
+
+  cart     Cart                @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  rule     UpsellTargetingRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([cartId])
+  @@index([ruleId, impressedAt])
+  @@index([customerId, impressedAt])
+  @@index([sessionId])
+  @@map("upsell_impressions")
+}
+
+// A/B testing for upsells
+model UpsellExperiment {
+  id        String @id @default(cuid())
+  companyId String
+
+  name        String
+  description String?
+  status      UpsellExperimentStatus @default(DRAFT)
+
+  control  Json // UpsellVariant
+  variants Json // UpsellVariant[]
+
+  trafficPercent Int   @default(100)
+  variantWeights Int[]
+
+  primaryMetric     String @default("CONVERSION")
+  minimumSampleSize Int    @default(1000)
+  confidenceLevel   Float  @default(0.95)
+
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  results Json? // ExperimentResults
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@map("upsell_experiments")
+}
+
+// Product view tracking for recommendations
+model ProductView {
+  id        String @id @default(cuid())
+  productId String
+  companyId String
+  sessionId String
+
+  customerId String?
+
+  viewedAt DateTime @default(now())
+  duration Int? // Seconds on page
+
+  source          String? // 'DIRECT', 'RECOMMENDATION', 'SEARCH'
+  sourceProductId String? // If came from recommendation
+
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([productId, viewedAt])
+  @@index([sessionId, viewedAt])
+  @@index([companyId, viewedAt])
+  @@index([customerId, viewedAt])
+  @@map("product_views")
+}
+
+// Recommendation configuration per company
+model RecommendationConfig {
+  id        String @id @default(cuid())
+  companyId String @unique
+
+  alsoBought       Json // AlsoBoughtConfig
+  youMightLike     Json // YouMightLikeConfig
+  frequentlyViewed Json // FrequentlyViewedConfig
+  global           Json // GlobalConfig
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("recommendation_configs")
+}
+
+// Recommendation performance tracking
+model RecommendationImpression {
+  id        String @id @default(cuid())
+  companyId String
+  productId String // Product being viewed
+  type      String // ALSO_BOUGHT, YOU_MIGHT_LIKE, FREQUENTLY_VIEWED
+  sessionId String
+
+  customerId String?
+
+  recommendedIds String[] // Products shown
+  impressedAt    DateTime @default(now())
+
+  clickedProductId String? // Which was clicked
+  clickedAt        DateTime?
+  addedToCart      Boolean   @default(false)
+  addedAt          DateTime?
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, type, impressedAt])
+  @@index([productId, type])
+  @@index([sessionId, impressedAt])
+  @@map("recommendation_impressions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LANDING PAGE PRODUCT CATALOG - Manual product selection for landing pages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model LandingPageProduct {
+  id            String @id @default(cuid())
+  landingPageId String
+  productId     String
+  sortOrder     Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([landingPageId, productId])
+  @@index([landingPageId, sortOrder])
+  @@map("landing_page_products")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CART SAVE CONFIG - Company-level cart recovery configuration
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model CartSaveConfig {
+  id        String @id @default(cuid())
+  companyId String @unique
+
+  enabled Boolean @default(true)
+
+  // Stage configurations (JSON)
+  stageConfigs Json // CartSaveFlowConfig
+
+  // Global settings
+  maxAttemptsPerCart  Int     @default(10)
+  respectUnsubscribe  Boolean @default(true)
+  blackoutHoursStart  Int     @default(22) // 10 PM
+  blackoutHoursEnd    Int     @default(8)  // 8 AM
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("cart_save_configs")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CART SAVE ATTEMPT - Tracks recovery attempts for abandoned carts
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum CartSaveStatus {
+  ACTIVE
+  PAUSED
+  CONVERTED
+  EXHAUSTED
+  UNSUBSCRIBED
+}
+
+model CartSaveAttempt {
+  id         String @id @default(cuid())
+  cartId     String
+  companyId  String
+  customerId String?
+
+  status       CartSaveStatus @default(ACTIVE)
+  currentStage String         // CartSaveStage enum value
+
+  // Diagnosis
+  diagnosisReason String? // CartAbandonmentReason
+
+  // Customer scoring
+  customerRiskScore Float   @default(0)
+  cartValue         Decimal @db.Decimal(12, 2)
+
+  // Current offer (if any)
+  currentOffer Json?
+
+  // Progress tracking
+  stageHistory Json @default("[]") // StageHistoryEntry[]
+  metadata     Json @default("{}") // CartSaveAttemptMetadata
+
+  // Timing
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  cart          Cart              @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  interventions CartIntervention[]
+
+  @@index([cartId])
+  @@index([companyId, status])
+  @@index([customerId])
+  @@index([status, startedAt])
+  @@map("cart_save_attempts")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CART INTERVENTION - Individual recovery intervention records
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum CartInterventionStatus {
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  CONVERTED
+  FAILED
+  CANCELLED
+}
+
+model CartIntervention {
+  id                String @id @default(cuid())
+  cartSaveAttemptId String
+  cartId            String
+
+  stage    String   // CartSaveStage
+  channels String[] // CartSaveChannel[]
+
+  // Content
+  content      Json // InterventionContent
+  triggersUsed String[]
+
+  // Offer details
+  offerCode      String?
+  offerType      String?
+  offerValue     Float?
+  offerExpiresAt DateTime?
+
+  // Delivery tracking
+  status      CartInterventionStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  convertedAt DateTime?
+  failedAt    DateTime?
+  failReason  String?
+
+  // Response tracking
+  responseType String? // CartSaveResponseType
+  responseAt   DateTime?
+  surveyAnswer String? // If DIAGNOSIS_SURVEY stage
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartSaveAttempt CartSaveAttempt @relation(fields: [cartSaveAttemptId], references: [id], onDelete: Cascade)
+  cart            Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartSaveAttemptId])
+  @@index([cartId])
+  @@index([status, scheduledAt])
+  @@index([stage, status])
+  @@map("cart_interventions")
 }

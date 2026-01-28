@@ -6,6 +6,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartController, PublicCartController } from './cart.controller';
 import { CartService } from '../services/cart.service';
+import { ShippingService } from '../services/shipping.service';
 import { AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { ScopeType, CartStatus } from '@prisma/client';
 import { CartData, CartTotals } from '../types/cart.types';
@@ -82,6 +83,16 @@ describe('CartController', () => {
   };
 
   beforeEach(async () => {
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CartController],
       providers: [
@@ -101,7 +112,12 @@ describe('CartController', () => {
             removeDiscount: jest.fn(),
             clearCart: jest.fn(),
             mergeCarts: jest.fn(),
+            selectShippingMethod: jest.fn(),
           },
+        },
+        {
+          provide: ShippingService,
+          useValue: mockShippingService,
         },
       ],
     }).compile();
@@ -502,6 +518,16 @@ describe('PublicCartController', () => {
   };
 
   beforeEach(async () => {
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicCartController],
       providers: [
@@ -516,7 +542,13 @@ describe('PublicCartController', () => {
             removeItem: jest.fn(),
             applyDiscount: jest.fn(),
             removeDiscount: jest.fn(),
+            updateShippingAddress: jest.fn(),
+            selectShippingMethod: jest.fn(),
           },
+        },
+        {
+          provide: ShippingService,
+          useValue: mockShippingService,
         },
       ],
     }).compile();
@@ -795,6 +827,7 @@ describe('PublicCartController', () => {
   describe('updateShipping', () => {
     it('should update shipping info for estimation with valid session token', async () => {
       cartService.getCartById.mockResolvedValue(mockCartData);
+      cartService.updateShippingAddress.mockResolvedValue(mockCartData);
 
       const shippingDto = {
         postalCode: '12345',
@@ -804,25 +837,38 @@ describe('PublicCartController', () => {
       const result = await controller.updateShipping(mockCartId, mockSessionToken, mockCompanyId, shippingDto);
 
       expect(result).toEqual(mockCartData);
-      expect(cartService.getCartById).toHaveBeenCalledWith(mockCartId);
+      expect(cartService.updateShippingAddress).toHaveBeenCalledWith(mockCartId, {
+        postalCode: '12345',
+        country: 'US',
+      });
     });
 
     it('should handle partial shipping data', async () => {
       cartService.getCartById.mockResolvedValue(mockCartData);
+      cartService.updateShippingAddress.mockResolvedValue(mockCartData);
 
       const partialDto = { postalCode: '90210' };
 
       const result = await controller.updateShipping(mockCartId, mockSessionToken, mockCompanyId, partialDto);
 
       expect(result).toEqual(mockCartData);
+      expect(cartService.updateShippingAddress).toHaveBeenCalledWith(mockCartId, {
+        postalCode: '90210',
+        country: undefined,
+      });
     });
 
     it('should handle empty shipping data', async () => {
       cartService.getCartById.mockResolvedValue(mockCartData);
+      cartService.updateShippingAddress.mockResolvedValue(mockCartData);
 
       const result = await controller.updateShipping(mockCartId, mockSessionToken, mockCompanyId, {});
 
       expect(result).toEqual(mockCartData);
+      expect(cartService.updateShippingAddress).toHaveBeenCalledWith(mockCartId, {
+        postalCode: undefined,
+        country: undefined,
+      });
     });
   });
 
@@ -876,6 +922,16 @@ describe('CartController - Edge Cases', () => {
   };
 
   beforeEach(async () => {
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CartController],
       providers: [
@@ -893,7 +949,12 @@ describe('CartController - Edge Cases', () => {
             removeDiscount: jest.fn(),
             clearCart: jest.fn(),
             mergeCarts: jest.fn(),
+            selectShippingMethod: jest.fn(),
           },
+        },
+        {
+          provide: ShippingService,
+          useValue: mockShippingService,
         },
       ],
     }).compile();
@@ -993,6 +1054,16 @@ describe('PublicCartController - Edge Cases', () => {
   let cartService: jest.Mocked<CartService>;
 
   beforeEach(async () => {
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicCartController],
       providers: [
@@ -1007,7 +1078,13 @@ describe('PublicCartController - Edge Cases', () => {
             removeItem: jest.fn(),
             applyDiscount: jest.fn(),
             removeDiscount: jest.fn(),
+            updateShippingAddress: jest.fn(),
+            selectShippingMethod: jest.fn(),
           },
+        },
+        {
+          provide: ShippingService,
+          useValue: mockShippingService,
         },
       ],
     }).compile();
@@ -1164,6 +1241,16 @@ describe('CartController - Authorization Scenarios', () => {
   let cartService: jest.Mocked<CartService>;
 
   beforeEach(async () => {
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CartController],
       providers: [
@@ -1181,7 +1268,12 @@ describe('CartController - Authorization Scenarios', () => {
             removeDiscount: jest.fn(),
             clearCart: jest.fn(),
             mergeCarts: jest.fn(),
+            selectShippingMethod: jest.fn(),
           },
+        },
+        {
+          provide: ShippingService,
+          useValue: mockShippingService,
         },
       ],
     }).compile();

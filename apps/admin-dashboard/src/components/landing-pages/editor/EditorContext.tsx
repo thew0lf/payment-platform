@@ -18,6 +18,7 @@ import {
 } from '@/lib/api/landing-pages';
 import { EditorContextValue, EditorMode, DevicePreview } from './types';
 import { getDefaultContent } from './utils';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 
 const EditorContext = createContext<EditorContextValue | null>(null);
 
@@ -37,6 +38,7 @@ interface EditorProviderProps {
 }
 
 export function EditorProvider({ children, initialPage, pageId, onPageUpdate }: EditorProviderProps) {
+  const { selectedCompanyId } = useHierarchy();
   const [page, setPage] = useState<LandingPageDetail>(initialPage);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<EditorMode>('edit');
@@ -160,7 +162,7 @@ export function EditorProvider({ children, initialPage, pageId, onPageUpdate }: 
         googleAnalyticsId: page.googleAnalyticsId,
         facebookPixelId: page.facebookPixelId,
       };
-      const updated = await updateLandingPage(pageId, updateData);
+      const updated = await updateLandingPage(pageId, updateData, selectedCompanyId || undefined);
       updatePageState(updated);
       setHasChanges(false);
       toast.success('Page saved');
@@ -170,7 +172,7 @@ export function EditorProvider({ children, initialPage, pageId, onPageUpdate }: 
     } finally {
       setSaving(false);
     }
-  }, [pageId, page, updatePageState]);
+  }, [pageId, page, updatePageState, selectedCompanyId]);
 
   const deployPage = useCallback(async () => {
     setDeploying(true);

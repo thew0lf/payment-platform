@@ -16,9 +16,12 @@ import { NotFoundException, BadRequestException, ForbiddenException } from '@nes
 import { CartService } from './cart.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
+import { TaxService } from './tax.service';
+import { ShippingService } from './shipping.service';
 import { CartStatus } from '@prisma/client';
 import { AuditAction } from '../../audit-logs/types/audit-log.types';
 import { AddBundleToCartInput, BundleItemSelection } from '../types/cart.types';
+import { Decimal } from '@prisma/client/runtime/library';
 
 describe('CartService', () => {
   let service: CartService;
@@ -48,6 +51,13 @@ describe('CartService', () => {
     };
     bundle: {
       findUnique: jest.Mock;
+    };
+    promotion: {
+      findFirst: jest.Mock;
+    };
+    promotionUsage: {
+      count: jest.Mock;
+      create: jest.Mock;
     };
     $transaction: jest.Mock;
   };
@@ -223,6 +233,13 @@ describe('CartService', () => {
       bundle: {
         findUnique: jest.fn(),
       },
+      promotion: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      promotionUsage: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn(),
+      },
       // Transaction mock that executes callback with prisma as tx client
       $transaction: jest.fn().mockImplementation(async (callback) => {
         return callback(prisma);
@@ -233,11 +250,32 @@ describe('CartService', () => {
       log: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockTaxService = {
+      calculateTax: jest.fn().mockResolvedValue({
+        totalTax: new Decimal(0),
+        breakdown: [],
+        taxableSubtotal: new Decimal(0),
+        effectiveRate: new Decimal(0),
+      }),
+    };
+
+    const mockShippingService = {
+      calculateShipping: jest.fn().mockResolvedValue({
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CartService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: auditLogService },
+        { provide: TaxService, useValue: mockTaxService },
+        { provide: ShippingService, useValue: mockShippingService },
       ],
     }).compile();
 
@@ -2574,6 +2612,245 @@ describe('CartService', () => {
       const createCalls = (prisma.cartItem.create as jest.Mock).mock.calls;
       expect(createCalls[0][0].data.quantity).toBe(3);
       expect(createCalls[1][0].data.quantity).toBe(2);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // SHIPPING ADDRESS AND METHOD TESTS
+  // ═══════════════════════════════════════════════════════════════
+
+  describe('updateShippingAddress', () => {
+    it('should update shipping address on cart', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart());
+      prisma.cart.update.mockResolvedValue(createMockCart());
+
+      const result = await service.updateShippingAddress(mockCartId, {
+        postalCode: '94102',
+        country: 'US',
+        state: 'CA',
+        city: 'San Francisco',
+      });
+
+      expect(result).toBeDefined();
+      expect(prisma.cart.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockCartId },
+          data: expect.objectContaining({
+            shippingPostalCode: '94102',
+            shippingCountry: 'US',
+          }),
+        }),
+      );
+    });
+
+    it('should throw NotFoundException for non-existent cart', async () => {
+      prisma.cart.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateShippingAddress(mockCartId, { postalCode: '94102' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should preserve existing address fields when partially updating', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        shippingPostalCode: '90210',
+        shippingCountry: 'US',
+      }));
+      prisma.cart.update.mockResolvedValue(createMockCart());
+
+      await service.updateShippingAddress(mockCartId, { state: 'NY' });
+
+      expect(prisma.cart.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            shippingPostalCode: '90210', // preserved
+            shippingCountry: 'US', // preserved
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('selectShippingMethod', () => {
+    const mockShippingZone = {
+      id: 'zone-001',
+      companyId: mockCompanyId,
+      name: 'US Domestic',
+      isActive: true,
+    };
+
+    const mockShippingRule = {
+      id: 'rule-001',
+      shippingZoneId: 'zone-001',
+      name: 'Standard Shipping',
+      carrier: 'USPS',
+      type: 'FLAT_RATE',
+      baseRate: new Decimal(5.99),
+      perItemRate: null,
+      perWeightUnitRate: null,
+      freeShippingThreshold: new Decimal(50),
+      estimatedDaysMin: 5,
+      estimatedDaysMax: 7,
+      zone: mockShippingZone,
+    };
+
+    it('should select a shipping method and update cart totals', async () => {
+      const cartWithItems = createMockCart({ subtotal: 30, items: [createMockCartItem({ lineTotal: 30 })] });
+      const cartWithShipping = createMockCart({ subtotal: 30, shippingTotal: 5.99, items: [createMockCartItem({ lineTotal: 30 })] });
+
+      // Three findUnique calls: 1) selectShippingMethod, 2) recalculateTotals, 3) getCartById
+      prisma.cart.findUnique
+        .mockResolvedValueOnce(cartWithItems)      // selectShippingMethod initial fetch
+        .mockResolvedValueOnce(cartWithShipping)   // recalculateTotals fetch
+        .mockResolvedValueOnce(cartWithShipping);  // getCartById final fetch
+      (prisma as any).shippingRule = {
+        findUnique: jest.fn().mockResolvedValue(mockShippingRule),
+      };
+      prisma.cart.update.mockResolvedValue(cartWithShipping);
+
+      const result = await service.selectShippingMethod(mockCartId, 'rule-001');
+
+      expect(result).toBeDefined();
+      // Check the first update call (from selectShippingMethod) set the shipping rate
+      const firstUpdateCall = (prisma.cart.update as jest.Mock).mock.calls[0][0];
+      expect(firstUpdateCall.data.shippingTotal).toBe(5.99);
+    });
+
+    it('should throw NotFoundException for non-existent cart', async () => {
+      prisma.cart.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.selectShippingMethod(mockCartId, 'rule-001'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException for non-existent shipping method', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart());
+      (prisma as any).shippingRule = {
+        findUnique: jest.fn().mockResolvedValue(null),
+      };
+
+      await expect(
+        service.selectShippingMethod(mockCartId, 'invalid-rule'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should apply free shipping when cart meets threshold', async () => {
+      const cartWithItems = createMockCart({ subtotal: 75, items: [createMockCartItem({ lineTotal: 75 })] });
+      const cartWithFreeShipping = createMockCart({ subtotal: 75, shippingTotal: 0, grandTotal: 75, items: [createMockCartItem({ lineTotal: 75 })] });
+
+      // Three findUnique calls: 1) selectShippingMethod, 2) recalculateTotals, 3) getCartById
+      prisma.cart.findUnique
+        .mockResolvedValueOnce(cartWithItems)          // selectShippingMethod initial fetch
+        .mockResolvedValueOnce(cartWithFreeShipping)   // recalculateTotals fetch
+        .mockResolvedValueOnce(cartWithFreeShipping);  // getCartById final fetch
+      (prisma as any).shippingRule = {
+        findUnique: jest.fn().mockResolvedValue(mockShippingRule),
+      };
+      prisma.cart.update.mockResolvedValue(cartWithFreeShipping);
+
+      await service.selectShippingMethod(mockCartId, 'rule-001');
+
+      // Check the first update call (from selectShippingMethod) set shipping to 0 (free shipping)
+      const firstUpdateCall = (prisma.cart.update as jest.Mock).mock.calls[0][0];
+      expect(firstUpdateCall.data.shippingTotal).toBe(0);
+    });
+  });
+
+  describe('cartRequiresShipping', () => {
+    it('should return true for cart with physical products', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        items: [
+          {
+            ...createMockCartItem(),
+            product: { fulfillmentType: 'PHYSICAL' },
+          },
+        ],
+      }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for cart with only virtual products', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        items: [
+          {
+            ...createMockCartItem(),
+            product: { fulfillmentType: 'VIRTUAL' },
+          },
+        ],
+      }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for cart with only electronic products', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        items: [
+          {
+            ...createMockCartItem(),
+            product: { fulfillmentType: 'ELECTRONIC' },
+          },
+        ],
+      }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true for mixed cart with at least one physical product', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        items: [
+          {
+            ...createMockCartItem({ id: 'item-1' }),
+            product: { fulfillmentType: 'ELECTRONIC' },
+          },
+          {
+            ...createMockCartItem({ id: 'item-2' }),
+            product: { fulfillmentType: 'PHYSICAL' },
+          },
+        ],
+      }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for empty cart', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({ items: [] }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent cart', async () => {
+      prisma.cart.findUnique.mockResolvedValue(null);
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(false);
+    });
+
+    it('should default to true for products without fulfillmentType', async () => {
+      prisma.cart.findUnique.mockResolvedValue(createMockCart({
+        items: [
+          {
+            ...createMockCartItem(),
+            product: { fulfillmentType: undefined },
+          },
+        ],
+      }));
+
+      const result = await service.cartRequiresShipping(mockCartId);
+
+      expect(result).toBe(true);
     });
   });
 });

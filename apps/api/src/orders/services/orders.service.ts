@@ -147,6 +147,7 @@ export class OrdersService {
   async findAll(
     companyId: string | undefined,
     query: OrderQueryDto,
+    clientId?: string,
   ): Promise<{ orders: Order[]; total: number } | CursorPaginatedResponse<Order>> {
     const where: Prisma.OrderWhereInput = {
       deletedAt: null,  // Security: Exclude soft-deleted records
@@ -155,6 +156,12 @@ export class OrdersService {
     // Only filter by companyId if provided (undefined = all orders for org/client admins)
     if (companyId) {
       where.companyId = companyId;
+    }
+
+    // Security: If no companyId but user has clientId, filter by companies belonging to that client
+    // This prevents cross-client data access for CLIENT-scoped admins
+    if (!companyId && clientId) {
+      where.company = { clientId };
     }
 
     if (query.customerId) where.customerId = query.customerId;
@@ -244,7 +251,7 @@ export class OrdersService {
 
   async findById(id: string, companyId: string): Promise<Order> {
     const order = await this.prisma.order.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
       include: {
         items: true,
         shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
@@ -264,7 +271,7 @@ export class OrdersService {
    */
   async findByIdUnscoped(id: string): Promise<Order> {
     const order = await this.prisma.order.findFirst({
-      where: { id },
+      where: { id, deletedAt: null },
       include: {
         items: true,
         shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
@@ -280,7 +287,7 @@ export class OrdersService {
 
   async findByOrderNumber(orderNumber: string, companyId: string): Promise<Order> {
     const order = await this.prisma.order.findFirst({
-      where: { orderNumber, companyId },
+      where: { orderNumber, companyId, deletedAt: null },
       include: {
         items: true,
         shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
@@ -300,7 +307,7 @@ export class OrdersService {
    */
   async findByOrderNumberUnscoped(orderNumber: string): Promise<Order> {
     const order = await this.prisma.order.findFirst({
-      where: { orderNumber },
+      where: { orderNumber, deletedAt: null },
       include: {
         items: true,
         shipments: { include: { events: { orderBy: { occurredAt: 'desc' } } } },
@@ -320,7 +327,7 @@ export class OrdersService {
 
   async update(id: string, companyId: string, dto: UpdateOrderDto, userId: string): Promise<Order> {
     const existing = await this.prisma.order.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -372,7 +379,7 @@ export class OrdersService {
     reason?: string,
   ): Promise<Order> {
     const existing = await this.prisma.order.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -417,7 +424,7 @@ export class OrdersService {
 
   async lockAddress(id: string, companyId: string, lockedBy: string): Promise<Order> {
     const existing = await this.prisma.order.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -447,7 +454,7 @@ export class OrdersService {
 
   async markPaid(id: string, companyId: string, userId: string, paymentMethod?: string): Promise<Order> {
     const existing = await this.prisma.order.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, deletedAt: null },
     });
 
     if (!existing) {
@@ -478,12 +485,20 @@ export class OrdersService {
   // STATS
   // ═══════════════════════════════════════════════════════════════
 
-  async getStats(companyId: string | undefined, startDate?: Date, endDate?: Date): Promise<OrderStats> {
-    const where: Prisma.OrderWhereInput = {};
+  async getStats(companyId: string | undefined, startDate?: Date, endDate?: Date, clientId?: string): Promise<OrderStats> {
+    const where: Prisma.OrderWhereInput = {
+      deletedAt: null,  // Security: Exclude soft-deleted records
+    };
 
     // Only filter by companyId if provided (undefined = all orders for org/client admins)
     if (companyId) {
       where.companyId = companyId;
+    }
+
+    // Security: If no companyId but user has clientId, filter by companies belonging to that client
+    // This prevents cross-client data access for CLIENT-scoped admins
+    if (!companyId && clientId) {
+      where.company = { clientId };
     }
 
     if (startDate || endDate) {

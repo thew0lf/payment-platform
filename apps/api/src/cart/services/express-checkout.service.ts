@@ -1,15 +1,19 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderNumberService } from '../../orders/services/order-number.service';
-import { CartStatus } from '@prisma/client';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
+import { ClientIntegrationService } from '../../integrations/services/client-integration.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
+import { PayPalClassicService, PayPalPaymentRequest } from '../../integrations/services/providers/paypal-classic.service';
+import { IntegrationProvider, IntegrationMode } from '../../integrations/types/integration.types';
+import { ExpressCheckoutProvider } from '../types/cart-settings.types';
+import { CartStatus, TransactionType, TransactionStatus, ProductFulfillmentType } from '@prisma/client';
 import * as crypto from 'crypto';
+import Stripe from 'stripe';
 
-export enum ExpressCheckoutProvider {
-  APPLE_PAY = 'APPLE_PAY',
-  GOOGLE_PAY = 'GOOGLE_PAY',
-  PAYPAL_EXPRESS = 'PAYPAL_EXPRESS',
-  SHOP_PAY = 'SHOP_PAY',
-}
+// Re-export from types to maintain backward compatibility
+export { ExpressCheckoutProvider } from '../types/cart-settings.types';
 
 export interface ExpressCheckoutSession {
   sessionId: string;
@@ -46,6 +50,17 @@ export interface PaymentRequestData {
   requiresShipping: boolean;
 }
 
+export interface PaymentResult {
+  success: boolean;
+  transactionId?: string;
+  providerTransactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  avsResult?: string;
+  cvvResult?: string;
+  rawResponse?: Record<string, any>;
+}
+
 const DEFAULT_SESSION_EXPIRY_MINUTES = 30;
 
 /**
@@ -76,6 +91,11 @@ export class ExpressCheckoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderNumberService: OrderNumberService,
+    private readonly companyCartSettingsService: CompanyCartSettingsService,
+    private readonly clientIntegrationService: ClientIntegrationService,
+    private readonly encryptionService: CredentialEncryptionService,
+    private readonly platformIntegrationService: PlatformIntegrationService,
+    private readonly paypalService: PayPalClassicService,
   ) {}
 
   /**
@@ -99,7 +119,7 @@ export class ExpressCheckoutService {
         items: {
           include: {
             product: {
-              select: { name: true },
+              select: { name: true, fulfillmentType: true },
             },
           },
         },
@@ -110,15 +130,15 @@ export class ExpressCheckoutService {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     if (cart.status !== CartStatus.ACTIVE) {
-      throw new BadRequestException('Cart is not active');
+      throw new BadRequestException('This cart is no longer active. Please start a new cart to continue.');
     }
 
     if (cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
+      throw new BadRequestException('Your cart is empty! Add some items before checking out.');
     }
 
     const lineItems = cart.items.map((item) => ({
@@ -143,12 +163,26 @@ export class ExpressCheckoutService {
       lineItems.push({ label: 'Discount', amount: -discount });
     }
 
+    // Determine if shipping is required based on product types
+    // Shipping is required if ANY item is a physical product
+    // PHYSICAL products require shipping; VIRTUAL and ELECTRONIC products do not
+    const requiresShipping = cart.items.some((item) => {
+      const fulfillmentType = item.product?.fulfillmentType;
+      // Default to requiring shipping if fulfillmentType is not set (for safety)
+      // Only VIRTUAL and ELECTRONIC products explicitly don't require shipping
+      return (
+        fulfillmentType === ProductFulfillmentType.PHYSICAL ||
+        fulfillmentType === undefined ||
+        fulfillmentType === null
+      );
+    });
+
     return {
       amount: total,
       currency: cart.currency || 'USD',
       label: `${cart.company?.name || 'Store'} Order`,
       lineItems,
-      requiresShipping: true, // TODO: Determine from product types
+      requiresShipping,
     };
   }
 
@@ -318,17 +352,45 @@ export class ExpressCheckoutService {
         this.logger.log(`Guest customer created: ${customerId} for express checkout`);
       }
 
-      // TODO: Process payment with provider
-      // This would integrate with the payment gateway based on session.provider
+      // Process payment with the appropriate provider
       this.logger.log(`Processing ${session.provider} payment for session ${sessionId}`);
 
-      // Simulate payment processing
-      const paymentSuccess = true; // Replace with actual payment processing
+      const paymentResult = await this.processPaymentWithProvider(
+        cart,
+        session,
+        paymentToken,
+        billingAddress,
+        payerEmail,
+      );
 
-      if (!paymentSuccess) {
+      if (!paymentResult.success) {
         session.status = 'FAILED';
-        return { success: false, error: 'We couldn\'t process your payment. Please check your details and try again. Your card was not charged.' };
+        return {
+          success: false,
+          error: paymentResult.errorMessage || 'We couldn\'t process your payment. Please check your details and try again. Your card was not charged.',
+        };
       }
+
+      // Create transaction record
+      const transactionNumber = await this.generateTransactionNumber(cart.companyId);
+      await this.prisma.transaction.create({
+        data: {
+          companyId: cart.companyId,
+          customerId,
+          transactionNumber,
+          type: TransactionType.CHARGE,
+          amount: cart.grandTotal || cart.subtotal || 0,
+          currency: cart.currency || 'USD',
+          description: `Express checkout payment via ${session.provider}`,
+          providerTransactionId: paymentResult.providerTransactionId,
+          providerResponse: paymentResult.rawResponse as any,
+          status: TransactionStatus.COMPLETED,
+          avsResult: paymentResult.avsResult,
+          cvvResult: paymentResult.cvvResult,
+          environment: 'production',
+          processedAt: new Date(),
+        },
+      });
 
       // Generate proper order number using OrderNumberService
       const orderNumber = await this.orderNumberService.generate(cart.companyId);
@@ -422,30 +484,32 @@ export class ExpressCheckoutService {
 
   /**
    * Get merchant configuration for a provider
+   * Environment is determined from the company's payment gateway integration
    */
   async getMerchantConfig(
     companyId: string,
     provider: ExpressCheckoutProvider,
   ): Promise<Record<string, any>> {
-    const config = await this.getConfig(companyId);
+    const settings = await this.companyCartSettingsService.getExpressCheckoutSettings(companyId);
 
     switch (provider) {
       case ExpressCheckoutProvider.APPLE_PAY:
         return {
-          merchantId: config.applePayMerchantId,
+          merchantId: settings.applePayMerchantId,
           countryCode: 'US',
           supportedNetworks: ['visa', 'mastercard', 'amex', 'discover'],
         };
       case ExpressCheckoutProvider.GOOGLE_PAY:
         return {
-          merchantId: config.googlePayMerchantId,
-          environment: 'TEST', // TODO: Use PRODUCTION in prod
+          merchantId: settings.googlePayMerchantId,
+          environment: settings.environment, // Now loaded from company/integration settings
           allowedPaymentMethods: ['CARD', 'TOKENIZED_CARD'],
         };
       case ExpressCheckoutProvider.PAYPAL_EXPRESS:
         return {
-          clientId: config.paypalClientId,
+          clientId: settings.paypalClientId,
           currency: 'USD',
+          environment: settings.environment,
         };
       default:
         return {};
@@ -474,18 +538,502 @@ export class ExpressCheckoutService {
 
   /**
    * Get express checkout config for company
+   * Loads settings from company configuration and active integrations
    */
   private async getConfig(companyId: string): Promise<ExpressCheckoutConfig> {
-    // TODO: Load from company settings/integrations
+    const settings = await this.companyCartSettingsService.getExpressCheckoutSettings(companyId);
+
     return {
-      enabledProviders: [
-        ExpressCheckoutProvider.APPLE_PAY,
-        ExpressCheckoutProvider.GOOGLE_PAY,
-        ExpressCheckoutProvider.PAYPAL_EXPRESS,
-      ],
-      applePayMerchantId: 'merchant.com.example',
-      googlePayMerchantId: 'example-merchant',
-      paypalClientId: 'test-client-id',
+      enabledProviders: settings.enabledProviders,
+      applePayMerchantId: settings.applePayMerchantId,
+      googlePayMerchantId: settings.googlePayMerchantId,
+      paypalClientId: settings.paypalClientId,
+      shopPayEnabled: settings.shopPayEnabled,
     };
+  }
+
+  /**
+   * Process payment with the appropriate provider based on session type
+   * Integrates with the payment gateway via ClientIntegration service (Feature 01)
+   */
+  private async processPaymentWithProvider(
+    cart: any,
+    session: ExpressCheckoutSession,
+    paymentToken: string,
+    billingAddress?: {
+      name: string;
+      addressLine1: string;
+      addressLine2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    },
+    payerEmail?: string,
+  ): Promise<PaymentResult> {
+    // Get the company's client to find payment gateway integration
+    const company = await this.prisma.company.findUnique({
+      where: { id: cart.companyId },
+      select: { clientId: true },
+    });
+
+    if (!company?.clientId) {
+      this.logger.error(`No client found for company ${cart.companyId}`);
+      return {
+        success: false,
+        errorMessage: 'Payment processing is not configured for this store.',
+      };
+    }
+
+    // Get the default payment gateway for the client
+    const paymentIntegration = await this.clientIntegrationService.getDefaultPaymentGateway(company.clientId);
+
+    if (!paymentIntegration) {
+      this.logger.error(`No payment gateway configured for client ${company.clientId}`);
+      return {
+        success: false,
+        errorMessage: 'Payment processing is not available. Please contact support.',
+      };
+    }
+
+    // Get decrypted credentials
+    let credentials: Record<string, any>;
+    try {
+      if (paymentIntegration.mode === IntegrationMode.PLATFORM && paymentIntegration.platformIntegrationId) {
+        credentials = (await this.platformIntegrationService.getDecryptedCredentials(
+          paymentIntegration.platformIntegrationId,
+        )) as Record<string, any>;
+      } else {
+        // Fetch the integration with encrypted credentials
+        const integrationWithCreds = await this.prisma.clientIntegration.findUnique({
+          where: { id: paymentIntegration.id },
+        });
+        if (!integrationWithCreds?.credentials) {
+          return {
+            success: false,
+            errorMessage: 'Payment gateway credentials are not configured.',
+          };
+        }
+        credentials = this.encryptionService.decrypt(integrationWithCreds.credentials as any) as Record<string, any>;
+      }
+    } catch (error) {
+      this.logger.error(`Failed to decrypt credentials for integration ${paymentIntegration.id}:`, error);
+      return {
+        success: false,
+        errorMessage: 'Unable to process payment. Please try again later.',
+      };
+    }
+
+    // Include environment in credentials
+    credentials.environment = paymentIntegration.environment || 'sandbox';
+
+    const amount = Number(cart.grandTotal || cart.subtotal || 0);
+    const currency = cart.currency || 'USD';
+
+    // Route to the appropriate payment provider
+    switch (paymentIntegration.provider) {
+      case IntegrationProvider.STRIPE:
+        return this.processStripePayment(credentials, paymentToken, amount, currency, session, billingAddress, payerEmail);
+
+      case IntegrationProvider.PAYPAL_PAYFLOW:
+        return this.processPayPalPayment(credentials, paymentToken, amount, currency, cart, session, billingAddress, payerEmail);
+
+      case IntegrationProvider.NMI:
+        return this.processNMIPayment(credentials, paymentToken, amount, currency, cart, session, billingAddress);
+
+      case IntegrationProvider.AUTHORIZE_NET:
+        return this.processAuthorizeNetPayment(credentials, paymentToken, amount, currency, cart, session, billingAddress);
+
+      default:
+        this.logger.error(`Unsupported payment provider: ${paymentIntegration.provider}`);
+        return {
+          success: false,
+          errorMessage: 'This payment method is not currently supported.',
+        };
+    }
+  }
+
+  /**
+   * Process payment via Stripe
+   */
+  private async processStripePayment(
+    credentials: Record<string, any>,
+    paymentToken: string,
+    amount: number,
+    currency: string,
+    session: ExpressCheckoutSession,
+    billingAddress?: any,
+    payerEmail?: string,
+  ): Promise<PaymentResult> {
+    try {
+      const stripe = new Stripe(credentials.secretKey, {
+        apiVersion: '2025-11-17.clover',
+      });
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Stripe expects amount in cents
+        currency: currency.toLowerCase(),
+        payment_method: paymentToken,
+        confirm: true,
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never',
+        },
+        metadata: {
+          express_checkout_provider: session.provider,
+          cart_id: session.cartId,
+        },
+        receipt_email: payerEmail,
+      });
+
+      if (paymentIntent.status === 'succeeded') {
+        this.logger.log(`Stripe payment succeeded: ${paymentIntent.id}`);
+        return {
+          success: true,
+          providerTransactionId: paymentIntent.id,
+          rawResponse: {
+            id: paymentIntent.id,
+            status: paymentIntent.status,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+          },
+        };
+      }
+
+      if (paymentIntent.status === 'requires_action') {
+        return {
+          success: false,
+          errorCode: 'REQUIRES_ACTION',
+          errorMessage: 'Additional authentication required. Please try again.',
+        };
+      }
+
+      return {
+        success: false,
+        errorCode: paymentIntent.status,
+        errorMessage: 'Payment was not completed. Please try again.',
+      };
+    } catch (error: any) {
+      this.logger.error(`Stripe payment failed:`, error);
+      if (error.type === 'StripeCardError') {
+        return {
+          success: false,
+          errorCode: error.code,
+          errorMessage: error.message || 'Your card was declined.',
+        };
+      }
+      return {
+        success: false,
+        errorCode: error.code || 'STRIPE_ERROR',
+        errorMessage: 'Payment processing failed. Please try again.',
+      };
+    }
+  }
+
+  /**
+   * Process payment via PayPal Classic (Payflow/DoDirectPayment)
+   */
+  private async processPayPalPayment(
+    credentials: Record<string, any>,
+    paymentToken: string,
+    amount: number,
+    currency: string,
+    cart: any,
+    session: ExpressCheckoutSession,
+    billingAddress?: any,
+    payerEmail?: string,
+  ): Promise<PaymentResult> {
+    try {
+      let paymentData: any;
+      try {
+        paymentData = JSON.parse(paymentToken);
+      } catch {
+        paymentData = { token: paymentToken };
+      }
+
+      if (paymentData.cardNumber || paymentData.card) {
+        const cardInfo = paymentData.card || paymentData;
+        const paymentRequest: PayPalPaymentRequest = {
+          amount,
+          currencyCode: currency,
+          paymentAction: 'Sale',
+          card: {
+            cardNumber: cardInfo.cardNumber || cardInfo.number,
+            expirationMonth: cardInfo.expirationMonth || cardInfo.expMonth,
+            expirationYear: cardInfo.expirationYear || cardInfo.expYear,
+            cvv: cardInfo.cvv || cardInfo.cvc || '000',
+          },
+          billingAddress: billingAddress
+            ? {
+                firstName: billingAddress.name?.split(' ')[0] || 'Customer',
+                lastName: billingAddress.name?.split(' ').slice(1).join(' ') || '',
+                street1: billingAddress.addressLine1,
+                street2: billingAddress.addressLine2,
+                city: billingAddress.city,
+                state: billingAddress.state,
+                postalCode: billingAddress.postalCode,
+                countryCode: billingAddress.country || 'US',
+                email: payerEmail,
+              }
+            : {
+                firstName: 'Customer',
+                lastName: '',
+                street1: '123 Main St',
+                city: 'Anytown',
+                state: 'CA',
+                postalCode: '12345',
+                countryCode: 'US',
+              },
+          invoiceId: cart.id,
+          description: `Order from ${session.provider}`,
+          itemAmount: Number(cart.subtotal || 0),
+          taxAmount: Number(cart.taxTotal || 0),
+          shippingAmount: Number(cart.shippingTotal || 0),
+        };
+
+        const result = await this.paypalService.doDirectPayment(
+          {
+            apiUsername: credentials.apiUsername,
+            apiPassword: credentials.apiPassword,
+            apiSignature: credentials.apiSignature,
+            environment: credentials.environment,
+          },
+          paymentRequest,
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            providerTransactionId: result.transactionId,
+            avsResult: result.avsCode,
+            cvvResult: result.cvv2Match,
+            rawResponse: result.rawResponse,
+          };
+        }
+
+        return {
+          success: false,
+          errorCode: result.errorCode,
+          errorMessage: result.errorMessage || 'PayPal payment failed.',
+        };
+      }
+
+      return {
+        success: false,
+        errorCode: 'INVALID_TOKEN',
+        errorMessage: 'Invalid payment token format.',
+      };
+    } catch (error: any) {
+      this.logger.error(`PayPal payment failed:`, error);
+      return {
+        success: false,
+        errorCode: 'PAYPAL_ERROR',
+        errorMessage: 'PayPal payment processing failed. Please try again.',
+      };
+    }
+  }
+
+  /**
+   * Process payment via NMI gateway
+   */
+  private async processNMIPayment(
+    credentials: Record<string, any>,
+    paymentToken: string,
+    amount: number,
+    currency: string,
+    cart: any,
+    session: ExpressCheckoutSession,
+    billingAddress?: any,
+  ): Promise<PaymentResult> {
+    try {
+      const axios = await import('axios');
+      const params = new URLSearchParams({
+        security_key: credentials.securityKey,
+        type: 'sale',
+        amount: amount.toFixed(2),
+        currency: currency,
+        payment_token: paymentToken,
+        orderid: cart.id,
+      });
+
+      if (billingAddress) {
+        const nameParts = (billingAddress.name || '').split(' ');
+        params.append('first_name', nameParts[0] || '');
+        params.append('last_name', nameParts.slice(1).join(' ') || '');
+        params.append('address1', billingAddress.addressLine1 || '');
+        if (billingAddress.addressLine2) {
+          params.append('address2', billingAddress.addressLine2);
+        }
+        params.append('city', billingAddress.city || '');
+        params.append('state', billingAddress.state || '');
+        params.append('zip', billingAddress.postalCode || '');
+        params.append('country', billingAddress.country || 'US');
+      }
+
+      const response = await axios.default.post(
+        'https://secure.nmi.com/api/transact.php',
+        params.toString(),
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 30000,
+        },
+      );
+
+      const result = new URLSearchParams(response.data);
+      const responseCode = result.get('response');
+      const responseText = result.get('responsetext');
+      const transactionId = result.get('transactionid');
+
+      if (responseCode === '1') {
+        this.logger.log(`NMI payment succeeded: ${transactionId}`);
+        return {
+          success: true,
+          providerTransactionId: transactionId || undefined,
+          avsResult: result.get('avsresponse') || undefined,
+          cvvResult: result.get('cvvresponse') || undefined,
+          rawResponse: Object.fromEntries(result.entries()),
+        };
+      }
+
+      return {
+        success: false,
+        errorCode: result.get('response_code') || responseCode || 'NMI_ERROR',
+        errorMessage: responseText || 'Payment declined.',
+      };
+    } catch (error: any) {
+      this.logger.error(`NMI payment failed:`, error);
+      return {
+        success: false,
+        errorCode: 'NMI_ERROR',
+        errorMessage: 'Payment processing failed. Please try again.',
+      };
+    }
+  }
+
+  /**
+   * Process payment via Authorize.Net
+   */
+  private async processAuthorizeNetPayment(
+    credentials: Record<string, any>,
+    paymentToken: string,
+    amount: number,
+    currency: string,
+    cart: any,
+    session: ExpressCheckoutSession,
+    billingAddress?: any,
+  ): Promise<PaymentResult> {
+    try {
+      const axios = await import('axios');
+      const endpoint =
+        credentials.environment === 'production'
+          ? 'https://api.authorize.net/xml/v1/request.api'
+          : 'https://apitest.authorize.net/xml/v1/request.api';
+
+      let paymentData: any;
+      try {
+        paymentData = JSON.parse(paymentToken);
+      } catch {
+        paymentData = { dataValue: paymentToken };
+      }
+
+      const requestBody: any = {
+        createTransactionRequest: {
+          merchantAuthentication: {
+            name: credentials.apiLoginId,
+            transactionKey: credentials.transactionKey,
+          },
+          transactionRequest: {
+            transactionType: 'authCaptureTransaction',
+            amount: amount.toFixed(2),
+            currencyCode: currency,
+            order: {
+              invoiceNumber: cart.id.substring(0, 20),
+              description: `Express checkout via ${session.provider}`,
+            },
+          },
+        },
+      };
+
+      if (paymentData.dataValue) {
+        requestBody.createTransactionRequest.transactionRequest.payment = {
+          opaqueData: {
+            dataDescriptor: paymentData.dataDescriptor || 'COMMON.APPLE.INAPP.PAYMENT',
+            dataValue: paymentData.dataValue,
+          },
+        };
+      } else if (paymentData.cardNumber) {
+        requestBody.createTransactionRequest.transactionRequest.payment = {
+          creditCard: {
+            cardNumber: paymentData.cardNumber,
+            expirationDate: `${paymentData.expirationMonth}${paymentData.expirationYear}`,
+            cardCode: paymentData.cvv || '',
+          },
+        };
+      }
+
+      if (billingAddress) {
+        const nameParts = (billingAddress.name || '').split(' ');
+        requestBody.createTransactionRequest.transactionRequest.billTo = {
+          firstName: nameParts[0] || 'Customer',
+          lastName: nameParts.slice(1).join(' ') || '',
+          address: billingAddress.addressLine1 || '',
+          city: billingAddress.city || '',
+          state: billingAddress.state || '',
+          zip: billingAddress.postalCode || '',
+          country: billingAddress.country || 'US',
+        };
+      }
+
+      const response = await axios.default.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000,
+      });
+
+      const data = response.data;
+      const transactionResponse = data.transactionResponse;
+
+      if (transactionResponse?.responseCode === '1') {
+        this.logger.log(`Authorize.Net payment succeeded: ${transactionResponse.transId}`);
+        return {
+          success: true,
+          providerTransactionId: transactionResponse.transId,
+          avsResult: transactionResponse.avsResultCode,
+          cvvResult: transactionResponse.cvvResultCode,
+          rawResponse: transactionResponse,
+        };
+      }
+
+      return {
+        success: false,
+        errorCode: transactionResponse?.responseCode || 'AUTH_NET_ERROR',
+        errorMessage:
+          transactionResponse?.errors?.[0]?.errorText ||
+          data.messages?.message?.[0]?.text ||
+          'Payment declined.',
+      };
+    } catch (error: any) {
+      this.logger.error(`Authorize.Net payment failed:`, error);
+      return {
+        success: false,
+        errorCode: 'AUTH_NET_ERROR',
+        errorMessage: 'Payment processing failed. Please try again.',
+      };
+    }
+  }
+
+  /**
+   * Generate a transaction number
+   */
+  private async generateTransactionNumber(companyId: string): Promise<string> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { code: true },
+    });
+
+    const prefix = company?.code || 'TXN';
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    return `${prefix}-${timestamp}-${random}`;
   }
 }

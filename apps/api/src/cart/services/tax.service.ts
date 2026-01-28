@@ -323,7 +323,7 @@ export class TaxService {
     });
 
     if (!taxRate) {
-      throw new NotFoundException('Tax rate not found');
+      throw new NotFoundException('We couldn\'t find that tax rate. It may have been removed.');
     }
 
     return taxRate;
@@ -349,7 +349,7 @@ export class TaxService {
     });
 
     if (!taxRate) {
-      throw new NotFoundException('Tax rate not found');
+      throw new NotFoundException('We couldn\'t find that tax rate. It may have been removed.');
     }
 
     return this.prisma.taxRate.update({
@@ -370,7 +370,7 @@ export class TaxService {
     });
 
     if (!taxRate) {
-      throw new NotFoundException('Tax rate not found');
+      throw new NotFoundException('We couldn\'t find that tax rate. It may have been removed.');
     }
 
     await this.prisma.taxRate.delete({

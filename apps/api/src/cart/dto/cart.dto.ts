@@ -205,3 +205,34 @@ export class RemoveBundleDto {
   @IsString()
   bundleGroupId: string;
 }
+
+/**
+ * Shipping Estimation DTOs
+ */
+
+export class EstimateShippingDto {
+  @ApiProperty({ description: 'Country code (ISO 3166-1 alpha-2)', example: 'US' })
+  @IsString()
+  country: string;
+
+  @ApiPropertyOptional({ description: 'State/Province code', example: 'CA' })
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @ApiPropertyOptional({ description: 'Postal/ZIP code', example: '94102' })
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @ApiPropertyOptional({ description: 'City name', example: 'San Francisco' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+}
+
+export class SelectShippingMethodDto {
+  @ApiProperty({ description: 'Shipping rule/method ID to select' })
+  @IsString()
+  shippingMethodId: string;
+}

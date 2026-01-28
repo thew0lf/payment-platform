@@ -8,8 +8,13 @@ import {
   Query,
   UseGuards,
   NotFoundException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ScopeType } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { CustomerSaveService } from './customer-save.service';
 import { SaveOutcome } from '../types/momentum.types';
 
@@ -46,7 +51,53 @@ interface UpdateFlowConfigDto {
 @Controller('momentum/save')
 @UseGuards(JwtAuthGuard)
 export class CustomerSaveController {
-  constructor(private readonly saveService: CustomerSaveService) {}
+  constructor(
+    private readonly saveService: CustomerSaveService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  // ═══════════════════════════════════════════════════════════════
+  // PRIVATE HELPERS
+  // ═══════════════════════════════════════════════════════════════
+
+  private async getCompanyId(
+    user: AuthenticatedUser,
+    queryCompanyId?: string,
+  ): Promise<string> {
+    // COMPANY scoped users use their own company
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // Use companyId from user context if available
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // CLIENT/ORG users need to specify or have access
+    if (queryCompanyId) {
+      const canAccess = await this.hierarchyService.canAccessCompany(
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
+        queryCompanyId,
+      );
+      if (!canAccess) {
+        throw new ForbiddenException(
+          "Hmm, you don't have access to that company. Double-check your permissions or try a different one.",
+        );
+      }
+      return queryCompanyId;
+    }
+
+    throw new BadRequestException(
+      'Company ID is required. Please select a company or provide companyId parameter.',
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // SAVE FLOW OPERATIONS
@@ -56,9 +107,14 @@ export class CustomerSaveController {
    * Initiate a new save flow for a customer
    */
   @Post('initiate')
-  async initiateSaveFlow(@Body() dto: InitiateSaveFlowDto) {
+  async initiateSaveFlow(
+    @Body() dto: InitiateSaveFlowDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
     return this.saveService.initiateSaveFlow(
-      dto.companyId,
+      companyId,
       dto.customerId,
       dto.trigger,
     );
@@ -71,7 +127,11 @@ export class CustomerSaveController {
   async progressToNextStage(
     @Param('attemptId') attemptId: string,
     @Body() dto: ProgressStageDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.saveService.progressToNextStage(
       attemptId,
       dto.response,
@@ -86,7 +146,11 @@ export class CustomerSaveController {
   async completeSaveFlow(
     @Param('attemptId') attemptId: string,
     @Body() dto: CompleteSaveFlowDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.saveService.completeSaveFlow(
       attemptId,
       dto.outcome,
@@ -102,7 +166,14 @@ export class CustomerSaveController {
    * Get a specific save attempt by ID
    */
   @Get('attempt/:attemptId')
-  async getSaveAttempt(@Param('attemptId') attemptId: string) {
+  async getSaveAttempt(
+    @Param('attemptId') attemptId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
+
     const attempt = await this.saveService['prisma'].saveAttempt.findUnique({
       where: { id: attemptId },
     });
@@ -119,9 +190,13 @@ export class CustomerSaveController {
    */
   @Get('active/:companyId/:customerId')
   async getActiveSaveAttempt(
-    @Param('companyId') companyId: string,
+    @Param('companyId') paramCompanyId: string,
     @Param('customerId') customerId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const attempt = await this.saveService['prisma'].saveAttempt.findFirst({
       where: {
         companyId,
@@ -140,11 +215,14 @@ export class CustomerSaveController {
    */
   @Get('attempts')
   async getAttemptsByQuery(
-    @Query('companyId') companyId: string,
-    @Query('status') status?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('status') status: string,
+    @Query('limit') limit: string,
+    @Query('offset') offset: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
+
     const where: any = { companyId };
 
     // Handle status filter (IN_PROGRESS means no outcome yet)
@@ -200,12 +278,16 @@ export class CustomerSaveController {
    */
   @Get('attempts/:companyId')
   async getSaveAttempts(
-    @Param('companyId') companyId: string,
-    @Query('customerId') customerId?: string,
-    @Query('outcome') outcome?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('customerId') customerId: string,
+    @Query('outcome') outcome: string,
+    @Query('limit') limit: string,
+    @Query('offset') offset: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const where: any = { companyId };
 
     if (customerId) {
@@ -230,7 +312,13 @@ export class CustomerSaveController {
    * Get save flow stats for a company (matches frontend API)
    */
   @Get('stats/:companyId')
-  async getStats(@Param('companyId') companyId: string) {
+  async getStats(
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     // Get all save attempts for this company
     const attempts = await this.saveService['prisma'].saveAttempt.findMany({
       where: { companyId },
@@ -314,7 +402,13 @@ export class CustomerSaveController {
    * Transforms internal config format to match frontend SaveFlowConfig type
    */
   @Get('config/:companyId')
-  async getFlowConfig(@Param('companyId') companyId: string) {
+  async getFlowConfig(
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const config = await this.saveService.getFlowConfig(companyId);
 
     // Transform to frontend expected format
@@ -357,9 +451,13 @@ export class CustomerSaveController {
    */
   @Put('config/:companyId')
   async updateFlowConfig(
-    @Param('companyId') companyId: string,
+    @Param('companyId') paramCompanyId: string,
     @Body() dto: UpdateFlowConfigDto & { isEnabled?: boolean; stages?: any[] },
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     // Transform frontend format to internal format
     const updates: any = { ...dto };
 
@@ -399,8 +497,8 @@ export class CustomerSaveController {
 
     await this.saveService.updateFlowConfig(companyId, updates);
 
-    // Return in frontend format
-    return this.getFlowConfig(companyId);
+    // Return in frontend format - pass user context for recursive call
+    return this.getFlowConfig(paramCompanyId, queryCompanyId, user);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -412,10 +510,14 @@ export class CustomerSaveController {
    */
   @Get('analytics/:companyId')
   async getSaveAnalytics(
-    @Param('companyId') companyId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate) : new Date();
 
@@ -495,10 +597,14 @@ export class CustomerSaveController {
    */
   @Get('analytics/:companyId/stages')
   async getStageAnalytics(
-    @Param('companyId') companyId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate) : new Date();
 
@@ -586,10 +692,14 @@ export class CustomerSaveController {
    */
   @Get('analytics/:companyId/reasons')
   async getReasonAnalytics(
-    @Param('companyId') companyId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
+
     const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate) : new Date();
 
@@ -657,7 +767,11 @@ export class CustomerSaveController {
    * Get all save flow stages
    */
   @Get('stages')
-  getStages() {
+  getStages(
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // These are static lookups but still require valid auth
     return [
       { stage: 1, name: 'pattern_interrupt', displayName: 'Pattern Interrupt' },
       { stage: 2, name: 'diagnosis_survey', displayName: 'Diagnosis Survey' },
@@ -673,7 +787,10 @@ export class CustomerSaveController {
    * Get all save outcomes
    */
   @Get('outcomes')
-  getOutcomes() {
+  getOutcomes(
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return Object.values(SaveOutcome);
   }
 
@@ -681,7 +798,10 @@ export class CustomerSaveController {
    * Get cancellation reason categories
    */
   @Get('reason-categories')
-  getReasonCategories() {
+  getReasonCategories(
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return [
       { id: 'too_expensive', label: "It's too expensive", branch: 'tooExpensive' },
       { id: 'wrong_product', label: "It's not what I expected", branch: 'wrongProduct' },

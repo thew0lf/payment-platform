@@ -23,6 +23,7 @@ import {
   HoldConfig,
 } from './inventory-hold.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 
 describe('InventoryHoldService', () => {
   let service: InventoryHoldService;
@@ -83,6 +84,16 @@ describe('InventoryHoldService', () => {
   // SETUP
   // ═══════════════════════════════════════════════════════════════
 
+  const mockCompanyCartSettingsService = {
+    getInventoryHoldSettings: jest.fn().mockResolvedValue({
+      enabled: true,
+      holdDurationMinutes: 15,
+      allowOversell: false,
+      showLowStockWarning: true,
+      lowStockThreshold: 5,
+    }),
+  };
+
   beforeEach(async () => {
     prisma = {
       cart: {
@@ -105,6 +116,7 @@ describe('InventoryHoldService', () => {
       providers: [
         InventoryHoldService,
         { provide: PrismaService, useValue: prisma },
+        { provide: CompanyCartSettingsService, useValue: mockCompanyCartSettingsService },
       ],
     }).compile();
 

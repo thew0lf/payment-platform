@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CartAbandonmentService, AbandonmentConfig, AbandonedCartStats } from './cart-abandonment.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../../email/services/email.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 import { CartStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -64,6 +65,17 @@ describe('CartAbandonmentService', () => {
     abandonedAt: new Date(),
   };
 
+  const mockCompanyCartSettingsService = {
+    getAbandonmentSettings: jest.fn().mockResolvedValue({
+      atRiskThresholdMinutes: 30,
+      abandonedThresholdMinutes: 60,
+      enableRecoveryEmails: true,
+      firstEmailDelayHours: 1,
+      secondEmailDelayHours: 24,
+      maxRecoveryEmails: 2,
+    }),
+  };
+
   beforeEach(async () => {
     const mockPrisma = {
       company: {
@@ -88,6 +100,7 @@ describe('CartAbandonmentService', () => {
         CartAbandonmentService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: CompanyCartSettingsService, useValue: mockCompanyCartSettingsService },
       ],
     }).compile();
 

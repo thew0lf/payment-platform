@@ -57,6 +57,7 @@ import { SectionEditorPanel } from '@/components/landing-pages/editor/section-ed
 import { generatePreviewHtml } from '@/components/landing-pages/editor/preview-renderer';
 import { getSectionLabel } from '@/components/landing-pages/editor/utils';
 import { DevicePreview } from '@/components/landing-pages/editor/types';
+import { CartThemeEditor, CartTheme } from '@/components/landing-pages/editor/cart-theme-editor';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -323,7 +324,7 @@ const THEME_OPTIONS = Object.entries(THEME_PRESETS).map(([theme, preset]) => ({
   color: preset.colorScheme.primary,
 }));
 
-type SidebarTab = 'sections' | 'design' | 'settings' | 'seo';
+type SidebarTab = 'sections' | 'design' | 'cart' | 'settings' | 'seo';
 
 // ═══════════════════════════════════════════════════════════════
 // ADD SECTION MODAL
@@ -682,6 +683,7 @@ function EditorContent() {
             {[
               { id: 'sections' as const, icon: Layout, label: 'Sections' },
               { id: 'design' as const, icon: Palette, label: 'Design' },
+              { id: 'cart' as const, icon: ShoppingBag, label: 'Cart Theme' },
               { id: 'settings' as const, icon: Settings, label: 'Settings' },
               { id: 'seo' as const, icon: Globe, label: 'SEO' },
             ].map(({ id, icon: Icon, label }) => (
@@ -862,6 +864,59 @@ function EditorContent() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'cart' && (
+              <div className="flex-1 overflow-y-auto">
+                <CartThemeEditor
+                  theme={(page as any).cartTheme || {
+                    preset: 'STARTER',
+                    colors: {
+                      background: '#FFFFFF',
+                      headerBackground: '#FAFAFA',
+                      footerBackground: '#FAFAFA',
+                      border: '#E5E7EB',
+                      itemBackground: '#FFFFFF',
+                      itemBorder: '#F3F4F6',
+                      headingText: '#111827',
+                      bodyText: '#374151',
+                      mutedText: '#6B7280',
+                      primaryButton: '#6366F1',
+                      primaryButtonText: '#FFFFFF',
+                      secondaryButton: '#F3F4F6',
+                      secondaryButtonText: '#374151',
+                      iconColor: '#6B7280',
+                      iconHover: '#374151',
+                      badge: '#6366F1',
+                      badgeText: '#FFFFFF',
+                      error: '#EF4444',
+                    },
+                    layout: {
+                      position: 'right',
+                      width: '420px',
+                      borderRadius: '0px',
+                      shadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                      backdropBlur: false,
+                      animationDuration: '300ms',
+                    },
+                    content: {
+                      headerTitle: 'Your Cart',
+                      emptyTitle: 'Your cart is empty',
+                      emptySubtitle: 'Add items to get started',
+                      emptyButtonText: 'Continue Shopping',
+                      checkoutButtonText: 'Proceed to Checkout',
+                      subtotalLabel: 'Subtotal',
+                      shippingNote: 'Shipping calculated at checkout',
+                      securityText: 'Secure checkout',
+                      showItemCount: true,
+                      showEmptyIcon: true,
+                      showSecurityBadge: true,
+                    },
+                  }}
+                  onChange={(cartTheme) => updatePage({ cartTheme } as any)}
+                  onReset={() => updatePage({ cartTheme: null } as any)}
+                />
               </div>
             )}
 

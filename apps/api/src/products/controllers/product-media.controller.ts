@@ -12,6 +12,7 @@ import {
   UploadedFile,
   UploadedFiles,
   BadRequestException,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { ProductMediaService } from '../services/product-media.service';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import {
   CreateMediaDto,
   UpdateMediaDto,
@@ -53,15 +55,20 @@ function toUserContext(user: AuthenticatedUser) {
 @Controller('products/:productId/media')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ProductMediaController {
-  constructor(private readonly mediaService: ProductMediaService) {}
+  constructor(
+    private readonly mediaService: ProductMediaService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
 
   @Get()
   async listMedia(
     @Param('productId') productId: string,
-    @Query('variantId') variantId?: string,
+    @Query('variantId') variantId: string | undefined,
+    @Query('companyId') queryCompanyId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    // Note: The product is already associated with a company in the database
-    // Further access control can be enforced at the service level if needed
+    // Verify user has access to the company context
+    await this.getCompanyIdForQuery(user, queryCompanyId);
     return this.mediaService.listMedia(productId, variantId);
   }
 
@@ -168,5 +175,52 @@ export class ProductMediaController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.mediaService.processMedia(productId, mediaId, dto, toUserContext(user));
+  }
+
+  /**
+   * Get companyId for write operations (create/update/delete).
+   * Requires explicit company context.
+   */
+  private getCompanyId(user: AuthenticatedUser): string {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
+  }
+
+  /**
+   * Get companyId for query operations.
+   * Validates company access when query param is provided.
+   */
+  private async getCompanyIdForQuery(user: AuthenticatedUser, queryCompanyId?: string): Promise<string | undefined> {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    if (user.scopeType === 'ORGANIZATION' || user.scopeType === 'CLIENT') {
+      if (queryCompanyId) {
+        const hasAccess = await this.hierarchyService.canAccessCompany(
+          {
+            sub: user.id,
+            scopeType: user.scopeType as ScopeType,
+            scopeId: user.scopeId,
+            clientId: user.clientId,
+            companyId: user.companyId,
+          },
+          queryCompanyId,
+        );
+        if (!hasAccess) {
+          throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
+        }
+        return queryCompanyId;
+      }
+      return undefined;
+    }
+    return undefined;
   }
 }

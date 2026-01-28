@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../../email/services/email.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CartStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -77,6 +78,7 @@ export class CartAbandonmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly companyCartSettingsService: CompanyCartSettingsService,
   ) {}
 
   /**
@@ -472,11 +474,10 @@ export class CartAbandonmentService {
 
   /**
    * Get company abandonment config
+   * Loads from company settings with sensible defaults
    */
   private async getConfig(companyId: string): Promise<AbandonmentConfig> {
-    // TODO: Load from company settings
-    // For now, return defaults
-    return DEFAULT_CONFIG;
+    return this.companyCartSettingsService.getAbandonmentSettings(companyId);
   }
 
   /**

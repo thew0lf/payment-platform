@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { CartService } from '../services/cart.service';
+import { ShippingService, ShippingEstimateResult } from '../services/shipping.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import {
@@ -30,7 +31,10 @@ import {
   UpdateShippingDto,
   AddBundleToCartDto,
   RemoveBundleDto,
+  EstimateShippingDto,
+  SelectShippingMethodDto,
 } from '../dto/cart.dto';
+import { Decimal } from '@prisma/client/runtime/library';
 
 /**
  * Authenticated Cart Controller - for logged-in users
@@ -40,7 +44,10 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('cart')
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly shippingService: ShippingService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get current user cart' })
@@ -88,7 +95,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
     }
 
     return this.cartService.updateItem(cart.id, itemId, dto, user.id);
@@ -104,7 +111,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
     }
 
     return this.cartService.removeItem(cart.id, itemId, user.id);
@@ -120,7 +127,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
     }
 
     return this.cartService.saveForLater(cart.id, itemId, user.id);
@@ -137,7 +144,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
     }
 
     return this.cartService.moveToCart(cart.id, savedItemId, dto.quantity, user.id);
@@ -153,7 +160,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item first, then apply your discount!');
     }
 
     return this.cartService.applyDiscount(cart.id, dto.code, user.id);
@@ -169,10 +176,64 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. It may have expired.');
     }
 
     return this.cartService.removeDiscount(cart.id, code, user.id);
+  }
+
+  @Post('shipping/estimate')
+  @ApiOperation({ summary: 'Estimate shipping costs for cart' })
+  @ApiResponse({ status: 200, description: 'Shipping options returned' })
+  async estimateShipping(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: EstimateShippingDto,
+  ): Promise<ShippingEstimateResult> {
+    const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
+
+    if (!cart) {
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
+    }
+
+    if (cart.items.length === 0) {
+      return {
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      };
+    }
+
+    return this.shippingService.calculateShipping({
+      companyId: user.companyId,
+      country: dto.country,
+      state: dto.state,
+      zipCode: dto.postalCode,
+      cartSubtotal: new Decimal(cart.totals.subtotal),
+      cartItems: cart.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        weight: item.productSnapshot?.weight ? new Decimal(item.productSnapshot.weight as number) : undefined,
+        lineTotal: new Decimal(item.lineTotal),
+      })),
+    });
+  }
+
+  @Post('shipping/select')
+  @ApiOperation({ summary: 'Select a shipping method for the cart' })
+  @ApiResponse({ status: 200, description: 'Shipping method selected' })
+  async selectShippingMethod(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SelectShippingMethodDto,
+  ) {
+    const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
+
+    if (!cart) {
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
+    }
+
+    return this.cartService.selectShippingMethod(cart.id, dto.shippingMethodId, user.id);
   }
 
   @Delete()
@@ -182,7 +243,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. It may have already been cleared.');
     }
 
     return this.cartService.clearCart(cart.id, user.id);
@@ -228,7 +289,7 @@ export class CartController {
     const cart = await this.cartService.getCartByCustomerId(user.id, user.companyId);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find your cart. Try adding an item to get started!');
     }
 
     return this.cartService.removeBundleFromCart(cart.id, bundleGroupId, user.id);
@@ -244,7 +305,10 @@ export class CartController {
 @ApiTags('Public Cart')
 @Controller('public/cart')
 export class PublicCartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly shippingService: ShippingService,
+  ) {}
 
   /**
    * Validate that the provided session token matches the cart's session token
@@ -255,17 +319,17 @@ export class PublicCartController {
     companyId: string,
   ): Promise<void> {
     if (!sessionToken) {
-      throw new ForbiddenException('Session token required for cart operations');
+      throw new ForbiddenException('Your session has expired. Please refresh the page to continue shopping.');
     }
 
     const cart = await this.cartService.getCartById(cartId);
 
     if (cart.companyId !== companyId) {
-      throw new ForbiddenException('Access denied to this cart');
+      throw new ForbiddenException('This cart doesn\'t belong to your session. Please start a new cart.');
     }
 
     if (cart.sessionToken !== sessionToken) {
-      throw new ForbiddenException('Session token mismatch - access denied');
+      throw new ForbiddenException('Your session doesn\'t match this cart. Please refresh and try again.');
     }
   }
 
@@ -398,8 +462,67 @@ export class PublicCartController {
     @Body() dto: UpdateShippingDto,
   ) {
     await this.validateCartOwnership(cartId, sessionToken, companyId);
-    // TODO: Implement shipping estimation
-    return this.cartService.getCartById(cartId);
+    return this.cartService.updateShippingAddress(cartId, {
+      postalCode: dto.postalCode,
+      country: dto.country,
+    });
+  }
+
+  @Post(':cartId/shipping/estimate')
+  @ApiOperation({ summary: 'Estimate shipping costs for cart' })
+  @ApiHeader({ name: 'x-session-token', description: 'Cart session token', required: true })
+  @ApiHeader({ name: 'x-company-id', description: 'Company ID', required: true })
+  @ApiResponse({ status: 200, description: 'Shipping options returned' })
+  @ApiResponse({ status: 403, description: 'Session token mismatch' })
+  async estimateShipping(
+    @Param('cartId') cartId: string,
+    @Headers('x-session-token') sessionToken: string,
+    @Headers('x-company-id') companyId: string,
+    @Body() dto: EstimateShippingDto,
+  ): Promise<ShippingEstimateResult> {
+    await this.validateCartOwnership(cartId, sessionToken, companyId);
+
+    const cart = await this.cartService.getCartById(cartId);
+
+    if (cart.items.length === 0) {
+      return {
+        options: [],
+        cheapestOption: null,
+        fastestOption: null,
+        freeShippingThreshold: null,
+        amountToFreeShipping: null,
+      };
+    }
+
+    return this.shippingService.calculateShipping({
+      companyId,
+      country: dto.country,
+      state: dto.state,
+      zipCode: dto.postalCode,
+      cartSubtotal: new Decimal(cart.totals.subtotal),
+      cartItems: cart.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        weight: item.productSnapshot?.weight ? new Decimal(item.productSnapshot.weight as number) : undefined,
+        lineTotal: new Decimal(item.lineTotal),
+      })),
+    });
+  }
+
+  @Post(':cartId/shipping/select')
+  @ApiOperation({ summary: 'Select a shipping method for the cart' })
+  @ApiHeader({ name: 'x-session-token', description: 'Cart session token', required: true })
+  @ApiHeader({ name: 'x-company-id', description: 'Company ID', required: true })
+  @ApiResponse({ status: 200, description: 'Shipping method selected' })
+  @ApiResponse({ status: 403, description: 'Session token mismatch' })
+  async selectShippingMethod(
+    @Param('cartId') cartId: string,
+    @Headers('x-session-token') sessionToken: string,
+    @Headers('x-company-id') companyId: string,
+    @Body() dto: SelectShippingMethodDto,
+  ) {
+    await this.validateCartOwnership(cartId, sessionToken, companyId);
+    return this.cartService.selectShippingMethod(cartId, dto.shippingMethodId);
   }
 
   @Post(':cartId/bundles')

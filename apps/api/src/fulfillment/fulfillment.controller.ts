@@ -54,7 +54,9 @@ export class FulfillmentController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Shipment[]> {
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
-    return this.shipmentsService.findAll(orderId, companyId);
+    // Pass clientId for cross-client boundary filtering when companyId is undefined
+    const clientId = !companyId && user.scopeType === 'CLIENT' ? user.scopeId : user.clientId;
+    return this.shipmentsService.findAll(orderId, companyId, clientId);
   }
 
   @Get('shipments/:id')
@@ -170,7 +172,7 @@ export class FulfillmentController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException("Hmm, you don't have access to that company. Double-check your permissions or try a different one.");
         }
         return queryCompanyId;
       }

@@ -7,8 +7,13 @@ import {
   Param,
   Query,
   UseGuards,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ScopeType } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { TermsService } from './terms.service';
 import {
   TermsDocument,
@@ -32,7 +37,53 @@ import {
 @Controller('momentum/terms')
 @UseGuards(JwtAuthGuard)
 export class TermsController {
-  constructor(private readonly termsService: TermsService) {}
+  constructor(
+    private readonly termsService: TermsService,
+    private readonly hierarchyService: HierarchyService,
+  ) {}
+
+  // ═══════════════════════════════════════════════════════════════
+  // PRIVATE HELPERS
+  // ═══════════════════════════════════════════════════════════════
+
+  private async getCompanyId(
+    user: AuthenticatedUser,
+    queryCompanyId?: string,
+  ): Promise<string> {
+    // COMPANY scoped users use their own company
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+
+    // Use companyId from user context if available
+    if (user.companyId) {
+      return user.companyId;
+    }
+
+    // CLIENT/ORG users need to specify or have access
+    if (queryCompanyId) {
+      const canAccess = await this.hierarchyService.canAccessCompany(
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
+        queryCompanyId,
+      );
+      if (!canAccess) {
+        throw new ForbiddenException(
+          "Hmm, you don't have access to that company. Double-check your permissions or try a different one.",
+        );
+      }
+      return queryCompanyId;
+    }
+
+    throw new BadRequestException(
+      'Company ID is required. Please select a company or provide companyId parameter.',
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // TERMS MANAGEMENT
@@ -42,8 +93,13 @@ export class TermsController {
    * Create a new terms document
    */
   @Post()
-  async createTerms(@Body() dto: CreateTermsDto): Promise<TermsDocument> {
-    return this.termsService.createTerms(dto);
+  async createTerms(
+    @Body() dto: CreateTermsDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TermsDocument> {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
+    return this.termsService.createTerms({ ...dto, companyId });
   }
 
   /**
@@ -53,7 +109,11 @@ export class TermsController {
   async updateTerms(
     @Param('termsId') termsId: string,
     @Body() dto: Omit<UpdateTermsDto, 'termsId'>,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<TermsDocument> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.updateTerms({ termsId, ...dto });
   }
 
@@ -64,7 +124,11 @@ export class TermsController {
   async publishTerms(
     @Param('termsId') termsId: string,
     @Body() dto: Omit<PublishTermsDto, 'termsId'>,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<TermsDocument> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.publishTerms({ termsId, ...dto });
   }
 
@@ -76,9 +140,14 @@ export class TermsController {
    * Generate terms with AI
    */
   @Post('generate')
-  async generateTerms(@Body() dto: GenerateTermsDto): Promise<GeneratedTerms> {
+  async generateTerms(
+    @Body() dto: GenerateTermsDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<GeneratedTerms> {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
     return this.termsService.generateTermsWithAI({
-      companyId: dto.companyId,
+      companyId,
       ...dto.config,
     });
   }
@@ -90,7 +159,11 @@ export class TermsController {
   async generateSummary(
     @Param('termsId') termsId: string,
     @Body() dto: Omit<GenerateSummaryDto, 'termsId'>,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<TermsSummary> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.generateSummary({ termsId, ...dto });
   }
 
@@ -102,7 +175,13 @@ export class TermsController {
    * Record terms acceptance
    */
   @Post('accept')
-  async recordAcceptance(@Body() dto: RecordAcceptanceDto): Promise<TermsAcceptance> {
+  async recordAcceptance(
+    @Body() dto: RecordAcceptanceDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TermsAcceptance> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.recordAcceptance(dto);
   }
 
@@ -110,8 +189,13 @@ export class TermsController {
    * Get acceptances
    */
   @Get('acceptances')
-  async getAcceptances(@Query() dto: GetAcceptancesDto) {
-    return this.termsService.getAcceptances(dto);
+  async getAcceptances(
+    @Query() dto: GetAcceptancesDto & { companyId?: string },
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
+    return this.termsService.getAcceptances({ ...dto, companyId } as any);
   }
 
   /**
@@ -121,7 +205,11 @@ export class TermsController {
   async checkAcceptance(
     @Param('termsId') termsId: string,
     @Param('customerId') customerId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ accepted: boolean }> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     const accepted = await this.termsService.checkAcceptance(termsId, customerId);
     return { accepted };
   }
@@ -134,15 +222,26 @@ export class TermsController {
    * Get terms documents with filters
    */
   @Get()
-  async getTermsDocuments(@Query() dto: GetTermsDto) {
-    return this.termsService.getTermsDocuments(dto);
+  async getTermsDocuments(
+    @Query() dto: GetTermsDto,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
+    return this.termsService.getTermsDocuments({ ...dto, companyId });
   }
 
   /**
    * Get a specific terms document
    */
   @Get(':termsId')
-  async getTermsDocument(@Param('termsId') termsId: string) {
+  async getTermsDocument(
+    @Param('termsId') termsId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.getTermsDocument(termsId);
   }
 
@@ -151,9 +250,12 @@ export class TermsController {
    */
   @Get('active/:companyId/:type')
   async getActiveTerms(
-    @Param('companyId') companyId: string,
+    @Param('companyId') paramCompanyId: string,
     @Param('type') type: TermsType,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<TermsDocument | null> {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
     return this.termsService.getActiveTerms(companyId, type);
   }
 
@@ -167,8 +269,12 @@ export class TermsController {
   @Get(':termsId/view')
   async getCustomerTermsView(
     @Param('termsId') termsId: string,
-    @Query('customerId') customerId?: string,
+    @Query('customerId') customerId: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<CustomerTermsView> {
+    // Validate company access
+    await this.getCompanyId(user, queryCompanyId);
     return this.termsService.getCustomerTermsView(termsId, customerId);
   }
 
@@ -177,9 +283,12 @@ export class TermsController {
    */
   @Get('search/:companyId')
   async searchTerms(
-    @Param('companyId') companyId: string,
+    @Param('companyId') paramCompanyId: string,
     @Query('q') query: string,
+    @Query('companyId') queryCompanyId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
     return this.termsService.searchTerms(query, companyId);
   }
 
@@ -192,9 +301,12 @@ export class TermsController {
    */
   @Get('analytics/:companyId')
   async getAnalytics(
-    @Param('companyId') companyId: string,
+    @Param('companyId') paramCompanyId: string,
+    @Query('companyId') queryCompanyId: string,
     @Query() dto: Omit<TermsAnalyticsDto, 'companyId'>,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<TermsAnalytics> {
+    const companyId = await this.getCompanyId(user, queryCompanyId || paramCompanyId);
     return this.termsService.getAnalytics({ companyId, ...dto });
   }
 }

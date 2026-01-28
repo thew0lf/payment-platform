@@ -239,7 +239,7 @@ export class FunnelsController {
     // Security: Validate read access to the requested company
     const companyId = await this.getCompanyIdForQuery(user, queryCompanyId);
     if (!companyId) {
-      throw new ForbiddenException('Company ID required for stats overview');
+      throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.analyticsService.getCompanyFunnelStats(companyId);
   }
@@ -282,12 +282,12 @@ export class FunnelsController {
         queryCompanyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to the requested company');
+        throw new ForbiddenException("Hmm, you don't have access to that company. Double-check your permissions or try a different one.");
       }
       return queryCompanyId;
     }
 
-    throw new ForbiddenException('Company context required for this operation');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 
   /**
@@ -316,7 +316,7 @@ export class FunnelsController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException("Hmm, you don't have access to that company. Double-check your permissions or try a different one.");
         }
         return queryCompanyId;
       }
@@ -324,7 +324,7 @@ export class FunnelsController {
       return undefined;
     }
 
-    throw new ForbiddenException('Unable to determine company context');
+    throw new ForbiddenException('Company ID is required. Please select a company or provide companyId parameter.');
   }
 }
 

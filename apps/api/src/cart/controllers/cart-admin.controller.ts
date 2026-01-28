@@ -143,6 +143,12 @@ export class CartAdminController {
       ...(companyId && { companyId }),
     };
 
+    // SECURITY: Client boundary validation for ORG/CLIENT admins viewing all
+    // Prevents cross-client data leakage when companyId is undefined
+    if (!companyId && user.clientId) {
+      where.company = { clientId: user.clientId };
+    }
+
     // Status filter
     if (query.status) {
       where.status = query.status as PrismaCartStatus;
@@ -153,7 +159,7 @@ export class CartAdminController {
       const startDate = new Date(query.startDate);
       const endDate = new Date(query.endDate);
       if (startDate > endDate) {
-        throw new BadRequestException('Start date must be before or equal to end date');
+        throw new BadRequestException('Oops! The start date should be before the end date. Try swapping them.');
       }
       where.createdAt = { gte: startDate, lte: endDate };
     } else if (query.startDate) {
@@ -252,7 +258,7 @@ export class CartAdminController {
       const startDate = new Date(query.startDate);
       const endDate = new Date(query.endDate);
       if (startDate > endDate) {
-        throw new BadRequestException('Start date must be before or equal to end date');
+        throw new BadRequestException('Oops! The start date should be before the end date. Try swapping them.');
       }
     }
 
@@ -267,6 +273,12 @@ export class CartAdminController {
       ...(companyId && { companyId }),
       ...(dateFilter && { createdAt: dateFilter }),
     };
+
+    // SECURITY: Client boundary validation for ORG/CLIENT admins viewing all
+    // Prevents cross-client data leakage when companyId is undefined
+    if (!companyId && user.clientId) {
+      baseWhere.company = { clientId: user.clientId };
+    }
 
     // Get counts by status
     const [
@@ -351,7 +363,7 @@ export class CartAdminController {
     const companyId = await this.getCompanyIdForQuery(user, query.companyId);
 
     if (!companyId) {
-      throw new BadRequestException('Company ID is required for abandoned cart queries');
+      throw new BadRequestException('Heads up! Please select a company from the sidebar to view abandoned carts.');
     }
 
     const carts = await this.cartAbandonmentService.getAbandonedCarts(companyId, {
@@ -412,7 +424,7 @@ export class CartAdminController {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('We couldn\'t find that cart. It may have been archived or removed.');
     }
 
     // Validate company access
@@ -442,7 +454,7 @@ export class CartAdminController {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('We couldn\'t find that cart. It may have been archived or removed.');
     }
 
     await this.validateCompanyAccess(user, cart.companyId);
@@ -545,20 +557,20 @@ export class CartAdminController {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('We couldn\'t find that cart. It may have been archived or removed.');
     }
 
     await this.validateCompanyAccess(user, cart.companyId);
 
     // Validate cart is abandoned
     if (cart.status !== 'ABANDONED') {
-      throw new BadRequestException('Cart is not abandoned. Recovery emails can only be sent for abandoned carts.');
+      throw new BadRequestException('This cart isn\'t abandoned yet. Recovery emails can only be sent for abandoned carts.');
     }
 
     // Validate cart has customer email
     const email = cart.customer?.email;
     if (!email) {
-      throw new BadRequestException('Cart does not have a customer email address');
+      throw new BadRequestException('This cart doesn\'t have a customer email on file. We need an email to send the recovery message.');
     }
 
     // Generate recovery URL (using cart-abandonment service for token)
@@ -655,19 +667,19 @@ export class CartAdminController {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('We couldn\'t find that cart. It may have already been archived or removed.');
     }
 
     await this.validateCompanyAccess(user, cart.companyId);
 
     // Cannot archive converted carts (they're linked to orders)
     if (cart.status === 'CONVERTED') {
-      throw new BadRequestException('Cannot archive a converted cart. The cart is linked to an order.');
+      throw new BadRequestException('This cart became an order and can\'t be archived. Check the orders section instead!');
     }
 
     // Already archived (expired) check
     if (cart.status === 'EXPIRED') {
-      throw new BadRequestException('Cart is already archived');
+      throw new BadRequestException('Good news - this cart is already archived!');
     }
 
     // Archive the cart by setting status to EXPIRED
@@ -738,14 +750,14 @@ export class CartAdminController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
         }
         return queryCompanyId;
       }
       return undefined;
     }
 
-    throw new ForbiddenException('Unable to determine company context');
+    throw new ForbiddenException('We couldn\'t figure out which company to use. Please select one from the sidebar.');
   }
 
   /**
@@ -779,7 +791,7 @@ export class CartAdminController {
     );
 
     if (!hasAccess) {
-      throw new ForbiddenException('Access denied to this cart');
+      throw new ForbiddenException('You don\'t have permission to view this cart. Need access? Contact your admin.');
     }
   }
 

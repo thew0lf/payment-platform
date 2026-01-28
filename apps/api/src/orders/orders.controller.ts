@@ -55,7 +55,9 @@ export class OrdersController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ orders: Order[]; total: number } | CursorPaginatedResponse<Order>> {
     const companyId = await this.getCompanyIdForQuery(user, query.companyId);
-    return this.ordersService.findAll(companyId, query);
+    // Pass clientId for cross-client security filtering when companyId is undefined
+    const clientId = user.scopeType === 'CLIENT' ? user.scopeId : user.clientId;
+    return this.ordersService.findAll(companyId, query, clientId);
   }
 
   @Get('stats')
@@ -66,10 +68,13 @@ export class OrdersController {
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<OrderStats> {
     const companyId = await this.getCompanyIdForQuery(user!, queryCompanyId);
+    // Pass clientId for cross-client security filtering when companyId is undefined
+    const clientId = user!.scopeType === 'CLIENT' ? user!.scopeId : user!.clientId;
     return this.ordersService.getStats(
       companyId,
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
+      clientId,
     );
   }
 
@@ -88,7 +93,7 @@ export class OrdersController {
         order.companyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to this order');
+        throw new ForbiddenException('Oops! You don\'t have access to this order. Check with your admin if you think this is a mistake.');
       }
       return order;
     }
@@ -112,7 +117,7 @@ export class OrdersController {
         order.companyId,
       );
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to this order');
+        throw new ForbiddenException('Oops! You don\'t have access to this order. Check with your admin if you think this is a mistake.');
       }
       return order;
     }
@@ -232,7 +237,7 @@ export class OrdersController {
     if (user.clientId) {
       return user.clientId;
     }
-    throw new ForbiddenException('Company context required for this operation');
+    throw new ForbiddenException('We need to know which company you\'re working with. Please select a company or contact your admin.');
   }
 
   /**
@@ -261,7 +266,7 @@ export class OrdersController {
           queryCompanyId,
         );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to the requested company');
+          throw new ForbiddenException('Oops! You don\'t have access to that company. Check with your admin if you think this is a mistake.');
         }
         return queryCompanyId;
       }
@@ -269,6 +274,6 @@ export class OrdersController {
       return undefined;
     }
 
-    throw new ForbiddenException('Unable to determine company context');
+    throw new ForbiddenException('We couldn\'t figure out which company you\'re working with. Please try again or contact support.');
   }
 }

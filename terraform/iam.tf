@@ -256,6 +256,23 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "logs:DescribeLogStreams"
         ]
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*"
+      },
+      {
+        Sid    = "SecretsManager"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:payment-platform/*"
+      },
+      {
+        Sid    = "RDSBackup"
+        Effect = "Allow"
+        Action = [
+          "rds:CreateDBSnapshot",
+          "rds:DescribeDBSnapshots"
+        ]
+        Resource = "*"
       }
     ]
   })

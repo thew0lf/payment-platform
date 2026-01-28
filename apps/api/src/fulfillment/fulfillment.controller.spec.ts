@@ -153,7 +153,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
 
       await controller.getShipments('order-1', undefined as any, companyUser);
 
-      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', 'company-1');
+      // COMPANY scope users: companyId is their scopeId, clientId from their user context
+      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', 'company-1', 'client-1');
     });
 
     it('should allow ORGANIZATION admin to query all shipments (no companyId filter)', async () => {
@@ -161,7 +162,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
 
       await controller.getShipments('order-1', undefined as any, orgAdminUser);
 
-      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', undefined);
+      // ORG admin: no companyId, no clientId (can see all)
+      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', undefined, undefined);
     });
 
     it('should allow CLIENT admin to query all shipments within client scope', async () => {
@@ -169,7 +171,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
 
       await controller.getShipments(undefined as any, undefined as any, clientAdminUser);
 
-      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, undefined);
+      // CLIENT admin without companyId query: uses clientId for boundary filtering
+      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, undefined, 'client-1');
     });
 
     it('should validate company access when CLIENT admin passes companyId query param', async () => {
@@ -186,7 +189,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
         }),
         'company-1',
       );
-      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-1');
+      // CLIENT admin with companyId query: companyId is validated, clientId still passed
+      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-1', 'client-1');
     });
 
     it('should throw ForbiddenException when CLIENT admin tries to access unauthorized company', async () => {
@@ -344,8 +348,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
 
       await controller.getShipments('order-1', 'other-company', companyUser);
 
-      // The companyId from user scope takes precedence
-      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', 'company-1');
+      // The companyId from user scope takes precedence, with clientId for boundary
+      expect(shipmentsService.findAll).toHaveBeenCalledWith('order-1', 'company-1', 'client-1');
     });
 
     it('should ensure different COMPANY users get isolated data', async () => {
@@ -353,13 +357,13 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
 
       // First company user
       await controller.getShipments(undefined as any, undefined as any, companyUser);
-      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-1');
+      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-1', 'client-1');
 
       jest.clearAllMocks();
 
       // Second company user (different company)
       await controller.getShipments(undefined as any, undefined as any, otherCompanyUser);
-      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-2');
+      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-2', 'client-1');
     });
   });
 
@@ -371,7 +375,8 @@ describe('FulfillmentController - Hierarchical Access Control', () => {
       await controller.getShipments(undefined as any, 'company-under-client', clientAdminUser);
 
       expect(hierarchyService.canAccessCompany).toHaveBeenCalled();
-      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-under-client');
+      // CLIENT admin with specific companyId: validated companyId, clientId for boundary
+      expect(shipmentsService.findAll).toHaveBeenCalledWith(undefined, 'company-under-client', 'client-1');
     });
 
     it('should deny CLIENT admin access to companies outside their client', async () => {

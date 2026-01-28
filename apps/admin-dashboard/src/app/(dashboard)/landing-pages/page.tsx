@@ -30,6 +30,7 @@ import {
   LandingPageTheme,
   TemplateOption,
 } from '@/lib/api/landing-pages';
+import { useHierarchy } from '@/contexts/hierarchy-context';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -64,6 +65,7 @@ interface CreatePageModalProps {
 
 function CreatePageModal({ onClose, onCreated }: CreatePageModalProps) {
   const router = useRouter();
+  const { selectedCompanyId } = useHierarchy();
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('blank');
@@ -111,6 +113,7 @@ function CreatePageModal({ onClose, onCreated }: CreatePageModalProps) {
         name: formData.name,
         slug: formData.slug,
         theme: selectedTheme,
+        companyId: selectedCompanyId || undefined,
       });
       onCreated();
       router.push(`/landing-pages/${page.id}/edit`);

@@ -77,12 +77,12 @@ export class PromotionService {
   ) {
     // Validate value is positive
     if (data.value < 0) {
-      throw new BadRequestException('Promotion value must be a positive number');
+      throw new BadRequestException('Oops! The promotion value needs to be a positive number.');
     }
 
     // Validate percentage doesn't exceed 100
     if (data.type === PromotionType.PERCENTAGE_OFF && data.value > 100) {
-      throw new BadRequestException('Percentage discount cannot exceed 100%');
+      throw new BadRequestException('Whoa there! A percentage discount can\'t exceed 100%.');
     }
 
     // Validate code is unique for this company
@@ -91,7 +91,7 @@ export class PromotionService {
     });
 
     if (existing) {
-      throw new BadRequestException(`Promotion code "${data.code}" already exists`);
+      throw new BadRequestException(`The code "${data.code}" is already taken. Try a different one!`);
     }
 
     return this.prisma.promotion.create({
@@ -289,7 +289,7 @@ export class PromotionService {
     const validation = await this.validatePromotion(input);
 
     if (!validation.valid || !validation.promotion) {
-      throw new BadRequestException(validation.error || 'Invalid promotion');
+      throw new BadRequestException(validation.error || 'Hmm, that promotion code didn\'t work. Try another one!');
     }
 
     const { promotion, discountAmount } = validation;
@@ -402,7 +402,7 @@ export class PromotionService {
     });
 
     if (!promotion) {
-      throw new NotFoundException('Promotion not found');
+      throw new NotFoundException('We couldn\'t find that promotion. It may have been removed or expired.');
     }
 
     return promotion;
@@ -433,7 +433,7 @@ export class PromotionService {
     });
 
     if (!promotion) {
-      throw new NotFoundException('Promotion not found');
+      throw new NotFoundException('We couldn\'t find that promotion. It may have been removed or expired.');
     }
 
     // Extract targeting and other fields that need special handling
@@ -460,7 +460,7 @@ export class PromotionService {
     });
 
     if (!promotion) {
-      throw new NotFoundException('Promotion not found');
+      throw new NotFoundException('We couldn\'t find that promotion. It may have been removed or expired.');
     }
 
     // Check if promotion has been used

@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -44,7 +45,7 @@ export class InventoryLocationController {
   ) {
     const effectiveCompanyId = companyId || user.companyId;
     if (!effectiveCompanyId) {
-      throw new Error('Company ID is required');
+      throw new BadRequestException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.locationService.findAll(effectiveCompanyId, toUserContext(user));
   }
@@ -57,7 +58,7 @@ export class InventoryLocationController {
   ) {
     const effectiveCompanyId = companyId || user.companyId;
     if (!effectiveCompanyId) {
-      throw new Error('Company ID is required');
+      throw new BadRequestException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.locationService.getDefault(effectiveCompanyId, toUserContext(user));
   }
@@ -80,7 +81,7 @@ export class InventoryLocationController {
   ) {
     const effectiveCompanyId = companyId || user.companyId;
     if (!effectiveCompanyId) {
-      throw new Error('Company ID is required');
+      throw new BadRequestException('Company ID is required. Please select a company or provide companyId parameter.');
     }
     return this.locationService.create(effectiveCompanyId, dto, toUserContext(user));
   }

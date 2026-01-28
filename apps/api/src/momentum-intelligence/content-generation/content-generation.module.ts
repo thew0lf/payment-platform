@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../../auth/auth.module';
+import { HierarchyModule } from '../../hierarchy/hierarchy.module';
 import { BehavioralTriggersModule } from '../behavioral-triggers/triggers.module';
 import { ContentGenerationService } from './content-generation.service';
 import { ContentGenerationController } from './content-generation.controller';
@@ -11,6 +12,7 @@ import { ContentGenerationController } from './content-generation.controller';
   imports: [
     PrismaModule,
     AuthModule,
+    HierarchyModule,
     ConfigModule,
     EventEmitterModule.forRoot(),
     BehavioralTriggersModule,

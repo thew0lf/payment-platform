@@ -13,12 +13,39 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   ExpressCheckoutService,
-  ExpressCheckoutProvider,
   ExpressCheckoutSession,
 } from './express-checkout.service';
+import { ExpressCheckoutProvider } from '../types/cart-settings.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderNumberService } from '../../orders/services/order-number.service';
+import { CompanyCartSettingsService } from './company-cart-settings.service';
+import { ClientIntegrationService } from '../../integrations/services/client-integration.service';
+import { CredentialEncryptionService } from '../../integrations/services/credential-encryption.service';
+import { PlatformIntegrationService } from '../../integrations/services/platform-integration.service';
+import { PayPalClassicService } from '../../integrations/services/providers/paypal-classic.service';
 import { CartStatus } from '@prisma/client';
+
+// Mock Stripe module before it's imported by the service
+// The default export is a class that accepts (secretKey, options)
+const mockStripePaymentIntents = {
+  create: jest.fn().mockResolvedValue({
+    id: 'pi_test_123',
+    status: 'succeeded',
+    amount: 7498,
+    currency: 'usd',
+  }),
+  retrieve: jest.fn().mockResolvedValue({
+    id: 'pi_test_123',
+    status: 'succeeded',
+  }),
+};
+
+jest.mock('stripe', () => {
+  const MockStripe = jest.fn().mockImplementation(() => ({
+    paymentIntents: mockStripePaymentIntents,
+  }));
+  return { default: MockStripe, __esModule: true };
+});
 
 describe('ExpressCheckoutService', () => {
   let service: ExpressCheckoutService;
@@ -107,11 +134,80 @@ describe('ExpressCheckoutService', () => {
     customer: {
       create: jest.fn(),
     },
+    company: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: mockCompanyId,
+        clientId: 'client-001',
+      }),
+    },
+    clientIntegration: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'integration-001',
+        credentials: { secretKey: 'sk_test_xxx' },
+      }),
+    },
+    transaction: {
+      create: jest.fn().mockResolvedValue({ id: 'txn-001' }),
+    },
   };
 
   const mockOrderNumberService = {
     generate: jest.fn().mockResolvedValue('TEST-COMP-A-000000001'),
     generateShipmentNumber: jest.fn().mockResolvedValue('TEST-COMP-S-A-000000001'),
+  };
+
+  const mockCompanyCartSettingsService = {
+    getExpressCheckoutSettings: jest.fn().mockResolvedValue({
+      enabledProviders: [
+        ExpressCheckoutProvider.APPLE_PAY,
+        ExpressCheckoutProvider.GOOGLE_PAY,
+        ExpressCheckoutProvider.PAYPAL_EXPRESS,
+      ],
+      environment: 'TEST',
+      applePayMerchantId: 'merchant.com.example',
+      googlePayMerchantId: 'example-merchant',
+      paypalClientId: 'test-client-id',
+    }),
+  };
+
+  const mockClientIntegrationService = {
+    findByProvider: jest.fn(),
+    findDefaultByCategory: jest.fn(),
+    getDefaultPaymentGateway: jest.fn().mockResolvedValue({
+      id: 'integration-001',
+      provider: 'STRIPE',
+      mode: 'OWN',
+      environment: 'sandbox',
+      credentials: { secretKey: 'sk_test_xxx' },
+    }),
+  };
+
+  const mockEncryptionService = {
+    decrypt: jest.fn().mockReturnValue({
+      secretKey: 'sk_test_xxx',
+      apiUsername: 'test_user',
+      apiPassword: 'test_pass',
+      apiSignature: 'test_sig',
+      securityKey: 'test_key',
+      apiLoginId: 'test_login',
+      transactionKey: 'test_txn_key',
+    }),
+  };
+
+  const mockPlatformIntegrationService = {
+    findByProvider: jest.fn(),
+  };
+
+  const mockPayPalService = {
+    createOrder: jest.fn(),
+    captureOrder: jest.fn(),
+    doDirectPayment: jest.fn().mockResolvedValue({
+      success: true,
+      transactionId: 'PAYPAL-TXN-001',
+      avsCode: 'M',
+      cvv2Match: 'M',
+      rawResponse: {},
+    }),
   };
 
   beforeEach(async () => {
@@ -125,6 +221,26 @@ describe('ExpressCheckoutService', () => {
         {
           provide: OrderNumberService,
           useValue: mockOrderNumberService,
+        },
+        {
+          provide: CompanyCartSettingsService,
+          useValue: mockCompanyCartSettingsService,
+        },
+        {
+          provide: ClientIntegrationService,
+          useValue: mockClientIntegrationService,
+        },
+        {
+          provide: CredentialEncryptionService,
+          useValue: mockEncryptionService,
+        },
+        {
+          provide: PlatformIntegrationService,
+          useValue: mockPlatformIntegrationService,
+        },
+        {
+          provide: PayPalClassicService,
+          useValue: mockPayPalService,
         },
       ],
     }).compile();

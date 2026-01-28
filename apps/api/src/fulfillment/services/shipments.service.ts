@@ -32,7 +32,7 @@ export class ShipmentsService {
   async create(companyId: string, dto: CreateShipmentDto, userId: string): Promise<Shipment> {
     // Verify order exists and belongs to company
     const order = await this.prisma.order.findFirst({
-      where: { id: dto.orderId, companyId },
+      where: { id: dto.orderId, companyId, deletedAt: null },
     });
 
     if (!order) {
@@ -98,8 +98,9 @@ export class ShipmentsService {
   /**
    * Find all shipments, optionally filtered by orderId and/or companyId.
    * For org/client admins, companyId may be undefined to see all shipments.
+   * When companyId is undefined but clientId is provided, filters by client boundary.
    */
-  async findAll(orderId?: string, companyId?: string): Promise<Shipment[]> {
+  async findAll(orderId?: string, companyId?: string, clientId?: string): Promise<Shipment[]> {
     const where: Prisma.ShipmentWhereInput = {};
 
     // Filter by orderId if provided
@@ -107,10 +108,21 @@ export class ShipmentsService {
       where.orderId = orderId;
     }
 
+    // Build order filter with soft-delete and scope constraints
+    const orderFilter: Prisma.OrderWhereInput = {
+      deletedAt: null, // Soft-delete filter: exclude shipments whose orders are soft-deleted
+    };
+
     // Filter by company through the order relation if companyId is provided
     if (companyId) {
-      where.order = { companyId };
+      orderFilter.companyId = companyId;
+    } else if (clientId) {
+      // CROSS_CLIENT fix: When no companyId but clientId provided,
+      // filter by client boundary to prevent cross-client data leakage
+      orderFilter.company = { clientId };
     }
+
+    where.order = orderFilter;
 
     const shipments = await this.prisma.shipment.findMany({
       where,
@@ -123,9 +135,9 @@ export class ShipmentsService {
   }
 
   async findByOrderId(orderId: string, companyId: string): Promise<Shipment[]> {
-    // Verify order belongs to company
+    // Verify order belongs to company and is not soft-deleted
     const order = await this.prisma.order.findFirst({
-      where: { id: orderId, companyId },
+      where: { id: orderId, companyId, deletedAt: null },
     });
 
     if (!order) {
@@ -142,15 +154,18 @@ export class ShipmentsService {
   }
 
   async findById(id: string, companyId: string): Promise<Shipment> {
-    const shipment = await this.prisma.shipment.findUnique({
-      where: { id },
+    const shipment = await this.prisma.shipment.findFirst({
+      where: {
+        id,
+        order: { companyId, deletedAt: null },
+      },
       include: {
         events: { orderBy: { occurredAt: 'desc' } },
         order: { select: { companyId: true } },
       },
     });
 
-    if (!shipment || shipment.order.companyId !== companyId) {
+    if (!shipment) {
       throw new NotFoundException(`Shipment ${id} not found`);
     }
 
@@ -162,13 +177,16 @@ export class ShipmentsService {
   // ═══════════════════════════════════════════════════════════════
 
   async update(id: string, companyId: string, dto: UpdateShipmentDto, userId: string): Promise<Shipment> {
-    // Verify shipment exists and belongs to company
-    const existing = await this.prisma.shipment.findUnique({
-      where: { id },
+    // Verify shipment exists and belongs to company (order not soft-deleted)
+    const existing = await this.prisma.shipment.findFirst({
+      where: {
+        id,
+        order: { companyId, deletedAt: null },
+      },
       include: { order: { select: { companyId: true } } },
     });
 
-    if (!existing || existing.order.companyId !== companyId) {
+    if (!existing) {
       throw new NotFoundException(`Shipment ${id} not found`);
     }
 
@@ -197,12 +215,15 @@ export class ShipmentsService {
   // ═══════════════════════════════════════════════════════════════
 
   async markShipped(id: string, companyId: string, userId: string, trackingNumber?: string): Promise<Shipment> {
-    const existing = await this.prisma.shipment.findUnique({
-      where: { id },
+    const existing = await this.prisma.shipment.findFirst({
+      where: {
+        id,
+        order: { companyId, deletedAt: null },
+      },
       include: { order: { select: { companyId: true, id: true } } },
     });
 
-    if (!existing || existing.order.companyId !== companyId) {
+    if (!existing) {
       throw new NotFoundException(`Shipment ${id} not found`);
     }
 
@@ -244,12 +265,15 @@ export class ShipmentsService {
   }
 
   async markDelivered(id: string, companyId: string, userId: string, signedBy?: string): Promise<Shipment> {
-    const existing = await this.prisma.shipment.findUnique({
-      where: { id },
+    const existing = await this.prisma.shipment.findFirst({
+      where: {
+        id,
+        order: { companyId, deletedAt: null },
+      },
       include: { order: { select: { companyId: true, id: true } } },
     });
 
-    if (!existing || existing.order.companyId !== companyId) {
+    if (!existing) {
       throw new NotFoundException(`Shipment ${id} not found`);
     }
 
@@ -295,12 +319,15 @@ export class ShipmentsService {
   // ═══════════════════════════════════════════════════════════════
 
   async addEvent(id: string, companyId: string, dto: AddTrackingEventDto, userId: string): Promise<ShipmentEvent> {
-    const existing = await this.prisma.shipment.findUnique({
-      where: { id },
+    const existing = await this.prisma.shipment.findFirst({
+      where: {
+        id,
+        order: { companyId, deletedAt: null },
+      },
       include: { order: { select: { companyId: true } } },
     });
 
-    if (!existing || existing.order.companyId !== companyId) {
+    if (!existing) {
       throw new NotFoundException(`Shipment ${id} not found`);
     }
 

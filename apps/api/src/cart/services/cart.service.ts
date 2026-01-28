@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
-import { CartStatus, Prisma } from '@prisma/client';
+import { TaxService, TaxCalculationResult } from './tax.service';
+import { ShippingService, ShippingEstimateResult } from './shipping.service';
+import { CartStatus, Prisma, ProductFulfillmentType } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import {
   CartData,
   CartItemData,
@@ -26,6 +29,8 @@ export class CartService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogsService,
+    private readonly taxService: TaxService,
+    private readonly shippingService: ShippingService,
   ) {}
 
   /**
@@ -174,20 +179,20 @@ export class CartService {
     ]);
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException('We couldn\'t find that product. It may have been removed from the catalog.');
     }
 
     // SECURITY: Validate product belongs to the same company as the cart
     if (product.companyId !== cart.companyId) {
-      throw new ForbiddenException('Product does not belong to this company');
+      throw new ForbiddenException('This product isn\'t available in your store. Please try a different one.');
     }
 
     if (product.status !== 'ACTIVE' || !product.isVisible) {
-      throw new BadRequestException('Product is not available');
+      throw new BadRequestException('This product is currently unavailable. Check back soon!');
     }
 
     // Check if item already exists in cart
@@ -275,7 +280,7 @@ export class CartService {
     const cart = await this.prisma.cart.findUnique({ where: { id: cartId } });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     // Get bundle with items
@@ -300,16 +305,16 @@ export class CartService {
     });
 
     if (!bundle || bundle.deletedAt) {
-      throw new NotFoundException('Bundle not found');
+      throw new NotFoundException('We couldn\'t find that bundle. It may have been removed from the catalog.');
     }
 
     // SECURITY: Validate bundle belongs to the same company as the cart
     if (bundle.companyId !== cart.companyId) {
-      throw new ForbiddenException('Bundle does not belong to this company');
+      throw new ForbiddenException('This bundle isn\'t available in your store. Please try a different one.');
     }
 
     if (!bundle.isActive) {
-      throw new BadRequestException('Bundle is not active');
+      throw new BadRequestException('This bundle is currently unavailable. Check back soon!');
     }
 
     // For mix-and-match bundles, validate selected items
@@ -319,11 +324,11 @@ export class CartService {
       const totalQuantity = input.selectedItems.reduce((sum, i) => sum + i.quantity, 0);
 
       if (bundle.minItems && totalQuantity < bundle.minItems) {
-        throw new BadRequestException(`Minimum ${bundle.minItems} items required for this bundle`);
+        throw new BadRequestException(`Almost there! This bundle needs at least ${bundle.minItems} items.`);
       }
 
       if (bundle.maxItems && totalQuantity > bundle.maxItems) {
-        throw new BadRequestException(`Maximum ${bundle.maxItems} items allowed for this bundle`);
+        throw new BadRequestException(`This bundle has a maximum of ${bundle.maxItems} items. Please adjust your selection.`);
       }
 
       // Filter to selected items
@@ -473,7 +478,7 @@ export class CartService {
     const cart = await this.prisma.cart.findUnique({ where: { id: cartId } });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     // Find all items with this bundle group ID
@@ -488,7 +493,7 @@ export class CartService {
     });
 
     if (bundleItems.length === 0) {
-      throw new NotFoundException('Bundle group not found in cart');
+      throw new NotFoundException('We couldn\'t find that bundle in your cart. It may have already been removed.');
     }
 
     // Wrap deletion and totals update in transaction
@@ -618,7 +623,7 @@ export class CartService {
     });
 
     if (!item) {
-      throw new NotFoundException('Cart item not found');
+      throw new NotFoundException('We couldn\'t find that item in your cart. It may have already been removed.');
     }
 
     if (input.quantity === 0) {
@@ -682,7 +687,7 @@ export class CartService {
     });
 
     if (!item) {
-      throw new NotFoundException('Cart item not found');
+      throw new NotFoundException('We couldn\'t find that item in your cart. It may have already been removed.');
     }
 
     await this.prisma.cartItem.delete({
@@ -724,7 +729,7 @@ export class CartService {
     });
 
     if (!item) {
-      throw new NotFoundException('Cart item not found');
+      throw new NotFoundException('We couldn\'t find that item in your cart. It may have already been removed.');
     }
 
     // Create saved item
@@ -763,7 +768,7 @@ export class CartService {
     });
 
     if (!savedItem) {
-      throw new NotFoundException('Saved item not found');
+      throw new NotFoundException('We couldn\'t find that saved item. It may have already been moved to your cart.');
     }
 
     // Add to cart
@@ -798,20 +803,20 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     // Normalize code to uppercase for consistent comparison
     const normalizedCode = code.toUpperCase().trim();
 
     if (!normalizedCode) {
-      throw new BadRequestException('Invalid discount code');
+      throw new BadRequestException('Please enter a valid discount code.');
     }
 
     const discountCodes = (cart.discountCodes as unknown as CartDiscountCode[]) || [];
 
     if (discountCodes.some(d => d.code.toUpperCase() === normalizedCode)) {
-      throw new BadRequestException('Discount code already applied');
+      throw new BadRequestException('You\'ve already applied this discount code!');
     }
 
     // Validate discount code against promotions
@@ -857,40 +862,176 @@ export class CartService {
   /**
    * Validate and calculate discount amount
    *
-   * This method validates discount codes and calculates the discount amount.
-   * In the future, this will query the Promotion/Discount model.
+   * This method validates discount codes against the Promotion model
+   * and calculates the discount amount based on promotion type and rules.
    */
   private async validateAndCalculateDiscount(
     code: string,
-    cart: { companyId: string; items: { lineTotal: any }[] },
+    cart: { companyId: string; items: { lineTotal: any; productId?: string }[]; customerId?: string },
   ): Promise<{
     valid: boolean;
     discountAmount: number;
     type: 'percentage' | 'fixed';
     description?: string;
     error?: string;
+    promotionId?: string;
   }> {
     const subtotal = cart.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+    const now = new Date();
 
-    // TODO: Query Promotion model when implemented (see: Phase 5 - Promotions)
-    // For now, only support demo codes in development environment
-    // Once DiscountCode model is added, this will query the database
+    // Query the Promotion model for valid promotion
+    const promotion = await this.prisma.promotion.findFirst({
+      where: {
+        companyId: cart.companyId,
+        code: code.toUpperCase(),
+        isActive: true,
+        startsAt: { lte: now },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gte: now } },
+        ],
+      },
+    });
 
-    // In development and test environments only, support demo codes for testing
-    // In production, discount codes require the DiscountCode model to be implemented
-    const isNonProduction = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-    if (isNonProduction) {
-      const demoDiscount = this.getDemoDiscountCode(code);
-      if (demoDiscount) {
-        if (process.env.NODE_ENV !== 'test') {
-          this.logger.warn(`Using demo discount code: ${code} - Non-production only!`);
+    if (!promotion) {
+      // Fall back to demo codes in non-production for backwards compatibility
+      const isNonProduction = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+      if (isNonProduction) {
+        const demoDiscount = this.getDemoDiscountCode(code);
+        if (demoDiscount) {
+          if (process.env.NODE_ENV !== 'test') {
+            this.logger.warn(`Using demo discount code: ${code} - Non-production only!`);
+          }
+          return this.validateDemoDiscount(demoDiscount, subtotal);
         }
-        return this.validateDemoDiscount(demoDiscount, subtotal);
+      }
+      return { valid: false, discountAmount: 0, type: 'fixed', error: 'Hmm, that code doesn\'t seem to work. Double-check the spelling or try another one.' };
+    }
+
+    // Check usage limits - total uses
+    if (promotion.maxUsesTotal && promotion.currentUses >= promotion.maxUsesTotal) {
+      return { valid: false, discountAmount: 0, type: 'fixed', error: 'This discount has been fully claimed! Keep an eye out for future offers.' };
+    }
+
+    // Check usage limits - per customer
+    if (promotion.maxUsesPerCustomer && cart.customerId) {
+      const customerUses = await this.prisma.promotionUsage.count({
+        where: {
+          promotionId: promotion.id,
+          customerId: cart.customerId,
+        },
+      });
+      if (customerUses >= promotion.maxUsesPerCustomer) {
+        return { valid: false, discountAmount: 0, type: 'fixed', error: 'You\'ve already used this code the maximum number of times. Thanks for being a loyal customer!' };
       }
     }
 
-    // In production, no discount codes available until Promotion model is implemented
-    return { valid: false, discountAmount: 0, type: 'fixed', error: 'This discount code doesn\'t exist or has expired' };
+    // Check minimum order amount
+    if (promotion.minimumOrderAmount && subtotal < Number(promotion.minimumOrderAmount)) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        type: 'fixed',
+        error: `Almost there! Add $${(Number(promotion.minimumOrderAmount) - subtotal).toFixed(2)} more to unlock this discount.`,
+      };
+    }
+
+    // Check targeting rules if specified
+    const targeting = promotion.targeting as { productIds?: string[]; categoryIds?: string[]; excludeProductIds?: string[] } | null;
+    if (targeting) {
+      const cartProductIds = cart.items.map(item => item.productId).filter(Boolean) as string[];
+
+      // Check if any cart item is in excluded products
+      if (targeting.excludeProductIds?.length) {
+        const hasExcluded = cartProductIds.some(id => targeting.excludeProductIds!.includes(id));
+        if (hasExcluded) {
+          return { valid: false, discountAmount: 0, type: 'fixed', error: 'This code doesn\'t apply to some items in your cart. Try removing them or use a different code.' };
+        }
+      }
+
+      // Check if cart has required products
+      if (targeting.productIds?.length) {
+        const hasRequiredProduct = cartProductIds.some(id => targeting.productIds!.includes(id));
+        if (!hasRequiredProduct) {
+          return { valid: false, discountAmount: 0, type: 'fixed', error: 'This code works on specific products. Add an eligible item to use it!' };
+        }
+      }
+    }
+
+    // Calculate discount based on promotion type
+    let discountAmount: number;
+    let discountType: 'percentage' | 'fixed' = 'fixed';
+
+    switch (promotion.type) {
+      case 'PERCENTAGE_OFF':
+        discountType = 'percentage';
+        discountAmount = Math.round((subtotal * Number(promotion.value)) / 100 * 100) / 100;
+        break;
+      case 'FIXED_AMOUNT_OFF':
+        discountType = 'fixed';
+        discountAmount = Math.min(Number(promotion.value), subtotal);
+        break;
+      case 'FREE_SHIPPING':
+        // Free shipping is handled separately in shipping calculation
+        discountAmount = 0;
+        break;
+      case 'BUY_X_GET_Y':
+        // Buy X Get Y requires special handling based on cart contents
+        discountAmount = await this.calculateBuyXGetYDiscount(promotion, cart);
+        break;
+      case 'FREE_GIFT':
+        // Free gift is handled separately
+        discountAmount = 0;
+        break;
+      default:
+        discountAmount = 0;
+    }
+
+    // Apply maximum discount cap if set
+    if (promotion.maximumDiscount && discountAmount > Number(promotion.maximumDiscount)) {
+      discountAmount = Number(promotion.maximumDiscount);
+    }
+
+    return {
+      valid: true,
+      discountAmount,
+      type: discountType,
+      description: promotion.description || promotion.name,
+      promotionId: promotion.id,
+    };
+  }
+
+  /**
+   * Calculate discount for Buy X Get Y promotions
+   */
+  private async calculateBuyXGetYDiscount(
+    promotion: { buyQuantity: number | null; getQuantity: number | null; getProductId: string | null; value: any },
+    cart: { items: { productId?: string; quantity?: number; lineTotal: any }[] },
+  ): Promise<number> {
+    if (!promotion.buyQuantity || !promotion.getQuantity) {
+      return 0;
+    }
+
+    // Count qualifying items in cart
+    let qualifyingQuantity = 0;
+    for (const item of cart.items) {
+      qualifyingQuantity += item.quantity || 1;
+    }
+
+    // Calculate how many "get" items are free/discounted
+    const sets = Math.floor(qualifyingQuantity / (promotion.buyQuantity + promotion.getQuantity));
+    const freeItems = sets * promotion.getQuantity;
+
+    if (freeItems === 0) {
+      return 0;
+    }
+
+    // Calculate average item price for discount
+    const avgItemPrice = cart.items.reduce((sum, item) => sum + Number(item.lineTotal), 0) / qualifyingQuantity;
+
+    // Value represents the discount percentage on the "get" items (100 = free)
+    const discountPercent = Number(promotion.value) / 100;
+    return Math.round(freeItems * avgItemPrice * discountPercent * 100) / 100;
   }
 
   /**
@@ -930,7 +1071,7 @@ export class CartService {
         valid: false,
         discountAmount: 0,
         type: 'fixed',
-        error: `Minimum order of $${discount.minOrderAmount} required for this discount`,
+        error: `Almost there! Add $${(discount.minOrderAmount - subtotal).toFixed(2)} more to unlock this discount.`,
       };
     }
 
@@ -963,7 +1104,7 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     const discountCodes = ((cart.discountCodes as unknown as CartDiscountCode[]) || [])
@@ -1038,7 +1179,7 @@ export class CartService {
     ]);
 
     if (!sourceCart || !targetCart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('We couldn\'t find one of the carts to merge. It may have expired.');
     }
 
     // Move items from source to target
@@ -1069,6 +1210,181 @@ export class CartService {
     });
 
     return this.getCartById(targetCartId);
+  }
+
+  /**
+   * Update shipping address for tax/shipping calculations
+   */
+  async updateShippingAddress(
+    cartId: string,
+    address: {
+      postalCode?: string;
+      country?: string;
+      state?: string;
+      city?: string;
+    },
+    performedBy?: string,
+  ): Promise<CartData> {
+    const cart = await this.prisma.cart.findUnique({
+      where: { id: cartId },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
+    }
+
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: {
+        shippingPostalCode: address.postalCode ?? cart.shippingPostalCode,
+        shippingCountry: address.country ?? cart.shippingCountry,
+        metadata: {
+          ...(cart.metadata as Record<string, unknown> || {}),
+          shippingState: address.state,
+          shippingCity: address.city,
+        },
+        lastActivityAt: new Date(),
+      },
+    });
+
+    // Recalculate totals with new address
+    await this.recalculateTotals(cartId);
+
+    if (performedBy) {
+      await this.auditLogService.log(
+        AuditAction.UPDATE,
+        'Cart',
+        cartId,
+        {
+          userId: performedBy,
+          metadata: { action: 'update_shipping_address', ...address },
+        },
+      );
+    }
+
+    return this.getCartById(cartId);
+  }
+
+  /**
+   * Select a shipping method for the cart
+   */
+  async selectShippingMethod(
+    cartId: string,
+    shippingMethodId: string,
+    performedBy?: string,
+  ): Promise<CartData> {
+    const cart = await this.prisma.cart.findUnique({
+      where: { id: cartId },
+      include: { items: true },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
+    }
+
+    // Verify the shipping method exists and get its rate
+    const shippingRule = await this.prisma.shippingRule.findUnique({
+      where: { id: shippingMethodId },
+      include: { zone: true },
+    });
+
+    if (!shippingRule) {
+      throw new NotFoundException('We couldn\'t find that shipping method. Please select a different one.');
+    }
+
+    // Verify the rule belongs to a zone owned by this company
+    if (shippingRule.zone.companyId !== cart.companyId) {
+      throw new ForbiddenException('This shipping method isn\'t available for your location. Please try another option.');
+    }
+
+    // Calculate the actual shipping rate based on cart
+    const subtotal = cart.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+    const totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalWeight = cart.items.reduce((sum, item) => {
+      // Weight might be stored in product snapshot
+      const snapshot = item.productSnapshot as Record<string, unknown>;
+      const weight = snapshot?.weight as number || 0;
+      return sum + weight * item.quantity;
+    }, 0);
+
+    // Calculate rate based on rule type
+    let shippingRate = Number(shippingRule.baseRate);
+
+    if (shippingRule.type === 'PER_ITEM' && shippingRule.perItemRate) {
+      shippingRate += Number(shippingRule.perItemRate) * totalQuantity;
+    } else if (shippingRule.type === 'WEIGHT_BASED' && shippingRule.perWeightUnitRate && totalWeight > 0) {
+      shippingRate += Number(shippingRule.perWeightUnitRate) * totalWeight;
+    } else if (shippingRule.type === 'FREE') {
+      shippingRate = 0;
+    }
+
+    // Check for free shipping threshold
+    if (shippingRule.freeShippingThreshold && subtotal >= Number(shippingRule.freeShippingThreshold)) {
+      shippingRate = 0;
+    }
+
+    // Store selected shipping method in metadata
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: {
+        shippingTotal: shippingRate,
+        metadata: {
+          ...(cart.metadata as Record<string, unknown> || {}),
+          selectedShippingMethodId: shippingMethodId,
+          selectedShippingMethodName: shippingRule.name,
+          shippingCarrier: shippingRule.carrier,
+          estimatedDeliveryMin: shippingRule.estimatedDaysMin,
+          estimatedDeliveryMax: shippingRule.estimatedDaysMax,
+        },
+        lastActivityAt: new Date(),
+      },
+    });
+
+    // Recalculate grand total
+    await this.recalculateTotals(cartId);
+
+    if (performedBy) {
+      await this.auditLogService.log(
+        AuditAction.UPDATE,
+        'Cart',
+        cartId,
+        {
+          userId: performedBy,
+          metadata: { action: 'select_shipping_method', shippingMethodId, shippingRate },
+        },
+      );
+    }
+
+    return this.getCartById(cartId);
+  }
+
+  /**
+   * Check if cart requires shipping based on product types
+   */
+  async cartRequiresShipping(cartId: string): Promise<boolean> {
+    const cart = await this.prisma.cart.findUnique({
+      where: { id: cartId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { fulfillmentType: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      return false;
+    }
+
+    // Cart requires shipping if ANY item is a physical product
+    return cart.items.some((item) => {
+      const fulfillmentType = item.product?.fulfillmentType;
+      // PHYSICAL products require shipping, VIRTUAL and ELECTRONIC do not
+      return fulfillmentType === ProductFulfillmentType.PHYSICAL || fulfillmentType === undefined;
+    });
   }
 
   /**
@@ -1117,7 +1433,7 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException('Hmm, we can\'t find that cart. It may have expired or been removed.');
     }
 
     return this.toCartData(cart);
@@ -1126,12 +1442,22 @@ export class CartService {
   /**
    * Recalculate cart totals
    *
-   * Calculates subtotal, applies discounts, and computes grand total.
+   * Calculates subtotal, applies discounts, calculates tax, and computes grand total.
+   * Tax is calculated based on shipping address (country/state/zip).
+   * Shipping is preserved if already selected, otherwise set to 0.
    */
   private async recalculateTotals(cartId: string): Promise<void> {
     const cart = await this.prisma.cart.findUnique({
       where: { id: cartId },
-      include: { items: true },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { id: true, fulfillmentType: true },
+            },
+          },
+        },
+      },
     });
 
     if (!cart) {
@@ -1169,9 +1495,52 @@ export class CartService {
     // Ensure discount doesn't exceed subtotal
     discountTotal = Math.min(discountTotal, subtotal);
 
-    // TODO: Calculate tax and shipping based on rules
-    const taxTotal = 0;
-    const shippingTotal = 0;
+    // Calculate tax if shipping address is available
+    let taxTotal = 0;
+    const metadata = cart.metadata as Record<string, unknown> || {};
+
+    if (cart.shippingCountry) {
+      try {
+        // Prepare line items for tax calculation
+        const taxableLineItems = cart.items.map((item) => {
+          const snapshot = item.productSnapshot as Record<string, unknown>;
+          return {
+            productId: item.productId,
+            categoryId: snapshot?.categoryId as string | undefined,
+            quantity: item.quantity,
+            lineTotal: new Decimal(item.lineTotal),
+            // Products marked as tax-exempt (e.g., some digital products) can be excluded
+            isTaxable: item.product?.fulfillmentType !== ProductFulfillmentType.VIRTUAL,
+          };
+        });
+
+        const taxResult = await this.taxService.calculateTax({
+          companyId: cart.companyId,
+          country: cart.shippingCountry,
+          state: metadata.shippingState as string | undefined,
+          city: metadata.shippingCity as string | undefined,
+          zipCode: cart.shippingPostalCode || undefined,
+          lineItems: taxableLineItems,
+        });
+
+        taxTotal = Number(taxResult.totalTax);
+
+        // Store tax breakdown in metadata for transparency
+        metadata.taxBreakdown = taxResult.breakdown.map((b) => ({
+          name: b.name,
+          rate: Number(b.rate),
+          amount: Number(b.taxAmount),
+        }));
+      } catch (error) {
+        this.logger.warn(`Failed to calculate tax for cart ${cartId}: ${error}`);
+        // Continue without tax if calculation fails
+      }
+    }
+
+    // Preserve existing shipping if a method has been selected
+    // Otherwise, shipping remains 0 until user selects a method
+    const shippingTotal = Number(cart.shippingTotal) || 0;
+
     const grandTotal = Math.max(0, subtotal - discountTotal + taxTotal + shippingTotal);
 
     await this.prisma.cart.update({
@@ -1184,6 +1553,7 @@ export class CartService {
         grandTotal,
         itemCount,
         discountCodes: updatedDiscountCodes as unknown as Prisma.InputJsonValue,
+        metadata: metadata as Prisma.InputJsonValue,
       },
     });
   }
@@ -1192,6 +1562,8 @@ export class CartService {
    * Recalculate cart totals within a transaction
    *
    * Simplified version for bundle operations that doesn't re-validate discounts.
+   * Preserves existing tax and shipping values (they'll be recalculated separately
+   * when shipping address is updated).
    */
   private async recalculateTotalsWithTx(
     tx: Prisma.TransactionClient,
@@ -1216,9 +1588,10 @@ export class CartService {
     // Ensure discount doesn't exceed subtotal
     discountTotal = Math.min(discountTotal, subtotal);
 
-    // TODO: Calculate tax and shipping based on rules
-    const taxTotal = 0;
-    const shippingTotal = 0;
+    // Preserve existing tax and shipping values
+    // They will be recalculated when shipping address is updated
+    const taxTotal = Number(cart.taxTotal) || 0;
+    const shippingTotal = Number(cart.shippingTotal) || 0;
     const grandTotal = Math.max(0, subtotal - discountTotal + taxTotal + shippingTotal);
 
     await tx.cart.update({

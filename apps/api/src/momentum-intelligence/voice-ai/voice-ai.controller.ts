@@ -9,8 +9,14 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ScopeType } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { VoiceAIService } from './voice-ai.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -54,7 +60,38 @@ export class VoiceAIController {
   constructor(
     private readonly voiceAiService: VoiceAIService,
     private readonly prisma: PrismaService,
+    private readonly hierarchyService: HierarchyService,
   ) {}
+
+  // ==========================================================================
+  // HELPERS
+  // ==========================================================================
+
+  private async getCompanyId(user: AuthenticatedUser, queryCompanyId?: string): Promise<string> {
+    if (user.scopeType === 'COMPANY') {
+      return user.scopeId;
+    }
+    if (user.companyId) {
+      return user.companyId;
+    }
+    if (queryCompanyId) {
+      const canAccess = await this.hierarchyService.canAccessCompany(
+        {
+          sub: user.id,
+          scopeType: user.scopeType as ScopeType,
+          scopeId: user.scopeId,
+          clientId: user.clientId,
+          companyId: user.companyId,
+        },
+        queryCompanyId,
+      );
+      if (!canAccess) {
+        throw new ForbiddenException('Hmm, you don\'t have access to that company. Double-check your permissions or try a different one.');
+      }
+      return queryCompanyId;
+    }
+    throw new BadRequestException('Company ID is required. Please select a company or provide companyId parameter.');
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // CALL MANAGEMENT (Authenticated)
@@ -66,9 +103,14 @@ export class VoiceAIController {
    */
   @Post('call')
   @UseGuards(JwtAuthGuard)
-  async initiateCall(@Body() dto: InitiateCallDto) {
+  async initiateCall(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: InitiateCallDto,
+    @Query('companyId') queryCompanyId?: string,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId || dto.companyId);
     return this.voiceAiService.initiateOutboundCall(
-      dto.companyId,
+      companyId,
       dto.customerId,
       dto.scriptId,
       dto.priority,
@@ -81,8 +123,11 @@ export class VoiceAIController {
    */
   @Get('calls')
   @UseGuards(JwtAuthGuard)
-  async getCalls(@Query() query: GetCallsQuery) {
-    const { companyId } = query;
+  async getCalls(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: GetCallsQuery,
+  ) {
+    const companyId = await this.getCompanyId(user, query.companyId);
     const limit = query.limit ? parseInt(query.limit) : 50;
 
     return this.voiceAiService.getCalls(companyId, {
@@ -99,7 +144,15 @@ export class VoiceAIController {
    */
   @Get('calls/:callId')
   @UseGuards(JwtAuthGuard)
-  async getCall(@Param('callId') callId: string) {
+  async getCall(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('callId') callId: string,
+    @Query('companyId') queryCompanyId?: string,
+  ) {
+    // Validate company access if provided
+    if (queryCompanyId) {
+      await this.getCompanyId(user, queryCompanyId);
+    }
     return this.voiceAiService.getCallById(callId);
   }
 
@@ -109,7 +162,11 @@ export class VoiceAIController {
    */
   @Get('stats')
   @UseGuards(JwtAuthGuard)
-  async getCallStats(@Query('companyId') companyId: string) {
+  async getCallStats(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId?: string,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
     // Get call statistics
     const totalCalls = await this.prisma.voiceCall.count({
       where: { companyId },
@@ -187,9 +244,11 @@ export class VoiceAIController {
   @Get('scripts')
   @UseGuards(JwtAuthGuard)
   async getScripts(
-    @Query('companyId') companyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId?: string,
     @Query('type') type?: string,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
     return this.voiceAiService.getScripts(companyId, type as any);
   }
 
@@ -200,9 +259,11 @@ export class VoiceAIController {
   @Post('scripts')
   @UseGuards(JwtAuthGuard)
   async createScript(
-    @Query('companyId') companyId: string,
-    @Body() dto: CreateScriptDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId?: string,
+    @Body() dto?: CreateScriptDto,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
     return this.voiceAiService.createScript(companyId, dto);
   }
 
@@ -213,9 +274,15 @@ export class VoiceAIController {
   @Patch('scripts/:scriptId')
   @UseGuards(JwtAuthGuard)
   async updateScript(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('scriptId') scriptId: string,
     @Body() dto: Partial<CreateScriptDto>,
+    @Query('companyId') queryCompanyId?: string,
   ) {
+    // Validate company access if provided
+    if (queryCompanyId) {
+      await this.getCompanyId(user, queryCompanyId);
+    }
     return this.voiceAiService.updateScript(scriptId, dto);
   }
 
@@ -225,7 +292,11 @@ export class VoiceAIController {
    */
   @Get('status')
   @UseGuards(JwtAuthGuard)
-  async checkStatus(@Query('companyId') companyId: string) {
+  async checkStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId?: string,
+  ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
     const configured = await this.voiceAiService.isTwilioConfigured(companyId);
     return {
       configured,
@@ -377,10 +448,12 @@ export class VoiceAIController {
   @Get('usage')
   @UseGuards(JwtAuthGuard)
   async getUsage(
-    @Query('companyId') companyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('companyId') queryCompanyId: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ) {
+    const companyId = await this.getCompanyId(user, queryCompanyId);
     // Get CS AI usage records for voice calls
     const usage = await this.prisma.cSAIUsage.findMany({
       where: {

@@ -52,6 +52,8 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { ComparisonModule } from './comparison/comparison.module';
 import { CrossSiteSessionModule } from './cross-site-session/cross-site-session.module';
 import { EcommerceAnalyticsModule } from './ecommerce-analytics/ecommerce-analytics.module';
+import { UpsellModule } from './upsell/upsell.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -106,6 +108,8 @@ import { EcommerceAnalyticsModule } from './ecommerce-analytics/ecommerce-analyt
     ComparisonModule,
     CrossSiteSessionModule,
     EcommerceAnalyticsModule,
+    UpsellModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

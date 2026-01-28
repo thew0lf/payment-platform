@@ -386,7 +386,7 @@ export class ShippingService {
     });
 
     if (!zone) {
-      throw new NotFoundException('Shipping zone not found');
+      throw new NotFoundException('We couldn\'t find that shipping zone. It may have been removed.');
     }
 
     return zone;
@@ -413,7 +413,7 @@ export class ShippingService {
     });
 
     if (!zone) {
-      throw new NotFoundException('Shipping zone not found');
+      throw new NotFoundException('We couldn\'t find that shipping zone. It may have been removed.');
     }
 
     return this.prisma.shippingZone.update({
@@ -442,7 +442,7 @@ export class ShippingService {
     });
 
     if (!rule || rule.zone.companyId !== companyId) {
-      throw new NotFoundException('Shipping rule not found');
+      throw new NotFoundException('We couldn\'t find that shipping rule. It may have been removed.');
     }
 
     return this.prisma.shippingRule.update({
@@ -474,7 +474,7 @@ export class ShippingService {
     });
 
     if (!zone) {
-      throw new NotFoundException('Shipping zone not found');
+      throw new NotFoundException('We couldn\'t find that shipping zone. It may have been removed.');
     }
 
     // Cascade delete rules
@@ -493,7 +493,7 @@ export class ShippingService {
     });
 
     if (!rule || rule.zone.companyId !== companyId) {
-      throw new NotFoundException('Shipping rule not found');
+      throw new NotFoundException('We couldn\'t find that shipping rule. It may have been removed.');
     }
 
     await this.prisma.shippingRule.delete({
