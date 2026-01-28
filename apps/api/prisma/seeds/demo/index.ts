@@ -18,3 +18,4 @@ export { seedCoffeeFunnel } from './seed-coffee-funnel';
 export { seedFunnelTemplates } from './seed-funnel-templates';
 export { seedCSAI } from './seed-cs-ai';
 export { seedDemoCarts, resetDemoCartData } from './seed-demo-carts';
+export { seedUpsellRecommendations } from './seed-upsell-recommendations';

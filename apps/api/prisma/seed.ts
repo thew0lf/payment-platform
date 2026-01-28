@@ -39,6 +39,7 @@ import {
   seedCoffeeFunnel,
   seedDemoCarts,
   seedCSAI,
+  seedUpsellRecommendations,
 } from './seeds/demo';
 
 const prisma = new PrismaClient();
@@ -135,6 +136,9 @@ async function main() {
 
     // Seed CS AI demo data
     await seedCSAI(prisma);
+
+    // Seed upsell, recommendations, and cart save configs
+    await seedUpsellRecommendations(prisma);
 
     // Seed sales channels and category metafields
     await seedSalesChannels(prisma);
