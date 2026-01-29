@@ -189,10 +189,10 @@ export function ProductSelectionStep({
 
               {/* Product image */}
               <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                {product.images?.[0] ? (
+                {product.images?.[0]?.url ? (
                   <img
-                    src={product.images[0]}
-                    alt={product.name}
+                    src={product.images[0].url}
+                    alt={product.images[0].alt || product.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (

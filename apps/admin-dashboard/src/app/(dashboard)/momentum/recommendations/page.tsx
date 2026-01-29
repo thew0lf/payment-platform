@@ -326,7 +326,7 @@ export default function RecommendationsConfigPage() {
                   <TooltipLabel label="Display Style" tooltip="How recommendations are displayed on the page" />
                   <Select
                     value={alsoBought.displayStyle || 'CAROUSEL'}
-                    onValueChange={(value: 'CAROUSEL' | 'GRID') => updateAlsoBought({ displayStyle: value })}
+                    onValueChange={(value) => updateAlsoBought({ displayStyle: value as 'CAROUSEL' | 'GRID' })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -539,7 +539,7 @@ export default function RecommendationsConfigPage() {
                   <TooltipLabel label="Display Style" tooltip="How recommendations are displayed" />
                   <Select
                     value={frequentlyViewed.displayStyle || 'BUNDLE_CARDS'}
-                    onValueChange={(value: 'BUNDLE_CARDS' | 'COMPACT') => updateFrequentlyViewed({ displayStyle: value })}
+                    onValueChange={(value) => updateFrequentlyViewed({ displayStyle: value as 'BUNDLE_CARDS' | 'COMPACT' })}
                   >
                     <SelectTrigger>
                       <SelectValue />

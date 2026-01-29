@@ -321,7 +321,7 @@ function RuleModal({ rule, open, onClose, onSave }: RuleModalProps) {
               <Label>Upsell Type</Label>
               <Select
                 value={formData.upsellType}
-                onValueChange={(value: UpsellType) => setFormData((prev) => ({ ...prev, upsellType: value }))}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, upsellType: value as UpsellType }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -338,8 +338,8 @@ function RuleModal({ rule, open, onClose, onSave }: RuleModalProps) {
             <div className="space-y-2">
               <Label>Urgency Level</Label>
               <Select
-                value={formData.urgency}
-                onValueChange={(value: UpsellUrgency) => setFormData((prev) => ({ ...prev, urgency: value }))}
+                value={formData.urgency || 'NONE'}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, urgency: value as UpsellUrgency }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -532,16 +532,16 @@ export default function UpsellRulesPage() {
     loadRules();
   }, [loadRules]);
 
-  const handleCreateRule = async (data: CreateTargetingRuleInput) => {
-    const newRule = await upsellTargetingApi.createRule(data);
+  const handleCreateRule = async (data: CreateTargetingRuleInput | UpdateTargetingRuleInput) => {
+    const newRule = await upsellTargetingApi.createRule(data as CreateTargetingRuleInput);
     setRules((prev) => [...prev, newRule]);
     toast.success('Upsell rule created');
     setShowCreateModal(false);
   };
 
-  const handleUpdateRule = async (data: UpdateTargetingRuleInput) => {
+  const handleUpdateRule = async (data: CreateTargetingRuleInput | UpdateTargetingRuleInput) => {
     if (!editingRule) return;
-    const updated = await upsellTargetingApi.updateRule(editingRule.id, data);
+    const updated = await upsellTargetingApi.updateRule(editingRule.id, data as UpdateTargetingRuleInput);
     setRules((prev) => prev.map((r) => (r.id === editingRule.id ? updated : r)));
     toast.success('Upsell rule updated');
     setEditingRule(null);

@@ -1065,8 +1065,8 @@ export default function ProductsPage() {
               >
                 {/* Image Placeholder */}
                 <div className="aspect-square bg-muted flex items-center justify-center">
-                  {product.images?.[0] ? (
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                  {product.images?.[0]?.url ? (
+                    <img src={product.images[0].url} alt={product.images[0].alt || product.name} className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-12 h-12 text-muted-foreground" />
                   )}

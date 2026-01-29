@@ -12,6 +12,19 @@ export interface ProductCategoryInfo {
   isPrimary?: boolean;
 }
 
+// Product image with optional thumbnails (matches backend ProductImageData)
+export interface ProductImageData {
+  id: string;
+  url: string;
+  alt?: string;
+  position: number;
+  thumbnails?: {
+    small?: string;
+    medium?: string;
+    large?: string;
+  };
+}
+
 export interface Product {
   id: string;
   companyId: string;
@@ -32,7 +45,7 @@ export interface Product {
   lowStockThreshold: number;
   status: string;
   isVisible: boolean;
-  images: string[];
+  images: ProductImageData[];
   metaTitle?: string;
   metaDescription?: string;
   aiGeneratedDescription?: string;

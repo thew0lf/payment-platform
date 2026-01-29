@@ -482,7 +482,7 @@ export default function TemplatePreviewPage() {
         id: p.id,
         name: p.name,
         price: p.price,
-        image: p.images?.[0] || '📦',
+        image: p.images?.[0]?.url || '📦',
       }));
       setPreviewProducts(mappedProducts);
     } catch {
