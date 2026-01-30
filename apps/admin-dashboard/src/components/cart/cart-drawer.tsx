@@ -181,7 +181,7 @@ export function CartDrawer() {
             <ShoppingCart className="h-5 w-5" />
             Shopping Cart
             {itemCount > 0 && (
-              <span className="ml-auto text-sm font-normal text-muted-foreground">
+              <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
                 {itemCount} {itemCount === 1 ? 'item' : 'items'}
               </span>
             )}
@@ -199,15 +199,15 @@ export function CartDrawer() {
         {/* Cart Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {isLoading && items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
               <Loader2 className="h-8 w-8 animate-spin mb-4" />
-              <p className="text-sm">Loading cart...</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Loading cart...</p>
             </div>
           ) : !hasItems ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
               <Package className="h-12 w-12 mb-4 opacity-40" aria-hidden="true" />
-              <p className="text-lg font-medium text-foreground">Nothing here yet</p>
-              <p className="text-sm text-center mt-1">
+              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Nothing here yet</p>
+              <p className="text-sm text-center mt-1 text-gray-500 dark:text-gray-400">
                 Browse our products and add something you love
               </p>
             </div>
@@ -231,7 +231,7 @@ export function CartDrawer() {
             <div className="mt-6">
               <button
                 onClick={() => setShowSavedItems(!showSavedItems)}
-                className="flex items-center justify-between w-full min-h-[44px] py-2 text-sm font-medium text-muted-foreground hover:text-foreground touch-manipulation"
+                className="flex items-center justify-between w-full min-h-[44px] py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 touch-manipulation"
                 aria-expanded={showSavedItems}
                 aria-controls="saved-items-list"
               >
@@ -261,12 +261,12 @@ export function CartDrawer() {
 
         {/* Footer - Discounts & Totals */}
         {hasItems && (
-          <SheetFooter className="flex flex-col gap-4 px-4 py-4 border-t bg-muted/30">
+          <SheetFooter className="flex flex-col gap-4 px-4 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             {/* Discount Code Input */}
             <div className="w-full">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <Input
                     placeholder="Discount code"
                     value={discountCode}
@@ -309,7 +309,7 @@ export function CartDrawer() {
                       </span>
                       <button
                         onClick={() => handleRemoveDiscount(discount.code)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-green-600 hover:text-red-500 transition-colors touch-manipulation"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-green-600 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors touch-manipulation"
                         aria-label={`Remove discount code ${discount.code}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -324,30 +324,30 @@ export function CartDrawer() {
             {totals && (
               <div className="w-full space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">${totals.subtotal.toFixed(2)}</span>
                 </div>
                 {totals.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
                     <span>Discount</span>
                     <span>-${totals.discount.toFixed(2)}</span>
                   </div>
                 )}
                 {totals.shipping > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span>${totals.shipping.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                    <span className="text-gray-900 dark:text-gray-100">${totals.shipping.toFixed(2)}</span>
                   </div>
                 )}
                 {totals.tax > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>${totals.tax.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                    <span className="text-gray-900 dark:text-gray-100">${totals.tax.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between pt-2 border-t border-border text-base font-semibold">
-                  <span>Total</span>
-                  <span>${totals.grandTotal.toFixed(2)} {totals.currency}</span>
+                <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700 text-base font-semibold">
+                  <span className="text-gray-900 dark:text-gray-100">Total</span>
+                  <span className="text-gray-900 dark:text-gray-100">${totals.grandTotal.toFixed(2)} {totals.currency}</span>
                 </div>
               </div>
             )}
@@ -371,7 +371,7 @@ export function CartDrawer() {
                 </Button>
                 <Button
                   variant="ghost"
-                  className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive touch-manipulation"
+                  className="min-h-[44px] min-w-[44px] text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 touch-manipulation"
                   onClick={handleClearCart}
                   aria-label="Clear cart"
                 >
@@ -421,7 +421,7 @@ export function CartIconButton({ className }: { className?: string }) {
     <button
       onClick={openDrawer}
       className={cn(
-        'relative min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-muted transition-colors touch-manipulation flex items-center justify-center',
+        'relative min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation flex items-center justify-center text-gray-700 dark:text-gray-300',
         className
       )}
       aria-label={itemCount > 0 ? `Shopping cart with ${itemCount} ${itemCount === 1 ? 'item' : 'items'}` : 'Shopping cart (empty)'}

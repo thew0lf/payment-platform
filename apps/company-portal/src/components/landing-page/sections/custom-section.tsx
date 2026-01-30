@@ -43,12 +43,16 @@ export function CustomSection({ content, styles }: CustomSectionProps) {
   const customContent = content as CustomContent;
   const { html, embedUrl, embedType = 'iframe', embedHeight = '400px' } = customContent;
 
+  // Determine text colors with dark mode support
+  const textColor = styles?.textColor;
+  const hasCustomTextColor = !!textColor;
+
   return (
     <div
-      className="py-16 sm:py-24"
+      className={`py-16 sm:py-24 ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
       style={{
         backgroundColor: styles?.backgroundColor || 'transparent',
-        color: styles?.textColor || 'inherit',
+        ...(hasCustomTextColor && { color: textColor }),
       }}
     >
       <div
@@ -101,8 +105,8 @@ export function CustomSection({ content, styles }: CustomSectionProps) {
 
         {/* Empty state for development */}
         {!html && !embedUrl && process.env.NODE_ENV === 'development' && (
-          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl">
-            <p className="text-gray-500">
+          <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+            <p className="text-gray-500 dark:text-gray-400">
               Custom section - Add HTML content or an embed URL
             </p>
           </div>

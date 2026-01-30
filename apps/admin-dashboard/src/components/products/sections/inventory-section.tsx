@@ -73,7 +73,7 @@ export function InventorySection({
     }
     if (isLowStock) {
       return (
-        <Badge variant="warning" className="bg-amber-100 text-amber-800">
+        <Badge variant="warning" className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
           Low Stock
         </Badge>
       );
@@ -232,7 +232,7 @@ export function InventorySection({
 
             {/* Low stock warning */}
             {isLowStock && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="h-5 w-5" />
                 <p className="text-sm">
                   Stock is running low. Consider reordering soon.
@@ -241,7 +241,7 @@ export function InventorySection({
             )}
 
             {isOutOfStock && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
                 <AlertTriangle className="h-5 w-5" />
                 <p className="text-sm">
                   This product is out of stock and unavailable for purchase.

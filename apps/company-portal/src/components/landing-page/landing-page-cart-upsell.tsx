@@ -179,10 +179,10 @@ export function CartUpsell({
             {/* Add Button */}
             <button
               onClick={() => handleAddToCart(product)}
-              className="mt-2 w-full py-2 px-2 text-xs font-medium text-white bg-primary-600
-                         hover:bg-primary-700 rounded-md transition-colors
+              className="mt-2 w-full py-2 px-2 text-xs font-medium text-white bg-[var(--lp-primary,#667eea)]
+                         hover:opacity-90 rounded-md transition-colors
                          min-h-[44px] touch-manipulation active:scale-[0.98]
-                         focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary-500"
+                         focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[var(--lp-primary,#667eea)]"
               aria-label={`Add ${product.name} to cart`}
             >
               Add to Order

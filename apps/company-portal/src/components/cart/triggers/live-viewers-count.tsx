@@ -81,7 +81,7 @@ export function LiveViewersCount({
   if (variant === 'minimal') {
     return (
       <div
-        className="flex items-center gap-1.5 text-xs text-muted-foreground"
+        className="flex items-center gap-1.5 text-xs text-gray-500"
         role="status"
         aria-live="polite"
         aria-label={`${viewerCount} people viewing`}

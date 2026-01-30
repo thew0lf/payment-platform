@@ -143,19 +143,19 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
 
   if (isEditing) {
     return (
-      <div className="bg-white border-2 border-indigo-200 rounded-xl p-4 space-y-4">
+      <div className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-900">Edit Shipping Method</h4>
+          <h4 className="font-medium text-gray-900 dark:text-gray-100">Edit Shipping Method</h4>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEditing(false)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
             >
               <X className="w-4 h-4" />
             </button>
             <button
               onClick={handleSave}
-              className="p-1.5 rounded-lg bg-indigo-600 text-foreground hover:bg-indigo-700"
+              className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
             >
               <Check className="w-4 h-4" />
             </button>
@@ -164,20 +164,20 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
             <input
               type="text"
               value={editData.name}
               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Carrier</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrier</label>
             <select
               value={editData.carrier}
               onChange={(e) => setEditData({ ...editData, carrier: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="USPS">USPS</option>
               <option value="UPS">UPS</option>
@@ -190,30 +190,30 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Base Cost ($)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base Cost ($)</label>
             <input
               type="number"
               step="0.01"
               value={editData.baseCost}
               onChange={(e) => setEditData({ ...editData, baseCost: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Per Item Cost ($)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Per Item Cost ($)</label>
             <input
               type="number"
               step="0.01"
               value={editData.perItemCost}
               onChange={(e) => setEditData({ ...editData, perItemCost: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Min Days</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Days</label>
             <input
               type="number"
               value={editData.estimatedDays.min}
@@ -223,11 +223,11 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
                   estimatedDays: { ...editData.estimatedDays, min: parseInt(e.target.value) || 1 },
                 })
               }
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Max Days</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Days</label>
             <input
               type="number"
               value={editData.estimatedDays.max}
@@ -237,11 +237,11 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
                   estimatedDays: { ...editData.estimatedDays, max: parseInt(e.target.value) || 1 },
                 })
               }
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Free Over ($)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Free Over ($)</label>
             <input
               type="number"
               step="0.01"
@@ -253,7 +253,7 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
                 })
               }
               placeholder="None"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
         </div>
@@ -263,27 +263,27 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
 
   return (
     <div
-      className={`bg-white border rounded-xl p-4 transition-all ${
-        method.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'
+      className={`bg-white dark:bg-gray-800 border rounded-xl p-4 transition-all ${
+        method.isActive ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700 opacity-60'
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              method.isActive ? 'bg-indigo-100' : 'bg-gray-100'
+              method.isActive ? 'bg-indigo-100 dark:bg-indigo-900' : 'bg-gray-100 dark:bg-gray-700'
             }`}
           >
-            <Truck className={`w-5 h-5 ${method.isActive ? 'text-indigo-600' : 'text-gray-400'}`} />
+            <Truck className={`w-5 h-5 ${method.isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="font-medium text-gray-900">{method.name}</h4>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">{method.name}</h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
                 {method.carrier}
               </span>
             </div>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5" />
                 ${method.baseCost.toFixed(2)}
@@ -308,11 +308,11 @@ function MethodCard({ method, onUpdate, onDelete }: MethodCardProps) {
               onChange={(e) => onUpdate({ ...method, isActive: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            <div className="w-9 h-5 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
           </label>
           <button
             onClick={() => setIsEditing(true)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -363,10 +363,10 @@ function ZoneSection({ zone, onUpdate, onDelete }: ZoneSectionProps) {
   };
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
       {/* Zone Header */}
       <div
-        className="bg-gray-50 p-4 flex items-center justify-between cursor-pointer"
+        className="bg-gray-50 dark:bg-gray-700 p-4 flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
@@ -375,16 +375,16 @@ function ZoneSection({ zone, onUpdate, onDelete }: ZoneSectionProps) {
           ) : (
             <ChevronRight className="w-5 h-5 text-gray-400" />
           )}
-          <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
             {zone.countries.includes('US') ? (
-              <MapPin className="w-5 h-5 text-indigo-600" />
+              <MapPin className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             ) : (
-              <Globe className="w-5 h-5 text-indigo-600" />
+              <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{zone.name}</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{zone.name}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {zone.methods.length} method{zone.methods.length !== 1 ? 's' : ''} •{' '}
               {zone.methods.filter((m) => m.isActive).length} active
             </p>
@@ -403,20 +403,20 @@ function ZoneSection({ zone, onUpdate, onDelete }: ZoneSectionProps) {
 
       {/* Zone Content */}
       {isExpanded && (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
           {/* Zone Config */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Zone Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zone Name</label>
               <input
                 type="text"
                 value={zone.name}
                 onChange={(e) => onUpdate({ ...zone, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Countries</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Countries</label>
               <select
                 multiple
                 value={zone.countries}
@@ -426,7 +426,7 @@ function ZoneSection({ zone, onUpdate, onDelete }: ZoneSectionProps) {
                     countries: Array.from(e.target.selectedOptions, (o) => o.value),
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
                 <option value="US">United States</option>
                 <option value="CA">Canada</option>
@@ -440,22 +440,22 @@ function ZoneSection({ zone, onUpdate, onDelete }: ZoneSectionProps) {
           {/* Methods */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-700">Shipping Methods</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Shipping Methods</h4>
               <button
                 onClick={handleAddMethod}
-                className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                className="flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
               >
                 <Plus className="w-4 h-4" />
                 Add Method
               </button>
             </div>
             {zone.methods.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Truck className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No shipping methods</p>
+              <div className="text-center py-8 bg-gray-50 dark:bg-gray-700 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+                <Truck className="w-8 h-8 text-gray-300 dark:text-gray-500 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No shipping methods</p>
                 <button
                   onClick={handleAddMethod}
-                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  className="mt-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
                 >
                   Add your first method
                 </button>
@@ -562,8 +562,8 @@ export default function ShippingSettingsPage() {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 bg-gray-200 rounded" />
-          <div className="h-64 bg-gray-200 rounded-xl" />
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
         </div>
       </div>
     );
@@ -574,16 +574,16 @@ export default function ShippingSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Shipping Settings</h1>
-          <p className="text-gray-600 mt-1">Configure shipping zones and rates for your store</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Shipping Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Configure shipping zones and rates for your store</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving || !hasChanges}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
             hasChanges
-              ? 'bg-indigo-600 text-foreground hover:bg-indigo-700'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
           }`}
         >
           <Save className="w-4 h-4" />
@@ -592,15 +592,15 @@ export default function ShippingSettingsPage() {
       </div>
 
       {/* General Settings */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">General Settings</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
             <select
               value={settings.defaultCurrency}
               onChange={(e) => updateSettings('defaultCurrency', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
@@ -609,11 +609,11 @@ export default function ShippingSettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Weight Unit</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight Unit</label>
             <select
               value={settings.weightUnit}
               onChange={(e) => updateSettings('weightUnit', e.target.value as 'oz' | 'lb' | 'g' | 'kg')}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="oz">Ounces (oz)</option>
               <option value="lb">Pounds (lb)</option>
@@ -622,24 +622,24 @@ export default function ShippingSettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dimension Unit</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dimension Unit</label>
             <select
               value={settings.dimensionUnit}
               onChange={(e) => updateSettings('dimensionUnit', e.target.value as 'in' | 'cm')}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="in">Inches (in)</option>
               <option value="cm">Centimeters (cm)</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Handling Fee ($)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Handling Fee ($)</label>
             <input
               type="number"
               step="0.01"
               value={settings.handlingFee}
               onChange={(e) => updateSettings('handlingFee', parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
         </div>
@@ -648,10 +648,10 @@ export default function ShippingSettingsPage() {
       {/* Shipping Zones */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Shipping Zones</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Shipping Zones</h2>
           <button
             onClick={handleAddZone}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Zone
@@ -659,13 +659,13 @@ export default function ShippingSettingsPage() {
         </div>
 
         {settings.zones.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <Globe className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No shipping zones</h3>
-            <p className="text-gray-500 mb-4">Create zones to define where you ship and at what rates</p>
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
+            <Globe className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No shipping zones</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Create zones to define where you ship and at what rates</p>
             <button
               onClick={handleAddZone}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create First Zone

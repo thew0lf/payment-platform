@@ -61,7 +61,7 @@ export function TrustSignals({
 
   return (
     <div
-      className={`${layoutClasses[layout]} text-xs text-muted-foreground ${className}`}
+      className={`${layoutClasses[layout]} text-xs text-gray-500 ${className}`}
       role="list"
       aria-label="Trust signals"
     >

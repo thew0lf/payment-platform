@@ -52,23 +52,23 @@ function AccordionItem({
 }: AccordionItemProps) {
   return (
     <div
-      className="border border-gray-200 rounded-lg overflow-hidden"
-      style={{ backgroundColor: cardBackgroundColor || '#ffffff' }}
+      className={`border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden ${!cardBackgroundColor ? 'bg-white dark:bg-gray-800' : ''}`}
+      style={cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : undefined}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors min-h-[44px] touch-manipulation"
+        className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[44px] touch-manipulation"
         aria-expanded={isOpen}
       >
-        <span className="font-semibold text-gray-900 pr-4">{item.question}</span>
+        <span className="font-semibold pr-4 text-gray-900 dark:text-gray-100">{item.question}</span>
         <span
-          className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 transition-transform duration-200 ${
+          className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''
           }`}
         >
           <svg
-            className="w-4 h-4 text-gray-600"
+            className="w-4 h-4 text-gray-600 dark:text-gray-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -88,7 +88,7 @@ function AccordionItem({
           isOpen ? 'max-h-96' : 'max-h-0'
         }`}
       >
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-gray-600">
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-gray-600 dark:text-gray-400">
           <p className="whitespace-pre-wrap">{item.answer}</p>
         </div>
       </div>
@@ -108,11 +108,11 @@ interface FAQCardProps {
 function FAQCard({ item, cardBackgroundColor }: FAQCardProps) {
   return (
     <div
-      className="p-6 rounded-xl border border-gray-200"
-      style={{ backgroundColor: cardBackgroundColor || '#ffffff' }}
+      className={`p-6 rounded-xl border border-gray-200 dark:border-gray-700 ${!cardBackgroundColor ? 'bg-white dark:bg-gray-800' : ''}`}
+      style={cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : undefined}
     >
-      <h3 className="font-semibold text-gray-900 mb-2">{item.question}</h3>
-      <p className="text-gray-600 whitespace-pre-wrap">{item.answer}</p>
+      <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">{item.question}</h3>
+      <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-400">{item.answer}</p>
     </div>
   );
 }
@@ -141,6 +141,10 @@ export function FAQSection({ content, styles }: FAQSectionProps) {
 
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
+  // Determine text colors with dark mode support
+  const textColor = styles?.textColor;
+  const hasCustomTextColor = !!textColor;
+
   const toggleItem = (id: string) => {
     setOpenItems((prev) => {
       const newSet = new Set(prev);
@@ -165,7 +169,7 @@ export function FAQSection({ content, styles }: FAQSectionProps) {
       className="py-16 sm:py-24"
       style={{
         backgroundColor: styles?.backgroundColor || 'transparent',
-        color: styles?.textColor || 'inherit',
+        ...(hasCustomTextColor && { color: textColor }),
       }}
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -174,14 +178,20 @@ export function FAQSection({ content, styles }: FAQSectionProps) {
           <div className="text-center mb-12">
             {title && (
               <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ fontFamily: 'var(--lp-heading-font), system-ui, sans-serif' }}
+                className={`text-3xl sm:text-4xl font-bold mb-4 ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                style={{
+                  fontFamily: 'var(--lp-heading-font), system-ui, sans-serif',
+                  ...(hasCustomTextColor && { color: textColor }),
+                }}
               >
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p
+                className={`text-lg max-w-2xl mx-auto ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+              >
                 {subtitle}
               </p>
             )}

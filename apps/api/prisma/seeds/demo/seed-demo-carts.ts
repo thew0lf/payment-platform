@@ -335,6 +335,27 @@ export async function seedDemoCarts(prisma: PrismaClient) {
         });
       }
     }
+
+    // Link cart to funnel via FunnelSession for proper cart-funnel association
+    if (funnel) {
+      await prisma.funnelSession.create({
+        data: {
+          funnelId: funnel.id,
+          sessionToken: `fs_${sessionToken}`,
+          cartId: cart.id,
+          currentStageOrder: 0,
+          status: config.status === CartStatus.CONVERTED ? 'COMPLETED' :
+                  config.status === CartStatus.ABANDONED ? 'ABANDONED' : 'ACTIVE',
+          startedAt: createdAt,
+          completedAt: config.status === CartStatus.CONVERTED ? convertedAt : null,
+          abandonedAt: config.status === CartStatus.ABANDONED ? abandonedAt : null,
+          customerInfo: config.customerEmail ? { email: config.customerEmail, name: config.customerName } : {},
+          utmSource: config.utmSource || null,
+          utmMedium: config.utmMedium || null,
+          utmCampaign: config.utmCampaign || null,
+        },
+      });
+    }
   }
 
   // Summary
@@ -379,6 +400,11 @@ export async function resetDemoCartData(prisma: PrismaClient) {
   }
 
   const cartIds = demoCarts.map((c) => c.id);
+
+  // Delete funnel sessions linked to demo carts first
+  await prisma.funnelSession.deleteMany({
+    where: { cartId: { in: cartIds } },
+  });
 
   // Delete cart items first (cascade should handle this, but being explicit)
   await prisma.cartItem.deleteMany({

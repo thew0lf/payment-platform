@@ -253,7 +253,7 @@ export default function VendorDetailPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl font-bold text-foreground">
+            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl font-bold text-white">
               {vendor.name.charAt(0)}
             </div>
             <div>
@@ -495,7 +495,7 @@ export default function VendorDetailPage() {
                 className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-sm font-bold text-foreground">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">
                     {company.name.charAt(0)}
                   </div>
                   <div>

@@ -169,23 +169,23 @@ function CopyButton({ text }: { text: string }) {
 // Payment method type icons and colors
 const PAYMENT_TYPE_CONFIG: Record<string, { bg: string; text: string; label: string; icon?: string }> = {
   // Card brands
-  VISA: { bg: 'bg-blue-500', text: 'text-foreground', label: 'VISA' },
-  MASTERCARD: { bg: 'bg-orange-500', text: 'text-foreground', label: 'MC' },
-  AMEX: { bg: 'bg-blue-600', text: 'text-foreground', label: 'AMEX' },
-  DISCOVER: { bg: 'bg-orange-400', text: 'text-foreground', label: 'DISC' },
-  JCB: { bg: 'bg-green-600', text: 'text-foreground', label: 'JCB' },
-  DINERS: { bg: 'bg-blue-400', text: 'text-foreground', label: 'DC' },
-  UNIONPAY: { bg: 'bg-red-600', text: 'text-foreground', label: 'UP' },
+  VISA: { bg: 'bg-blue-500', text: 'text-white', label: 'VISA' },
+  MASTERCARD: { bg: 'bg-orange-500', text: 'text-white', label: 'MC' },
+  AMEX: { bg: 'bg-blue-600', text: 'text-white', label: 'AMEX' },
+  DISCOVER: { bg: 'bg-orange-400', text: 'text-white', label: 'DISC' },
+  JCB: { bg: 'bg-green-600', text: 'text-white', label: 'JCB' },
+  DINERS: { bg: 'bg-blue-400', text: 'text-white', label: 'DC' },
+  UNIONPAY: { bg: 'bg-red-600', text: 'text-white', label: 'UP' },
   // Payment types
-  CARD: { bg: 'bg-purple-500', text: 'text-foreground', label: 'CARD' },
-  CHECK: { bg: 'bg-emerald-600', text: 'text-foreground', label: 'CHECK' },
-  ACH: { bg: 'bg-primary', text: 'text-foreground', label: 'ACH' },
-  WIRE: { bg: 'bg-indigo-600', text: 'text-foreground', label: 'WIRE' },
-  CASH: { bg: 'bg-green-500', text: 'text-foreground', label: 'CASH' },
-  INVOICE: { bg: 'bg-amber-600', text: 'text-foreground', label: 'INV' },
-  PAYPAL: { bg: 'bg-blue-700', text: 'text-foreground', label: 'PP' },
-  WALLET_APPLE: { bg: 'bg-muted', text: 'text-foreground', label: 'APPLE' },
-  WALLET_GOOGLE: { bg: 'bg-red-500', text: 'text-foreground', label: 'GPAY' },
+  CARD: { bg: 'bg-purple-500', text: 'text-white', label: 'CARD' },
+  CHECK: { bg: 'bg-emerald-600', text: 'text-white', label: 'CHECK' },
+  ACH: { bg: 'bg-primary', text: 'text-primary-foreground', label: 'ACH' },
+  WIRE: { bg: 'bg-indigo-600', text: 'text-white', label: 'WIRE' },
+  CASH: { bg: 'bg-green-500', text: 'text-white', label: 'CASH' },
+  INVOICE: { bg: 'bg-amber-600', text: 'text-white', label: 'INV' },
+  PAYPAL: { bg: 'bg-blue-700', text: 'text-white', label: 'PP' },
+  WALLET_APPLE: { bg: 'bg-muted', text: 'text-muted-foreground', label: 'APPLE' },
+  WALLET_GOOGLE: { bg: 'bg-red-500', text: 'text-white', label: 'GPAY' },
 };
 
 function PaymentMethodIcon({ type, brand }: { type?: string; brand?: string }) {

@@ -6,6 +6,7 @@ import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { MobileTabBar } from '@/components/layout/mobile-tab-bar';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { OnboardingWizard } from '@/components/onboarding';
+import { CartDrawer } from '@/components/cart';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { HierarchyProvider, useHierarchy } from '@/contexts/hierarchy-context';
 import { MobileMenuProvider, useMobileMenu } from '@/contexts/mobile-menu-context';
@@ -98,6 +99,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Command Palette */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+
+      {/* Cart Drawer */}
+      <CartDrawer />
 
       {/* Onboarding Wizard */}
       <OnboardingWizard />

@@ -369,8 +369,8 @@ export default function AIFunnelGeneratorPage() {
                     <div
                       className={`
                         flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
-                        ${isComplete ? 'bg-green-500 text-foreground' : ''}
-                        ${isCurrent ? 'bg-purple-600 text-foreground' : ''}
+                        ${isComplete ? 'bg-green-500 text-white' : ''}
+                        ${isCurrent ? 'bg-purple-600 text-white' : ''}
                         ${!isComplete && !isCurrent ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : ''}
                       `}
                     >

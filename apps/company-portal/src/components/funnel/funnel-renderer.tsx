@@ -58,10 +58,10 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50" style={brandStyles}>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" style={brandStyles}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -69,9 +69,9 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50" style={brandStyles}>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" style={brandStyles}>
         <div className="text-center">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 dark:text-red-400">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:opacity-90"
@@ -103,7 +103,7 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
       currentStage={currentStage.type}
     >
       <div
-        className="min-h-screen bg-gray-50"
+        className="min-h-screen bg-gray-50 dark:bg-gray-900"
         style={{
           ...brandStyles,
           fontFamily: brandKit.typography.bodyFont
@@ -121,7 +121,7 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
         <UrgencyBanner />
 
         {/* Header with branding */}
-        <header className="bg-white border-b border-gray-200">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <LogoDisplay
@@ -150,16 +150,16 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
         </main>
 
         {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 mt-auto">
+        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               {funnel.settings.urls.termsUrl && (
-                <a href={funnel.settings.urls.termsUrl} className="hover:text-gray-700">
+                <a href={funnel.settings.urls.termsUrl} className="hover:text-gray-700 dark:hover:text-gray-300">
                   Terms of Service
                 </a>
               )}
               {funnel.settings.urls.privacyUrl && (
-                <a href={funnel.settings.urls.privacyUrl} className="hover:text-gray-700">
+                <a href={funnel.settings.urls.privacyUrl} className="hover:text-gray-700 dark:hover:text-gray-300">
                   Privacy Policy
                 </a>
               )}

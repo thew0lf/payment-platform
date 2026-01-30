@@ -120,12 +120,16 @@ export function FeaturesSection({ content, styles }: FeaturesSectionProps) {
     4: 'sm:grid-cols-2 lg:grid-cols-4',
   };
 
+  // Determine text colors with dark mode support
+  const textColor = styles?.textColor;
+  const hasCustomTextColor = !!textColor;
+
   return (
     <div
       className="py-16 sm:py-24"
       style={{
         backgroundColor: styles?.backgroundColor || 'transparent',
-        color: styles?.textColor || 'inherit',
+        ...(hasCustomTextColor && { color: textColor }),
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,14 +138,20 @@ export function FeaturesSection({ content, styles }: FeaturesSectionProps) {
           <div className="text-center mb-12 sm:mb-16">
             {title && (
               <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ fontFamily: 'var(--lp-heading-font), system-ui, sans-serif' }}
+                className={`text-3xl sm:text-4xl font-bold mb-4 ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                style={{
+                  fontFamily: 'var(--lp-heading-font), system-ui, sans-serif',
+                  ...(hasCustomTextColor && { color: textColor }),
+                }}
               >
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p
+                className={`text-lg max-w-2xl mx-auto ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+              >
                 {subtitle}
               </p>
             )}
@@ -155,12 +165,12 @@ export function FeaturesSection({ content, styles }: FeaturesSectionProps) {
               <div
                 key={feature.id}
                 className={`
-                  ${layout === 'cards' ? 'p-6 rounded-xl shadow-sm border border-gray-100' : ''}
+                  ${layout === 'cards' ? 'p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700' : ''}
                 `}
                 style={{
                   backgroundColor:
                     layout === 'cards'
-                      ? styles?.cardBackgroundColor || '#ffffff'
+                      ? styles?.cardBackgroundColor || undefined
                       : 'transparent',
                 }}
               >
@@ -169,8 +179,18 @@ export function FeaturesSection({ content, styles }: FeaturesSectionProps) {
                   iconType={feature.iconType}
                   title={feature.title}
                 />
-                <h3 className="mt-4 text-lg font-semibold">{feature.title}</h3>
-                <p className="mt-2 text-gray-600">{feature.description}</p>
+                <h3
+                  className={`mt-4 text-lg font-semibold ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                  style={hasCustomTextColor ? { color: textColor } : undefined}
+                >
+                  {feature.title}
+                </h3>
+                <p
+                  className={`mt-2 ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                  style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+                >
+                  {feature.description}
+                </p>
               </div>
             ))}
           </div>
@@ -187,8 +207,18 @@ export function FeaturesSection({ content, styles }: FeaturesSectionProps) {
                   />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-gray-600">{feature.description}</p>
+                  <h3
+                    className={`text-lg font-semibold ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                    style={hasCustomTextColor ? { color: textColor } : undefined}
+                  >
+                    {feature.title}
+                  </h3>
+                  <p
+                    className={`mt-1 ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                    style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+                  >
+                    {feature.description}
+                  </p>
                 </div>
               </div>
             ))}

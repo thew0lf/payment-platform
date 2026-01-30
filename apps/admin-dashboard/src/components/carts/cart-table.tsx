@@ -96,7 +96,7 @@ export function CartTable({ carts, onRowClick, isLoading }: CartTableProps) {
           <CartTableSkeleton />
         ) : carts.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+            <TableCell colSpan={6} className="h-24 text-center text-gray-500">
               No carts found
             </TableCell>
           </TableRow>
@@ -112,22 +112,22 @@ export function CartTable({ carts, onRowClick, isLoading }: CartTableProps) {
               </TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium text-foreground">{cart.customerName}</div>
-                  <div className="text-sm text-muted-foreground">{cart.customerEmail}</div>
+                  <div className="font-medium text-gray-900">{cart.customerName}</div>
+                  <div className="text-sm text-gray-500">{cart.customerEmail}</div>
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-muted-foreground">
+                <span className="text-gray-500">
                   {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}
                 </span>
               </TableCell>
-              <TableCell className="font-medium">
+              <TableCell className="font-medium text-gray-900">
                 {formatCurrency(cart.total, cart.currency)}
               </TableCell>
               <TableCell>
                 <CartStatusBadge status={cart.status} />
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="text-gray-500">
                 {formatDistanceToNow(new Date(cart.lastActivityAt), { addSuffix: true })}
               </TableCell>
             </TableRow>

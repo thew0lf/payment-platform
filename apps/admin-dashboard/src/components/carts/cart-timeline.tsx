@@ -105,15 +105,15 @@ const activityConfig: Record<
   },
   CART_EXPIRED: {
     icon: Clock,
-    color: 'text-muted-foreground',
-    bgColor: 'bg-muted',
+    color: 'text-gray-400',
+    bgColor: 'bg-gray-100',
   },
 };
 
 export function CartTimeline({ activities, className }: CartTimelineProps) {
   if (activities.length === 0) {
     return (
-      <div className={cn('text-center py-8 text-muted-foreground', className)}>
+      <div className={cn('text-center py-8 text-gray-500', className)}>
         No activity recorded
       </div>
     );
@@ -122,7 +122,7 @@ export function CartTimeline({ activities, className }: CartTimelineProps) {
   return (
     <div className={cn('relative', className)}>
       {/* Vertical line */}
-      <div className="absolute left-4 top-2 bottom-2 w-px bg-border" />
+      <div className="absolute left-4 top-2 bottom-2 w-px bg-gray-200" />
 
       <div className="space-y-4">
         {activities.map((activity, index) => {
@@ -144,8 +144,8 @@ export function CartTimeline({ activities, className }: CartTimelineProps) {
 
               {/* Content */}
               <div className={cn('flex-1 pb-4', isLast && 'pb-0')}>
-                <p className="text-sm text-foreground">{activity.description}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-gray-900">{activity.description}</p>
+                <p className="text-xs text-gray-500 mt-1">
                   {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
                 </p>
               </div>

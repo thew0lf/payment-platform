@@ -407,7 +407,7 @@ export default function CartDetailPage() {
             )}
             {cart.funnel && (
               <Button variant="outline" asChild>
-                <Link href={`/funnels/${cart.funnel.id}`}>
+                <Link href={`/funnels/${cart.funnel.id}/analytics`}>
                   <ExternalLink className="w-4 h-4 mr-2" />
                   View Funnel
                 </Link>
@@ -434,7 +434,7 @@ export default function CartDetailPage() {
               {cart.customer ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-foreground text-lg font-bold flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                       {(cart.customer.firstName?.[0] || cart.customer.email[0]).toUpperCase()}
                     </div>
                     <div>
@@ -712,7 +712,7 @@ export default function CartDetailPage() {
                   <InfoRow
                     label="Funnel"
                     value={
-                      <Link href={`/funnels/${cart.funnel.id}`} className="text-primary hover:text-primary/80 flex items-center gap-1">
+                      <Link href={`/funnels/${cart.funnel.id}/analytics`} className="text-primary hover:text-primary/80 flex items-center gap-1">
                         {cart.funnel.name}
                         <ExternalLink className="w-3 h-3" />
                       </Link>

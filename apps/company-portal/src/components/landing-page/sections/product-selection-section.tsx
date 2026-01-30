@@ -109,11 +109,11 @@ function ProductCard({
 
   return (
     <div
-      className="group rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col"
-      style={{ backgroundColor: cardBackgroundColor || '#ffffff' }}
+      className={`group rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col ${!cardBackgroundColor ? 'bg-white dark:bg-gray-800' : ''}`}
+      style={cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : undefined}
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -165,10 +165,10 @@ function ProductCard({
 
       {/* Content */}
       <div className="p-4 flex-1 flex flex-col">
-        <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+        <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{product.name}</h3>
 
         {showDescription && product.description && (
-          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+          <p className="text-sm mb-2 line-clamp-2 text-gray-600 dark:text-gray-400">
             {product.description}
           </p>
         )}
@@ -182,7 +182,7 @@ function ProductCard({
                 const variant = product.variants?.find((v) => v.id === e.target.value);
                 setSelectedVariant(variant);
               }}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--lp-primary)]"
+              className="w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--lp-primary)]"
             >
               {product.variants.map((variant) => (
                 <option key={variant.id} value={variant.id}>
@@ -197,11 +197,11 @@ function ProductCard({
         {/* Price */}
         {showPrices && (
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {formatPrice(currentPrice)}
             </span>
             {isOnSale && compareAtPrice && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-sm line-through text-gray-500 dark:text-gray-400">
                 {formatPrice(compareAtPrice)}
               </span>
             )}
@@ -216,16 +216,16 @@ function ProductCard({
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 touch-manipulation"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation text-gray-700 dark:text-gray-300"
                   aria-label="Decrease quantity"
                 >
                   -
                 </button>
-                <span className="w-8 text-center font-medium">{quantity}</span>
+                <span className="w-8 text-center font-medium text-gray-900 dark:text-gray-100">{quantity}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => q + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 touch-manipulation"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation text-gray-700 dark:text-gray-300"
                   aria-label="Increase quantity"
                 >
                   +
@@ -294,6 +294,10 @@ export function ProductSelectionSection({
     4: 'sm:grid-cols-2 lg:grid-cols-4',
   };
 
+  // Determine text colors with dark mode support
+  const textColor = styles?.textColor;
+  const hasCustomTextColor = !!textColor;
+
   const handleAddToCart = async (
     product: Product,
     quantity: number,
@@ -324,7 +328,7 @@ export function ProductSelectionSection({
       className="py-16 sm:py-24"
       style={{
         backgroundColor: styles?.backgroundColor || 'transparent',
-        color: styles?.textColor || 'inherit',
+        ...(hasCustomTextColor && { color: textColor }),
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,14 +337,20 @@ export function ProductSelectionSection({
           <div className="text-center mb-12 sm:mb-16">
             {title && (
               <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ fontFamily: 'var(--lp-heading-font), system-ui, sans-serif' }}
+                className={`text-3xl sm:text-4xl font-bold mb-4 ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                style={{
+                  fontFamily: 'var(--lp-heading-font), system-ui, sans-serif',
+                  ...(hasCustomTextColor && { color: textColor }),
+                }}
               >
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p
+                className={`text-lg max-w-2xl mx-auto ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+              >
                 {subtitle}
               </p>
             )}

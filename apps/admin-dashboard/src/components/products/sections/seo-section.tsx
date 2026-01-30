@@ -170,7 +170,7 @@ export function SeoSection({
 
             {/* Google search result preview */}
             <div
-              className={`p-4 rounded-lg bg-white border shadow-sm ${
+              className={`p-4 rounded-lg bg-white dark:bg-gray-800 border shadow-sm ${
                 previewMode === 'mobile' ? 'max-w-[360px]' : 'max-w-[600px]'
               }`}
             >
@@ -178,12 +178,12 @@ export function SeoSection({
                 <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
                   <Eye className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <span className="text-sm text-gray-600">{siteUrl}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{siteUrl}</span>
               </div>
-              <h3 className="text-lg text-[#1a0dab] hover:underline cursor-pointer font-normal">
+              <h3 className="text-lg text-[#1a0dab] dark:text-blue-400 hover:underline cursor-pointer font-normal">
                 {truncateTitle(displayTitle, previewMode === 'mobile' ? 50 : TITLE_MAX)}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {truncateDescription(
                   displayDescription,
                   previewMode === 'mobile' ? 120 : DESCRIPTION_MAX
@@ -216,7 +216,7 @@ export function SeoSection({
             <p className="text-sm text-destructive">{errors.metaTitle}</p>
           )}
           {titleWarning && !errors?.metaTitle && (
-            <p className="text-sm text-amber-600 flex items-center gap-1">
+            <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
               Title is too long and may be truncated in search results
             </p>
@@ -251,7 +251,7 @@ export function SeoSection({
             <p className="text-sm text-destructive">{errors.metaDescription}</p>
           )}
           {descriptionWarning && !errors?.metaDescription && (
-            <p className="text-sm text-amber-600 flex items-center gap-1">
+            <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
               Description is too long and may be truncated in search results
             </p>
@@ -294,13 +294,13 @@ export function SeoSection({
             SEO Tips
           </h4>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li className={metaTitle.length >= 30 && metaTitle.length <= TITLE_MAX ? 'text-green-600' : ''}>
+            <li className={metaTitle.length >= 30 && metaTitle.length <= TITLE_MAX ? 'text-green-600 dark:text-green-400' : ''}>
               {metaTitle.length >= 30 && metaTitle.length <= TITLE_MAX ? '✓' : '○'} Title between 30-60 characters
             </li>
-            <li className={metaDescription.length >= 120 && metaDescription.length <= DESCRIPTION_MAX ? 'text-green-600' : ''}>
+            <li className={metaDescription.length >= 120 && metaDescription.length <= DESCRIPTION_MAX ? 'text-green-600 dark:text-green-400' : ''}>
               {metaDescription.length >= 120 && metaDescription.length <= DESCRIPTION_MAX ? '✓' : '○'} Description between 120-160 characters
             </li>
-            <li className={slug ? 'text-green-600' : ''}>
+            <li className={slug ? 'text-green-600 dark:text-green-400' : ''}>
               {slug ? '✓' : '○'} URL handle is set
             </li>
           </ul>

@@ -122,10 +122,10 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
-                <div className="aspect-square bg-gray-200 rounded-lg mb-4" />
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 animate-pulse">
+                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-4" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
               </div>
             ))}
           </div>
@@ -137,7 +137,7 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
   if (error) {
     return (
       <div className="py-12 px-4 text-center">
-        <p className="text-red-600">{error}</p>
+        <p className="text-red-600 dark:text-red-400">{error}</p>
         <button
           onClick={loadProducts}
           className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg"
@@ -153,9 +153,9 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{stage.name}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{stage.name}</h2>
           {config.selection.mode === 'multiple' && (
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Select {config.selection.minItems ? `at least ${config.selection.minItems}` : ''}
               {config.selection.maxItems ? ` up to ${config.selection.maxItems}` : ''} products
             </p>
@@ -170,7 +170,7 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
             />
           </div>
         )}
@@ -201,18 +201,18 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No products found</p>
+            <p className="text-gray-500 dark:text-gray-400">No products found</p>
           </div>
         )}
 
         {/* Fixed Bottom Bar */}
         {(config.cta.position === 'fixed-bottom' || config.cta.position === 'both') && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-30">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg p-4 z-30">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
               {funnel.settings.behavior.allowBackNavigation && (
                 <button
                   onClick={prevStage}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 >
                   Back
                 </button>
@@ -221,8 +221,8 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
               <div className="flex items-center gap-4 ml-auto">
                 {cart.length > 0 && (
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">{cart.length} items</p>
-                    <p className="text-lg font-semibold text-gray-900">${cartTotal.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{cart.length} items</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">${cartTotal.toFixed(2)}</p>
                   </div>
                 )}
 
@@ -295,9 +295,9 @@ function ProductCard({
     }
   }, [isRecentlyAdded]);
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden group hover:shadow-md transition-shadow">
       {/* Image */}
-      <div className="aspect-square bg-gray-100 relative overflow-hidden">
+      <div className="aspect-square bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
         {product.images[0] ? (
           <img
             src={product.images[0].thumbnails?.medium || product.images[0].url}
@@ -312,7 +312,7 @@ function ProductCard({
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
             <ShoppingCartIcon className="h-16 w-16" />
           </div>
         )}
@@ -326,19 +326,19 @@ function ProductCard({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
+        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">{product.name}</h3>
 
         {config.display.showDescription && product.shortDescription && (
-          <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.shortDescription}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{product.shortDescription}</p>
         )}
 
         {config.display.showPrices && (
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
               ${product.price.toFixed(2)}
             </span>
             {product.compareAtPrice && product.compareAtPrice > product.price && (
-              <span className="text-sm text-gray-400 line-through">
+              <span className="text-sm text-gray-400 dark:text-gray-500 line-through">
                 ${product.compareAtPrice.toFixed(2)}
               </span>
             )}
@@ -373,20 +373,20 @@ function ProductCard({
                 )}
               </button>
             ) : config.selection.allowQuantity ? (
-              <div className="flex items-center justify-center gap-3 bg-gray-100 rounded-lg p-2">
+              <div className="flex items-center justify-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
                 <button
                   onClick={() => onUpdateQuantity(quantity - 1)}
-                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white rounded-md hover:bg-gray-50 shadow-sm touch-manipulation"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm touch-manipulation text-gray-700 dark:text-gray-300"
                   aria-label={`Decrease quantity of ${product.name}`}
                 >
                   <MinusIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
-                <span className="font-medium w-8 text-center" aria-label={`Quantity: ${quantity}`}>
+                <span className="font-medium w-8 text-center text-gray-900 dark:text-gray-100" aria-label={`Quantity: ${quantity}`}>
                   {quantity}
                 </span>
                 <button
                   onClick={() => onUpdateQuantity(quantity + 1)}
-                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white rounded-md hover:bg-gray-50 shadow-sm touch-manipulation"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm touch-manipulation text-gray-700 dark:text-gray-300"
                   aria-label={`Increase quantity of ${product.name}`}
                 >
                   <PlusIcon className="h-4 w-4" aria-hidden="true" />
@@ -398,7 +398,7 @@ function ProductCard({
                   flex items-center justify-center gap-2 py-2.5
                   text-[var(--primary-color)] font-medium
                   transition-all duration-300
-                  ${showCheckmark ? 'text-green-600' : ''}
+                  ${showCheckmark ? 'text-green-600 dark:text-green-400' : ''}
                 `}
                 role="status"
                 aria-label={`${product.name} added to cart`}

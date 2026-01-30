@@ -136,15 +136,15 @@ function FeaturesSection({ config }: { config: Record<string, unknown> }) {
   const displayFeatures = features.length > 0 ? features : defaultFeatures;
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">{title}</h2>
+        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">{title}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {displayFeatures.map((feature, index) => (
             <div key={index} className="text-center p-6">
               <div className="text-4xl mb-4">{feature.icon || '✓'}</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
             </div>
           ))}
         </div>
@@ -172,18 +172,18 @@ function TestimonialsSection({ config }: { config: Record<string, unknown> }) {
   const displayTestimonials = testimonials.length > 0 ? testimonials : defaultTestimonials;
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">{title}</h2>
+        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">{title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {displayTestimonials.map((testimonial, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-sm">
+            <div key={index} className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-sm">
               <div className="flex items-center gap-1 mb-4">
                 {Array.from({ length: testimonial.rating || 5 }).map((_, i) => (
                   <StarIcon key={i} className="h-5 w-5 text-yellow-400" />
                 ))}
               </div>
-              <p className="text-gray-600 mb-4">&quot;{testimonial.text}&quot;</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">&quot;{testimonial.text}&quot;</p>
               <div className="flex items-center gap-3">
                 {testimonial.avatar ? (
                   <img src={testimonial.avatar} alt={testimonial.name} className="w-10 h-10 rounded-full" />
@@ -192,7 +192,7 @@ function TestimonialsSection({ config }: { config: Record<string, unknown> }) {
                     {testimonial.name.charAt(0)}
                   </div>
                 )}
-                <span className="font-medium text-gray-900">{testimonial.name}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{testimonial.name}</span>
               </div>
             </div>
           ))}
@@ -221,19 +221,19 @@ function FAQSection({ config }: { config: Record<string, unknown> }) {
   const displayFAQs = faqs.length > 0 ? faqs : defaultFAQs;
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+    <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">{title}</h2>
+        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">{title}</h2>
         <div className="space-y-4">
           {displayFAQs.map((faq, index) => (
-            <details key={index} className="group bg-gray-50 rounded-xl">
+            <details key={index} className="group bg-gray-50 dark:bg-gray-800 rounded-xl">
               <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
-                <h3 className="font-medium text-gray-900">{faq.question}</h3>
-                <span className="ml-4 text-gray-500 group-open:rotate-180 transition-transform">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">{faq.question}</h3>
+                <span className="ml-4 text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform">
                   ▼
                 </span>
               </summary>
-              <div className="px-6 pb-6 text-gray-600">{faq.answer}</div>
+              <div className="px-6 pb-6 text-gray-600 dark:text-gray-400">{faq.answer}</div>
             </details>
           ))}
         </div>
@@ -287,7 +287,7 @@ function CTASection({
 
         <button
           onClick={onCTA}
-          className="px-8 py-4 bg-white text-[var(--primary-color)] text-lg font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
+          className="px-8 py-4 bg-white dark:bg-gray-100 text-[var(--primary-color)] text-lg font-semibold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-200 transition-colors shadow-lg"
         >
           {cta.text}
         </button>

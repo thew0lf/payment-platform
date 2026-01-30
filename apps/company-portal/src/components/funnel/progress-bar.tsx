@@ -11,7 +11,7 @@ interface ProgressBarProps {
 
 export function ProgressBar({ stages, currentIndex }: ProgressBarProps) {
   return (
-    <div className="bg-white border-b border-gray-200 py-4">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 py-4">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav aria-label="Progress">
           <ol className="flex items-center justify-between">
@@ -27,8 +27,8 @@ export function ProgressBar({ stages, currentIndex }: ProgressBarProps) {
                       ${index < currentIndex
                         ? 'bg-[var(--primary-color)]'
                         : index === currentIndex
-                        ? 'border-2 border-[var(--primary-color)] bg-white'
-                        : 'border-2 border-gray-300 bg-white'
+                        ? 'border-2 border-[var(--primary-color)] bg-white dark:bg-gray-900'
+                        : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'
                       }
                     `}
                   >
@@ -46,7 +46,7 @@ export function ProgressBar({ stages, currentIndex }: ProgressBarProps) {
                   <span
                     className={`
                       ml-3 text-sm font-medium
-                      ${index <= currentIndex ? 'text-gray-900' : 'text-gray-500'}
+                      ${index <= currentIndex ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}
                       hidden sm:block
                     `}
                   >
@@ -56,7 +56,7 @@ export function ProgressBar({ stages, currentIndex }: ProgressBarProps) {
 
                 {index !== stages.length - 1 && (
                   <div className="flex-1 ml-4 mr-4">
-                    <div className="h-0.5 w-full bg-gray-200">
+                    <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700">
                       <div
                         className="h-0.5 bg-[var(--primary-color)] transition-all duration-300"
                         style={{ width: index < currentIndex ? '100%' : '0%' }}

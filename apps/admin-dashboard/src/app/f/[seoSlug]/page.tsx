@@ -591,10 +591,10 @@ export default function PublicFunnelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400 mx-auto" />
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -602,13 +602,13 @@ export default function PublicFunnelPage() {
 
   if (error && !funnel) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center max-w-md px-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="h-8 w-8 text-red-500" />
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-500 dark:text-red-400" />
           </div>
-          <h1 className="text-xl font-semibold text-foreground mb-2">Page Not Found</h1>
-          <p className="text-muted-foreground">{error}</p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Page Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
         </div>
       </div>
     );
@@ -642,7 +642,7 @@ export default function PublicFunnelPage() {
     const testimonialsTitle = testimonialsSection?.config?.sectionTitle || testimonialsSection?.config?.title || 'What Our Customers Say';
 
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-gray-900">
         {/* Hero Section */}
         {heroSection && (() => {
           // Resolve background image from config or keywords
@@ -692,10 +692,10 @@ export default function PublicFunnelPage() {
               )}
 
               <div className="max-w-4xl mx-auto text-center relative z-10">
-                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight ${hasImage ? 'text-white drop-shadow-lg' : 'text-gray-900'}`}>
+                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight ${hasImage ? 'text-white drop-shadow-lg' : 'text-gray-900 dark:text-gray-100'}`}>
                   {heroSection.config?.headline}
                 </h1>
-                <p className={`text-xl md:text-2xl mb-10 max-w-2xl mx-auto leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-gray-600'}`}>
+                <p className={`text-xl md:text-2xl mb-10 max-w-2xl mx-auto leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-gray-600 dark:text-gray-400'}`}>
                   {heroSection.config?.subheadline}
                 </p>
                 <button
@@ -713,25 +713,25 @@ export default function PublicFunnelPage() {
 
         {/* Features/Benefits Section */}
         {featuresSection && featureItems.length > 0 && (
-          <section className="py-16 md:py-20 px-4 bg-gray-50">
+          <section className="py-16 md:py-20 px-4 bg-gray-50 dark:bg-gray-800">
             <div className="max-w-6xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-4">
                 {featureTitle}
               </h2>
-              <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+              <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
                 Discover what makes us different
               </p>
               <div className={`grid gap-8 ${featureItems.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
                 {featureItems.map((feature, idx) => (
-                  <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
+                  <div key={idx} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700">
                     <div
                       className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
                       style={{ backgroundColor: `${primaryColor}15` }}
                     >
                       <FeatureIcon icon={feature.icon || feature.iconSuggestion || ''} color={primaryColor} />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
                   </div>
                 ))}
               </div>
@@ -741,9 +741,9 @@ export default function PublicFunnelPage() {
 
         {/* Social Proof / Testimonials Section */}
         {testimonialsSection && (testimonialItems.length > 0 || testimonialPrompts.length > 0 || statsToHighlight.length > 0) && (
-          <section className="py-16 md:py-20 px-4 bg-white">
+          <section className="py-16 md:py-20 px-4 bg-white dark:bg-gray-900">
             <div className="max-w-6xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-12">
                 {testimonialsTitle}
               </h2>
 
@@ -751,7 +751,7 @@ export default function PublicFunnelPage() {
               {statsToHighlight.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-8 mb-12">
                   {statsToHighlight.map((stat, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-gray-700">
+                    <div key={idx} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                       <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
                       <span className="font-medium">{stat}</span>
                     </div>
@@ -763,18 +763,18 @@ export default function PublicFunnelPage() {
               {testimonialItems.length > 0 && (
                 <div className="grid md:grid-cols-3 gap-6">
                   {testimonialItems.map((testimonial, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
                       {testimonial.rating && (
                         <div className="flex gap-1 mb-3">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${i < testimonial.rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                              className={`w-4 h-4 ${i < testimonial.rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
                             />
                           ))}
                         </div>
                       )}
-                      <p className="text-gray-600 mb-4 italic leading-relaxed">"{testimonial.text}"</p>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4 italic leading-relaxed">"{testimonial.text}"</p>
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
@@ -783,8 +783,8 @@ export default function PublicFunnelPage() {
                           {testimonial.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                          {testimonial.role && <p className="text-sm text-gray-500">{testimonial.role}</p>}
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{testimonial.name}</p>
+                          {testimonial.role && <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</p>}
                         </div>
                       </div>
                     </div>
@@ -796,14 +796,14 @@ export default function PublicFunnelPage() {
               {testimonialItems.length === 0 && testimonialPrompts.length > 0 && (
                 <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                   {testimonialPrompts.map((prompt, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 relative">
-                      <Quote className="w-8 h-8 text-gray-200 absolute top-4 left-4" />
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 relative">
+                      <Quote className="w-8 h-8 text-gray-200 dark:text-gray-700 absolute top-4 left-4" />
                       <div className="flex gap-1 mb-3">
                         {[...Array(5)].map((_, i) => (
                           <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                         ))}
                       </div>
-                      <p className="text-gray-700 italic leading-relaxed pl-2">"{prompt}"</p>
+                      <p className="text-gray-700 dark:text-gray-300 italic leading-relaxed pl-2">"{prompt}"</p>
                       <div className="flex items-center gap-3 mt-4">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
@@ -812,8 +812,8 @@ export default function PublicFunnelPage() {
                           <ThumbsUp className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">Happy Customer</p>
-                          <p className="text-sm text-gray-500">Verified Purchase</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Happy Customer</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Verified Purchase</p>
                         </div>
                       </div>
                     </div>
@@ -826,23 +826,23 @@ export default function PublicFunnelPage() {
 
         {/* FAQ Section */}
         {faqSection && faqSection.config?.items && faqSection.config.items.length > 0 && (
-          <section className="py-16 md:py-20 px-4 bg-gray-50">
+          <section className="py-16 md:py-20 px-4 bg-gray-50 dark:bg-gray-800">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-4">
                 {faqSection.config?.sectionTitle || faqSection.config?.title || 'Frequently Asked Questions'}
               </h2>
-              <p className="text-center text-gray-600 mb-12">
+              <p className="text-center text-gray-600 dark:text-gray-400 mb-12">
                 Everything you need to know
               </p>
               <div className="space-y-4">
                 {faqSection.config.items.map((item, idx) => (
-                  <details key={idx} className="group bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors">
-                      <span className="font-semibold text-gray-900 pr-4">{item.question}</span>
-                      <ChevronDown className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180" />
+                  <details key={idx} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100 pr-4">{item.question}</span>
+                      <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform group-open:rotate-180" />
                     </summary>
                     <div className="px-5 pb-5 pt-0">
-                      <p className="text-gray-600 leading-relaxed">{item.answer}</p>
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{item.answer}</p>
                     </div>
                   </details>
                 ))}
@@ -855,8 +855,8 @@ export default function PublicFunnelPage() {
         {ctaSection && (
           <section className="py-16 md:py-20 px-4" style={{ backgroundColor: `${primaryColor}08` }}>
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{ctaSection.config?.headline}</h2>
-              <p className="text-xl text-gray-600 mb-8">{ctaSection.config?.subheadline}</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{ctaSection.config?.headline}</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">{ctaSection.config?.subheadline}</p>
               {ctaSection.config?.urgencyText && (
                 <p className="text-sm font-medium mb-6" style={{ color: primaryColor }}>
                   {ctaSection.config.urgencyText}
@@ -865,8 +865,8 @@ export default function PublicFunnelPage() {
               {ctaSection.config?.benefits && ctaSection.config.benefits.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
                   {ctaSection.config.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-gray-600">
-                      <Check className="w-5 h-5 text-green-600" />
+                    <div key={idx} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
                       <span>{benefit}</span>
                     </div>
                   ))}
@@ -885,8 +885,8 @@ export default function PublicFunnelPage() {
         )}
 
         {/* Footer */}
-        <footer className="py-8 px-4 border-t border-border">
-          <div className="max-w-5xl mx-auto text-center text-sm text-muted-foreground">
+        <footer className="py-8 px-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="max-w-5xl mx-auto text-center text-sm text-gray-600 dark:text-gray-400">
             <p>&copy; {new Date().getFullYear()} {funnel.company.name}. All rights reserved.</p>
           </div>
         </footer>
@@ -904,12 +904,12 @@ export default function PublicFunnelPage() {
     const minItems = config.selection?.minItems || 1;
 
     return (
-      <div className="min-h-screen bg-muted/50 pb-24">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
         {/* Header */}
-        <header className="bg-white border-b border-border sticky top-0 z-10">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-            <span className="font-semibold text-lg text-foreground">{funnel.company.name}</span>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-semibold text-lg text-gray-900 dark:text-gray-100">{funnel.company.name}</span>
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Lock className="h-4 w-4" />
               <span>Secure Checkout</span>
             </div>
@@ -917,13 +917,13 @@ export default function PublicFunnelPage() {
         </header>
 
         <main className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-foreground mb-2">{currentStage.name}</h1>
-          <p className="text-muted-foreground mb-8">Select the products you'd like to order</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{currentStage.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-8">Select the products you'd like to order</p>
 
           {products.length === 0 ? (
             <div className="text-center py-12">
-              <Package className="w-12 h-12 text-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading products...</p>
+              <Package className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Loading products...</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -931,9 +931,9 @@ export default function PublicFunnelPage() {
                 const quantity = selectedProducts.get(product.id) || 0;
                 const imageUrl = product.images?.[0]?.url || product.images?.[0];
                 return (
-                  <div key={product.id} className="bg-white rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                     {imageUrl && (
-                      <div className="aspect-square bg-muted">
+                      <div className="aspect-square bg-gray-100 dark:bg-gray-700">
                         <img
                           src={typeof imageUrl === 'string' ? imageUrl : ''}
                           alt={product.name}
@@ -942,14 +942,14 @@ export default function PublicFunnelPage() {
                       </div>
                     )}
                     {!imageUrl && (
-                      <div className="aspect-square bg-muted flex items-center justify-center">
-                        <Coffee className="w-16 h-16 text-foreground" />
+                      <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <Coffee className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
                     <div className="p-4">
-                      <h3 className="font-semibold text-foreground mb-1">{product.name}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{product.name}</h3>
                       {product.description && (
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{product.description}</p>
                       )}
                       <div className="flex items-center justify-between">
                         <div>
@@ -957,7 +957,7 @@ export default function PublicFunnelPage() {
                             ${product.price.toFixed(2)}
                           </span>
                           {product.compareAtPrice && product.compareAtPrice > product.price && (
-                            <span className="ml-2 text-sm text-muted-foreground line-through">
+                            <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 line-through">
                               ${product.compareAtPrice.toFixed(2)}
                             </span>
                           )}
@@ -965,7 +965,7 @@ export default function PublicFunnelPage() {
                         {quantity === 0 ? (
                           <button
                             onClick={() => addProduct(product.id)}
-                            className="px-4 py-2 text-sm font-medium text-foreground rounded-lg transition-colors hover:opacity-90"
+                            className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors hover:opacity-90"
                             style={{ backgroundColor: primaryColor }}
                           >
                             Add
@@ -974,14 +974,14 @@ export default function PublicFunnelPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => removeProduct(product.id)}
-                              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted transition-colors"
+                              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-300"
                             >
                               <Minus className="w-4 h-4" />
                             </button>
-                            <span className="w-8 text-center font-medium">{quantity}</span>
+                            <span className="w-8 text-center font-medium text-gray-900 dark:text-gray-100">{quantity}</span>
                             <button
                               onClick={() => addProduct(product.id)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-foreground transition-colors hover:opacity-90"
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors hover:opacity-90"
                               style={{ backgroundColor: primaryColor }}
                             >
                               <Plus className="w-4 h-4" />
@@ -998,22 +998,22 @@ export default function PublicFunnelPage() {
         </main>
 
         {/* Fixed Cart Summary */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-4 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 shadow-lg">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedProducts.size === 0
                   ? `Select at least ${minItems} item${minItems > 1 ? 's' : ''}`
                   : `${Array.from(selectedProducts.values()).reduce((a, b) => a + b, 0)} item(s) selected`}
               </p>
-              <p className="text-xl font-bold text-foreground">
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 ${getSelectedTotal().toFixed(2)}
               </p>
             </div>
             <button
               onClick={advanceStage}
               disabled={selectedProducts.size < minItems}
-              className="px-6 py-3 text-foreground font-semibold rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
+              className="px-6 py-3 text-white font-semibold rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
               style={{ backgroundColor: primaryColor }}
             >
               {ctaText}
@@ -1031,19 +1031,19 @@ export default function PublicFunnelPage() {
 
   if (currentStage.type === 'CHECKOUT' && checkoutStep === 'complete' && checkoutResult?.success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
         <div className="text-center max-w-md px-4">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
-            <Check className="h-10 w-10 text-foreground" />
+            <Check className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Order Confirmed!</h1>
-          <p className="text-muted-foreground mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Order Confirmed!</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Thank you for your purchase. A confirmation email will be sent to {email}.
           </p>
           {checkoutResult.orderNumber && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-border mb-6">
-              <p className="text-sm text-muted-foreground">Order Number</p>
-              <p className="text-lg font-mono font-semibold text-foreground">{checkoutResult.orderNumber}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Order Number</p>
+              <p className="text-lg font-mono font-semibold text-gray-900 dark:text-gray-100">{checkoutResult.orderNumber}</p>
             </div>
           )}
         </div>
@@ -1061,12 +1061,12 @@ export default function PublicFunnelPage() {
     const guaranteeText = config.trust?.guaranteeText;
 
     return (
-      <div className="min-h-screen bg-muted/50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header */}
-        <header className="bg-white border-b border-border">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-            <span className="font-semibold text-lg text-foreground">{funnel.company.name}</span>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-semibold text-lg text-gray-900 dark:text-gray-100">{funnel.company.name}</span>
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Lock className="h-4 w-4" />
               <span>Secure Checkout</span>
             </div>
@@ -1074,7 +1074,7 @@ export default function PublicFunnelPage() {
         </header>
 
         {/* Progress */}
-        <div className="bg-white border-b border-border">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center justify-center gap-8">
               {[
@@ -1089,12 +1089,12 @@ export default function PublicFunnelPage() {
                 return (
                   <div key={step.key} className="flex items-center">
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                      isActive ? 'text-foreground' : isPast ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'
+                      isActive ? 'text-white' : isPast ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                     }`} style={isActive ? { backgroundColor: primaryColor } : {}}>
                       <Icon className="w-4 h-4" />
                       <span className="text-sm font-medium hidden sm:block">{step.label}</span>
                     </div>
-                    {idx < 2 && <div className={`w-8 h-0.5 mx-2 ${isPast ? 'bg-green-300' : 'bg-zinc-200'}`} />}
+                    {idx < 2 && <div className={`w-8 h-0.5 mx-2 ${isPast ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-200 dark:bg-gray-600'}`} />}
                   </div>
                 );
               })}
@@ -1107,25 +1107,25 @@ export default function PublicFunnelPage() {
             {/* Form */}
             <div className="lg:col-span-3">
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-600 text-sm">{error}</p>
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
                 </div>
               )}
 
               {/* Shipping Form */}
               {checkoutStep === 'shipping' && (
                 <form onSubmit={handleShippingSubmit}>
-                  <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-                    <h2 className="text-lg font-semibold text-foreground mb-6">Shipping Information</h2>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Shipping Information</h2>
 
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Email *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         placeholder="you@example.com"
                         required
                       />
@@ -1133,29 +1133,29 @@ export default function PublicFunnelPage() {
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">First Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
                         <input
                           type="text"
                           value={shippingAddress.firstName}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">Last Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
                         <input
                           type="text"
                           value={shippingAddress.lastName}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         />
                       </div>
                     </div>
 
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Address *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
                       <AddressAutocomplete
                         value={shippingAddress.street1}
                         onChange={(value) => setShippingAddress({ ...shippingAddress, street1: value })}
@@ -1179,18 +1179,18 @@ export default function PublicFunnelPage() {
                         type="text"
                         value={shippingAddress.street2}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, street2: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         placeholder="Apt, suite (optional)"
                       />
                     </div>
 
                     {/* Country */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Country *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country *</label>
                       <select
                         value={shippingAddress.country}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value, state: '' })}
-                        className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         required
                       >
                         {COUNTRIES.map((country) => (
@@ -1201,23 +1201,23 @@ export default function PublicFunnelPage() {
 
                     <div className="grid grid-cols-3 gap-4 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">City *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
                         <input
                           type="text"
                           value={shippingAddress.city}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           {getCountryByCode(shippingAddress.country)?.regionLabel || 'State'} *
                         </label>
                         <select
                           value={shippingAddress.state}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         >
                           <option value="">Select {(getCountryByCode(shippingAddress.country)?.regionLabel || 'state').toLowerCase()}</option>
@@ -1227,14 +1227,14 @@ export default function PublicFunnelPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           {getCountryByCode(shippingAddress.country)?.postalLabel || 'ZIP'} *
                         </label>
                         <input
                           type="text"
                           value={shippingAddress.postalCode}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           placeholder={getCountryByCode(shippingAddress.country)?.postalPlaceholder || '12345'}
                           required
                         />
@@ -1244,7 +1244,7 @@ export default function PublicFunnelPage() {
                     <button
                       type="submit"
                       disabled={processing}
-                      className="w-full px-6 py-3 text-foreground rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                      className="w-full px-6 py-3 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:opacity-90"
                       style={{ backgroundColor: primaryColor }}
                     >
                       {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -1257,32 +1257,32 @@ export default function PublicFunnelPage() {
               {/* Payment Form */}
               {checkoutStep === 'payment' && (
                 <form onSubmit={handlePaymentSubmit}>
-                  <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-                    <h2 className="text-lg font-semibold text-foreground mb-6">Payment Details</h2>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Payment Details</h2>
 
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Card Number *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Card Number *</label>
                       <div className="relative">
                         <input
                           type="text"
                           value={formatCardNumber(card.number)}
                           onChange={(e) => setCard({ ...card, number: e.target.value.replace(/\s/g, '') })}
-                          className="w-full pl-12 pr-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full pl-12 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           placeholder="4242 4242 4242 4242"
                           maxLength={19}
                           required
                         />
-                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">Month *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Month *</label>
                         <select
                           value={card.expiryMonth}
                           onChange={(e) => setCard({ ...card, expiryMonth: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         >
                           <option value="">MM</option>
@@ -1292,11 +1292,11 @@ export default function PublicFunnelPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">Year *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year *</label>
                         <select
                           value={card.expiryYear}
                           onChange={(e) => setCard({ ...card, expiryYear: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           required
                         >
                           <option value="">YYYY</option>
@@ -1306,12 +1306,12 @@ export default function PublicFunnelPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-muted-foreground mb-1">CVV *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CVV *</label>
                         <input
                           type="text"
                           value={card.cvv}
                           onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                          className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white"
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                           placeholder="123"
                           maxLength={4}
                           required
@@ -1323,14 +1323,14 @@ export default function PublicFunnelPage() {
                       <button
                         type="button"
                         onClick={() => setCheckoutStep('shipping')}
-                        className="px-6 py-3 bg-muted text-muted-foreground rounded-lg font-medium hover:bg-muted transition-colors"
+                        className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       >
                         Back
                       </button>
                       <button
                         type="submit"
                         disabled={processing}
-                        className="flex-1 px-6 py-3 bg-green-600 text-foreground rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
+                        className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
                       >
                         {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                         Pay {summary ? `$${summary.total.toFixed(2)}` : ''}
@@ -1340,14 +1340,14 @@ export default function PublicFunnelPage() {
 
                   {/* Security & Guarantee */}
                   <div className="mt-4 space-y-3">
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <p className="text-sm text-green-700">Your payment is secured with 256-bit SSL encryption</p>
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <p className="text-sm text-green-700 dark:text-green-400">Your payment is secured with 256-bit SSL encryption</p>
                     </div>
                     {showGuarantee && guaranteeText && (
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-                        <Check className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <p className="text-sm text-blue-700">{guaranteeText}</p>
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center gap-3">
+                        <Check className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                        <p className="text-sm text-blue-700 dark:text-blue-400">{guaranteeText}</p>
                       </div>
                     )}
                   </div>
@@ -1357,56 +1357,56 @@ export default function PublicFunnelPage() {
 
             {/* Order Summary */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-sm border border-border p-6 sticky top-8">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-8">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Order Summary</h2>
 
                 {selectedProducts.size > 0 ? (
-                  <div className="space-y-3 pb-4 border-b border-border">
+                  <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-gray-700">
                     {Array.from(selectedProducts.entries()).map(([productId, qty]) => {
                       const product = products.find(p => p.id === productId);
                       if (!product) return null;
                       return (
                         <div key={productId} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{product.name} <span className="text-muted-foreground">x{qty}</span></span>
+                            <Package className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-gray-700 dark:text-gray-300">{product.name} <span className="text-gray-500 dark:text-gray-400">x{qty}</span></span>
                           </div>
-                          <span className="font-medium text-foreground">${(product.price * qty).toFixed(2)}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">${(product.price * qty).toFixed(2)}</span>
                         </div>
                       );
                     })}
                   </div>
                 ) : summary?.items ? (
-                  <div className="space-y-3 pb-4 border-b border-border">
+                  <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-gray-700">
                     {summary.items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">{item.name} <span className="text-muted-foreground">x{item.quantity}</span></span>
+                          <Package className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">{item.name} <span className="text-gray-500 dark:text-gray-400">x{item.quantity}</span></span>
                         </div>
-                        <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">${(item.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
                 ) : null}
 
-                <div className="py-4 space-y-2 border-b border-border">
+                <div className="py-4 space-y-2 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">${summary?.subtotal?.toFixed(2) || getSelectedTotal().toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                    <span className="text-gray-900 dark:text-gray-100">${summary?.subtotal?.toFixed(2) || getSelectedTotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-foreground">{summary ? `$${summary.shippingAmount.toFixed(2)}` : 'Calculated next'}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                    <span className="text-gray-900 dark:text-gray-100">{summary ? `$${summary.shippingAmount.toFixed(2)}` : 'Calculated next'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span className="text-foreground">{summary ? `$${summary.taxAmount.toFixed(2)}` : 'Calculated next'}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                    <span className="text-gray-900 dark:text-gray-100">{summary ? `$${summary.taxAmount.toFixed(2)}` : 'Calculated next'}</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between py-4 text-lg font-semibold">
-                  <span className="text-foreground">Total</span>
+                  <span className="text-gray-900 dark:text-gray-100">Total</span>
                   <span style={{ color: primaryColor }}>
                     ${summary?.total?.toFixed(2) || getSelectedTotal().toFixed(2)}
                   </span>
@@ -1421,10 +1421,10 @@ export default function PublicFunnelPage() {
 
   // Fallback for unknown stage types
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center">
-        <AlertCircle className="w-12 h-12 text-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">Stage type not supported: {currentStage.type}</p>
+        <AlertCircle className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-400">Stage type not supported: {currentStage.type}</p>
       </div>
     </div>
   );

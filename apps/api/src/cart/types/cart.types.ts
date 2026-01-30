@@ -45,6 +45,12 @@ export interface CartItemData {
   addedAt: Date;
 }
 
+export interface CartFunnelData {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface CartData {
   id: string;
   companyId: string;
@@ -69,6 +75,7 @@ export interface CartData {
   updatedAt: Date;
   lastActivityAt: Date;
   expiresAt?: Date;
+  funnel?: CartFunnelData;
 }
 
 export interface SavedCartItemData {

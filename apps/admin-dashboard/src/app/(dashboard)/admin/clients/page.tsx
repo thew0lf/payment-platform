@@ -58,7 +58,7 @@ export default function AdminClientsPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-lg font-bold text-foreground">
+                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-lg font-bold text-white">
                         {client.name.charAt(0)}
                       </div>
                       <div>

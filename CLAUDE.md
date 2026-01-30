@@ -1380,6 +1380,145 @@ The `/review` command includes these as mandatory checks.
 
 ---
 
+## Dark Mode Requirements
+
+**CRITICAL: ALL new components MUST support both light and dark themes. This is a mandatory design requirement.**
+
+### Mandatory Dark Mode Support
+
+Every component that uses color classes must include corresponding `dark:` variants. The application supports system-preference-based theme switching, and components that don't properly support dark mode will appear broken to users.
+
+### Color Pattern Reference
+
+Use these standard light/dark mode pairs consistently throughout the application:
+
+| Light Mode | Dark Mode Variant | Usage |
+|------------|-------------------|-------|
+| `bg-white` | `dark:bg-gray-900` | Primary backgrounds, cards, modals |
+| `bg-gray-50` | `dark:bg-gray-800` | Secondary backgrounds, alternating rows |
+| `bg-gray-100` | `dark:bg-gray-700` | Tertiary backgrounds, hover states |
+| `text-gray-900` | `dark:text-gray-100` | Primary text, headings |
+| `text-gray-700` | `dark:text-gray-300` | Secondary text, labels |
+| `text-gray-600` | `dark:text-gray-400` | Tertiary text, descriptions |
+| `text-gray-500` | `dark:text-gray-400` | Muted text, placeholders |
+| `border-gray-200` | `dark:border-gray-700` | Primary borders, dividers |
+| `border-gray-300` | `dark:border-gray-600` | Input borders, stronger dividers |
+| `hover:bg-gray-50` | `dark:hover:bg-gray-800` | Hover states on white backgrounds |
+| `hover:bg-gray-100` | `dark:hover:bg-gray-700` | Hover states on gray-50 backgrounds |
+
+### Form Input Dark Mode
+
+**All form inputs MUST include dark mode styles.** Use this pattern:
+
+```tsx
+// ✅ CORRECT - Form input with dark mode
+<input
+  className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-3 py-2"
+/>
+
+// ✅ CORRECT - Using shadcn/ui Input component (already styled)
+<Input placeholder="Enter value" />
+
+// ❌ WRONG - Missing dark mode styles
+<input className="border border-gray-300 bg-white text-gray-900 rounded-md px-3 py-2" />
+```
+
+### Button Text on Colored Backgrounds
+
+Buttons with dynamic or colored backgrounds (primary buttons, status buttons, etc.) must use `text-white`, NOT `text-foreground`:
+
+```tsx
+// ✅ CORRECT - White text on colored background
+<button className="bg-blue-600 hover:bg-blue-700 text-white">
+  Submit
+</button>
+
+// ✅ CORRECT - Primary button with explicit white text
+<Button className="bg-primary text-white hover:bg-primary/90">
+  Save Changes
+</Button>
+
+// ❌ WRONG - text-foreground can become invisible in dark mode
+<button className="bg-blue-600 text-foreground">Submit</button>
+```
+
+### No Hardcoded Colors
+
+**Never use inline styles with hardcoded hex colors:**
+
+```tsx
+// ❌ WRONG - Hardcoded colors break dark mode
+<span style={{ color: '#111827' }}>Text</span>
+<div style={{ backgroundColor: '#ffffff' }}>Content</div>
+
+// ✅ CORRECT - Use Tailwind classes with dark variants
+<span className="text-gray-900 dark:text-gray-100">Text</span>
+<div className="bg-white dark:bg-gray-900">Content</div>
+```
+
+**Exception:** When a component accepts custom colors from props/configuration (e.g., brand colors, theme settings), use conditional rendering:
+
+```tsx
+// ✅ ACCEPTABLE - Dynamic colors from configuration
+<div
+  style={{ backgroundColor: settings.branding?.primaryColor || undefined }}
+  className={!settings.branding?.primaryColor ? 'bg-blue-600' : ''}
+>
+  {children}
+</div>
+```
+
+### Quick Pattern Reference
+
+```tsx
+// ✅ CORRECT COMPONENT WITH DARK MODE
+function Card({ title, children }) {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <h3 className="text-gray-900 dark:text-gray-100 font-semibold">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-400 mt-2">{children}</p>
+    </div>
+  );
+}
+
+// ❌ WRONG - NO DARK MODE SUPPORT
+function Card({ title, children }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <h3 className="text-gray-900 font-semibold">{title}</h3>
+      <p className="text-gray-600 mt-2">{children}</p>
+    </div>
+  );
+}
+```
+
+### Self-Check Before Creating Components
+
+When creating or modifying components, verify dark mode support:
+
+1. Does every `bg-white` have a `dark:bg-gray-900` (or similar)?
+2. Does every `bg-gray-50` have a `dark:bg-gray-800`?
+3. Does every `text-gray-*` have a corresponding `dark:text-gray-*`?
+4. Does every `border-gray-*` have a corresponding `dark:border-gray-*`?
+5. Are ALL form inputs styled with `dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600`?
+6. Do buttons with colored backgrounds use `text-white` (not `text-foreground`)?
+7. Are there any hardcoded hex colors in inline styles?
+
+### Code Review Enforcement
+
+**Dark mode issues are BLOCKING. PRs missing dark mode support must be rejected.**
+
+When reviewing frontend code, check:
+- Every color class has a corresponding `dark:` variant
+- No inline styles with hardcoded colors (`style={{ color: '#...' }}`)
+- Form inputs include `dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600`
+- Buttons with colored backgrounds use `text-white`, not `text-foreground`
+- Hover and focus states also have dark mode variants
+
+The `/review` command includes dark mode as a mandatory check.
+
+---
+
 ## Toast Notifications & Dialogs
 
 ### Convention

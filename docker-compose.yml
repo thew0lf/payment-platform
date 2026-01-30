@@ -57,7 +57,7 @@ services:
       context: ./apps/company-portal
       dockerfile: Dockerfile.dev
     ports:
-      - "3003:3000"
+      - "3003:3003"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3001
     volumes:

@@ -107,7 +107,7 @@ export function MethodologySelectionStep({
               {/* MI Recommended badge */}
               {isRecommended && (
                 <div className="absolute -top-2 -right-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-foreground rounded-full">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full">
                     <SparklesIcon className="h-3 w-3" />
                     MI Pick
                   </span>
@@ -117,7 +117,7 @@ export function MethodologySelectionStep({
               <div className="flex items-start gap-4">
                 {/* Icon */}
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient}`}>
-                  <Icon className="h-6 w-6 text-foreground" />
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
 
                 {/* Content */}

@@ -345,7 +345,7 @@ export default function CustomerDetailPage() {
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Profile</span>
                 </div>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-foreground text-lg font-bold flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                     {initials}
                   </div>
                   <div>
@@ -355,7 +355,7 @@ export default function CustomerDetailPage() {
                 </div>
                 <Link
                   href={`/orders/new?customerId=${customerId}`}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-foreground rounded-lg hover:bg-primary/80 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/80 transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Create Order

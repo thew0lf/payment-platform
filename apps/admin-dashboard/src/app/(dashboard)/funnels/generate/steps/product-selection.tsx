@@ -231,7 +231,7 @@ export function ProductSelectionStep({
         <button
           onClick={handleNext}
           disabled={selectedIds.length === 0}
-          className="px-6 py-3 bg-purple-600 text-foreground font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Continue to Methodology
         </button>

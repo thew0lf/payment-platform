@@ -48,6 +48,7 @@ const PASSWORD_RESET_HTML = `
       overflow: hidden;
     }
     .card-header {
+      background-color: #667eea; /* Fallback solid color */
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 32px 24px;
       text-align: center;
@@ -63,6 +64,7 @@ const PASSWORD_RESET_HTML = `
       display: inline-block;
       width: 48px;
       height: 48px;
+      background-color: #6366f1; /* Fallback solid color */
       background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
       border-radius: 12px;
       vertical-align: middle;
@@ -75,6 +77,7 @@ const PASSWORD_RESET_HTML = `
       font-size: 28px;
       font-weight: 800;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.5);
     }
     .logo-text {
       display: inline-block;
@@ -86,12 +89,14 @@ const PASSWORD_RESET_HTML = `
       vertical-align: middle;
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.5);
     }
     /* Gmail auto-link prevention: separate spans for avnz, dot, io */
     .logo-text-part {
       color: #ffffff !important;
       text-decoration: none !important;
       border: none !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.5);
     }
 
     /* Typography */
@@ -181,7 +186,7 @@ const PASSWORD_RESET_HTML = `
       padding: 24px 16px;
     }
     .footer p {
-      color: #a0aec0;
+      color: #64748b;
       font-size: 12px;
       margin: 4px 0;
     }
@@ -204,10 +209,10 @@ const PASSWORD_RESET_HTML = `
   <div class="wrapper">
     <div class="container">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color:#667eea;">
           <div class="logo-container">
-            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
+            <div class="logo-icon" style="background-color:#6366f1;"><span class="logo-icon-letter" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);">A</span></div><!--
+            --><span class="logo-text" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">io</span></span>
           </div>
           <h1>Forgot your password?<br>No worries, we've got you!</h1>
         </div>
@@ -237,7 +242,7 @@ const PASSWORD_RESET_HTML = `
       <div class="footer">
         <p>Need help? We're always here at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
         <p>© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant</p>
-        <p style="margin-top: 12px; color: #cbd5e0;">Made with 💜 by the AVNZ team</p>
+        <p style="margin-top: 12px; color: #64748b;">Made with 💜 by the AVNZ team</p>
       </div>
     </div>
   </div>
@@ -312,6 +317,7 @@ const WELCOME_HTML = `
       overflow: hidden;
     }
     .card-header {
+      background-color: #10b981; /* Fallback solid color */
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       padding: 32px 24px;
       text-align: center;
@@ -327,6 +333,7 @@ const WELCOME_HTML = `
       display: inline-block;
       width: 48px;
       height: 48px;
+      background-color: #6366f1; /* Fallback solid color */
       background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
       border-radius: 12px;
       vertical-align: middle;
@@ -339,6 +346,7 @@ const WELCOME_HTML = `
       font-size: 28px;
       font-weight: 800;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(99,102,241,0.5);
     }
     .logo-text {
       display: inline-block;
@@ -350,12 +358,14 @@ const WELCOME_HTML = `
       vertical-align: middle;
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(16,185,129,0.5);
     }
     /* Gmail auto-link prevention: separate spans for avnz, dot, io */
     .logo-text-part {
       color: #ffffff !important;
       text-decoration: none !important;
       border: none !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(16,185,129,0.5);
     }
 
     /* Typography */
@@ -382,6 +392,7 @@ const WELCOME_HTML = `
     .button-container { text-align: center; padding: 8px 0 24px 0; }
     .button {
       display: inline-block;
+      background-color: #10b981; /* Fallback solid color */
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: #ffffff !important;
       text-decoration: none;
@@ -452,7 +463,7 @@ const WELCOME_HTML = `
       padding: 24px 16px;
     }
     .footer p {
-      color: #a0aec0;
+      color: #64748b;
       font-size: 12px;
       margin: 4px 0;
     }
@@ -475,10 +486,10 @@ const WELCOME_HTML = `
   <div class="wrapper">
     <div class="container">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color:#10b981;">
           <div class="logo-container">
-            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
+            <div class="logo-icon" style="background-color:#6366f1;"><span class="logo-icon-letter" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);">A</span></div><!--
+            --><span class="logo-text" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">io</span></span>
           </div>
           <h1>Welcome to the family! 🎉<br>You're officially one of us!</h1>
         </div>
@@ -512,7 +523,7 @@ const WELCOME_HTML = `
       <div class="footer">
         <p>Need help? We're always here at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
         <p>© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant</p>
-        <p style="margin-top: 12px; color: #cbd5e0;">Made with 💚 by the AVNZ team</p>
+        <p style="margin-top: 12px; color: #64748b;">Made with 💚 by the AVNZ team</p>
       </div>
     </div>
   </div>
@@ -591,6 +602,7 @@ const EMAIL_VERIFICATION_HTML = `
       overflow: hidden;
     }
     .card-header {
+      background-color: #3b82f6; /* Fallback solid color */
       background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       padding: 32px 24px;
       text-align: center;
@@ -606,6 +618,7 @@ const EMAIL_VERIFICATION_HTML = `
       display: inline-block;
       width: 48px;
       height: 48px;
+      background-color: #6366f1; /* Fallback solid color */
       background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
       border-radius: 12px;
       vertical-align: middle;
@@ -618,6 +631,7 @@ const EMAIL_VERIFICATION_HTML = `
       font-size: 28px;
       font-weight: 800;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.5);
     }
     .logo-text {
       display: inline-block;
@@ -629,12 +643,14 @@ const EMAIL_VERIFICATION_HTML = `
       vertical-align: middle;
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.5);
     }
     /* Gmail auto-link prevention: separate spans for avnz, dot, io */
     .logo-text-part {
       color: #ffffff !important;
       text-decoration: none !important;
       border: none !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(59,130,246,0.5);
     }
 
     /* Typography */
@@ -661,6 +677,7 @@ const EMAIL_VERIFICATION_HTML = `
     .button-container { text-align: center; padding: 8px 0 24px 0; }
     .button {
       display: inline-block;
+      background-color: #3b82f6; /* Fallback solid color */
       background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       color: #ffffff !important;
       text-decoration: none;
@@ -724,7 +741,7 @@ const EMAIL_VERIFICATION_HTML = `
       padding: 24px 16px;
     }
     .footer p {
-      color: #a0aec0;
+      color: #64748b;
       font-size: 12px;
       margin: 4px 0;
     }
@@ -747,10 +764,10 @@ const EMAIL_VERIFICATION_HTML = `
   <div class="wrapper">
     <div class="container">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color:#3b82f6;">
           <div class="logo-container">
-            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
+            <div class="logo-icon" style="background-color:#6366f1;"><span class="logo-icon-letter" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);">A</span></div><!--
+            --><span class="logo-text" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 2px rgba(0,0,0,0.3);">io</span></span>
           </div>
           <h1>Just one tiny thing... 📬<br>Let's verify it's really you!</h1>
         </div>
@@ -780,7 +797,7 @@ const EMAIL_VERIFICATION_HTML = `
       <div class="footer">
         <p>Questions? We're here to help at <a href="mailto:support@avnz.io">support@avnz.io</a></p>
         <p>© {{currentYear}} AVNZ Platform • SOC2 & ISO 27001 Compliant</p>
-        <p style="margin-top: 12px; color: #cbd5e0;">Made with 💙 by the AVNZ team</p>
+        <p style="margin-top: 12px; color: #64748b;">Made with 💙 by the AVNZ team</p>
       </div>
     </div>
   </div>
@@ -856,6 +873,7 @@ const WAITLIST_INVITE_HTML = `
       border: 1px solid rgba(139, 92, 246, 0.2);
     }
     .card-header {
+      background-color: #8b5cf6; /* Fallback solid color */
       background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%);
       padding: 40px 24px;
       text-align: center;
@@ -871,6 +889,7 @@ const WAITLIST_INVITE_HTML = `
       display: inline-block;
       width: 56px;
       height: 56px;
+      background-color: rgba(139, 92, 246, 0.8); /* Fallback solid color */
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
       border-radius: 16px;
@@ -884,6 +903,7 @@ const WAITLIST_INVITE_HTML = `
       font-size: 32px;
       font-weight: 800;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 10px rgba(139,92,246,0.5);
     }
     .logo-text {
       display: inline-block;
@@ -895,11 +915,13 @@ const WAITLIST_INVITE_HTML = `
       vertical-align: middle;
       letter-spacing: -0.5px;
       font-family: system-ui, -apple-system, sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 10px rgba(139,92,246,0.5);
     }
     .logo-text-part {
       color: #ffffff !important;
       text-decoration: none !important;
       border: none !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 10px rgba(139,92,246,0.5);
     }
 
     /* Typography */
@@ -1026,11 +1048,11 @@ const WAITLIST_INVITE_HTML = `
       padding: 24px 16px;
     }
     .footer p {
-      color: #6b7280;
+      color: #9ca3af;
       font-size: 12px;
       margin: 4px 0;
     }
-    .footer a { color: #8b5cf6; text-decoration: none; }
+    .footer a { color: #a78bfa; text-decoration: none; }
 
     /* Mobile responsive */
     @media only screen and (max-width: 480px) {
@@ -1049,10 +1071,10 @@ const WAITLIST_INVITE_HTML = `
   <div class="wrapper">
     <div class="container">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color:#8b5cf6;">
           <div class="logo-container">
-            <div class="logo-icon"><span class="logo-icon-letter">A</span></div><!--
-            --><span class="logo-text"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;">io</span></span>
+            <div class="logo-icon" style="background-color:rgba(139,92,246,0.8);"><span class="logo-icon-letter" style="text-shadow:0 1px 3px rgba(0,0,0,0.4);">A</span></div><!--
+            --><span class="logo-text" style="text-shadow:0 1px 3px rgba(0,0,0,0.4);"><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 3px rgba(0,0,0,0.4);">avnz</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 3px rgba(0,0,0,0.4);">.</span><span class="logo-text-part" style="color:#ffffff !important;text-decoration:none !important;text-shadow:0 1px 3px rgba(0,0,0,0.4);">io</span></span>
           </div>
           <h1>🎉 You Made It, Founder!<br>Your VIP Pass is Here!</h1>
         </div>
@@ -1091,7 +1113,7 @@ const WAITLIST_INVITE_HTML = `
       <div class="footer">
         <p>Questions? Hit us up at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
         <p>© {{currentYear}} AVNZ Platform • For Founders, By Founders</p>
-        <p style="margin-top: 12px; color: #8b5cf6;">Made with 🔥 by the AVNZ team</p>
+        <p style="margin-top: 12px; color: #a78bfa;">Made with 🔥 by the AVNZ team</p>
       </div>
     </div>
   </div>
@@ -1172,6 +1194,7 @@ const ABANDONED_CART_1_HTML = `
       border: 1px solid rgba(102, 126, 234, 0.2);
     }
     .card-header {
+      background-color: #667eea; /* Fallback solid color */
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 32px 24px;
       text-align: center;
@@ -1182,6 +1205,7 @@ const ABANDONED_CART_1_HTML = `
       font-weight: 800;
       color: #ffffff !important;
       text-decoration: none !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 10px rgba(102,126,234,0.5);
     }
     h1 {
       color: #ffffff;
@@ -1189,6 +1213,7 @@ const ABANDONED_CART_1_HTML = `
       font-weight: 700;
       margin: 20px 0 0 0;
       line-height: 1.3;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .greeting {
       font-size: 18px;
@@ -1243,8 +1268,8 @@ const ABANDONED_CART_1_HTML = `
     }
     .tip-box p { color: #c4b5fd; margin: 0; font-size: 14px; }
     .footer { text-align: center; padding: 24px 16px; }
-    .footer p { color: #6b7280; font-size: 12px; margin: 4px 0; }
-    .footer a { color: #667eea; text-decoration: none; }
+    .footer p { color: #9ca3af; font-size: 12px; margin: 4px 0; }
+    .footer a { color: #a78bfa; text-decoration: none; }
     @media only screen and (max-width: 480px) {
       .card { margin: 0 12px; }
       .card-header { padding: 24px 20px; }
@@ -1259,9 +1284,9 @@ const ABANDONED_CART_1_HTML = `
   <div class="wrapper">
     <div class="container">
       <div class="card">
-        <div class="card-header">
-          <span class="logo-text">{{companyName}}</span>
-          <h1>Still thinking it over?</h1>
+        <div class="card-header" style="background-color:#667eea;">
+          <span class="logo-text" style="text-shadow:0 1px 3px rgba(0,0,0,0.3);">{{companyName}}</span>
+          <h1 style="text-shadow:0 1px 2px rgba(0,0,0,0.2);">Still thinking it over?</h1>
         </div>
         <div class="card-body">
           <p class="greeting">Hey {{userName}}!</p>
@@ -1359,6 +1384,7 @@ const ABANDONED_CART_2_HTML = `
     .wrapper { width: 100%; table-layout: fixed; background-color: #0a0a0f; padding: 24px 0; }
     .container { max-width: 600px; margin: 0 auto; }
     .discount-banner {
+      background-color: #10b981; /* Fallback solid color */
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       padding: 12px 24px;
       text-align: center;
@@ -1370,8 +1396,10 @@ const ABANDONED_CART_2_HTML = `
       margin: 0;
       letter-spacing: 1px;
       text-transform: uppercase;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .card {
+      background-color: #203a43; /* Fallback solid color */
       background: linear-gradient(180deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
       border-radius: 0 0 20px 20px;
       box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
@@ -1403,6 +1431,7 @@ const ABANDONED_CART_2_HTML = `
       margin: 0 0 16px 0;
       font-weight: 600;
       text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     h1 {
       color: #ffffff;
@@ -1410,6 +1439,7 @@ const ABANDONED_CART_2_HTML = `
       font-weight: 700;
       margin: 0 0 12px 0;
       text-align: center;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
     p { color: #d1d5db; margin: 0 0 16px 0; font-size: 16px; line-height: 1.7; }
     .highlight { color: #6ee7b7; font-weight: 500; }
@@ -1418,6 +1448,7 @@ const ABANDONED_CART_2_HTML = `
       margin: 20px 0;
     }
     .code-display span {
+      background-color: rgba(16, 185, 129, 0.2); /* Fallback */
       background: rgba(16, 185, 129, 0.2);
       color: #6ee7b7;
       padding: 8px 20px;
@@ -1479,8 +1510,8 @@ const ABANDONED_CART_2_HTML = `
       margin-top: 8px;
     }
     .footer { text-align: center; padding: 24px 16px; }
-    .footer p { color: #6b7280; font-size: 12px; margin: 4px 0; }
-    .footer a { color: #10b981; text-decoration: none; }
+    .footer p { color: #9ca3af; font-size: 12px; margin: 4px 0; }
+    .footer a { color: #6ee7b7; text-decoration: none; }
     @media only screen and (max-width: 480px) {
       .card { margin: 0 12px; }
       .card-body { padding: 24px 20px; }
@@ -1493,10 +1524,10 @@ const ABANDONED_CART_2_HTML = `
   <div style="display:none;max-height:0;overflow:hidden;">We don't do this often. But for you, {{userName}}? Yeah, we're doing this.</div>
   <div class="wrapper">
     <div class="container">
-      <div class="discount-banner">
-        <p>EXCLUSIVE: {{discountPercent}}% OFF YOUR CART</p>
+      <div class="discount-banner" style="background-color:#10b981;">
+        <p style="text-shadow:0 1px 2px rgba(0,0,0,0.2);">EXCLUSIVE: {{discountPercent}}% OFF YOUR CART</p>
       </div>
-      <div class="card">
+      <div class="card" style="background-color:#203a43;">
         <div class="card-body">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
@@ -1616,6 +1647,7 @@ const ABANDONED_CART_3_HTML = `
     .wrapper { width: 100%; table-layout: fixed; background-color: #0a0a0f; padding: 24px 0; }
     .container { max-width: 600px; margin: 0 auto; }
     .urgency-banner {
+      background-color: #dc2626; /* Fallback solid color */
       background: linear-gradient(90deg, #dc2626 0%, #ea580c 50%, #f59e0b 100%);
       padding: 16px 24px;
       text-align: center;
@@ -1627,8 +1659,10 @@ const ABANDONED_CART_3_HTML = `
       margin: 0;
       letter-spacing: 1.5px;
       text-transform: uppercase;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
     .card {
+      background-color: #2d1515; /* Fallback solid color */
       background: linear-gradient(180deg, #1a0a0a 0%, #2d1515 50%, #1a0a0a 100%);
       border-radius: 0 0 20px 20px;
       box-shadow: 0 0 30px rgba(220, 38, 38, 0.2), 0 0 60px rgba(220, 38, 38, 0.1);
@@ -1640,6 +1674,7 @@ const ABANDONED_CART_3_HTML = `
     .card-body { padding: 32px 24px; }
     .time-pill {
       display: inline-block;
+      background-color: #dc2626; /* Fallback solid color */
       background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
       padding: 8px 20px;
       border-radius: 50px;
@@ -1651,10 +1686,12 @@ const ABANDONED_CART_3_HTML = `
       font-weight: 600;
       letter-spacing: 1px;
       text-transform: uppercase;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .discount-badge {
       width: 120px;
       height: 120px;
+      background-color: #dc2626; /* Fallback solid color */
       background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
       border-radius: 50%;
       margin: 0 auto 24px;
@@ -1669,6 +1706,7 @@ const ABANDONED_CART_3_HTML = `
       font-size: 36px;
       font-weight: 800;
       line-height: 1;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     .discount-badge-off {
       color: rgba(255,255,255,0.8);
@@ -1676,6 +1714,7 @@ const ABANDONED_CART_3_HTML = `
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     h1 {
       color: #ffffff;
@@ -1683,6 +1722,7 @@ const ABANDONED_CART_3_HTML = `
       font-weight: 700;
       margin: 0 0 12px 0;
       text-align: center;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
     p { color: #fca5a5; margin: 0 0 16px 0; font-size: 16px; line-height: 1.7; }
     .white-text { color: #ffffff; }
@@ -1692,6 +1732,7 @@ const ABANDONED_CART_3_HTML = `
       margin: 20px 0;
     }
     .code-display span {
+      background-color: rgba(220, 38, 38, 0.3); /* Fallback */
       background: rgba(220, 38, 38, 0.3);
       color: #ffffff;
       padding: 8px 20px;
@@ -1770,8 +1811,8 @@ const ABANDONED_CART_3_HTML = `
     }
     .ps-box p { color: #e2e8f0; margin: 0; font-size: 14px; }
     .footer { text-align: center; padding: 24px 16px; }
-    .footer p { color: #6b7280; font-size: 12px; margin: 4px 0; }
-    .footer a { color: #f87171; text-decoration: none; }
+    .footer p { color: #9ca3af; font-size: 12px; margin: 4px 0; }
+    .footer a { color: #fca5a5; text-decoration: none; }
     @media only screen and (max-width: 480px) {
       .card { margin: 0 12px; }
       .card-body { padding: 24px 20px; }
@@ -1784,28 +1825,28 @@ const ABANDONED_CART_3_HTML = `
   <div style="display:none;max-height:0;overflow:hidden;">{{discountPercent}}% off. Cart expires tonight. This is us being genuinely, honestly real with you.</div>
   <div class="wrapper">
     <div class="container">
-      <div class="urgency-banner">
-        <p>FINAL NOTICE: {{discountPercent}}% OFF EXPIRES TONIGHT</p>
+      <div class="urgency-banner" style="background-color:#dc2626;">
+        <p style="text-shadow:0 1px 2px rgba(0,0,0,0.3);">FINAL NOTICE: {{discountPercent}}% OFF EXPIRES TONIGHT</p>
       </div>
-      <div class="card">
+      <div class="card" style="background-color:#2d1515;">
         <div class="card-body">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
-              <div class="time-pill">
-                <span>Expires in {{expiresIn}}</span>
+              <div class="time-pill" style="background-color:#dc2626;">
+                <span style="text-shadow:0 1px 2px rgba(0,0,0,0.2);">Expires in {{expiresIn}}</span>
               </div>
             </td></tr>
             <tr><td align="center">
-              <div class="discount-badge">
+              <div class="discount-badge" style="background-color:#dc2626;">
                 <div class="discount-badge-inner">
-                  <span class="discount-badge-percent">{{discountPercent}}%</span><br>
-                  <span class="discount-badge-off">OFF</span>
+                  <span class="discount-badge-percent" style="text-shadow:0 2px 4px rgba(0,0,0,0.3);">{{discountPercent}}%</span><br>
+                  <span class="discount-badge-off" style="text-shadow:0 1px 2px rgba(0,0,0,0.2);">OFF</span>
                 </div>
               </div>
             </td></tr>
           </table>
 
-          <h1>Last call, {{userName}}</h1>
+          <h1 style="text-shadow:0 1px 3px rgba(0,0,0,0.3);">Last call, {{userName}}</h1>
 
           <p class="white-text">This is the email where we're supposed to create fake urgency. Flashing timers, ALL CAPS warnings, the whole anxiety-inducing circus. But that's not us. So here's the truth instead:</p>
 

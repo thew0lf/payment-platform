@@ -180,13 +180,13 @@ export function CartItem({
   // If pending removal, show reduced opacity state
   if (pendingRemoval && showUndoToast) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 opacity-50 relative">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 opacity-50 relative">
         <div className="flex gap-4 items-center">
           {/* Placeholder for image */}
-          <div className="w-20 h-20 rounded-lg bg-gray-100 flex-shrink-0" />
+          <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
 
           <div className="flex-1">
-            <p className="text-gray-600">Saying goodbye to {item.name}...</p>
+            <p className="text-gray-600 dark:text-gray-400">Saying goodbye to {item.name}...</p>
           </div>
 
           <button
@@ -202,19 +202,19 @@ export function CartItem({
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <div className="flex gap-4">
           {/* Product Image - 80x80 */}
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
               alt={item.name}
-              className="w-20 h-20 rounded-lg object-cover bg-gray-100 flex-shrink-0"
+              className="w-20 h-20 rounded-lg object-cover bg-gray-100 dark:bg-gray-700 flex-shrink-0"
               loading="lazy"
             />
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-              <ShoppingCartIcon className="h-8 w-8 text-gray-300" aria-hidden="true" />
+            <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <ShoppingCartIcon className="h-8 w-8 text-gray-300 dark:text-gray-600" aria-hidden="true" />
             </div>
           )}
 
@@ -223,13 +223,13 @@ export function CartItem({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 {/* Product Name */}
-                <h3 className="font-medium text-gray-900 line-clamp-2">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
                   {item.name}
                 </h3>
 
                 {/* Variant Display */}
                 {(item.variantId || variantDisplayName) && (
-                  <p className="text-sm text-gray-500 mt-1 truncate">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                     {variantDisplayName || `Variant: ${item.variantId}`}
                   </p>
                 )}
@@ -237,8 +237,8 @@ export function CartItem({
                 {/* Low Stock Warning */}
                 {isLowStock && (
                   <div className="flex items-center gap-1 mt-1.5" role="alert">
-                    <ExclamationTriangleIcon className="h-4 w-4 text-amber-600 flex-shrink-0" aria-hidden="true" />
-                    <span className="text-xs text-amber-700 font-medium">
+                    <ExclamationTriangleIcon className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0" aria-hidden="true" />
+                    <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
                       Hurry! Only {stockLevel} left
                     </span>
                   </div>
@@ -247,8 +247,8 @@ export function CartItem({
                 {/* Out of Stock Warning */}
                 {isOutOfStock && (
                   <div className="flex items-center gap-1 mt-1.5" role="alert">
-                    <ExclamationTriangleIcon className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
-                    <span className="text-xs text-red-700 font-medium">
+                    <ExclamationTriangleIcon className="h-4 w-4 text-red-600 dark:text-red-500 flex-shrink-0" aria-hidden="true" />
+                    <span className="text-xs text-red-700 dark:text-red-400 font-medium">
                       Sold out - check back soon!
                     </span>
                   </div>
@@ -258,7 +258,7 @@ export function CartItem({
               {/* Remove Button */}
               <button
                 onClick={handleRemoveClick}
-                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors touch-manipulation"
                 aria-label={`Remove ${item.name} from cart`}
               >
                 <TrashIcon className="h-5 w-5" aria-hidden="true" />
@@ -271,7 +271,7 @@ export function CartItem({
               <div className="flex items-center gap-1" role="group" aria-label={`Quantity for ${item.name}`}>
                 <button
                   onClick={handleDecrease}
-                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   aria-label="Decrease quantity"
                   disabled={item.quantity <= 0}
                 >
@@ -279,7 +279,7 @@ export function CartItem({
                 </button>
 
                 <span
-                  className="w-12 text-center font-medium text-gray-900"
+                  className="w-12 text-center font-medium text-gray-900 dark:text-gray-100"
                   aria-live="polite"
                   aria-label={`Quantity: ${item.quantity}`}
                 >
@@ -288,7 +288,7 @@ export function CartItem({
 
                 <button
                   onClick={handleIncrease}
-                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   aria-label="Increase quantity"
                   disabled={!canIncrease}
                 >
@@ -298,11 +298,11 @@ export function CartItem({
 
               {/* Price Display */}
               <div className="text-right flex-shrink-0">
-                <p className="font-semibold text-gray-900" aria-label={`Line total: ${formatCurrency(lineTotal)}`}>
+                <p className="font-semibold text-gray-900 dark:text-gray-100" aria-label={`Line total: ${formatCurrency(lineTotal)}`}>
                   {formatCurrency(lineTotal)}
                 </p>
                 {item.quantity > 1 && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {formatCurrency(item.price)} each
                   </p>
                 )}
@@ -325,20 +325,20 @@ export function CartItem({
             onClick={handleCancelRemove}
             aria-hidden="true"
           />
-          <div className="relative bg-white rounded-xl p-6 max-w-sm w-[calc(100%-2rem)] shadow-xl">
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-[calc(100%-2rem)] shadow-xl">
             <h3
               id="remove-dialog-title"
-              className="text-lg font-semibold text-gray-900 mb-2"
+              className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2"
             >
               Remove this item?
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Sure you want to remove {item.name}?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleCancelRemove}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] touch-manipulation"
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors min-h-[44px] touch-manipulation"
               >
                 Nevermind, keep it
               </button>

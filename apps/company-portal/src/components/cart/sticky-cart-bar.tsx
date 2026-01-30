@@ -195,7 +195,7 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
       >
         <div
           className={`
-            bg-white border-t border-gray-200 shadow-xl
+            bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-xl
             transition-all duration-300 ease-out
             ${isExpanded ? 'rounded-t-2xl' : ''}
           `}
@@ -208,12 +208,12 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
               w-full flex items-center justify-center
               py-3 min-h-[44px]
               touch-manipulation
-              focus:outline-none focus-visible:bg-gray-100
+              focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-800
             "
             aria-label={isExpanded ? 'Collapse cart preview' : 'Expand cart preview'}
             aria-expanded={isExpanded}
           >
-            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
           </button>
 
           {/* Mini Cart Preview (Expanded State) */}
@@ -224,13 +224,13 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
             `}
             aria-hidden={!isExpanded}
           >
-            <div className="px-4 pb-2 border-b border-gray-100">
+            <div className="px-4 pb-2 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Your Cart</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Your Cart</h3>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 text-gray-400 hover:text-gray-600"
+                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                   aria-label="Close cart preview"
                 >
                   <XMarkIcon className="h-5 w-5" aria-hidden="true" />
@@ -249,20 +249,20 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
                       <img
                         src={item.imageUrl}
                         alt=""
-                        className="w-12 h-12 rounded-lg object-cover bg-gray-100 flex-shrink-0"
+                        className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-gray-700 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <ShoppingCartIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <ShoppingCartIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" aria-hidden="true" />
                       </div>
                     )}
 
                     {/* Item Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {item.name}
                       </p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
                         x{item.quantity} - {formatCurrency(item.price * item.quantity)}
                       </p>
                     </div>
@@ -271,7 +271,7 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
                     <button
                       type="button"
                       onClick={() => removeFromCart(item.productId)}
-                      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500"
+                      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
                       aria-label={`Remove ${item.name} from cart`}
                     >
                       <XMarkIcon className="h-4 w-4" aria-hidden="true" />
@@ -301,7 +301,7 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
               className="relative p-2 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
               aria-label={`View cart with ${cartCount} items`}
             >
-              <ShoppingCartIcon className="h-6 w-6 text-gray-600" aria-hidden="true" />
+              <ShoppingCartIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" aria-hidden="true" />
               <span
                 className={`
                   absolute -top-0.5 -right-0.5
@@ -322,8 +322,8 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
 
             {/* Total */}
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-gray-500">Subtotal</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Subtotal</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrency(cartTotal)}
               </p>
             </div>
@@ -332,7 +332,7 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 touch-manipulation"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 touch-manipulation"
               aria-label={isExpanded ? 'Hide cart preview' : 'Show cart preview'}
             >
               <ChevronUpIcon
@@ -363,7 +363,7 @@ export function StickyCartBar({ onCheckout, onOpenCart, className = '' }: Sticky
           </div>
 
           {/* Safe area padding for iOS devices */}
-          <div className="h-[env(safe-area-inset-bottom,0px)] bg-white" />
+          <div className="h-[env(safe-area-inset-bottom,0px)] bg-white dark:bg-gray-900" />
         </div>
       </div>
     </>

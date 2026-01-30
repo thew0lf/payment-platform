@@ -251,7 +251,7 @@ export default function ConnectionsPage() {
                   <tr key={connection.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-xs font-bold text-foreground">
+                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-xs font-bold text-white">
                           {connection.vendor?.name?.charAt(0) || 'V'}
                         </div>
                         <div>

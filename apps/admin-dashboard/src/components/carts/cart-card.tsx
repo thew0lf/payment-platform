@@ -22,7 +22,7 @@ function formatCurrency(amount: number, currency: string): string {
 export function CartCard({ cart, onClick }: CartCardProps) {
   return (
     <Card
-      className="bg-card/50 border-border hover:border-primary/50 transition-colors cursor-pointer touch-manipulation active:bg-muted/50"
+      className="bg-white border-gray-200 hover:border-blue-300 transition-colors cursor-pointer touch-manipulation active:bg-gray-50"
       onClick={() => onClick?.(cart)}
     >
       <CardContent className="p-4 min-h-[44px]">
@@ -30,7 +30,7 @@ export function CartCard({ cart, onClick }: CartCardProps) {
           <div className="flex-1 min-w-0">
             {/* Header with cart ID and status */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-sm text-muted-foreground">
+              <span className="font-mono text-sm text-gray-500">
                 {cart.cartNumber}
               </span>
               <CartStatusBadge status={cart.status} />
@@ -38,29 +38,29 @@ export function CartCard({ cart, onClick }: CartCardProps) {
 
             {/* Customer info */}
             <div className="mb-3">
-              <div className="font-medium text-foreground truncate">
+              <div className="font-medium text-gray-900 truncate">
                 {cart.customerName}
               </div>
-              <div className="text-sm text-muted-foreground truncate">
+              <div className="text-sm text-gray-500 truncate">
                 {cart.customerEmail}
               </div>
             </div>
 
             {/* Cart details */}
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-gray-500">
                 <ShoppingCart className="h-4 w-4" />
                 <span>
                   {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
-              <div className="font-medium text-foreground">
+              <div className="font-medium text-gray-900">
                 {formatCurrency(cart.total, cart.currency)}
               </div>
             </div>
 
             {/* Last activity */}
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
               <Clock className="h-3 w-3" />
               <span>
                 {formatDistanceToNow(new Date(cart.lastActivityAt), { addSuffix: true })}
@@ -69,7 +69,7 @@ export function CartCard({ cart, onClick }: CartCardProps) {
           </div>
 
           {/* Chevron indicator */}
-          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
+          <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
         </div>
       </CardContent>
     </Card>

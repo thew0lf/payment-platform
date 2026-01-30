@@ -68,7 +68,7 @@ interface StageToolboxProps {
 function StageToolbox({ onAddStage }: StageToolboxProps) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
+      <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2">
         Add Stage
       </h3>
       <div className="grid grid-cols-2 gap-2">
@@ -76,12 +76,12 @@ function StageToolbox({ onAddStage }: StageToolboxProps) {
           <button
             key={type}
             onClick={() => onAddStage(type)}
-            className="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+            className="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group"
           >
             <div className={`w-8 h-8 rounded-lg ${color} bg-opacity-10 flex items-center justify-center`}>
               <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
             </div>
-            <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-600">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
               {label}
             </span>
           </button>
@@ -106,7 +106,7 @@ interface StageListProps {
 function StageList({ stages, selectedStage, onSelect, onDelete, onReorder }: StageListProps) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
+      <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2">
         Funnel Stages ({stages.length})
       </h3>
       <div className="space-y-1.5">
@@ -120,27 +120,27 @@ function StageList({ stages, selectedStage, onSelect, onDelete, onReorder }: Sta
               className={`
                 flex items-center gap-2 p-2.5 rounded-xl cursor-pointer transition-all
                 ${isSelected
-                  ? 'bg-indigo-50 border-2 border-indigo-300'
-                  : 'bg-white border border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-600'
+                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }
               `}
             >
               <div className="cursor-grab active:cursor-grabbing">
                 <GripVertical className="w-4 h-4 text-gray-400" />
               </div>
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center`}>
-                <StageIcon className="w-4 h-4 text-indigo-600" />
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center`}>
+                <StageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{stage.name}</p>
-                <p className="text-xs text-gray-500">{getStageTypeLabel(stage.type as StageType)}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{stage.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{getStageTypeLabel(stage.type as StageType)}</p>
               </div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(stage);
                 }}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -181,30 +181,30 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-            <StageIcon className="w-5 h-5 text-indigo-600" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center">
+            <StageIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Configure Stage</h3>
-            <p className="text-sm text-gray-500">{getStageTypeLabel(stage.type as StageType)}</p>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Configure Stage</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{getStageTypeLabel(stage.type as StageType)}</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
-          <X className="w-5 h-5 text-gray-500" />
+          <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Basic Settings */}
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900">Basic Settings</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Basic Settings</h4>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Stage Name
             </label>
             <input
@@ -215,7 +215,7 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
               onMouseDown={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             />
           </div>
         </div>
@@ -223,35 +223,35 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
         {/* Stage-specific config */}
         {stage.type === 'CHECKOUT' && (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-900">Checkout Settings</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Checkout Settings</h4>
 
             {/* Open Checkout Builder Button */}
             <button
               onClick={openCheckoutBuilder}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
             >
               <CreditCard className="w-4 h-4" />
               Open Checkout Builder
             </button>
 
-            <p className="text-xs text-gray-500 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
               Configure fields, payment methods, appearance, and more with our visual checkout builder.
             </p>
 
-            <div className="h-px bg-gray-200" />
+            <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
             <div className="space-y-3">
               <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span className="text-sm text-gray-700">Show order summary</span>
+                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show order summary</span>
               </label>
               <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span className="text-sm text-gray-700">Allow coupon codes</span>
+                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Allow coupon codes</span>
               </label>
               <label className="flex items-center gap-3">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span className="text-sm text-gray-700">Show shipping estimate</span>
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show shipping estimate</span>
               </label>
             </div>
           </div>
@@ -259,13 +259,13 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
 
         {stage.type === 'PRODUCT_SELECTION' && (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-900">Product Settings</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Product Settings</h4>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Layout
               </label>
               <select
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               >
@@ -276,12 +276,12 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
             </div>
             <div className="space-y-3">
               <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span className="text-sm text-gray-700">Show prices</span>
+                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show prices</span>
               </label>
               <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span className="text-sm text-gray-700">Show descriptions</span>
+                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show descriptions</span>
               </label>
             </div>
           </div>
@@ -289,13 +289,13 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
 
         {stage.type === 'LANDING' && (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-900">Landing Page Settings</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Landing Page Settings</h4>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Layout
               </label>
               <select
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               >
@@ -309,22 +309,22 @@ function StageConfigPanel({ stage, onUpdate, onClose }: StageConfigPanelProps) {
 
         {/* AI Insights Section */}
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-indigo-500" />
             AI Insights
           </h4>
-          <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
-            <p className="text-sm text-gray-600">
+          <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               AI-powered optimization suggestions will appear here once you start collecting traffic data.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <button
           onClick={handleSave}
-          className="w-full py-2.5 bg-indigo-600 text-foreground rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+          className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
         >
           Save Changes
         </button>
@@ -432,16 +432,16 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
       }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Funnel</h2>
-          <p className="text-sm text-gray-500 mt-1">Choose a type and give your funnel a name</p>
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Create New Funnel</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Choose a type and give your funnel a name</p>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Funnel Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -450,20 +450,20 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
               onChange={(e) => handleNameChange(e.target.value)}
               onBlur={handleNameBlur}
               placeholder="e.g., Summer Sale Funnel"
-              className={`w-full px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
                 validationErrors.name && touched.name
-                  ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-indigo-500/20 focus:border-indigo-500'
+                  ? 'border-red-300 dark:border-red-500 focus:ring-red-500/20 focus:border-red-500'
+                  : 'border-gray-200 dark:border-gray-600 focus:ring-indigo-500/20 focus:border-indigo-500'
               }`}
               autoFocus
             />
             {validationErrors.name && touched.name && (
-              <p className="mt-1.5 text-sm text-red-600">{validationErrors.name}</p>
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{validationErrors.name}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Funnel Type
             </label>
             <div className="space-y-2">
@@ -472,7 +472,7 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
                   key={ft.type}
                   className={`
                     flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all
-                    ${type === ft.type ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200 bg-white'}
+                    ${type === ft.type ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-600 bg-white dark:bg-gray-800'}
                   `}
                 >
                   <input
@@ -484,8 +484,8 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
                     className="w-4 h-4 text-indigo-600"
                   />
                   <div>
-                    <p className="font-medium text-gray-900">{ft.label}</p>
-                    <p className="text-sm text-gray-600">{ft.description}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{ft.label}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{ft.description}</p>
                   </div>
                 </label>
               ))}
@@ -493,7 +493,7 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -503,14 +503,14 @@ function CreateFunnelModal({ isOpen, onClose, onCreate, isSubmitting, error }: C
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
+              className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Funnel'}
             </button>
@@ -676,37 +676,37 @@ function BuilderContent() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Layout className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Layout className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <p className="text-gray-500">Loading funnel...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading funnel...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Top Bar */}
-      <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+      <div className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/funnels')}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-500" />
+            <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
           <div>
-            <h1 className="font-semibold text-gray-900">{funnel?.name || 'New Funnel'}</h1>
-            <p className="text-xs text-gray-500">
+            <h1 className="font-semibold text-gray-900 dark:text-gray-100">{funnel?.name || 'New Funnel'}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {funnel?.status === 'PUBLISHED' ? 'Published' : 'Draft'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
             <Eye className="w-4 h-4" />
             <span>Preview</span>
           </button>
@@ -720,21 +720,21 @@ function BuilderContent() {
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
               showBrandingPanel
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             <Palette className="w-4 h-4" />
             <span>Branding</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
             <Settings className="w-4 h-4" />
             <span>Settings</span>
           </button>
           <button
             onClick={handlePublish}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
           >
             <Play className="w-4 h-4" />
             <span>{saving ? 'Publishing...' : 'Publish'}</span>
@@ -745,10 +745,10 @@ function BuilderContent() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Toolbox */}
-        <div className="w-72 bg-white border-r border-gray-200 p-4 overflow-y-auto shrink-0">
+        <div className="w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto shrink-0">
           <div className="space-y-6">
             <StageToolbox onAddStage={handleAddStage} />
-            <div className="h-px bg-gray-200" />
+            <div className="h-px bg-gray-200 dark:bg-gray-700" />
             <StageList
               stages={stages}
               selectedStage={selectedStage}
@@ -770,7 +770,7 @@ function BuilderContent() {
 
         {/* Right Sidebar - Config Panel */}
         {showConfigPanel && selectedStage && (
-          <div className="w-80 bg-white border-l border-gray-200 shrink-0">
+          <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shrink-0">
             <StageConfigPanel
               stage={selectedStage}
               onUpdate={handleUpdateStage}
@@ -784,7 +784,7 @@ function BuilderContent() {
 
         {/* Right Sidebar - Branding Panel */}
         {showBrandingPanel && funnel && (
-          <div className="w-80 bg-white border-l border-gray-200 shrink-0">
+          <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shrink-0">
             <BrandingPanel
               funnelId={funnel.id}
               companyId={selectedCompanyId || undefined}
@@ -810,32 +810,32 @@ function BuilderContent() {
           onClick={() => setStageToDelete(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <Trash2 className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Stage</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Stage</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
               </div>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Are you sure you want to delete <span className="font-medium">"{stageToDelete.name}"</span>?
               All configuration for this stage will be lost.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setStageToDelete(null)}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteStage}
-                className="flex-1 py-2.5 bg-red-600 text-foreground rounded-xl font-medium hover:bg-red-700 transition-colors"
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
               >
                 Delete
               </button>
@@ -849,7 +849,7 @@ function BuilderContent() {
 
 export default function FunnelBuilderPage() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gray-50">Loading...</div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">Loading...</div>}>
       <BuilderContent />
     </Suspense>
   );

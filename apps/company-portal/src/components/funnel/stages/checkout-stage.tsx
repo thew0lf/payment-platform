@@ -399,11 +399,11 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
   if (cart.length === 0 && !isLoadingCart && (!backendCart || backendCart.items.length === 0)) {
     return (
       <div className="py-16 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-          <ShieldCheckIcon className="w-8 h-8 text-gray-300" />
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <ShieldCheckIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
         </div>
-        <p className="text-gray-600 mb-2 font-medium">Nothing here yet</p>
-        <p className="text-gray-500 text-sm mb-6">Let&apos;s find something you&apos;ll love!</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">Nothing here yet</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Let&apos;s find something you&apos;ll love!</p>
         <button
           onClick={prevStage}
           className="px-6 py-3 bg-[var(--primary-color)] text-white rounded-lg min-h-[44px] touch-manipulation hover:opacity-90 transition-opacity"
@@ -421,16 +421,16 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
           <div className={`grid gap-8 ${config.layout === 'two-column' ? 'lg:grid-cols-5' : ''}`}>
             {/* Left Column - Form */}
             <div className={config.layout === 'two-column' ? 'lg:col-span-3' : ''}>
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">Checkout</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Checkout</h2>
 
               {/* Demo Mode Banner */}
               {isDemoMode && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-amber-800">Demo Mode - No Real Charges</p>
-                      <p className="text-sm text-amber-700 mt-1">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Demo Mode - No Real Charges</p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                         This is a demo checkout. No actual payment will be processed.
                         Use test card: <span className="font-mono font-medium">4111 1111 1111 1111</span>
                       </p>
@@ -483,7 +483,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
               {/* Contact Information */}
               <section className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <span className="w-6 h-6 bg-[var(--primary-color)] text-white rounded-full text-sm flex items-center justify-center">
                     1
                   </span>
@@ -493,15 +493,15 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                 <div className="space-y-4">
                   {config.fields.customer.email.enabled && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email {config.fields.customer.email.required && <span className="text-red-500">*</span>}
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email {config.fields.customer.email.required && <span className="text-red-500 dark:text-red-400">*</span>}
                       </label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required={config.fields.customer.email.required}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         placeholder="your@email.com"
                       />
                     </div>
@@ -510,29 +510,29 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                   <div className="grid grid-cols-2 gap-4">
                     {config.fields.customer.firstName.enabled && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          First Name {config.fields.customer.firstName.required && <span className="text-red-500">*</span>}
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          First Name {config.fields.customer.firstName.required && <span className="text-red-500 dark:text-red-400">*</span>}
                         </label>
                         <input
                           type="text"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
                           required={config.fields.customer.firstName.required}
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         />
                       </div>
                     )}
                     {config.fields.customer.lastName.enabled && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Last Name {config.fields.customer.lastName.required && <span className="text-red-500">*</span>}
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Last Name {config.fields.customer.lastName.required && <span className="text-red-500 dark:text-red-400">*</span>}
                         </label>
                         <input
                           type="text"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
                           required={config.fields.customer.lastName.required}
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                         />
                       </div>
                     )}
@@ -540,15 +540,15 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
                   {config.fields.customer.phone.enabled && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Phone {config.fields.customer.phone.required && <span className="text-red-500">*</span>}
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Phone {config.fields.customer.phone.required && <span className="text-red-500 dark:text-red-400">*</span>}
                       </label>
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required={config.fields.customer.phone.required}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                     </div>
                   )}
@@ -558,7 +558,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
               {/* Shipping Address */}
               {config.fields.shipping.enabled && (
                 <section className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                     <span className="w-6 h-6 bg-[var(--primary-color)] text-white rounded-full text-sm flex items-center justify-center">
                       2
                     </span>
@@ -573,7 +573,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.firstName}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                       <input
                         type="text"
@@ -581,7 +581,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.lastName}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                     </div>
                     <AddressAutocomplete
@@ -607,14 +607,14 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                       placeholder="Apartment, suite, etc. (optional)"
                       value={shippingAddress.address2}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, address2: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                     />
                     {/* Country */}
                     <select
                       value={shippingAddress.country}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value, state: '' })}
                       required
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white mb-4"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 mb-4"
                     >
                       {COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>{country.name}</option>
@@ -627,13 +627,13 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.city}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                       <select
                         value={shippingAddress.state}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       >
                         <option value="">Select {(getCountryByCode(shippingAddress.country)?.regionLabel || 'state').toLowerCase()}</option>
                         {(getCountryByCode(shippingAddress.country)?.regions || []).map((region) => (
@@ -646,7 +646,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.postalCode}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                     </div>
                   </div>
@@ -655,17 +655,17 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
               {/* Payment */}
               <section className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <span className="w-6 h-6 bg-[var(--primary-color)] text-white rounded-full text-sm flex items-center justify-center">
                     {config.fields.shipping.enabled ? '3' : '2'}
                   </span>
                   Payment
                 </h3>
 
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
                   <div className="flex items-center gap-3 mb-4">
-                    <CreditCardIcon className="h-5 w-5 text-gray-500" />
-                    <span className="font-medium text-gray-900">Credit Card</span>
+                    <CreditCardIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-gray-100">Credit Card</span>
                   </div>
 
                   <div className="space-y-4">
@@ -676,7 +676,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -692,7 +692,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                           setCardExpiry(value);
                         }}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                       <input
                         type="text"
@@ -700,7 +700,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={cardCvc}
                         onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
                       />
                     </div>
                   </div>
@@ -708,7 +708,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
                 {/* Trust Badges */}
                 {config.trust.showSecurityBadges && (
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                       <LockClosedIcon className="h-4 w-4" />
                       SSL Secure
@@ -723,19 +723,19 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
               {/* Stock Warnings */}
               {stockWarnings.length > 0 && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-amber-800">Some items have limited stock</p>
-                      <ul className="mt-2 text-sm text-amber-700 space-y-1">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Some items have limited stock</p>
+                      <ul className="mt-2 text-sm text-amber-700 dark:text-amber-300 space-y-1">
                         {stockWarnings.map((warning) => (
                           <li key={warning.productId}>
                             {warning.productName}: Only {warning.available} available (you requested {warning.requested})
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 text-sm text-amber-600">
+                      <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
                         Please update your cart quantities to proceed.
                       </p>
                     </div>
@@ -745,7 +745,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
               {/* Error */}
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300">
                   {error}
                 </div>
               )}
@@ -775,20 +775,20 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
             {/* Right Column - Order Summary */}
             {config.payment.showOrderSummary && (
               <div className={config.layout === 'two-column' ? 'lg:col-span-2' : ''}>
-                <div className="bg-gray-50 rounded-xl p-6 sticky top-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 sticky top-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Order Summary</h3>
 
                   {/* Loading State */}
                   {isLoadingCart && (
                     <div className="flex flex-col items-center justify-center py-8">
                       <div className="w-6 h-6 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mb-3" />
-                      <p className="text-sm text-gray-500">Getting your items ready...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Getting your items ready...</p>
                     </div>
                   )}
 
                   {/* Cart Error */}
                   {cartError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
                       {cartError}
                     </div>
                   )}
@@ -807,21 +807,21 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                               <img
                                 src={itemImage}
                                 alt={itemName}
-                                className="w-16 h-16 rounded-lg object-cover bg-white"
+                                className="w-16 h-16 rounded-lg object-cover bg-white dark:bg-gray-700"
                               />
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-gray-900 text-sm">
+                              <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                                 {itemName}
                               </p>
-                              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
                               {item.discountAmount > 0 && (
-                                <p className="text-xs text-green-600">
+                                <p className="text-xs text-green-600 dark:text-green-400">
                                   Save ${item.discountAmount.toFixed(2)}
                                 </p>
                               )}
                             </div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
                               ${item.lineTotal.toFixed(2)}
                             </p>
                           </div>
@@ -839,13 +839,13 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                           {backendCart.discountCodes.map((discount: CartDiscountCode) => (
                             <div
                               key={discount.code}
-                              className="flex items-center justify-between p-3 bg-green-50 rounded-lg text-green-700"
+                              className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300"
                             >
                               <span className="flex items-center gap-2">
                                 <TagIcon className="h-4 w-4" />
                                 <span className="font-medium">{discount.code}</span>
                                 {discount.description && (
-                                  <span className="text-sm text-green-600">
+                                  <span className="text-sm text-green-600 dark:text-green-400">
                                     - {discount.description}
                                   </span>
                                 )}
@@ -857,7 +857,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveDiscount(discount.code)}
-                                  className="p-1 hover:bg-green-100 rounded"
+                                  className="p-1 hover:bg-green-100 dark:hover:bg-green-800 rounded"
                                   aria-label="Remove discount"
                                 >
                                   <XMarkIcon className="h-4 w-4" />
@@ -880,16 +880,16 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                               setDiscountError(null);
                               setDiscountSuccess(null);
                             }}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 bg-white focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
+                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                           />
                           <button
                             type="button"
                             onClick={handleApplyDiscount}
                             disabled={isApplyingDiscount || !discountCode.trim()}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
                             {isApplyingDiscount ? (
-                              <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-gray-500 dark:border-gray-400 border-t-transparent rounded-full animate-spin" />
                             ) : null}
                             Apply
                           </button>
@@ -897,13 +897,13 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
                         {/* Discount Messages */}
                         {discountError && (
-                          <p className="text-sm text-red-600 flex items-center gap-1">
+                          <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                             <ExclamationTriangleIcon className="h-4 w-4" />
                             {discountError}
                           </p>
                         )}
                         {discountSuccess && (
-                          <p className="text-sm text-green-600 flex items-center gap-1">
+                          <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
                             <CheckCircleIcon className="h-4 w-4" />
                             {discountSuccess}
                           </p>
@@ -914,20 +914,20 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
                   {/* Totals */}
                   {!isLoadingCart && (
-                    <div className="space-y-2 border-t border-gray-200 pt-4">
+                    <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Subtotal</span>
-                        <span className="text-gray-900">${displayTotals.subtotal.toFixed(2)}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                        <span className="text-gray-900 dark:text-gray-100">${displayTotals.subtotal.toFixed(2)}</span>
                       </div>
                       {displayTotals.discountTotal > 0 && (
-                        <div className="flex justify-between text-sm text-green-600">
+                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
                           <span>Discount</span>
                           <span>-${displayTotals.discountTotal.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Shipping</span>
-                        <span className="text-gray-900">
+                        <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                        <span className="text-gray-900 dark:text-gray-100">
                           {displayTotals.shippingTotal > 0
                             ? `$${displayTotals.shippingTotal.toFixed(2)}`
                             : 'Free'
@@ -936,13 +936,13 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                       </div>
                       {config.payment.showTaxEstimate && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Tax</span>
-                          <span className="text-gray-900">${displayTotals.taxTotal.toFixed(2)}</span>
+                          <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                          <span className="text-gray-900 dark:text-gray-100">${displayTotals.taxTotal.toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
-                        <span className="text-gray-900">Total</span>
-                        <span className="text-gray-900">${displayTotals.grandTotal.toFixed(2)}</span>
+                      <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <span className="text-gray-900 dark:text-gray-100">Total</span>
+                        <span className="text-gray-900 dark:text-gray-100">${displayTotals.grandTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   )}
@@ -970,12 +970,12 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
 
                   {/* Guarantee */}
                   {config.trust.showGuarantee && (
-                    <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                    <div className="mt-6 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-start gap-3">
-                        <ShieldCheckIcon className="h-6 w-6 text-green-500 flex-shrink-0" />
+                        <ShieldCheckIcon className="h-6 w-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                         <div>
-                          <p className="font-medium text-gray-900 text-sm">Satisfaction Guaranteed</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Satisfaction Guaranteed</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {config.trust.guaranteeText || '30-day money-back guarantee. No questions asked.'}
                           </p>
                         </div>

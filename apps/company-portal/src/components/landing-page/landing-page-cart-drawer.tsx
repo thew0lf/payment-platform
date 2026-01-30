@@ -35,9 +35,9 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
   };
 
   return (
-    <div className="flex gap-4 p-4 bg-white rounded-lg border border-gray-100">
+    <div className="flex gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
       {/* Image */}
-      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
         {item.imageUrl ? (
           <img
             src={item.imageUrl}
@@ -66,8 +66,8 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-gray-900 truncate">{item.name}</h4>
-        <p className="text-sm text-gray-600 mt-1">
+        <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</h4>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {formatPrice(item.price)} each
         </p>
 
@@ -77,18 +77,18 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
             type="button"
             onClick={() => onUpdateQuantity(item.quantity - 1)}
             disabled={item.quantity <= 1}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
             aria-label="Decrease quantity"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
             </svg>
           </button>
-          <span className="w-8 text-center font-medium">{item.quantity}</span>
+          <span className="w-8 text-center font-medium text-gray-900 dark:text-gray-100">{item.quantity}</span>
           <button
             type="button"
             onClick={() => onUpdateQuantity(item.quantity + 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation"
             aria-label="Increase quantity"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,13 +100,13 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
 
       {/* Price and remove */}
       <div className="flex flex-col items-end justify-between">
-        <span className="font-semibold text-gray-900">
+        <span className="font-semibold text-gray-900 dark:text-gray-100">
           {formatPrice(item.price * item.quantity)}
         </span>
         <button
           type="button"
           onClick={onRemove}
-          className="p-2 text-gray-400 hover:text-red-600 transition-colors touch-manipulation"
+          className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors touch-manipulation"
           aria-label={`Remove ${item.name} from cart`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,18 +225,18 @@ export function LandingPageCartDrawer() {
         className={`
           fixed top-0 right-0 z-50 h-full
           w-full sm:w-[400px]
-          bg-gray-50 shadow-2xl
+          bg-gray-50 dark:bg-gray-900 shadow-2xl
           flex flex-col
           transition-transform duration-300 ease-out
           ${isCartDrawerOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
       >
         {/* Header */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-white">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Your Cart
             {cartCount > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500">
+              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                 ({cartCount} {cartCount === 1 ? 'item' : 'items'})
               </span>
             )}
@@ -245,7 +245,7 @@ export function LandingPageCartDrawer() {
             ref={closeButtonRef}
             type="button"
             onClick={closeCartDrawer}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors touch-manipulation"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
             aria-label="Close cart"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -259,8 +259,8 @@ export function LandingPageCartDrawer() {
           {localCart.length === 0 ? (
             /* Empty State */
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <svg className="h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                <svg className="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -269,8 +269,8 @@ export function LandingPageCartDrawer() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-              <p className="text-sm text-gray-600 mb-6 max-w-xs">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Your cart is empty</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-xs">
                 Browse our products and add something you love!
               </p>
               <button
@@ -298,14 +298,14 @@ export function LandingPageCartDrawer() {
 
         {/* Footer */}
         {localCart.length > 0 && (
-          <footer className="flex-shrink-0 border-t border-gray-200 bg-white p-4 space-y-4">
+          <footer className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-4">
             {/* Subtotal */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-semibold text-gray-900">{formatPrice(cartTotal)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatPrice(cartTotal)}</span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Shipping + taxes calculated at checkout
               </p>
             </div>
@@ -326,7 +326,7 @@ export function LandingPageCartDrawer() {
             </button>
 
             {/* Security Badge */}
-            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>

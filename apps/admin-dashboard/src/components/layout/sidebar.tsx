@@ -175,7 +175,7 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
               aria-expanded={showClientSwitcher}
               aria-haspopup="listbox"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold text-foreground">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">
                 {selectedClient?.name.charAt(0) || 'A'}
               </div>
               <div className="flex-1 text-left">
@@ -234,7 +234,7 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
                     role="option"
                     aria-selected={selectedClientId === client.id}
                   >
-                    <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded flex items-center justify-center text-xs font-bold text-foreground">
+                    <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded flex items-center justify-center text-xs font-bold text-white">
                       {client.name.charAt(0)}
                     </div>
                     <span className="text-gray-700 dark:text-foreground flex-1 text-left">{client.name}</span>
@@ -262,7 +262,7 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
               aria-expanded={showCompanySwitcher}
               aria-haspopup="listbox"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-sm font-bold text-foreground">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-sm font-bold text-white">
                 {selectedCompany?.name.charAt(0) || 'A'}
               </div>
               <div className="flex-1 text-left">
@@ -319,7 +319,7 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
                     role="option"
                     aria-selected={selectedCompanyId === company.id}
                   >
-                    <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-600 rounded flex items-center justify-center text-xs font-bold text-foreground">
+                    <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-600 rounded flex items-center justify-center text-xs font-bold text-white">
                       {company.name.charAt(0)}
                     </div>
                     <span className="text-gray-700 dark:text-foreground flex-1 text-left truncate">{company.name}</span>
@@ -438,7 +438,7 @@ export function Sidebar({ isOpen, onClose, badges, collapsed }: SidebarProps) {
             aria-expanded={showUserMenu}
             aria-haspopup="menu"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-sm font-bold text-foreground flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
             </div>
             {!collapsed && (

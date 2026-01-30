@@ -31,7 +31,7 @@ function RecoveryQueueSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card"
+          className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white"
         >
           <Skeleton className="h-4 w-4 rounded" />
           <div className="flex-1 space-y-2">
@@ -127,11 +127,11 @@ export function RecoveryQueue({
   if (carts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="rounded-full bg-muted p-3 mb-4">
-          <ShoppingCart className="h-6 w-6 text-muted-foreground" />
+        <div className="rounded-full bg-gray-100 p-3 mb-4">
+          <ShoppingCart className="h-6 w-6 text-gray-400" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-1">No abandoned carts</h3>
-        <p className="text-sm text-muted-foreground">
+        <h3 className="text-lg font-medium text-gray-900 mb-1">No abandoned carts</h3>
+        <p className="text-sm text-gray-500">
           Abandoned carts will appear here for recovery
         </p>
       </div>
@@ -150,7 +150,7 @@ export function RecoveryQueue({
             className={cn(someSelected && 'data-[state=checked]:bg-primary/50')}
             {...(someSelected && { 'data-state': 'checked' })}
           />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-600">
             {selectedIds.size > 0
               ? `${selectedIds.size} selected`
               : `${carts.length} abandoned ${carts.length === 1 ? 'cart' : 'carts'}`}
@@ -191,8 +191,8 @@ export function RecoveryQueue({
             <div
               key={cart.id}
               className={cn(
-                'flex items-center gap-4 p-4 rounded-lg border bg-card transition-colors',
-                isSelected ? 'border-primary/50 bg-primary/5' : 'border-border'
+                'flex items-center gap-4 p-4 rounded-lg border bg-white transition-colors',
+                isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
               )}
             >
               {/* Checkbox */}
@@ -206,20 +206,20 @@ export function RecoveryQueue({
               {/* Cart info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-sm text-muted-foreground">
+                  <span className="font-mono text-sm text-gray-500">
                     {cart.cartNumber}
                   </span>
                   <CartStatusBadge status={cart.status} />
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                  <div className="font-medium text-foreground truncate">
+                  <div className="font-medium text-gray-900 truncate">
                     {cart.customerName}
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">
+                  <div className="text-sm text-gray-500 truncate">
                     {cart.customerEmail}
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     <ShoppingCart className="h-3 w-3" />
                     {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}
@@ -233,7 +233,7 @@ export function RecoveryQueue({
 
               {/* Total */}
               <div className="text-right hidden sm:block">
-                <div className="font-semibold text-foreground">
+                <div className="font-semibold text-gray-900">
                   {formatCurrency(cart.total, cart.currency)}
                 </div>
               </div>
@@ -273,7 +273,7 @@ export function RecoveryQueue({
                   size="sm"
                   onClick={() => handleDismiss(cart.id)}
                   disabled={isSending || isDismissing}
-                  className="min-h-[36px] text-muted-foreground hover:text-destructive"
+                  className="min-h-[36px] text-gray-500 hover:text-red-600"
                 >
                   {isDismissing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

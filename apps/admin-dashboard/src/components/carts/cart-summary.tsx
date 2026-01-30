@@ -41,13 +41,13 @@ function SummaryRow({ label, amount, currency, isNegative, isBold, isLarge }: Su
         isBold && 'font-semibold'
       )}
     >
-      <span className={cn(isBold ? 'text-foreground' : 'text-muted-foreground')}>
+      <span className={cn(isBold ? 'text-gray-900' : 'text-gray-600')}>
         {label}
       </span>
       <span
         className={cn(
-          isBold ? 'text-foreground' : 'text-foreground',
-          isNegative && amount > 0 && 'text-emerald-500'
+          'text-gray-900',
+          isNegative && amount > 0 && 'text-emerald-600'
         )}
       >
         {displayAmount}
@@ -86,7 +86,7 @@ export function CartSummary({
         />
       )}
 
-      <div className="border-t border-border pt-3 mt-3">
+      <div className="border-t border-gray-200 pt-3 mt-3">
         <SummaryRow
           label="Total"
           amount={total}

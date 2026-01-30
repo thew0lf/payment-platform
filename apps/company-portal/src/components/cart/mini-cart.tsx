@@ -96,13 +96,13 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
           relative flex items-center justify-center
           min-h-[44px] min-w-[44px]
           p-2 rounded-lg
-          hover:bg-gray-100 active:bg-gray-200
+          hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700
           transition-colors duration-150
           touch-manipulation
           focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-offset-2
         "
       >
-        <ShoppingCartIcon className="h-6 w-6 text-gray-600" aria-hidden="true" />
+        <ShoppingCartIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" aria-hidden="true" />
 
         {/* Item count badge - hidden when 0 */}
         {cartCount > 0 && (
@@ -111,7 +111,7 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
               absolute -top-1 -right-1
               flex items-center justify-center
               min-w-[20px] h-5 px-1.5
-              bg-[var(--primary-color)] text-white
+              bg-[var(--primary-color,#6366f1)] text-white
               text-xs font-semibold
               rounded-full
               shadow-sm
@@ -134,16 +134,16 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
             className="
               absolute right-0 top-full mt-2
               w-72 max-w-[calc(100vw-2rem)]
-              bg-white rounded-xl shadow-xl
-              border border-gray-200
+              bg-white dark:bg-gray-800 rounded-xl shadow-xl
+              border border-gray-200 dark:border-gray-700
               z-50
               animate-in fade-in-0 zoom-in-95
               duration-150
             "
           >
             {/* Preview header */}
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 Your Cart ({cartCount} {cartCount === 1 ? 'item' : 'items'})
               </h3>
             </div>
@@ -159,18 +159,18 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
                     <img
                       src={item.imageUrl}
                       alt=""
-                      className="w-10 h-10 rounded-md object-cover bg-gray-100"
+                      className="w-10 h-10 rounded-md object-cover bg-gray-100 dark:bg-gray-700"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
-                      <ShoppingCartIcon className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <ShoppingCartIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {item.name}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       x{item.quantity} - ${(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
@@ -178,17 +178,17 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
               ))}
 
               {remainingCount > 0 && (
-                <div className="px-4 py-2 text-xs text-gray-600">
+                <div className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">
                   +{remainingCount} more
                 </div>
               )}
             </div>
 
             {/* Preview footer */}
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-xl">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">Subtotal</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   ${cartTotal.toFixed(2)}
                 </span>
               </div>
@@ -197,7 +197,7 @@ export function MiniCart({ onOpenDrawer }: MiniCartProps) {
                 onClick={handleClick}
                 className="
                   w-full py-2 px-4
-                  bg-[var(--primary-color)] text-white
+                  bg-[var(--primary-color,#6366f1)] text-white
                   text-sm font-medium
                   rounded-lg
                   hover:opacity-90

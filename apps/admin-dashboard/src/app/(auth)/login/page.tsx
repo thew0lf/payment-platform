@@ -87,7 +87,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <Button
                 onClick={handleAuth0Login}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-foreground"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -168,7 +168,7 @@ export default function LoginPage() {
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-primary border-primary' : 'border-border'} flex items-center justify-center transition-colors`}>
-                      {rememberMe && <Check className="w-3 h-3 text-foreground" />}
+                      {rememberMe && <Check className="w-3 h-3 text-primary-foreground" />}
                     </div>
                     Remember me
                   </button>
@@ -214,7 +214,7 @@ export default function LoginPage() {
                         className="w-full flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted border border-border/50 hover:border-border transition-all text-sm group"
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-foreground`}>
+                          <div className={`w-6 h-6 rounded bg-gradient-to-br ${account.color} flex items-center justify-center text-xs font-bold text-white`}>
                             {account.label.charAt(0)}
                           </div>
                           <span className="text-muted-foreground group-hover:text-foreground">{account.label}</span>

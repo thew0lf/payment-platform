@@ -265,7 +265,7 @@ export function LandingPageExitIntent({
         className="
           relative
           w-full max-w-md
-          bg-white rounded-2xl
+          bg-white dark:bg-gray-800 rounded-2xl
           shadow-2xl
           overflow-hidden
           animate-slideUp
@@ -279,8 +279,8 @@ export function LandingPageExitIntent({
             absolute top-4 right-4
             p-2 min-w-[44px] min-h-[44px]
             flex items-center justify-center
-            text-gray-400 hover:text-gray-600
-            rounded-full hover:bg-gray-100
+            text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300
+            rounded-full hover:bg-gray-100 dark:hover:bg-gray-700
             transition-colors
             touch-manipulation
             z-10
@@ -307,21 +307,21 @@ export function LandingPageExitIntent({
           {/* Heading */}
           <h2
             id="exit-intent-heading"
-            className="text-2xl font-bold text-gray-900 mb-2"
+            className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2"
           >
             {heading}
           </h2>
 
           {/* Subheading */}
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             {subheading}
           </p>
 
           {/* Discount Code */}
           {discountCode && (
             <div className="mb-6">
-              <p className="text-sm text-gray-500 mb-2">Use code at checkout:</p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Use code at checkout:</p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
                 <code className="font-mono font-bold text-lg text-[var(--lp-primary,#667eea)]">
                   {discountCode}
                 </code>
@@ -336,7 +336,7 @@ export function LandingPageExitIntent({
                       // Clipboard API may not be available in some contexts
                     }
                   }}
-                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 touch-manipulation"
+                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 touch-manipulation"
                   aria-label={codeCopied ? 'Copied!' : 'Copy discount code'}
                 >
                   {codeCopied ? (
@@ -378,7 +378,7 @@ export function LandingPageExitIntent({
             onClick={handleDismiss}
             className="
               mt-3 py-2
-              text-sm text-gray-500 hover:text-gray-700
+              text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300
               underline underline-offset-2
               touch-manipulation
               min-h-[44px]
@@ -390,7 +390,7 @@ export function LandingPageExitIntent({
 
         {/* Trust indicators */}
         <div className="px-6 pb-6">
-          <div className="flex items-center justify-center gap-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
+          <div className="flex items-center justify-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
             <span className="flex items-center gap-1">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

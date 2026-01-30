@@ -121,20 +121,20 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: SectionPro
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-muted/50 hover:bg-muted transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
       >
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <span className="flex-1 text-left text-sm font-medium text-foreground">{title}</span>
+        <Icon className="h-4 w-4 text-gray-500" />
+        <span className="flex-1 text-left text-sm font-medium text-gray-900">{title}</span>
         {isOpen ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 text-gray-500" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 text-gray-500" />
         )}
       </button>
-      {isOpen && <div className="p-4 space-y-4 border-t border-border">{children}</div>}
+      {isOpen && <div className="p-4 space-y-4 border-t border-gray-200">{children}</div>}
     </div>
   );
 }
@@ -152,7 +152,7 @@ interface ColorInputProps {
 function ColorInput({ label, value, onChange }: ColorInputProps) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-gray-600">{label}</span>
       <div className="flex items-center gap-2">
         <input
           type="color"
@@ -160,7 +160,7 @@ function ColorInput({ label, value, onChange }: ColorInputProps) {
           onChange={(e) => onChange(e.target.value)}
           className="w-8 h-8 rounded cursor-pointer border-0"
         />
-        <span className="text-xs text-muted-foreground font-mono w-16">{value}</span>
+        <span className="text-xs text-gray-500 font-mono w-16">{value}</span>
       </div>
     </div>
   );
@@ -176,11 +176,11 @@ interface SelectInputProps {
 function SelectInput({ label, value, options, onChange }: SelectInputProps) {
   return (
     <div>
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <label className="block text-xs text-gray-600 mb-1">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:border-blue-500 focus:outline-none"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -202,13 +202,13 @@ interface TextInputProps {
 function TextInput({ label, value, onChange, placeholder }: TextInputProps) {
   return (
     <div>
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <label className="block text-xs text-gray-600 mb-1">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:border-blue-500 focus:outline-none"
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:border-blue-500 focus:outline-none"
       />
     </div>
   );
@@ -223,13 +223,13 @@ interface ToggleInputProps {
 function ToggleInput({ label, checked, onChange }: ToggleInputProps) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-gray-600">{label}</span>
       <button
         type="button"
         onClick={() => onChange(!checked)}
         className={cn(
           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-          checked ? 'bg-blue-600' : 'bg-muted'
+          checked ? 'bg-blue-600' : 'bg-gray-200'
         )}
       >
         <span
@@ -257,8 +257,8 @@ function RangeInput({ label, value, min, max, step = 1, onChange, unit = 'ms' }:
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-xs text-muted-foreground">{label}</label>
-        <span className="text-xs text-muted-foreground font-mono">
+        <label className="text-xs text-gray-600">{label}</label>
+        <span className="text-xs text-gray-500 font-mono">
           {value}{unit}
         </span>
       </div>
@@ -269,7 +269,7 @@ function RangeInput({ label, value, min, max, step = 1, onChange, unit = 'ms' }:
         max={max}
         step={step}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
       />
     </div>
   );
@@ -320,13 +320,13 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-foreground">Cart Theme</h3>
+          <ShoppingCart className="h-5 w-5 text-gray-500" />
+          <h3 className="text-sm font-medium text-gray-900">Cart Theme</h3>
         </div>
         {onReset && (
           <button
             onClick={onReset}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-900 rounded hover:bg-gray-100 transition-colors"
           >
             <RefreshCw className="h-3 w-3" />
             Reset
@@ -344,15 +344,15 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
               className={cn(
                 'p-2 rounded-lg border text-xs transition-all',
                 theme.preset === key
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-border hover:border-blue-300'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-blue-300'
               )}
             >
               <div
                 className="w-full h-3 rounded mb-1"
                 style={{ backgroundColor: config.primaryColor }}
               />
-              <span className="text-foreground font-medium">{config.label}</span>
+              <span className="text-gray-900 font-medium">{config.label}</span>
             </button>
           ))}
         </div>
@@ -361,20 +361,20 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
       {/* Colors Section */}
       <Section title="Colors" icon={Palette}>
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">Container</p>
+          <p className="text-xs text-gray-600">Container</p>
           <ColorInput label="Background" value={theme.colors.background} onChange={(v) => updateColors('background', v)} />
           <ColorInput label="Header" value={theme.colors.headerBackground} onChange={(v) => updateColors('headerBackground', v)} />
           <ColorInput label="Footer" value={theme.colors.footerBackground} onChange={(v) => updateColors('footerBackground', v)} />
           <ColorInput label="Border" value={theme.colors.border} onChange={(v) => updateColors('border', v)} />
 
-          <hr className="border-border" />
-          <p className="text-xs text-muted-foreground">Text</p>
+          <hr className="border-gray-200" />
+          <p className="text-xs text-gray-600">Text</p>
           <ColorInput label="Headings" value={theme.colors.headingText} onChange={(v) => updateColors('headingText', v)} />
           <ColorInput label="Body" value={theme.colors.bodyText} onChange={(v) => updateColors('bodyText', v)} />
           <ColorInput label="Muted" value={theme.colors.mutedText} onChange={(v) => updateColors('mutedText', v)} />
 
-          <hr className="border-border" />
-          <p className="text-xs text-muted-foreground">Buttons</p>
+          <hr className="border-gray-200" />
+          <p className="text-xs text-gray-600">Buttons</p>
           <ColorInput label="Primary Button" value={theme.colors.primaryButton} onChange={(v) => updateColors('primaryButton', v)} />
           <ColorInput label="Primary Text" value={theme.colors.primaryButtonText} onChange={(v) => updateColors('primaryButtonText', v)} />
           <ColorInput label="Secondary Button" value={theme.colors.secondaryButton} onChange={(v) => updateColors('secondaryButton', v)} />
@@ -450,8 +450,8 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
           onChange={(v) => updateLayout('backdropBlur', v)}
         />
 
-        <hr className="border-border" />
-        <p className="text-xs text-muted-foreground">Item Display</p>
+        <hr className="border-gray-200" />
+        <p className="text-xs text-gray-600">Item Display</p>
         <SelectInput
           label="Item Layout"
           value={theme.layout.itemLayout}
@@ -493,8 +493,8 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
           onChange={(v) => updateContent('showItemCount', v)}
         />
 
-        <hr className="border-border" />
-        <p className="text-xs text-muted-foreground">Empty State</p>
+        <hr className="border-gray-200" />
+        <p className="text-xs text-gray-600">Empty State</p>
         <TextInput
           label="Empty Title"
           value={theme.content.emptyTitle}
@@ -519,8 +519,8 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
           onChange={(v) => updateContent('showEmptyIcon', v)}
         />
 
-        <hr className="border-border" />
-        <p className="text-xs text-muted-foreground">Footer</p>
+        <hr className="border-gray-200" />
+        <p className="text-xs text-gray-600">Footer</p>
         <TextInput
           label="Subtotal Label"
           value={theme.content.subtotalLabel}
@@ -540,8 +540,8 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
           placeholder="Proceed to Checkout"
         />
 
-        <hr className="border-border" />
-        <p className="text-xs text-muted-foreground">Trust Signals</p>
+        <hr className="border-gray-200" />
+        <p className="text-xs text-gray-600">Trust Signals</p>
         <ToggleInput
           label="Security Badge"
           checked={theme.content.showSecurityBadge}
@@ -563,11 +563,11 @@ export function CartThemeEditor({ theme, onChange, onReset }: CartThemeEditorPro
       {/* Custom CSS Section */}
       <Section title="Custom CSS" icon={Eye} defaultOpen={false}>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Additional Styles</label>
+          <label className="block text-xs text-gray-600 mb-1">Additional Styles</label>
           <textarea
             value={theme.customCss || ''}
             onChange={(e) => onChange({ ...theme, customCss: e.target.value })}
-            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm font-mono resize-none focus:border-blue-500 focus:outline-none"
             rows={6}
             placeholder="/* Custom cart styles */&#10;.cart-drawer { }&#10;.cart-item { }"
           />

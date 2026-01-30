@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, User, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, User, LogOut, Sun, Moon, Monitor, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { usePreferences } from '@/contexts/preferences-context';
 import { ThemePreference } from '@/lib/api/profile';
 import { useHierarchy } from '@/contexts/hierarchy-context';
 import { useMobileMenu } from '@/contexts/mobile-menu-context';
 import { CommandPalette } from './command-palette';
+import { useCartStore, useCartItemCount } from '@/stores/cart.store';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,8 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { theme, setTheme, isLoading: preferencesLoading } = usePreferences();
   const [mounted, setMounted] = useState(false);
+  const { openDrawer } = useCartStore();
+  const cartItemCount = useCartItemCount();
 
   // Avoid hydration mismatch - theme is undefined on server
   useEffect(() => {
@@ -79,6 +82,20 @@ export function Header({ title, subtitle, actions, badge, backLink }: HeaderProp
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Cart */}
+          <button
+            onClick={openDrawer}
+            className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                {cartItemCount > 9 ? '9+' : cartItemCount}
+              </span>
+            )}
+          </button>
+
           {/* Notifications */}
           <button className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
             <Bell className="w-5 h-5" />

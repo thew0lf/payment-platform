@@ -236,7 +236,7 @@ export function VideoGenerator({
         <div className="flex items-center justify-center gap-2 mb-6">
           {(['configure', 'script', 'generating', 'complete'] as Step[]).map((s, i) => (
             <React.Fragment key={s}>
-              {i > 0 && <div className="w-8 h-0.5 bg-gray-200" />}
+              {i > 0 && <div className="w-8 h-0.5 bg-gray-200 dark:bg-gray-700" />}
               <div
                 className={cn(
                   'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
@@ -244,8 +244,8 @@ export function VideoGenerator({
                     ? 'bg-blue-600 text-foreground'
                     : (['configure', 'script', 'generating', 'complete'].indexOf(step) >
                         ['configure', 'script', 'generating', 'complete'].indexOf(s))
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-500'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 )}
               >
                 {i + 1}
@@ -256,11 +256,11 @@ export function VideoGenerator({
 
         {/* Error display */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-red-800">Error</p>
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm font-medium text-red-800 dark:text-red-300">Error</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           </div>
         )}
@@ -269,11 +269,11 @@ export function VideoGenerator({
         {step === 'configure' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Video Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Video Type</label>
               <select
                 value={videoType}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVideoType(e.target.value as MarketingVideoType)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 {VIDEO_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -284,11 +284,11 @@ export function VideoGenerator({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Style/Mood</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Style/Mood</label>
               <select
                 value={mood}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMood(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 {MOODS.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -299,7 +299,7 @@ export function VideoGenerator({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Platforms</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Platforms</label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {PLATFORMS.map((platform) => (
                   <button
@@ -309,8 +309,8 @@ export function VideoGenerator({
                     className={cn(
                       'px-3 py-1.5 text-sm rounded-full border transition-colors',
                       selectedPlatforms.includes(platform)
-                        ? 'bg-blue-100 border-blue-300 text-blue-700'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400'
+                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
                     )}
                   >
                     {PLATFORM_LABELS[platform]}
@@ -320,7 +320,7 @@ export function VideoGenerator({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Custom Instructions (Optional)
               </label>
               <textarea
@@ -328,7 +328,7 @@ export function VideoGenerator({
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCustomPrompt(e.target.value)}
                 placeholder="Add any specific instructions for the video..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
@@ -338,9 +338,9 @@ export function VideoGenerator({
                 id="generateScript"
                 checked={generateScript}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGenerateScript(e.target.checked)}
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
-              <label htmlFor="generateScript" className="text-sm text-gray-700">
+              <label htmlFor="generateScript" className="text-sm text-gray-700 dark:text-gray-300">
                 Generate AI script first (recommended)
               </label>
             </div>
@@ -352,8 +352,8 @@ export function VideoGenerator({
           <div className="space-y-4">
             {!script ? (
               <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Generate an AI-powered script for your video</p>
+                <FileText className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Generate an AI-powered script for your video</p>
                 <Button onClick={handleGenerateScript} disabled={isGeneratingScript}>
                   {isGeneratingScript ? (
                     <>
@@ -371,7 +371,7 @@ export function VideoGenerator({
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">Generated Script</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Generated Script</label>
                   <Button variant="ghost" size="sm" onClick={handleGenerateScript}>
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Regenerate
@@ -381,24 +381,24 @@ export function VideoGenerator({
                   value={editedScript}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedScript(e.target.value)}
                   rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm"
                 />
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-gray-50 rounded-md">
-                    <p className="text-gray-500">Estimated Duration</p>
-                    <p className="font-medium">{formatDuration(script.estimatedDuration)}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    <p className="text-gray-500 dark:text-gray-400">Estimated Duration</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{formatDuration(script.estimatedDuration)}</p>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-md">
-                    <p className="text-gray-500">Scenes</p>
-                    <p className="font-medium">{script.scenes.length}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    <p className="text-gray-500 dark:text-gray-400">Scenes</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{script.scenes.length}</p>
                   </div>
                 </div>
 
                 {script.callToAction && (
-                  <div className="p-3 bg-blue-50 rounded-md">
-                    <p className="text-sm text-blue-600 font-medium">Call to Action</p>
-                    <p className="text-blue-800">{script.callToAction}</p>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Call to Action</p>
+                    <p className="text-blue-800 dark:text-blue-300">{script.callToAction}</p>
                   </div>
                 )}
               </div>
@@ -410,7 +410,7 @@ export function VideoGenerator({
         {step === 'generating' && (
           <div className="py-8 text-center">
             <div className="relative w-24 h-24 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-200" />
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
               <div
                 className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"
                 style={{ animationDuration: '1.5s' }}
@@ -420,19 +420,19 @@ export function VideoGenerator({
               </div>
             </div>
 
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               Generating Your Video
             </h3>
-            <p className="text-gray-500 mb-4">{currentStepLabel || 'Initializing...'}</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">{currentStepLabel || 'Initializing...'}</p>
 
             <div className="max-w-xs mx-auto">
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600 transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">{progress}% complete</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{progress}% complete</p>
             </div>
 
             {status && (
@@ -449,11 +449,11 @@ export function VideoGenerator({
         {step === 'complete' && completedVideo && (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900">Video Generated!</h3>
-              <p className="text-gray-500">Your marketing video is ready</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Video Generated!</h3>
+              <p className="text-gray-500 dark:text-gray-400">Your marketing video is ready</p>
             </div>
 
             {completedVideo.thumbnailUrl && (
@@ -479,15 +479,15 @@ export function VideoGenerator({
             )}
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-3 bg-gray-50 rounded-md">
-                <p className="text-gray-500">Duration</p>
-                <p className="font-medium">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <p className="text-gray-500 dark:text-gray-400">Duration</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">
                   {completedVideo.duration ? formatDuration(completedVideo.duration) : 'N/A'}
                 </p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-md">
-                <p className="text-gray-500">Credits Used</p>
-                <p className="font-medium">{completedVideo.creditsUsed || 0}</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <p className="text-gray-500 dark:text-gray-400">Credits Used</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{completedVideo.creditsUsed || 0}</p>
               </div>
             </div>
 

@@ -127,18 +127,18 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         className={`
           fixed top-0 right-0 z-50 h-full
           w-full sm:w-[400px]
-          bg-white shadow-2xl
+          bg-white dark:bg-gray-900 shadow-2xl
           flex flex-col
           transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
       >
         {/* Sticky Header */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-white">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Your Cart
             {cartCount > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500">
+              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                 ({cartCount} {cartCount === 1 ? 'item' : 'items'})
               </span>
             )}
@@ -147,7 +147,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors touch-manipulation"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation"
             aria-label="Close cart"
           >
             <XMarkIcon className="h-6 w-6" aria-hidden="true" />
@@ -159,11 +159,11 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           {cart.length === 0 ? (
             /* Empty State */
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <ShoppingCartIcon className="h-10 w-10 text-gray-300" aria-hidden="true" />
+              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                <ShoppingCartIcon className="h-10 w-10 text-gray-300 dark:text-gray-600" aria-hidden="true" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing here yet!</h3>
-              <p className="text-sm text-gray-600 mb-6 max-w-xs">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Nothing here yet!</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-xs">
                 Your cart is feeling lonely. Time to find something you'll love!
               </p>
               <button
@@ -192,14 +192,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         {/* Sticky Footer */}
         {cart.length > 0 && (
-          <footer className="flex-shrink-0 border-t border-gray-200 bg-white p-4 space-y-4">
+          <footer className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-4">
             {/* Subtotal */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-semibold text-gray-900">{formatCurrency(cartTotal)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(cartTotal)}</span>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 Shipping + taxes calculated at checkout
               </p>
             </div>
@@ -215,7 +215,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </button>
 
             {/* Security Badge */}
-            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-600">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
               <LockClosedIcon className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Your payment is safe with us (secured by Stripe)</span>
             </div>

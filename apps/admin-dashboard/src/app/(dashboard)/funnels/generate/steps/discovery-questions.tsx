@@ -262,7 +262,7 @@ export function DiscoveryQuestionsStep({
           )}
           <button
             onClick={handleSubmit}
-            className="px-6 py-3 bg-purple-600 text-foreground font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
           >
             Generate Funnel
           </button>

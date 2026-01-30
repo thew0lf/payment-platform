@@ -4,4 +4,5 @@
  * Exports all cart-related UI components.
  */
 
-export { CartDrawer, CartIconButton, CartItem, SavedCartItem } from './cart-drawer';
+export { CartDrawer, CartIconButton } from './cart-drawer';
+export { CartItem, SavedCartItem } from './cart-item';

@@ -72,12 +72,15 @@ export interface CartWithDetails {
   sessionToken: string;
   status: string;
   currency: string;
-  subtotal: number;
-  discountTotal: number;
-  taxTotal: number;
-  shippingTotal: number;
-  grandTotal: number;
-  itemCount: number;
+  totals: {
+    subtotal: number;
+    discount: number;
+    shipping: number;
+    tax: number;
+    grandTotal: number;
+    itemCount: number;
+    currency: string;
+  };
   customer?: {
     id: string;
     email: string;
@@ -97,6 +100,11 @@ export interface CartWithDetails {
       images?: unknown;
     };
   }>;
+  funnel?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   createdAt: Date;
   updatedAt: Date;
   lastActivityAt: Date;
@@ -219,6 +227,15 @@ export class CartAdminController {
           },
           customer: {
             select: { id: true, email: true, firstName: true, lastName: true },
+          },
+          funnelSessions: {
+            include: {
+              funnel: {
+                select: { id: true, name: true, slug: true, shortId: true },
+              },
+            },
+            take: 1,
+            orderBy: { startedAt: 'desc' },
           },
         },
         orderBy,
@@ -419,6 +436,15 @@ export class CartAdminController {
         },
         customer: {
           select: { id: true, email: true, firstName: true, lastName: true },
+        },
+        funnelSessions: {
+          include: {
+            funnel: {
+              select: { id: true, name: true, slug: true, shortId: true },
+            },
+          },
+          take: 1,
+          orderBy: { startedAt: 'desc' },
         },
       },
     });
@@ -799,6 +825,10 @@ export class CartAdminController {
    * Map Prisma cart to CartData response format
    */
   private mapCartToResponse(cart: any): CartData {
+    // Extract funnel from funnelSessions if available
+    const funnelSession = cart.funnelSessions?.[0];
+    const funnel = funnelSession?.funnel;
+
     return {
       id: cart.id,
       companyId: cart.companyId,
@@ -851,6 +881,11 @@ export class CartAdminController {
       updatedAt: cart.updatedAt,
       lastActivityAt: cart.lastActivityAt,
       expiresAt: cart.expiresAt || undefined,
+      funnel: funnel ? {
+        id: funnel.id,
+        name: funnel.name,
+        slug: funnel.shortId || funnel.slug,
+      } : undefined,
     };
   }
 
@@ -858,18 +893,25 @@ export class CartAdminController {
    * Map Prisma cart to CartWithDetails response format
    */
   private mapToCartWithDetails(cart: any): CartWithDetails {
+    // Extract funnel from funnelSessions if available
+    const funnelSession = cart.funnelSessions?.[0];
+    const funnel = funnelSession?.funnel;
+
     return {
       id: cart.id,
       companyId: cart.companyId,
       sessionToken: cart.sessionToken,
       status: cart.status,
       currency: cart.currency,
-      subtotal: Number(cart.subtotal),
-      discountTotal: Number(cart.discountTotal),
-      taxTotal: Number(cart.taxTotal),
-      shippingTotal: Number(cart.shippingTotal),
-      grandTotal: Number(cart.grandTotal),
-      itemCount: cart.itemCount,
+      totals: {
+        subtotal: Number(cart.subtotal),
+        discount: Number(cart.discountTotal),
+        shipping: Number(cart.shippingTotal),
+        tax: Number(cart.taxTotal),
+        grandTotal: Number(cart.grandTotal),
+        itemCount: cart.itemCount,
+        currency: cart.currency,
+      },
       customer: cart.customer
         ? {
             id: cart.customer.id,
@@ -893,6 +935,11 @@ export class CartAdminController {
             }
           : undefined,
       })) || [],
+      funnel: funnel ? {
+        id: funnel.id,
+        name: funnel.name,
+        slug: funnel.shortId || funnel.slug,
+      } : undefined,
       createdAt: cart.createdAt,
       updatedAt: cart.updatedAt,
       lastActivityAt: cart.lastActivityAt,

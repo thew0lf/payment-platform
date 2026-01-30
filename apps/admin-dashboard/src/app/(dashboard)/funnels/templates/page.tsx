@@ -74,10 +74,10 @@ export default function TemplatesPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 bg-gray-200 rounded" />
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded-xl" />
+              <div key={i} className="h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
             ))}
           </div>
         </div>
@@ -89,8 +89,8 @@ export default function TemplatesPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Funnel Templates</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Funnel Templates</h1>
+        <p className="text-gray-600 dark:text-gray-400">
           Choose a template to get started quickly. Preview and customize to match your brand.
         </p>
       </div>
@@ -105,7 +105,7 @@ export default function TemplatesPage() {
             placeholder="Search templates..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
         </div>
 
@@ -116,7 +116,7 @@ export default function TemplatesPage() {
             className={`px-4 py-2.5 rounded-xl font-medium transition-colors ${
               typeFilter === 'ALL'
                 ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             All
@@ -126,7 +126,7 @@ export default function TemplatesPage() {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-colors ${
               typeFilter === 'FULL_FUNNEL'
                 ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -137,7 +137,7 @@ export default function TemplatesPage() {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-colors ${
               typeFilter === 'COMPONENT'
                 ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <Grid className="w-4 h-4" />
@@ -150,7 +150,7 @@ export default function TemplatesPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none pl-4 pr-10 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+            className="appearance-none pl-4 pr-10 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
@@ -168,7 +168,7 @@ export default function TemplatesPage() {
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <Star className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Featured Templates</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Featured Templates</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredTemplates.map((template) => (
@@ -187,7 +187,7 @@ export default function TemplatesPage() {
       {/* All Templates */}
       {regularTemplates.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             {featuredTemplates.length > 0 ? 'More Templates' : 'All Templates'}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -206,9 +206,9 @@ export default function TemplatesPage() {
       {/* Empty State */}
       {filteredTemplates.length === 0 && (
         <div className="text-center py-16">
-          <Layout className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No templates found</h3>
-          <p className="text-gray-500">Try adjusting your filters or search terms</p>
+          <Layout className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No templates found</h3>
+          <p className="text-gray-500 dark:text-gray-400">Try adjusting your filters or search terms</p>
         </div>
       )}
     </div>
@@ -246,7 +246,7 @@ function TemplateCard({ template, onPreview, onUse, featured }: TemplateCardProp
   return (
     <div
       className={`bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg group ${
-        featured ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-200'
+        featured ? 'border-amber-200 dark:border-amber-700 ring-1 ring-amber-100 dark:ring-amber-900' : 'border-gray-200 dark:border-gray-700'
       }`}
     >
       {/* Preview Image */}
@@ -262,11 +262,11 @@ function TemplateCard({ template, onPreview, onUse, featured }: TemplateCardProp
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Layout className="w-16 h-16 text-gray-200" />
+            <Layout className="w-16 h-16 text-gray-200 dark:text-gray-700" />
           </div>
         )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg font-medium text-gray-900 shadow-lg">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg font-medium text-gray-900 dark:text-gray-100 shadow-lg">
             <Eye className="w-4 h-4" />
             Preview
           </button>
@@ -282,15 +282,15 @@ function TemplateCard({ template, onPreview, onUse, featured }: TemplateCardProp
       {/* Content */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-gray-900">{template.name}</h3>
-          <span className={`px-2 py-0.5 text-xs font-medium rounded ${categoryColors[template.category] || 'bg-gray-100 text-gray-700'}`}>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{template.name}</h3>
+          <span className={`px-2 py-0.5 text-xs font-medium rounded ${categoryColors[template.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
             {template.category}
           </span>
         </div>
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{template.description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{template.description}</p>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {typeLabels[template.templateType]}
           </span>
           <button

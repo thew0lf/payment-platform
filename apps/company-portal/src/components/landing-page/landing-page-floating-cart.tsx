@@ -92,7 +92,7 @@ export function LandingPageFloatingCart({ className = '' }: LandingPageFloatingC
         role="region"
         aria-label="Shopping cart summary"
       >
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-4 flex items-center gap-4">
             {/* Cart Icon with Badge */}
             <div className="relative">
@@ -140,10 +140,10 @@ export function LandingPageFloatingCart({ className = '' }: LandingPageFloatingC
 
             {/* Cart Details */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {cartCount} {cartCount === 1 ? 'item' : 'items'} in cart
               </p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrency(cartTotal)}
               </p>
             </div>

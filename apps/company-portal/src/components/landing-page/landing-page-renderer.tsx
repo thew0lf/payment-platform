@@ -34,14 +34,14 @@ interface LandingPageRendererProps {
 
 function LoadingSpinner() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center">
         <div
           className="w-12 h-12 border-4 border-[var(--lp-primary,#667eea)] border-t-transparent rounded-full animate-spin mx-auto"
           role="status"
           aria-label="Loading"
         />
-        <p className="mt-4 text-gray-600">Loading...</p>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
       </div>
     </div>
   );
@@ -57,11 +57,11 @@ interface ErrorMessageProps {
 
 function ErrorMessage({ message }: ErrorMessageProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center max-w-md mx-auto px-4">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
           <svg
-            className="w-8 h-8 text-red-600"
+            className="w-8 h-8 text-red-600 dark:text-red-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -75,10 +75,10 @@ function ErrorMessage({ message }: ErrorMessageProps) {
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
           Something went wrong
         </h2>
-        <p className="text-gray-600 mb-6">{message}</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <button
           onClick={() => window.location.reload()}
           className="inline-flex items-center px-4 py-2 min-h-[44px] bg-[var(--lp-primary,#667eea)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity touch-manipulation active:scale-[0.98]"
@@ -283,13 +283,13 @@ export function LandingPageRenderer({ slug }: LandingPageRendererProps) {
 
       {/* Footer */}
       {(landingPage.termsUrl || landingPage.privacyUrl) && (
-        <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
+        <footer className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               {landingPage.termsUrl && (
                 <a
                   href={landingPage.termsUrl}
-                  className="hover:text-gray-700 transition-colors"
+                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -299,7 +299,7 @@ export function LandingPageRenderer({ slug }: LandingPageRendererProps) {
               {landingPage.privacyUrl && (
                 <a
                   href={landingPage.privacyUrl}
-                  className="hover:text-gray-700 transition-colors"
+                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

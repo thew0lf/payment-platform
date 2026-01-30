@@ -52,7 +52,7 @@ function StarRating({ rating, max = 5 }: StarRatingProps) {
       {Array.from({ length: max }).map((_, i) => (
         <svg
           key={i}
-          className={`w-5 h-5 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          className={`w-5 h-5 ${i < rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
           fill="currentColor"
           viewBox="0 0 20 20"
           aria-hidden="true"
@@ -81,8 +81,8 @@ function TestimonialCard({
 }: TestimonialCardProps) {
   return (
     <div
-      className="p-6 rounded-xl shadow-sm border border-gray-100"
-      style={{ backgroundColor: cardBackgroundColor || '#ffffff' }}
+      className={`p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 ${!cardBackgroundColor ? 'bg-white dark:bg-gray-800' : ''}`}
+      style={cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : undefined}
     >
       {/* Rating */}
       {showRatings && testimonial.rating && (
@@ -92,7 +92,7 @@ function TestimonialCard({
       )}
 
       {/* Quote */}
-      <blockquote className="text-gray-700 mb-4">
+      <blockquote className="mb-4 text-gray-700 dark:text-gray-300">
         <span className="text-[var(--lp-primary)] text-2xl font-serif">"</span>
         {testimonial.quote}
         <span className="text-[var(--lp-primary)] text-2xl font-serif">"</span>
@@ -112,9 +112,9 @@ function TestimonialCard({
           </div>
         )}
         <div>
-          <p className="font-semibold text-gray-900">{testimonial.author}</p>
+          <p className="font-semibold text-gray-900 dark:text-gray-100">{testimonial.author}</p>
           {(testimonial.role || testimonial.company) && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {testimonial.role}
               {testimonial.role && testimonial.company && ' at '}
               {testimonial.company}
@@ -151,6 +151,10 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
 
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Determine text colors with dark mode support
+  const textColor = styles?.textColor;
+  const hasCustomTextColor = !!textColor;
+
   // Carousel navigation
   const goToPrevious = () => {
     setActiveIndex((prev) =>
@@ -173,7 +177,7 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
       className="py-16 sm:py-24"
       style={{
         backgroundColor: styles?.backgroundColor || 'transparent',
-        color: styles?.textColor || 'inherit',
+        ...(hasCustomTextColor && { color: textColor }),
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -182,14 +186,20 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
           <div className="text-center mb-12 sm:mb-16">
             {title && (
               <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ fontFamily: 'var(--lp-heading-font), system-ui, sans-serif' }}
+                className={`text-3xl sm:text-4xl font-bold mb-4 ${!hasCustomTextColor ? 'text-gray-900 dark:text-gray-100' : ''}`}
+                style={{
+                  fontFamily: 'var(--lp-heading-font), system-ui, sans-serif',
+                  ...(hasCustomTextColor && { color: textColor }),
+                }}
               >
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p
+                className={`text-lg max-w-2xl mx-auto ${!hasCustomTextColor ? 'text-gray-600 dark:text-gray-400' : ''}`}
+                style={hasCustomTextColor ? { color: `color-mix(in srgb, ${textColor} 70%, transparent)` } : undefined}
+              >
                 {subtitle}
               </p>
             )}
@@ -241,11 +251,11 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
                 <button
                   type="button"
                   onClick={goToPrevious}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 p-2 min-w-[44px] min-h-[44px] rounded-full bg-white shadow-lg hover:bg-gray-50 transition-colors touch-manipulation"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 p-2 min-w-[44px] min-h-[44px] rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
                   aria-label="Previous testimonial"
                 >
                   <svg
-                    className="w-6 h-6 text-gray-600"
+                    className="w-6 h-6 text-gray-600 dark:text-gray-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -262,11 +272,11 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
                 <button
                   type="button"
                   onClick={goToNext}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 p-2 min-w-[44px] min-h-[44px] rounded-full bg-white shadow-lg hover:bg-gray-50 transition-colors touch-manipulation"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 p-2 min-w-[44px] min-h-[44px] rounded-full bg-white dark:bg-gray-800 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
                   aria-label="Next testimonial"
                 >
                   <svg
-                    className="w-6 h-6 text-gray-600"
+                    className="w-6 h-6 text-gray-600 dark:text-gray-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -294,7 +304,7 @@ export function TestimonialsSection({ content, styles }: TestimonialsSectionProp
                     className={`w-2 h-2 rounded-full transition-all ${
                       index === activeIndex
                         ? 'bg-[var(--lp-primary)] w-6'
-                        : 'bg-gray-300'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                     aria-label={`Go to testimonial ${index + 1}`}
                   />

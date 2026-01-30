@@ -153,19 +153,19 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: SectionPro
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-gray-200 last:border-b-0">
+    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5 text-gray-500" />
-          <span className="font-medium text-gray-900">{title}</span>
+          <Icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <span className="font-medium text-gray-900 dark:text-gray-100">{title}</span>
         </div>
         {isOpen ? (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
+          <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
         ) : (
-          <ChevronRight className="w-5 h-5 text-gray-400" />
+          <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
         )}
       </button>
       {isOpen && <div className="px-4 pb-4 space-y-4">{children}</div>}
@@ -188,8 +188,8 @@ function Toggle({ label, description, checked, onChange }: ToggleProps) {
   return (
     <label className="flex items-start justify-between gap-4 cursor-pointer group">
       <div>
-        <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</p>
-        {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">{label}</p>
+        {description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>}
       </div>
       <button
         type="button"
@@ -199,7 +199,7 @@ function Toggle({ label, description, checked, onChange }: ToggleProps) {
         className={`
           relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
           transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-          ${checked ? 'bg-indigo-600' : 'bg-gray-200'}
+          ${checked ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600'}
         `}
       >
         <span
@@ -226,17 +226,17 @@ interface FieldConfigRowProps {
 
 function FieldConfigRow({ field, label, onUpdate }: FieldConfigRowProps) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex items-center gap-3">
         <button
           onClick={() => onUpdate({ ...field, enabled: !field.enabled })}
           className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-            field.enabled ? 'bg-indigo-600 text-foreground' : 'bg-gray-200 text-gray-400'
+            field.enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-400'
           }`}
         >
           {field.enabled && <Check className="w-3 h-3" />}
         </button>
-        <span className={`text-sm ${field.enabled ? 'text-gray-900' : 'text-gray-400'}`}>
+        <span className={`text-sm ${field.enabled ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
           {label}
         </span>
       </div>
@@ -246,9 +246,9 @@ function FieldConfigRow({ field, label, onUpdate }: FieldConfigRowProps) {
             type="checkbox"
             checked={field.required}
             onChange={(e) => onUpdate({ ...field, required: e.target.checked })}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700"
           />
-          <span className="text-xs text-gray-500">Required</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Required</span>
         </label>
       )}
     </div>
@@ -271,18 +271,18 @@ function PaymentMethodRow({ method, onUpdate }: PaymentMethodRowProps) {
   };
 
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex items-center gap-3">
         <button
           onClick={() => onUpdate({ ...method, enabled: !method.enabled })}
           className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-            method.enabled ? 'bg-indigo-600 text-foreground' : 'bg-gray-200 text-gray-400'
+            method.enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-400'
           }`}
         >
           {method.enabled && <Check className="w-3 h-3" />}
         </button>
         <span className="text-lg">{icons[method.type] || '💰'}</span>
-        <span className={`text-sm ${method.enabled ? 'text-gray-900' : 'text-gray-400'}`}>
+        <span className={`text-sm ${method.enabled ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
           {method.label}
         </span>
       </div>
@@ -331,23 +331,23 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
   };
 
   const themeClasses = {
-    light: 'bg-white text-gray-900',
-    dark: 'bg-gray-900 text-foreground',
-    minimal: 'bg-gray-50 text-gray-900',
-    modern: 'bg-gradient-to-br from-gray-50 to-white text-gray-900',
+    light: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+    dark: 'bg-gray-900 text-gray-100',
+    minimal: 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+    modern: 'bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 text-gray-900 dark:text-gray-100',
   };
 
-  const inputClass = `w-full px-3 py-2.5 border border-gray-300 ${borderRadiusClass[config.appearance.borderRadius]} focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm`;
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5';
+  const inputClass = `w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${borderRadiusClass[config.appearance.borderRadius]} focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm`;
+  const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5';
 
   return (
     <div className={`${deviceWidths[device]} max-w-full mx-auto transition-all duration-300`}>
       <div
-        className={`${themeClasses[config.appearance.theme]} ${borderRadiusClass[config.appearance.borderRadius]} shadow-2xl overflow-hidden border border-gray-200`}
+        className={`${themeClasses[config.appearance.theme]} ${borderRadiusClass[config.appearance.borderRadius]} shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700`}
       >
         {/* Header */}
         {config.appearance.showLogo && (
-          <div className="p-4 border-b border-gray-200 flex items-center justify-center">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center">
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground text-sm font-bold"
@@ -468,8 +468,8 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
                     key={method.type}
                     className={`px-4 py-2 text-sm font-medium ${borderRadiusClass[config.appearance.borderRadius]} border transition-colors ${
                       method.type === 'card'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                     disabled
                   >
@@ -515,7 +515,7 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
                     disabled
                   />
                   <button
-                    className={`px-4 py-2.5 border border-gray-300 ${borderRadiusClass[config.appearance.borderRadius]} text-sm font-medium text-gray-700`}
+                    className={`px-4 py-2.5 border border-gray-300 dark:border-gray-600 ${borderRadiusClass[config.appearance.borderRadius]} text-sm font-medium text-gray-700 dark:text-gray-300`}
                     disabled
                   >
                     Apply
@@ -526,15 +526,15 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
 
             {/* Trust Elements */}
             {(config.trust.showSecurityBadges || config.trust.showGuarantee) && (
-              <div className="flex items-center justify-center gap-4 py-4 border-t border-gray-200 mt-6">
+              <div className="flex items-center justify-center gap-4 py-4 border-t border-gray-200 dark:border-gray-700 mt-6">
                 {config.trust.showSecurityBadges && (
-                  <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                  <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs">
                     <Lock className="w-3.5 h-3.5" />
                     <span>Secure checkout</span>
                   </div>
                 )}
                 {config.trust.showGuarantee && (
-                  <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                  <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs">
                     <Shield className="w-3.5 h-3.5" />
                     <span>{config.trust.guaranteeText || 'Money-back guarantee'}</span>
                   </div>
@@ -568,18 +568,18 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
             const total = subtotal + shipping + tax;
 
             return (
-              <div className="col-span-2 bg-gray-50 rounded-xl p-6">
+              <div className="col-span-2 bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
                 <h3 className="font-semibold mb-4">Order Summary</h3>
 
                 {/* Products */}
                 {displayProducts.map((product, index) => (
-                  <div key={index} className="flex gap-4 pb-4 border-b border-gray-200 mb-4 last:mb-0">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <Package className="w-6 h-6 text-gray-400" />
+                  <div key={index} className="flex gap-4 pb-4 border-b border-gray-200 dark:border-gray-600 mb-4 last:mb-0">
+                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-500">Qty: {product.quantity}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {product.quantity}</p>
                     </div>
                     <p className="font-medium text-sm">${(product.price * product.quantity).toFixed(2)}</p>
                   </div>
@@ -588,22 +588,22 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
                 {/* Totals */}
                 <div className="pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   {config.payment.showShippingEstimate && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Shipping</span>
+                      <span className="text-gray-600 dark:text-gray-400">Shipping</span>
                       <span>${shipping.toFixed(2)}</span>
                     </div>
                   )}
                   {config.payment.showTaxEstimate && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Tax</span>
+                      <span className="text-gray-600 dark:text-gray-400">Tax</span>
                       <span>${tax.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
+                  <div className="flex justify-between font-semibold pt-2 border-t border-gray-200 dark:border-gray-600">
                     <span>Total</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
@@ -614,9 +614,9 @@ const LivePreview = React.memo(function LivePreview({ config, device, products =
         </div>
 
         {/* Test Mode Banner */}
-        <div className="bg-amber-50 border-t border-amber-200 px-4 py-2 flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600" />
-          <span className="text-xs font-medium text-amber-700">Test Mode - No real charges</span>
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800 px-4 py-2 flex items-center justify-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Test Mode - No real charges</span>
         </div>
       </div>
     </div>
@@ -735,56 +735,56 @@ function CheckoutBuilderContent() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <CreditCard className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <CreditCard className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <p className="text-gray-500">Loading checkout builder...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading checkout builder...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Top Bar */}
-      <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+      <div className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push(funnelId ? `/funnels/builder?id=${funnelId}` : '/funnels')}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-500" />
+            <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
           <div>
-            <h1 className="font-semibold text-gray-900">Checkout Builder</h1>
-            <p className="text-xs text-gray-500">{funnel?.name || 'Configure checkout'}</p>
+            <h1 className="font-semibold text-gray-900 dark:text-gray-100">Checkout Builder</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{funnel?.name || 'Configure checkout'}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Device Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setDevice('desktop')}
-              className={`p-2 rounded-md transition-colors ${device === 'desktop' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
+              className={`p-2 rounded-md transition-colors ${device === 'desktop' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
               title="Desktop"
             >
-              <Monitor className={`w-4 h-4 ${device === 'desktop' ? 'text-indigo-600' : 'text-gray-500'}`} />
+              <Monitor className={`w-4 h-4 ${device === 'desktop' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`} />
             </button>
             <button
               onClick={() => setDevice('tablet')}
-              className={`p-2 rounded-md transition-colors ${device === 'tablet' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
+              className={`p-2 rounded-md transition-colors ${device === 'tablet' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
               title="Tablet"
             >
-              <Tablet className={`w-4 h-4 ${device === 'tablet' ? 'text-indigo-600' : 'text-gray-500'}`} />
+              <Tablet className={`w-4 h-4 ${device === 'tablet' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`} />
             </button>
             <button
               onClick={() => setDevice('mobile')}
-              className={`p-2 rounded-md transition-colors ${device === 'mobile' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
+              className={`p-2 rounded-md transition-colors ${device === 'mobile' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
               title="Mobile"
             >
-              <Smartphone className={`w-4 h-4 ${device === 'mobile' ? 'text-indigo-600' : 'text-gray-500'}`} />
+              <Smartphone className={`w-4 h-4 ${device === 'mobile' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`} />
             </button>
           </div>
 
@@ -793,8 +793,8 @@ function CheckoutBuilderContent() {
             disabled={saving || !hasChanges}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
               hasChanges
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-foreground hover:from-indigo-700 hover:to-purple-700'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
             }`}
           >
             <Save className="w-4 h-4" />
@@ -806,11 +806,11 @@ function CheckoutBuilderContent() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Configuration */}
-        <div className="w-80 bg-white border-r border-gray-200 overflow-y-auto shrink-0">
+        <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto shrink-0">
           {/* Layout Section */}
           <Section title="Layout" icon={Settings} defaultOpen={true}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Checkout Style</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Checkout Style</label>
               <div className="grid grid-cols-2 gap-2">
                 {(['two-column', 'single-page', 'multi-step', 'one-column'] as const).map((layout) => (
                   <button
@@ -818,8 +818,8 @@ function CheckoutBuilderContent() {
                     onClick={() => updateConfig('layout', layout)}
                     className={`p-3 text-xs font-medium rounded-lg border-2 transition-colors ${
                       config.layout === layout
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     {layout.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
@@ -915,7 +915,7 @@ function CheckoutBuilderContent() {
                 />
               ))}
             </div>
-            <div className="pt-4 space-y-3 border-t border-gray-200 mt-4">
+            <div className="pt-4 space-y-3 border-t border-gray-200 dark:border-gray-700 mt-4">
               <Toggle
                 label="Show order summary"
                 checked={config.payment.showOrderSummary}
@@ -955,13 +955,13 @@ function CheckoutBuilderContent() {
               />
               {config.trust.showGuarantee && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Guarantee Text</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Guarantee Text</label>
                   <input
                     type="text"
                     value={config.trust.guaranteeText || ''}
                     onChange={(e) => updateConfig('trust', { ...config.trust, guaranteeText: e.target.value })}
                     placeholder="30-day money-back guarantee"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               )}
@@ -972,7 +972,7 @@ function CheckoutBuilderContent() {
           <Section title="Appearance" icon={Palette}>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme</label>
                 <div className="grid grid-cols-2 gap-2">
                   {(['light', 'dark', 'minimal', 'modern'] as const).map((theme) => (
                     <button
@@ -980,8 +980,8 @@ function CheckoutBuilderContent() {
                       onClick={() => updateConfig('appearance', { ...config.appearance, theme })}
                       className={`p-2 text-xs font-medium rounded-lg border-2 capitalize transition-colors ${
                         config.appearance.theme === theme
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       {theme}
@@ -991,25 +991,25 @@ function CheckoutBuilderContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Color</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
                     value={config.appearance.primaryColor}
                     onChange={(e) => updateConfig('appearance', { ...config.appearance, primaryColor: e.target.value })}
-                    className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer"
+                    className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer"
                   />
                   <input
                     type="text"
                     value={config.appearance.primaryColor}
                     onChange={(e) => updateConfig('appearance', { ...config.appearance, primaryColor: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Border Radius</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Border Radius</label>
                 <div className="flex gap-2">
                   {(['none', 'sm', 'md', 'lg', 'full'] as const).map((radius) => (
                     <button
@@ -1017,8 +1017,8 @@ function CheckoutBuilderContent() {
                       onClick={() => updateConfig('appearance', { ...config.appearance, borderRadius: radius })}
                       className={`flex-1 p-2 text-xs font-medium rounded-lg border-2 transition-colors ${
                         config.appearance.borderRadius === radius
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       {radius}
@@ -1037,9 +1037,9 @@ function CheckoutBuilderContent() {
         </div>
 
         {/* Right Panel - Live Preview */}
-        <div className="flex-1 bg-gray-100 p-8 overflow-y-auto">
+        <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-8 overflow-y-auto">
           <div className="mb-4 text-center">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Live Preview - {device.charAt(0).toUpperCase() + device.slice(1)}
             </span>
           </div>
@@ -1056,7 +1056,7 @@ function CheckoutBuilderContent() {
 
 export default function CheckoutBuilderPage() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gray-50">Loading...</div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">Loading...</div>}>
       <CheckoutBuilderContent />
     </Suspense>
   );

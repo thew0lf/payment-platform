@@ -53,7 +53,7 @@ export function ScarcityIndicator({
       {/* Live viewers count */}
       {showViewers && viewersCount > 0 && (
         <div
-          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          className="flex items-center gap-1.5 text-xs text-gray-500"
           aria-label={`${viewersCount} people viewing this item`}
         >
           <span className="relative flex h-2 w-2" aria-hidden="true">
