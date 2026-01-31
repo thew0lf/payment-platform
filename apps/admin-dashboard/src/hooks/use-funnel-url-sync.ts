@@ -74,7 +74,7 @@ export function useFunnelUrlSync({
     if (!stageType) return;
 
     // Build new URL preserving existing params
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('stage', stageType);
 
     const newUrl = `${pathname}?${params.toString()}`;
@@ -98,7 +98,7 @@ export function useFunnelUrlSync({
     const stageType = getStageTypeByIndex(stageIndex);
     if (!stageType) return;
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('stage', stageType);
 
     const newUrl = `${pathname}?${params.toString()}`;
@@ -121,7 +121,7 @@ export function useFunnelUrlSync({
       return;
     }
 
-    const stageParam = searchParams.get('stage');
+    const stageParam = searchParams?.get('stage') ?? null;
 
     if (stageParam) {
       const targetIndex = getStageIndexByType(stageParam);
@@ -214,7 +214,7 @@ export function useFunnelUrlSync({
 
   return {
     getStageFromUrl: useCallback(() => {
-      return searchParams.get('stage');
+      return searchParams?.get('stage') ?? null;
     }, [searchParams]),
   };
 }
