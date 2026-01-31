@@ -182,7 +182,7 @@ function ProductCard({
                 const variant = product.variants?.find((v) => v.id === e.target.value);
                 setSelectedVariant(variant);
               }}
-              className="w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--lp-primary)]"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--lp-primary)]"
             >
               {product.variants.map((variant) => (
                 <option key={variant.id} value={variant.id}>

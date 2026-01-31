@@ -55,6 +55,7 @@ export interface FunnelSettings {
     cancelUrl?: string;
     termsUrl?: string;
     privacyUrl?: string;
+    refundPolicyUrl?: string;
   };
   behavior: {
     allowBackNavigation: boolean;
@@ -70,6 +71,10 @@ export interface FunnelSettings {
   };
   /** Flag to indicate this funnel is in demo mode */
   isDemoMode?: boolean;
+  /** Require users to accept terms before checkout */
+  requireTermsAccept?: boolean;
+  /** Custom terms text to display (overrides default) */
+  customTermsText?: string;
 }
 
 export interface LandingSection {
@@ -389,6 +394,59 @@ export async function completeSession(
 }
 
 // ═══════════════════════════════════════════════════════════════
+// LEAD CAPTURE API
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Capture a single form field for lead tracking
+ * Called on blur to enable progressive field capture
+ */
+export async function captureField(
+  sessionToken: string,
+  field: string,
+  value: string,
+  stageOrder?: number,
+  stageName?: string
+): Promise<void> {
+  await fetch(`${API_BASE}/api/leads/capture/field`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionToken,
+      field,
+      value,
+      stageOrder,
+      stageName,
+    }),
+  }).catch(() => {
+    // Silently fail for lead capture - don't block user flow
+  });
+}
+
+/**
+ * Capture multiple form fields at once
+ */
+export async function captureFields(
+  sessionToken: string,
+  fields: Record<string, string>,
+  stageOrder?: number,
+  stageName?: string
+): Promise<void> {
+  await fetch(`${API_BASE}/api/leads/capture/fields`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionToken,
+      fields,
+      stageOrder,
+      stageName,
+    }),
+  }).catch(() => {
+    // Silently fail for lead capture - don't block user flow
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PRODUCTS API
 // ═══════════════════════════════════════════════════════════════
 
@@ -491,6 +549,12 @@ export interface CheckoutRequest {
   };
   email: string;
   saveCard?: boolean;
+  // Consent tracking (compliance)
+  consent?: {
+    termsAccepted: boolean;
+    privacyAccepted: boolean;
+    acceptedAt: string; // ISO timestamp
+  };
 }
 
 export interface CheckoutResult {

@@ -4230,10 +4230,11 @@ model CSSession {
   resolvedAt DateTime?
 
   // Relations
-  messages   CSMessage[]
-  refunds    Refund[]
-  rmas       RMA[]
-  csAIUsage  CSAIUsage[]
+  messages       CSMessage[]
+  refunds        Refund[]
+  rmas           RMA[]
+  csAIUsage      CSAIUsage[]
+  funnelSessions FunnelSession[]
 
   @@index([companyId])
   @@index([customerId])
@@ -8880,6 +8881,14 @@ model FunnelSession {
   completedAt     DateTime?
   abandonedAt     DateTime?
 
+  // Consent Tracking (Compliance)
+  termsAcceptedAt   DateTime?
+  privacyAcceptedAt DateTime?
+
+  // Customer Service Integration
+  csSessionId     String?
+  csSession       CSSession?      @relation(fields: [csSessionId], references: [id])
+
   // Events for detailed tracking
   events          FunnelEvent[]
 
@@ -8889,6 +8898,7 @@ model FunnelSession {
   @@index([cartId])
   @@index([status])
   @@index([startedAt])
+  @@index([csSessionId])
   @@map("funnel_sessions")
 }
 

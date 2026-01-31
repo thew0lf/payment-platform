@@ -177,6 +177,7 @@ function getCategory(provider: string): string {
     // Payment Gateways
     PAYPAL_PAYFLOW: 'PAYMENT_GATEWAY',
     PAYPAL_REST: 'PAYMENT_GATEWAY',
+    PAYPAL_CLASSIC: 'PAYMENT_GATEWAY',
     NMI: 'PAYMENT_GATEWAY',
     AUTHORIZE_NET: 'PAYMENT_GATEWAY',
     STRIPE: 'PAYMENT_GATEWAY',
@@ -228,8 +229,11 @@ function getCategory(provider: string): string {
     SALESFORCE: 'OAUTH',
     QUICKBOOKS: 'OAUTH',
 
-    // Location/Address
-    GOOGLE_PLACES: 'LOCATION',
+    // Location Services
+    GOOGLE_PLACES: 'LOCATION_SERVICES',
+
+    // Fulfillment
+    ROASTIFY: 'FULFILLMENT',
   };
 
   return categoryMap[provider] || 'OTHER';

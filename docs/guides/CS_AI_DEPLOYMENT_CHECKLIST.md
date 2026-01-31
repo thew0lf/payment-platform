@@ -1,8 +1,41 @@
 # CS AI Deployment Checklist
 
-**Version:** 1.0
-**Date:** December 19, 2025
+**Version:** 2.0
+**Date:** January 31, 2026
 **Status:** Ready for Deployment
+
+---
+
+## CI/CD Deployment Model
+
+> **IMPORTANT:** This project uses CI/CD with automatic deployment. **A push to the `main` branch triggers automatic deployment to production.**
+
+### Deployment Flow
+
+```
+Developer → Feature Branch → PR Review → Merge to main → CI/CD Pipeline → Production
+```
+
+### Pipeline Stages
+
+1. **Build** - TypeScript compilation, asset bundling
+2. **Test** - Unit tests, integration tests
+3. **Lint** - ESLint, Prettier checks
+4. **Security Scan** - Dependency vulnerability check
+5. **Deploy** - Automatic deployment to production
+6. **Health Check** - Verify deployment success
+7. **Rollback** - Automatic on health check failure
+
+### Pre-Merge Checklist (REQUIRED)
+
+Before merging to `main`:
+
+- [ ] All tests passing locally
+- [ ] TypeScript compiles without errors (`npx tsc --noEmit`)
+- [ ] Lint passes (`npm run lint`)
+- [ ] PR reviewed and approved
+- [ ] Database migrations tested (if applicable)
+- [ ] Environment variables configured in CI/CD secrets
 
 ---
 
@@ -10,12 +43,14 @@
 
 ### 1. Environment Variables
 
-#### Required Variables
+#### Required Variables (CI/CD Secrets)
 
 | Variable | Description | Example | Where to Set |
 |----------|-------------|---------|--------------|
-| `ANTHROPIC_API_KEY` | Anthropic Claude API key | `sk-ant-api03-...` | AWS Secrets Manager |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API key | `sk-ant-api03-...` | GitHub Secrets / AWS Secrets Manager |
 | `TWILIO_WEBHOOK_BASE_URL` | Base URL for Twilio webhooks | `https://api.avnz.io` | Environment config |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` | CI/CD Secrets |
+| `REDIS_URL` | Redis connection string | `redis://...` | CI/CD Secrets |
 
 #### Optional Fallback Variables
 
@@ -150,6 +185,7 @@ Verify these tables exist and have proper indexes:
 | `CSAIUsageSummary` | ✅ Created | Usage aggregation |
 | `VoiceCall` | ✅ Created | Voice call records |
 | `VoiceScript` | ✅ Created | Call scripts |
+| `FunnelSession.csSessionId` | ✅ Created | Links funnel sessions to CS sessions |
 
 ### Run Migration Check
 
@@ -157,7 +193,7 @@ Verify these tables exist and have proper indexes:
 # Verify all migrations applied
 npx prisma migrate status
 
-# Apply any pending migrations
+# Apply any pending migrations (CI/CD runs this automatically)
 npx prisma migrate deploy
 ```
 
@@ -176,6 +212,9 @@ CREATE INDEX idx_voicecall_twiliosid ON "VoiceCall"("twilioCallSid");
 
 -- CSAIUsage indexes
 CREATE INDEX idx_csaiusage_companyid_createdat ON "CSAIUsage"("companyId", "createdAt");
+
+-- FunnelSession CS link
+CREATE INDEX funnel_sessions_csSessionId_idx ON "funnel_sessions"("csSessionId");
 ```
 
 ---
@@ -220,9 +259,31 @@ GET /api/momentum/cs/health
 
 ---
 
-## Deployment Steps
+## CI/CD Deployment Steps
 
-### 1. Pre-Deploy Verification
+### Automatic Deployment (Preferred)
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/my-feature
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: description of changes"
+
+# 3. Push and create PR
+git push -u origin feature/my-feature
+# Create PR via GitHub
+
+# 4. After PR approval, merge to main
+# CI/CD automatically:
+#   - Runs tests
+#   - Builds application
+#   - Deploys to production
+#   - Runs health checks
+```
+
+### Pre-Push Verification (Local)
 
 ```bash
 # Run all tests
@@ -234,36 +295,25 @@ npx tsc --noEmit
 # Lint check
 npm run lint
 
-# Build
+# Build (optional - CI/CD does this)
 npm run build
 ```
 
-### 2. Staging Deployment
+### Manual Deployment (Emergency Only)
 
 ```bash
-# Deploy to staging
-./scripts/deploy.sh staging
-
-# Run smoke tests
-npm run test:e2e:staging
-
-# Verify webhooks
-curl -X POST https://staging-api.avnz.io/api/momentum/voice/health
-```
-
-### 3. Production Deployment
-
-```bash
-# Deploy to production (blue-green)
+# Only use if CI/CD is broken
 ./scripts/deploy.sh production
 
 # Verify health check
 curl https://api.avnz.io/api/health
 
-# Monitor for 15 minutes before full rollout
+# Monitor for 15 minutes
 ```
 
-### 4. Post-Deploy Verification
+### Post-Deploy Verification (Automatic)
+
+CI/CD automatically verifies:
 
 - [ ] Health check passes
 - [ ] Test inbound call webhook responds
@@ -278,17 +328,22 @@ curl https://api.avnz.io/api/health
 
 ### Automatic Rollback Triggers
 
-1. Error rate > 10% for 5 minutes
-2. Health check fails 3 consecutive times
+CI/CD automatically rolls back if:
+
+1. Health check fails 3 consecutive times
+2. Error rate > 10% for 5 minutes
 3. P99 latency > 10 seconds for 5 minutes
 
 ### Manual Rollback Steps
 
 ```bash
-# Quick rollback
+# Quick rollback via GitHub Actions
+# Go to Actions → Select failed deploy → Click "Rollback"
+
+# Or via CLI
 ./scripts/rollback.sh production
 
-# Or using ECS
+# Or using ECS directly
 aws ecs update-service --cluster production --service api --task-definition api:previous-version
 ```
 
@@ -396,17 +451,30 @@ ngrok http 3001
 
 ## Approval Checklist
 
+### Pre-Merge (Required)
+
 - [ ] All tests passing
-- [ ] Environment variables configured
+- [ ] TypeScript compiles without errors
+- [ ] Lint passes
+- [ ] PR approved by reviewer
+- [ ] No CRITICAL or HIGH issues from code review
+
+### Post-Deploy (Automatic)
+
+- [ ] Health checks pass
+- [ ] Error rate below threshold
+- [ ] Latency within acceptable range
+
+### Manual Verification (First Deploy Only)
+
+- [ ] Environment variables configured in CI/CD
 - [ ] ClientIntegration credentials set
 - [ ] Twilio webhooks configured
 - [ ] Monitoring dashboards created
 - [ ] Alerts configured
-- [ ] Rollback plan tested
-- [ ] On-call scheduled
 
 **Approved By:** _________________ **Date:** _________________
 
 ---
 
-*Last Updated: December 19, 2025*
+*Last Updated: January 31, 2026*

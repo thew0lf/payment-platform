@@ -38,6 +38,12 @@ export interface FunnelCheckoutDto {
   };
   saveCard?: boolean;
   email: string;
+  // Consent tracking (compliance)
+  consent?: {
+    termsAccepted: boolean;
+    privacyAccepted: boolean;
+    acceptedAt: string; // ISO timestamp
+  };
 }
 
 export interface FunnelCheckoutResult {
@@ -81,6 +87,19 @@ export class FunnelPaymentService {
 
     if (session.status !== FunnelSessionStatus.ACTIVE) {
       throw new BadRequestException(`Session is ${session.status}, cannot checkout`);
+    }
+
+    // Save consent timestamps if consent data provided (compliance)
+    if (dto.consent) {
+      const acceptedAt = new Date(dto.consent.acceptedAt);
+      await this.prisma.funnelSession.update({
+        where: { id: session.id },
+        data: {
+          ...(dto.consent.termsAccepted && { termsAcceptedAt: acceptedAt }),
+          ...(dto.consent.privacyAccepted && { privacyAcceptedAt: acceptedAt }),
+        },
+      });
+      this.logger.debug(`Consent timestamps saved for session ${dto.sessionToken}`);
     }
 
     const funnel = session.funnel;

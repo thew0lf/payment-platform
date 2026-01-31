@@ -184,3 +184,22 @@
 .ring-ring {
   --tw-ring-color: rgb(var(--ring));
 }
+
+/* Address Autocomplete - always uses dark text on white background */
+.address-autocomplete-input {
+  color: rgb(55 65 81) !important; /* gray-700 */
+  background-color: rgb(255 255 255) !important; /* white */
+}
+.address-autocomplete-input::placeholder {
+  color: rgb(156 163 175); /* gray-400 */
+}
+.address-autocomplete-dropdown {
+  color: rgb(55 65 81); /* gray-700 */
+  background-color: rgb(255 255 255); /* white */
+}
+.address-autocomplete-dropdown .address-result-main {
+  color: rgb(55 65 81); /* gray-700 */
+}
+.address-autocomplete-dropdown .address-result-secondary {
+  color: rgb(107 114 128); /* gray-500 */
+}

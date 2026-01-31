@@ -170,7 +170,7 @@ export function ProductSelectionStage({ stage, funnel }: ProductSelectionStagePr
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
             />
           </div>
         )}

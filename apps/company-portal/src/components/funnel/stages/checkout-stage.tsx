@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useCallback, useRef, useEffect } from 'react';
-import { Funnel, FunnelStage, CheckoutStageConfig, CustomerInfo, processCheckout } from '@/lib/api';
+import { Funnel, FunnelStage, CheckoutStageConfig, CustomerInfo, processCheckout, captureField } from '@/lib/api';
 import { useFunnel } from '@/contexts/funnel-context';
 import { COUNTRIES, getCountryByCode } from '@/lib/address-data';
 import { AddressAutocomplete } from '@/components/address';
@@ -136,6 +136,10 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
 
+  // Consent state (for compliance)
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
   // Progressive field capture - save customer info as they type
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef<string>('');
@@ -210,6 +214,15 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     };
   }, [email, firstName, lastName, phone, company, saveCustomerInfoProgressively]);
 
+  // Progressive field capture - capture individual fields on blur for lead tracking
+  const handleFieldBlur = useCallback((fieldName: string, value: string) => {
+    if (session?.sessionToken && value && value.trim()) {
+      // Find the current stage index for the checkout stage
+      const stageIndex = funnel.stages.findIndex(s => s.type === 'CHECKOUT');
+      captureField(session.sessionToken, fieldName, value.trim(), stageIndex, 'CHECKOUT');
+    }
+  }, [session?.sessionToken, funnel.stages]);
+
   // Apply discount code handler
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !backendCart?.id || !session?.sessionToken) {
@@ -279,6 +292,15 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
     setIsProcessing(true);
 
     try {
+      // Validate consent if required
+      if (funnel.settings.requireTermsAccept) {
+        if (!termsAccepted || !privacyAccepted) {
+          setError('Please accept the Terms of Service and Privacy Policy to continue.');
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       // Validate stock before proceeding
       const stockValid = await validateStockBeforeCheckout();
       if (!stockValid) {
@@ -341,6 +363,14 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
           phone,
         },
         email,
+        // Include consent tracking data for compliance
+        ...(funnel.settings.requireTermsAccept && {
+          consent: {
+            termsAccepted,
+            privacyAccepted,
+            acceptedAt: new Date().toISOString(),
+          },
+        }),
       });
 
       if (!result.success) {
@@ -394,7 +424,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
   }));
 
   // Check if checkout should be disabled
-  const isCheckoutDisabled = isProcessing || stockWarnings.length > 0 || isLoadingCart;
+  const consentRequired = funnel.settings.requireTermsAccept;
+  const consentMissing = consentRequired && (!termsAccepted || !privacyAccepted);
+  const isCheckoutDisabled = isProcessing || stockWarnings.length > 0 || isLoadingCart || consentMissing;
 
   if (cart.length === 0 && !isLoadingCart && (!backendCart || backendCart.items.length === 0)) {
     return (
@@ -500,8 +532,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        onBlur={(e) => handleFieldBlur('email', e.target.value)}
                         required={config.fields.customer.email.required}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                         placeholder="your@email.com"
                       />
                     </div>
@@ -517,8 +550,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                           type="text"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
+                          onBlur={(e) => handleFieldBlur('firstName', e.target.value)}
                           required={config.fields.customer.firstName.required}
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                         />
                       </div>
                     )}
@@ -531,8 +565,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                           type="text"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
+                          onBlur={(e) => handleFieldBlur('lastName', e.target.value)}
                           required={config.fields.customer.lastName.required}
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                         />
                       </div>
                     )}
@@ -547,8 +582,9 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
+                        onBlur={(e) => handleFieldBlur('phone', e.target.value)}
                         required={config.fields.customer.phone.required}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                     </div>
                   )}
@@ -573,7 +609,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.firstName}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                       <input
                         type="text"
@@ -581,7 +617,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.lastName}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                     </div>
                     <AddressAutocomplete
@@ -607,14 +643,14 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                       placeholder="Apartment, suite, etc. (optional)"
                       value={shippingAddress.address2}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, address2: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                     />
                     {/* Country */}
                     <select
                       value={shippingAddress.country}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value, state: '' })}
                       required
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 mb-4"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none mb-4"
                     >
                       {COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>{country.name}</option>
@@ -627,13 +663,13 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.city}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                       <select
                         value={shippingAddress.state}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       >
                         <option value="">Select {(getCountryByCode(shippingAddress.country)?.regionLabel || 'state').toLowerCase()}</option>
                         {(getCountryByCode(shippingAddress.country)?.regions || []).map((region) => (
@@ -646,7 +682,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={shippingAddress.postalCode}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value })}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                     </div>
                   </div>
@@ -676,7 +712,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -692,7 +728,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                           setCardExpiry(value);
                         }}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                       <input
                         type="text"
@@ -700,7 +736,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                         value={cardCvc}
                         onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
                         required
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                       />
                     </div>
                   </div>
@@ -741,6 +777,68 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Consent Checkboxes (Compliance) */}
+              {funnel.settings.requireTermsAccept && (
+                <section className="mb-6">
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-[var(--primary-color)] focus:ring-[var(--primary-color)] focus:ring-2"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        I agree to the{' '}
+                        {funnel.settings.urls?.termsUrl ? (
+                          <a
+                            href={funnel.settings.urls.termsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[var(--primary-color)] hover:underline font-medium"
+                          >
+                            Terms of Service
+                          </a>
+                        ) : (
+                          <span className="font-medium">Terms of Service</span>
+                        )}
+                        {funnel.settings.customTermsText && (
+                          <span className="block mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {funnel.settings.customTermsText}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={privacyAccepted}
+                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-[var(--primary-color)] focus:ring-[var(--primary-color)] focus:ring-2"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        I agree to the{' '}
+                        {funnel.settings.urls?.privacyUrl ? (
+                          <a
+                            href={funnel.settings.urls.privacyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[var(--primary-color)] hover:underline font-medium"
+                          >
+                            Privacy Policy
+                          </a>
+                        ) : (
+                          <span className="font-medium">Privacy Policy</span>
+                        )}
+                        <span className="block mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          We collect and store information you provide to process your order and improve our services.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </section>
               )}
 
               {/* Error */}
@@ -880,7 +978,7 @@ export function CheckoutStage({ stage, funnel }: CheckoutStageProps) {
                               setDiscountError(null);
                               setDiscountSuccess(null);
                             }}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
+                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none"
                           />
                           <button
                             type="button"

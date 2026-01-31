@@ -1,9 +1,9 @@
 import { Controller, Get, Query, BadRequestException, Logger, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 import { AddressService } from './address.service';
 
 @Controller('address')
-@UseGuards(JwtAuthGuard)
 export class AddressController {
   private readonly logger = new Logger(AddressController.name);
 
@@ -11,7 +11,7 @@ export class AddressController {
 
   /**
    * GET /api/address/autocomplete
-   * Get address autocomplete predictions
+   * Get address autocomplete predictions (PUBLIC - used in checkout flow)
    *
    * Query params:
    * - input: Search input (required)
@@ -19,6 +19,7 @@ export class AddressController {
    * - companyId: Company ID (required)
    * - countries: Comma-separated country codes to restrict results (optional)
    */
+  @Public()
   @Get('autocomplete')
   async autocomplete(
     @Query('input') input: string,
@@ -53,13 +54,14 @@ export class AddressController {
 
   /**
    * GET /api/address/details
-   * Get full address details for a place ID
+   * Get full address details for a place ID (PUBLIC - used in checkout flow)
    *
    * Query params:
    * - placeId: Google Place ID (required)
    * - sessionToken: Session token for bundling requests (required)
    * - companyId: Company ID (required)
    */
+  @Public()
   @Get('details')
   async getDetails(
     @Query('placeId') placeId: string,
@@ -91,8 +93,9 @@ export class AddressController {
 
   /**
    * GET /api/address/session-token
-   * Generate a new session token for autocomplete requests
+   * Generate a new session token for autocomplete requests (PUBLIC)
    */
+  @Public()
   @Get('session-token')
   generateSessionToken() {
     return {
@@ -102,12 +105,13 @@ export class AddressController {
 
   /**
    * GET /api/address/usage
-   * Get address API usage statistics for a company
+   * Get address API usage statistics for a company (AUTHENTICATED)
    *
    * Query params:
    * - companyId: Company ID (required)
    * - billingPeriod: YYYY-MM format (optional, defaults to current month)
    */
+  @UseGuards(JwtAuthGuard)
   @Get('usage')
   async getUsage(
     @Query('companyId') companyId: string,

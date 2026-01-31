@@ -217,7 +217,7 @@ export function AddressAutocomplete({
   return (
     <div className="relative">
       <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none">
           {isLoading ? (
             <ArrowPathIcon className="h-4 w-4 animate-spin" />
           ) : (
@@ -233,7 +233,7 @@ export function AddressAutocomplete({
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none text-gray-900 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
+          className={`address-autocomplete-input w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed ${className}`}
           autoComplete="off"
           role="combobox"
           aria-expanded={isOpen}
@@ -244,7 +244,7 @@ export function AddressAutocomplete({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
             <XMarkIcon className="h-4 w-4" />
           </button>
@@ -257,7 +257,7 @@ export function AddressAutocomplete({
           ref={dropdownRef}
           id="address-suggestions"
           role="listbox"
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+          className="address-autocomplete-dropdown absolute z-50 w-full mt-1 border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
         >
           {predictions.map((prediction, index) => (
             <button
@@ -275,10 +275,10 @@ export function AddressAutocomplete({
             >
               <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
               <div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="address-result-main text-sm font-medium">
                   {prediction.mainText}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="address-result-secondary text-xs">
                   {prediction.secondaryText}
                 </div>
               </div>
@@ -289,11 +289,11 @@ export function AddressAutocomplete({
 
       {/* Error message */}
       {error && (
-        <p className="mt-1 text-xs text-red-500">{error}</p>
+        <p className="mt-1 text-xs text-red-500 dark:text-red-400">{error}</p>
       )}
 
       {/* Hint text */}
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         Start typing to search, or enter address manually
       </p>
     </div>

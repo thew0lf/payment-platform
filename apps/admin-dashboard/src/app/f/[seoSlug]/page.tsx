@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useFunnelUrlSync } from '@/hooks/use-funnel-url-sync';
 import {
   Loader2,
   Lock,
@@ -463,6 +464,14 @@ export default function PublicFunnelPage() {
   const sortedStages = funnel?.stages?.slice().sort((a, b) => a.order - b.order) || [];
   const currentStage = sortedStages[currentStageIndex];
   const primaryColor = funnel?.settings?.branding?.primaryColor || '#4F46E5';
+
+  // URL sync for browser navigation (back/forward/refresh)
+  useFunnelUrlSync({
+    stages: sortedStages,
+    currentStageIndex,
+    setCurrentStageIndex,
+    isInitialized: !loading && !!funnel && !!session,
+  });
 
   // Advance to next stage
   const advanceStage = () => {

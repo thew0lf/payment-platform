@@ -14,6 +14,8 @@ import { CartSummary } from './cart-summary';
 import { LogoDisplay } from '@/components/brand/LogoDisplay';
 import { FontLoader } from '@/components/brand/FontLoader';
 import { DemoBadge } from '@/components/demo';
+import { useFunnelUrlSync } from '@/hooks/use-funnel-url-sync';
+import { CSWidget } from '@/components/cs';
 
 interface FunnelRendererProps {
   funnel: Funnel;
@@ -33,6 +35,8 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
   const {
     initializeFunnel,
     currentStage,
+    currentStageIndex,
+    goToStage,
     isLoading,
     error,
     progress,
@@ -43,6 +47,15 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
 
   // Get resolved brand kit and CSS variables from context
   const { brandKit, cssVariables } = useBrand();
+
+  // Sync funnel stage with URL for browser navigation support
+  // This enables back/forward buttons and page refresh to maintain state
+  useFunnelUrlSync({
+    funnel: session ? funnel : null, // Only sync after session is initialized
+    currentStageIndex,
+    goToStage,
+    isInitialized: !isLoading && !!session,
+  });
 
   useEffect(() => {
     initializeFunnel(funnel);
@@ -151,21 +164,64 @@ function FunnelContent({ funnel }: FunnelRendererProps) {
 
         {/* Footer */}
         <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              {funnel.settings.urls.termsUrl && (
-                <a href={funnel.settings.urls.termsUrl} className="hover:text-gray-700 dark:hover:text-gray-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {/* Legal Links */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+              {funnel.settings.urls?.termsUrl && (
+                <a
+                  href={funnel.settings.urls.termsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                >
                   Terms of Service
                 </a>
               )}
-              {funnel.settings.urls.privacyUrl && (
-                <a href={funnel.settings.urls.privacyUrl} className="hover:text-gray-700 dark:hover:text-gray-300">
-                  Privacy Policy
-                </a>
+              {funnel.settings.urls?.privacyUrl && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <a
+                    href={funnel.settings.urls.privacyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                </>
               )}
+              {funnel.settings.urls?.refundPolicyUrl && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <a
+                    href={funnel.settings.urls.refundPolicyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    Refund Policy
+                  </a>
+                </>
+              )}
+              {/* Contact Us link - opens CS widget */}
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Contact Us (use widget below)
+              </span>
+            </div>
+            {/* Copyright */}
+            <div className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+              © {new Date().getFullYear()} {funnel.company?.name || 'All rights reserved'}
             </div>
           </div>
         </footer>
+
+        {/* Customer Support Widget */}
+        <CSWidget
+          companyId={funnel.companyId}
+          sessionToken={session?.sessionToken}
+          funnelId={funnel.id}
+        />
       </div>
     </InterventionProvider>
   );

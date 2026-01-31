@@ -235,7 +235,7 @@ export function AddressAutocomplete({
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full pl-10 pr-10 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-foreground bg-white disabled:bg-muted disabled:cursor-not-allowed ${className}`}
+          className={`address-autocomplete-input w-full pl-10 pr-10 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-muted disabled:cursor-not-allowed ${className}`}
           autoComplete="off"
           role="combobox"
           aria-expanded={isOpen}
@@ -259,7 +259,7 @@ export function AddressAutocomplete({
           ref={dropdownRef}
           id="address-suggestions"
           role="listbox"
-          className="absolute z-50 w-full mt-1 bg-white border border-border rounded-lg shadow-lg max-h-60 overflow-auto"
+          className="address-autocomplete-dropdown absolute z-50 w-full mt-1 border border-border rounded-lg shadow-lg max-h-60 overflow-auto"
         >
           {predictions.map((prediction, index) => (
             <button
@@ -275,12 +275,12 @@ export function AddressAutocomplete({
                   : 'hover:bg-muted/50'
               }`}
             >
-              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
               <div>
-                <div className="text-sm font-medium text-foreground">
+                <div className="address-result-main text-sm font-medium">
                   {prediction.mainText}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="address-result-secondary text-xs">
                   {prediction.secondaryText}
                 </div>
               </div>
