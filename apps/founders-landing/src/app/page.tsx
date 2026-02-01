@@ -30,10 +30,10 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <a
-              href="#pricing"
+              href="#signup"
               className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-white rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition-opacity"
             >
-              Become a Founder
+              Start Free
             </a>
             <ThemeToggle />
           </div>

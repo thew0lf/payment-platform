@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { Suspense } from 'react';
+import { SignupForm } from '@/components/signup-form';
 
 const features = [
   { name: 'Full Platform Access', included: true, note: 'All four pillars: Convert, Collect, Care, Grow' },
@@ -31,10 +32,10 @@ export function PricingSection() {
             FOUNDING MEMBER PRICING
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            One Price. Everything Included.
+            Try Free for 30 Days. Then Lock In Your Rate.
           </h2>
           <p className="text-lg text-zinc-400">
-            No hidden fees. No per-seat charges. No surprises.
+            No credit card required. No hidden fees. Cancel anytime.
           </p>
         </div>
 
@@ -42,20 +43,24 @@ export function PricingSection() {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-purple-900/50 to-zinc-900 border border-purple-500/30 p-8 md:p-12">
           {/* Badge */}
           <div className="absolute top-4 right-4">
-            <span className="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">
-              40% OFF FOREVER
+            <span className="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-full">
+              30 DAYS FREE
             </span>
           </div>
 
           {/* Price */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-2">
-              <span className="text-2xl text-zinc-500 line-through">$497/mo</span>
-              <span className="text-5xl md:text-6xl font-bold text-white">$297</span>
-              <span className="text-zinc-400">/month</span>
+            <div className="mb-4">
+              <span className="text-5xl md:text-6xl font-bold text-white">$0</span>
+              <span className="text-zinc-400 text-xl ml-2">for 30 days</span>
             </div>
-            <p className="text-purple-400 font-semibold">
-              Locked in forever while you remain a subscriber
+            <div className="flex items-center justify-center gap-3 text-zinc-400">
+              <span>then</span>
+              <span className="text-2xl text-zinc-500 line-through">$497/mo</span>
+              <span className="text-3xl font-bold text-white">$297/mo</span>
+            </div>
+            <p className="mt-4 text-purple-400 font-semibold">
+              Founders rate locked in forever while you remain a subscriber
             </p>
           </div>
 
@@ -74,17 +79,16 @@ export function PricingSection() {
             ))}
           </div>
 
-          {/* CTA */}
-          <Link
-            href="#signup"
-            className="block w-full py-4 text-center text-lg font-semibold text-white rounded-full cta-gradient shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02] transition-all duration-300"
-          >
-            Claim My Founder Spot
-          </Link>
+          {/* Signup Form */}
+          <div id="signup" className="max-w-md mx-auto">
+            <Suspense fallback={<div className="animate-pulse h-48 bg-zinc-800 rounded-lg" />}>
+              <SignupForm />
+            </Suspense>
+          </div>
 
           {/* Guarantee */}
           <p className="mt-6 text-center text-zinc-400 text-sm">
-            🛡️ 30-day money-back guarantee. No questions asked.
+            🛡️ Start free today. No credit card required. Cancel anytime.
           </p>
         </div>
 

@@ -53,10 +53,10 @@ export function FinalCTASection() {
 
         {/* CTA */}
         <Link
-          href="#pricing"
+          href="#signup"
           className="inline-flex items-center justify-center px-10 py-5 text-xl font-semibold text-white rounded-full cta-gradient shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-300"
         >
-          Claim My Founder Spot Now
+          Start Free for 30 Days
           <svg
             className="ml-3 w-6 h-6"
             fill="none"
@@ -74,7 +74,7 @@ export function FinalCTASection() {
 
         {/* Subtext */}
         <p className="mt-6 text-purple-300">
-          $297/mo (normally $497) • Locked in forever • 30-day guarantee
+          Free for 30 days • Then $297/mo (normally $497) • Locked in forever
         </p>
 
         {/* Final Line */}

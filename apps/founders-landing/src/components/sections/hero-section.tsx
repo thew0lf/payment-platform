@@ -75,10 +75,10 @@ export function HeroSection({ spotsRemaining = 73 }: HeroSectionProps) {
           {/* CTAs */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
             <Link
-              href="#pricing"
+              href="#signup"
               className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white rounded-full cta-gradient shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-300 min-h-[56px]"
             >
-              Claim My Founder Spot — $297/mo
+              Start Free for 30 Days
               <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
