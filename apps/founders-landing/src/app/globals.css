@@ -50,12 +50,58 @@ button:focus {
   ring-color: theme('colors.brand.500');
 }
 
-/* Gradient text */
+/* Gradient text - AVNZ Purple */
 .gradient-text {
-  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #3b82f6 100%);
+}
+
+/* Pillar gradients */
+.pillar-convert { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.pillar-collect { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.pillar-care { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); }
+.pillar-grow { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+
+/* CTA button gradient */
+.cta-gradient {
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
+}
+
+/* Urgency gradient */
+.urgency-gradient {
+  background: linear-gradient(90deg, #dc2626 0%, #ea580c 50%, #f59e0b 100%);
+}
+
+/* Particle animation for hero */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+  50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+}
+
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(168, 85, 247, 0.6);
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.count-up {
+  animation: countUp 0.5s ease-out forwards;
 }
 
 /* Glass effect */
@@ -72,11 +118,11 @@ button:focus {
 
 /* Glow effect */
 .glow {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
 }
 
 .dark .glow {
-  box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
 }
 
 /* Animated gradient border */
@@ -95,7 +141,7 @@ button:focus {
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6, #06b6d4);
+  background: linear-gradient(135deg, #a855f7, #ec4899, #3b82f6, #a855f7);
   background-size: 300% 300%;
   animation: gradient-border 3s ease infinite;
   z-index: -1;

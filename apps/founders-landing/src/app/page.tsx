@@ -1,9 +1,18 @@
-import { Suspense } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { SignupForm } from '@/components/signup-form';
-import { FeatureCards } from '@/components/feature-cards';
-import { BenefitsList } from '@/components/benefits-list';
-import { FounderCounter } from '@/components/founder-counter';
+import {
+  HeroSection,
+  ProblemSection,
+  AgitationSection,
+  GuideSection,
+  PillarsSection,
+  PartnerMomentumSection,
+  CSAISection,
+  TransformationSection,
+  SocialProofSection,
+  PricingSection,
+  FinalCTASection,
+  FAQSection,
+} from '@/components/sections';
 
 export default function HomePage() {
   return (
@@ -12,139 +21,139 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">A</span>
             </div>
             <span className="font-bold text-xl text-zinc-900 dark:text-white">
-              avnz<span className="text-brand-600">.io</span>
+              avnz<span className="text-purple-600">.io</span>
             </span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-4">
+            <a
+              href="#pricing"
+              className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-white rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition-opacity"
+            >
+              Become a Founder
+            </a>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="pt-32 pb-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Copy */}
-            <div className="space-y-6 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-sm text-brand-600 dark:text-brand-400">
-                <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-                <span>Now accepting founders</span>
-              </div>
+      {/* Main Content - StoryBrand + PAS Structure */}
+      <main>
+        {/* 1. HERO - The Hook */}
+        <HeroSection />
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-zinc-900 dark:text-white leading-tight">
-                Let&apos;s Build Something{' '}
-                <span className="gradient-text">Great Together</span>
-              </h1>
+        {/* 2. PROBLEM - Identify the Pain */}
+        <ProblemSection />
 
-              <p className="text-xl text-zinc-600 dark:text-zinc-400">
-                Join{' '}
-                <Suspense fallback={<span className="text-brand-600">...</span>}>
-                  <FounderCounter />
-                </Suspense>{' '}
-                shaping the future of intelligent commerce with{' '}
-                <span className="font-semibold text-zinc-900 dark:text-white">
-                  Momentum Intelligence&trade;
-                </span>
-                <span className="block mt-2 text-sm text-brand-600 dark:text-brand-400">
-                  Limited to 10,000 founding members
-                </span>
-              </p>
+        {/* 3. AGITATION - Emotional Cost Calculator */}
+        <AgitationSection />
 
-              <p className="text-lg text-zinc-500 dark:text-zinc-500 italic">
-                &quot;You build it, we take it to market&quot;
-              </p>
+        {/* 4. GUIDE - Credibility & Empathy */}
+        <GuideSection />
 
-              {/* Mobile signup form */}
-              <div className="lg:hidden">
-                <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl">
-                  <Suspense fallback={<div className="animate-pulse h-48 bg-zinc-100 dark:bg-zinc-800 rounded-lg" />}>
-                    <SignupForm />
-                  </Suspense>
-                </div>
-              </div>
-            </div>
+        {/* 5. THE PLAN - Four Pillars Solution */}
+        <PillarsSection />
 
-            {/* Right: Signup Form (desktop) */}
-            <div className="hidden lg:block animate-slide-up">
-              <div className="p-8 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                    Claim Your Founder Number
-                  </h2>
-                  <p className="text-zinc-600 dark:text-zinc-400">
-                    Only <span className="font-semibold text-brand-600">9,168 spots</span> remaining
-                  </p>
-                </div>
-                <Suspense fallback={<div className="animate-pulse h-48 bg-zinc-100 dark:bg-zinc-800 rounded-lg" />}>
-                  <SignupForm />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* 6. PARTNER MOMENTUM - Coming Soon Teaser */}
+        <PartnerMomentumSection />
 
-        {/* Features Section */}
-        <div className="max-w-6xl mx-auto mt-24">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
-              What We&apos;re Building
-            </h2>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400">
-              A complete platform for modern commerce, powered by AI
-            </p>
-          </div>
-          <FeatureCards />
-        </div>
+        {/* 7. CS AI - Feature Highlight */}
+        <CSAISection />
 
-        {/* Benefits Section */}
-        <div className="max-w-6xl mx-auto mt-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
-                Founder Benefits
-              </h2>
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8">
-                As a founder, you&apos;re not just an early user &mdash; you&apos;re a co-creator
-                shaping the future of avnz.io
-              </p>
-              <BenefitsList />
-            </div>
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-brand-500/10 to-blue-500/10 border border-brand-500/20">
-              <div className="text-center">
-                <div className="text-5xl md:text-6xl font-bold gradient-text font-mono">FND-0832</div>
-                <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-                  Your unique founder identity
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* 8. TRANSFORMATION - Before/After */}
+        <TransformationSection />
+
+        {/* 9. SOCIAL PROOF - Testimonials & Metrics */}
+        <SocialProofSection />
+
+        {/* 10. PRICING - The Offer */}
+        <PricingSection />
+
+        {/* 11. FINAL CTA - Emotional Close */}
+        <FinalCTASection />
+
+        {/* 12. FAQ - Objection Handling */}
+        <FAQSection />
       </main>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-brand-500 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">A</span>
+      <footer className="py-12 px-4 bg-zinc-900 dark:bg-black border-t border-zinc-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            {/* Brand */}
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
+                <span className="font-bold text-xl text-white">
+                  avnz<span className="text-purple-400">.io</span>
+                </span>
+              </div>
+              <p className="text-zinc-400 text-sm max-w-xs">
+                The revenue acceleration platform for DTC brands. Convert more.
+                Collect everything. Care at scale. Grow forever.
+              </p>
             </div>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              &copy; {new Date().getFullYear()} avnz.io. All rights reserved.
-            </span>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-semibold text-white mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                <li>
+                  <a href="#how-it-works" className="hover:text-purple-400 transition-colors">
+                    How It Works
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="hover:text-purple-400 transition-colors">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="hover:text-purple-400 transition-colors">
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                <li>
+                  <a href="/privacy" className="hover:text-purple-400 transition-colors">
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="/terms" className="hover:text-purple-400 transition-colors">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:founders@avnz.io" className="hover:text-purple-400 transition-colors">
+                    Contact Us
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-zinc-600 dark:text-zinc-400">
-            <a href="/privacy" className="hover:text-brand-600 transition-colors">
-              Privacy
-            </a>
-            <a href="/terms" className="hover:text-brand-600 transition-colors">
-              Terms
-            </a>
-            <a href="/contact" className="hover:text-brand-600 transition-colors">
-              Contact
-            </a>
+
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-zinc-500">
+              &copy; {new Date().getFullYear()} avnz.io. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-zinc-600">
+                🔒 SOC2 Type II &bull; PCI-DSS Level 1 &bull; GDPR Compliant
+              </span>
+            </div>
           </div>
         </div>
       </footer>

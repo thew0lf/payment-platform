@@ -1,0 +1,12 @@
+export { HeroSection } from './hero-section';
+export { ProblemSection } from './problem-section';
+export { AgitationSection } from './agitation-section';
+export { GuideSection } from './guide-section';
+export { PillarsSection } from './pillars-section';
+export { PartnerMomentumSection } from './partner-momentum-section';
+export { CSAISection } from './cs-ai-section';
+export { TransformationSection } from './transformation-section';
+export { SocialProofSection } from './social-proof-section';
+export { PricingSection } from './pricing-section';
+export { FinalCTASection } from './final-cta-section';
+export { FAQSection } from './faq-section';
