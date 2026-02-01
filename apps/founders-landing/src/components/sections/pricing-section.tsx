@@ -114,12 +114,12 @@ export function PricingSection() {
         </div>
 
         {/* Urgency */}
-        <div className="mt-12 p-6 rounded-xl bg-red-900/20 border border-red-700/30 text-center">
-          <p className="text-red-400 font-semibold text-lg">
-            ⏳ Only 47 Founding Member spots remaining
+        <div className="mt-12 p-6 rounded-xl bg-purple-900/20 border border-purple-700/30 text-center">
+          <p className="text-purple-400 font-semibold text-lg">
+            ⏳ Limited Founding Member spots available
           </p>
           <p className="text-zinc-400 mt-2">
-            When they&apos;re gone, the price goes to $497/mo. No exceptions.
+            Lock in your founders rate before it&apos;s too late. Price goes to $497/mo after founding period.
           </p>
         </div>
       </div>
