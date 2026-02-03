@@ -244,20 +244,18 @@ jobs:
       - name: Run Migration Task
         id: run-migration
         run: |
-          # Create a migration script with verbose output and error handling
-          MIGRATION_CMD='set -e; echo "Starting migration..."; echo "Working directory: $(pwd)"; echo "Prisma folder contents:"; ls -la prisma/ || echo "No prisma folder found"; echo "NODE_ENV: $NODE_ENV"; echo "Testing database connection..."; npx prisma db execute --stdin <<< "SELECT 1" || echo "DB connection test failed"; echo "Running migrations..."; npx prisma migrate deploy --schema=prisma/schema.prisma 2>&1; echo "Migration completed with exit code: $?"'
-
+          # Run migration with verbose output
           TASK_ARN=$(aws ecs run-task \
             --cluster ${{ env.ECS_CLUSTER }} \
             --task-definition ${{ env.ECS_TASK_DEFINITION }} \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[${{ steps.vpc-config.outputs.subnet }}],securityGroups=[${{ steps.vpc-config.outputs.security_group }}],assignPublicIp=ENABLED}" \
-            --overrides "{
-              \"containerOverrides\": [{
-                \"name\": \"api\",
-                \"command\": [\"sh\", \"-c\", \"$MIGRATION_CMD\"]
+            --overrides '{
+              "containerOverrides": [{
+                "name": "api",
+                "command": ["sh", "-c", "set -ex && echo Starting migration && pwd && ls -la prisma/ && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
               }]
-            }" \
+            }' \
             --query 'tasks[0].taskArn' \
             --output text)
 
