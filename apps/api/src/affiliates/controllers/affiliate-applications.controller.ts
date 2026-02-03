@@ -477,7 +477,12 @@ export class AffiliateApplicationsController {
           tier: dto.tier,
           commissionRate: dto.commissionRate,
         });
-        results.push({ id, success: true, partnerId: result.id });
+        // Check if result is an error response
+        if ('error' in result) {
+          results.push({ id, success: false, error: result.error });
+        } else {
+          results.push({ id, success: true, partnerId: result.id });
+        }
       } catch (error) {
         results.push({
           id,
@@ -509,8 +514,13 @@ export class AffiliateApplicationsController {
 
     for (const id of dto.applicationIds) {
       try {
-        await this.rejectApplication(req, id, { reason: dto.reason });
-        results.push({ id, success: true });
+        const result = await this.rejectApplication(req, id, { reason: dto.reason });
+        // Check if result is an error response
+        if ('error' in result) {
+          results.push({ id, success: false, error: result.error });
+        } else {
+          results.push({ id, success: true });
+        }
       } catch (error) {
         results.push({
           id,
