@@ -43,7 +43,7 @@ export class AffiliateLinksController {
    */
   @Get()
   async listLinks(@Request() req, @Query() query: LinkQueryDto) {
-    this.logger.debug(`Listing links with filters: ${JSON.stringify(query)}`);
+    this.logger.debug(`Listing links with filters: companyId=${query.companyId || 'all'}, partnerId=${query.partnerId || 'all'}, isActive=${query.isActive}`);
 
     const filters: LinkFilters = {
       companyId: query.companyId,

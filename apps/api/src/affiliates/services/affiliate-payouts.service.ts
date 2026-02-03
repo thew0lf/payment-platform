@@ -143,11 +143,11 @@ export class AffiliatePayoutsService {
       'create affiliate payouts',
     );
 
-    // Handle idempotency
+    // Handle idempotency - include key parameters to detect mismatched duplicate requests
     if (dto.idempotencyKey) {
-      const result = await this.idempotencyService.checkAndLock(
-        `affiliate-payout-batch:${dto.idempotencyKey}`,
-      );
+      // Include company, period, and minimum amount in key to ensure uniqueness
+      const idempotencyFullKey = `affiliate-payout-batch:${dto.companyId}:${dto.period.startDate}:${dto.period.endDate}:${dto.minimumAmount || 'default'}:${dto.idempotencyKey}`;
+      const result = await this.idempotencyService.checkAndLock(idempotencyFullKey);
       if (result.isDuplicate) {
         return result.cachedResult;
       }
@@ -185,10 +185,8 @@ export class AffiliatePayoutsService {
     if (eligiblePartners.length === 0) {
       const result = { payouts: [], count: 0, message: 'No eligible partners found' };
       if (dto.idempotencyKey) {
-        await this.idempotencyService.complete(
-          `affiliate-payout-batch:${dto.idempotencyKey}`,
-          result,
-        );
+        const idempotencyFullKey = `affiliate-payout-batch:${dto.companyId}:${dto.period.startDate}:${dto.period.endDate}:${dto.minimumAmount || 'default'}:${dto.idempotencyKey}`;
+        await this.idempotencyService.complete(idempotencyFullKey, result);
       }
       return result;
     }
@@ -320,10 +318,8 @@ export class AffiliatePayoutsService {
     };
 
     if (dto.idempotencyKey) {
-      await this.idempotencyService.complete(
-        `affiliate-payout-batch:${dto.idempotencyKey}`,
-        result,
-      );
+      const idempotencyFullKey = `affiliate-payout-batch:${dto.companyId}:${dto.period.startDate}:${dto.period.endDate}:${dto.minimumAmount || 'default'}:${dto.idempotencyKey}`;
+      await this.idempotencyService.complete(idempotencyFullKey, result);
     }
 
     return result;
@@ -353,11 +349,10 @@ export class AffiliatePayoutsService {
       throw new NotFoundException('Partner not found');
     }
 
-    // Handle idempotency
+    // Handle idempotency - include partnerId and amount to detect mismatched duplicate requests
     if (dto.idempotencyKey) {
-      const result = await this.idempotencyService.checkAndLock(
-        `affiliate-payout:${dto.idempotencyKey}`,
-      );
+      const idempotencyFullKey = `affiliate-payout:${dto.partnerId}:${dto.amount}:${dto.idempotencyKey}`;
+      const result = await this.idempotencyService.checkAndLock(idempotencyFullKey);
       if (result.isDuplicate) {
         return result.cachedResult;
       }
@@ -433,10 +428,8 @@ export class AffiliatePayoutsService {
     );
 
     if (dto.idempotencyKey) {
-      await this.idempotencyService.complete(
-        `affiliate-payout:${dto.idempotencyKey}`,
-        payout,
-      );
+      const idempotencyFullKey = `affiliate-payout:${dto.partnerId}:${dto.amount}:${dto.idempotencyKey}`;
+      await this.idempotencyService.complete(idempotencyFullKey, payout);
     }
 
     return payout;

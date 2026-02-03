@@ -123,6 +123,10 @@ describe('AffiliatePartnershipsController', () => {
       reactivate: jest.fn(),
       softDelete: jest.fn(),
       getStats: jest.fn(),
+      // Bulk transactional methods
+      bulkApprove: jest.fn(),
+      bulkReject: jest.fn(),
+      bulkUpdateTier: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -478,18 +482,14 @@ describe('AffiliatePartnershipsController', () => {
   });
 
   describe('bulkApprove', () => {
-    it('should bulk approve multiple partnerships', async () => {
-      service.approve
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p1',
-          status: 'ACTIVE' as AffiliateStatus,
-        } as any)
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p2',
-          status: 'ACTIVE' as AffiliateStatus,
-        } as any);
+    it('should bulk approve multiple partnerships atomically', async () => {
+      service.bulkApprove.mockResolvedValue({
+        successful: 2,
+        partnerships: [
+          { ...mockPartnership, id: 'p1', status: 'ACTIVE' as AffiliateStatus },
+          { ...mockPartnership, id: 'p2', status: 'ACTIVE' as AffiliateStatus },
+        ],
+      });
 
       const result = await controller.bulkApprove({ user: mockOrgUser }, {
         partnershipIds: ['p1', 'p2'],
@@ -500,41 +500,103 @@ describe('AffiliatePartnershipsController', () => {
       expect(result.total).toBe(2);
       expect(result.successful).toBe(2);
       expect(result.failed).toBe(0);
+      expect(service.bulkApprove).toHaveBeenCalledWith(
+        mockOrgUser,
+        ['p1', 'p2'],
+        { tier: 'SILVER', commissionRate: 15 },
+      );
     });
 
-    it('should handle partial failures in bulk approve', async () => {
-      service.approve
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p1',
-          status: 'ACTIVE' as AffiliateStatus,
-        } as any)
-        .mockRejectedValueOnce(new BadRequestException('Not pending'));
+    it('should handle transaction rollback when one fails (all-or-nothing)', async () => {
+      service.bulkApprove.mockRejectedValue(
+        new BadRequestException('Partnership p2 is not pending approval (status: ACTIVE)'),
+      );
 
       const result = await controller.bulkApprove({ user: mockOrgUser }, {
         partnershipIds: ['p1', 'p2'],
       });
 
       expect(result.total).toBe(2);
-      expect(result.successful).toBe(1);
-      expect(result.failed).toBe(1);
-      expect(result.results[1].error).toBe('Not pending');
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(2);
+      expect(result.results.every(r => !r.success)).toBe(true);
+      expect(result.results[0].error).toContain('Partnership p2 is not pending approval');
+    });
+
+    it('should handle empty partnership IDs array', async () => {
+      service.bulkApprove.mockResolvedValue({
+        successful: 0,
+        partnerships: [],
+      });
+
+      const result = await controller.bulkApprove({ user: mockOrgUser }, {
+        partnershipIds: [],
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(0);
+    });
+
+    it('should fail all when one partnership not found', async () => {
+      service.bulkApprove.mockRejectedValue(
+        new NotFoundException('Partnership non-existent not found'),
+      );
+
+      const result = await controller.bulkApprove({ user: mockOrgUser }, {
+        partnershipIds: ['p1', 'non-existent', 'p3'],
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(3);
+      expect(result.results[0].error).toContain('Partnership non-existent not found');
+    });
+
+    it('should fail all when access denied to one partnership', async () => {
+      service.bulkApprove.mockRejectedValue(
+        new BadRequestException('Access denied to partnership p2'),
+      );
+
+      const result = await controller.bulkApprove({ user: mockCompanyUser }, {
+        partnershipIds: ['p1', 'p2'],
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(2);
+      expect(result.results[0].error).toContain('Access denied');
+    });
+
+    it('should pass tier and commission rate to service', async () => {
+      service.bulkApprove.mockResolvedValue({
+        successful: 1,
+        partnerships: [{ ...mockPartnership, id: 'p1', tier: 'GOLD', commissionRate: 25 }],
+      });
+
+      await controller.bulkApprove({ user: mockOrgUser }, {
+        partnershipIds: ['p1'],
+        tier: 'GOLD' as AffiliateTier,
+        commissionRate: 25,
+      });
+
+      expect(service.bulkApprove).toHaveBeenCalledWith(
+        mockOrgUser,
+        ['p1'],
+        { tier: 'GOLD', commissionRate: 25 },
+      );
     });
   });
 
   describe('bulkReject', () => {
-    it('should bulk reject multiple partnerships', async () => {
-      service.reject
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p1',
-          status: 'REJECTED' as AffiliateStatus,
-        } as any)
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p2',
-          status: 'REJECTED' as AffiliateStatus,
-        } as any);
+    it('should bulk reject multiple partnerships atomically', async () => {
+      service.bulkReject.mockResolvedValue({
+        successful: 2,
+        partnerships: [
+          { ...mockPartnership, id: 'p1', status: 'REJECTED' as AffiliateStatus },
+          { ...mockPartnership, id: 'p2', status: 'REJECTED' as AffiliateStatus },
+        ],
+      });
 
       const result = await controller.bulkReject({ user: mockOrgUser }, {
         partnershipIds: ['p1', 'p2'],
@@ -544,22 +606,68 @@ describe('AffiliatePartnershipsController', () => {
       expect(result.total).toBe(2);
       expect(result.successful).toBe(2);
       expect(result.failed).toBe(0);
+      expect(service.bulkReject).toHaveBeenCalledWith(
+        mockOrgUser,
+        ['p1', 'p2'],
+        'Batch rejection',
+      );
+    });
+
+    it('should handle transaction rollback on rejection failure', async () => {
+      service.bulkReject.mockRejectedValue(
+        new BadRequestException('Partnership p2 is not pending approval'),
+      );
+
+      const result = await controller.bulkReject({ user: mockOrgUser }, {
+        partnershipIds: ['p1', 'p2'],
+        reason: 'Spam applications',
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(2);
+    });
+
+    it('should fail all when partnership not found during reject', async () => {
+      service.bulkReject.mockRejectedValue(
+        new NotFoundException('Partnership invalid-id not found'),
+      );
+
+      const result = await controller.bulkReject({ user: mockOrgUser }, {
+        partnershipIds: ['p1', 'invalid-id'],
+        reason: 'Test',
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(2);
+    });
+
+    it('should handle empty partnership IDs array for reject', async () => {
+      service.bulkReject.mockResolvedValue({
+        successful: 0,
+        partnerships: [],
+      });
+
+      const result = await controller.bulkReject({ user: mockOrgUser }, {
+        partnershipIds: [],
+        reason: 'No one to reject',
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.successful).toBe(0);
     });
   });
 
   describe('bulkUpdateTier', () => {
-    it('should bulk update tier for multiple partnerships', async () => {
-      service.update
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p1',
-          tier: 'GOLD' as AffiliateTier,
-        } as any)
-        .mockResolvedValueOnce({
-          ...mockPartnership,
-          id: 'p2',
-          tier: 'GOLD' as AffiliateTier,
-        } as any);
+    it('should bulk update tier for multiple partnerships atomically', async () => {
+      service.bulkUpdateTier.mockResolvedValue({
+        successful: 2,
+        partnerships: [
+          { ...mockPartnership, id: 'p1', tier: 'GOLD' as AffiliateTier },
+          { ...mockPartnership, id: 'p2', tier: 'GOLD' as AffiliateTier },
+        ],
+      });
 
       const result = await controller.bulkUpdateTier({ user: mockOrgUser }, {
         partnershipIds: ['p1', 'p2'],
@@ -569,6 +677,96 @@ describe('AffiliatePartnershipsController', () => {
       expect(result.total).toBe(2);
       expect(result.successful).toBe(2);
       expect(result.failed).toBe(0);
+      expect(service.bulkUpdateTier).toHaveBeenCalledWith(
+        mockOrgUser,
+        ['p1', 'p2'],
+        'GOLD',
+      );
+    });
+
+    it('should handle transaction rollback on tier update failure', async () => {
+      service.bulkUpdateTier.mockRejectedValue(
+        new NotFoundException('Partnership p3 not found'),
+      );
+
+      const result = await controller.bulkUpdateTier({ user: mockOrgUser }, {
+        partnershipIds: ['p1', 'p2', 'p3'],
+        tier: 'PLATINUM' as AffiliateTier,
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(3);
+    });
+
+    it('should fail all when access denied to any partnership', async () => {
+      service.bulkUpdateTier.mockRejectedValue(
+        new BadRequestException('Access denied to partnership p2'),
+      );
+
+      const result = await controller.bulkUpdateTier({ user: mockCompanyUser }, {
+        partnershipIds: ['p1', 'p2'],
+        tier: 'SILVER' as AffiliateTier,
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toBe(2);
+    });
+
+    it('should handle empty partnership IDs array for tier update', async () => {
+      service.bulkUpdateTier.mockResolvedValue({
+        successful: 0,
+        partnerships: [],
+      });
+
+      const result = await controller.bulkUpdateTier({ user: mockOrgUser }, {
+        partnershipIds: [],
+        tier: 'GOLD' as AffiliateTier,
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.successful).toBe(0);
+    });
+
+    it('should upgrade tier for large batch of partnerships', async () => {
+      const largePartnershipIds = Array.from({ length: 50 }, (_, i) => `p${i}`);
+      service.bulkUpdateTier.mockResolvedValue({
+        successful: 50,
+        partnerships: largePartnershipIds.map(id => ({
+          ...mockPartnership,
+          id,
+          tier: 'GOLD' as AffiliateTier,
+        })),
+      });
+
+      const result = await controller.bulkUpdateTier({ user: mockOrgUser }, {
+        partnershipIds: largePartnershipIds,
+        tier: 'GOLD' as AffiliateTier,
+      });
+
+      expect(result.total).toBe(50);
+      expect(result.successful).toBe(50);
+      expect(result.failed).toBe(0);
+    });
+  });
+
+  describe('Bulk Operations - Audit Trail', () => {
+    it('should properly pass user context for audit logging', async () => {
+      service.bulkApprove.mockResolvedValue({
+        successful: 1,
+        partnerships: [{ ...mockPartnership, id: 'p1', status: 'ACTIVE' }],
+      });
+
+      await controller.bulkApprove({ user: mockClientUser }, {
+        partnershipIds: ['p1'],
+      });
+
+      expect(service.bulkApprove).toHaveBeenCalledWith(
+        mockClientUser,
+        ['p1'],
+        expect.any(Object),
+      );
     });
   });
 

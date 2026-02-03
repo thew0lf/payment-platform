@@ -16,6 +16,9 @@ describe('AffiliatePublicController', () => {
     affiliateLink: {
       findFirst: jest.Mock;
     };
+    affiliateProgramConfig: {
+      findUnique: jest.Mock;
+    };
   };
   let mockClickQueueService: {
     ingestClick: jest.Mock;
@@ -74,6 +77,9 @@ describe('AffiliatePublicController', () => {
       affiliateLink: {
         findFirst: jest.fn(),
       },
+      affiliateProgramConfig: {
+        findUnique: jest.fn().mockResolvedValue(null), // Default: no company-level fallback
+      },
     };
 
     mockClickQueueService = {
@@ -82,13 +88,15 @@ describe('AffiliatePublicController', () => {
         isDuplicate: false,
         idempotencyKey: 'clk_abc123xyz456',
       }),
-      getStats: jest.fn().mockReturnValue({
+      getStats: jest.fn().mockResolvedValue({
         queueSize: 10,
         processedCount: 1000,
         duplicateCount: 50,
         fraudCount: 5,
         errorCount: 2,
         avgProcessingTimeMs: 15,
+        pendingInDb: 10,
+        failedInDb: 2,
       }),
     };
 

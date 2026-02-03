@@ -29,6 +29,214 @@ _None currently_
 
 ## Migrated (Ready for Deployment)
 
+### 20260203100000_add_affiliate_fallback_url
+- **Status:** `MIGRATED`
+- **Date Added:** February 3, 2026
+- **Date Migrated:** February 3, 2026
+- **Description:** Add configurable fallback URL to affiliate program configuration
+- **Changes:**
+  - New column on `affiliate_program_configs`:
+    - `defaultFallbackUrl` (String, nullable) - Company-level redirect URL when affiliate link is invalid/expired
+- **Migration File:** `prisma/migrations/20260203100000_add_affiliate_fallback_url/migration.sql`
+- **Risk Level:** Low (additive - new nullable column)
+- **Rollback:**
+  ```sql
+  ALTER TABLE "affiliate_program_configs" DROP COLUMN "defaultFallbackUrl";
+  ```
+
+### 20260203000000_add_affiliate_click_queue
+- **Status:** `MIGRATED`
+- **Date Added:** February 3, 2026
+- **Date Migrated:** February 3, 2026
+- **Description:** PostgreSQL-backed click queue for durable high-throughput affiliate click ingestion
+- **Changes:**
+  - New enum:
+    - `ClickQueueStatus` (PENDING, PROCESSING, COMPLETED, FAILED, DUPLICATE)
+  - New table:
+    - `affiliate_click_queue` - Durable queue for click ingestion before batch processing
+      - Stores raw click data with enrichment fields
+      - Processing state tracking (status, retryCount, errorMessage)
+      - Indexes optimized for batch processing queries
+- **Migration File:** `prisma/migrations/20260203000000_add_affiliate_click_queue/migration.sql`
+- **Risk Level:** Low (additive - new table and enum)
+- **Performance Notes:**
+  - Queue inserts are single-table operations (no FK constraints)
+  - Background processor moves completed clicks to `affiliate_clicks`
+  - Designed for 10k+ clicks/second throughput
+- **Rollback:**
+  ```sql
+  DROP INDEX "affiliate_click_queue_queuedAt_idx";
+  DROP INDEX "affiliate_click_queue_companyId_queuedAt_idx";
+  DROP INDEX "affiliate_click_queue_status_queuedAt_idx";
+  DROP TABLE "affiliate_click_queue";
+  DROP TYPE "ClickQueueStatus";
+  ```
+
+---
+
+## Migrated (Ready for Deployment)
+
+### 20260131160000_phase4_lead_variant_discount_tracking
+- **Status:** `MIGRATED`
+- **Date Added:** January 31, 2026
+- **Date Migrated:** January 31, 2026
+- **Description:** Phase 4 feature enhancements for lead analytics - A/B variant tracking, discount code performance
+- **Tasks Addressed:**
+  - Task #26: Field interaction duration tracking (uses existing checkoutBehavior JSON)
+  - Task #28: Track A/B variant on Lead record
+  - Task #29: Discount code performance tracking
+  - Task #30: Transfer billing address to Lead record (uses existing capturedFields JSON)
+  - Task #31: Form validation error tracking (uses existing checkoutBehavior JSON)
+- **Changes:**
+  - New column on `leads` table:
+    - `variantId` (String, nullable) - A/B test variant ID for conversion analytics
+  - New columns on `funnel_sessions` table:
+    - `discountCode` (String, nullable) - Applied discount code
+    - `discountAmount` (Decimal(10,2), nullable) - Discount amount applied
+  - New indexes:
+    - `leads_variantId_idx` on `leads.variantId`
+    - `funnel_sessions_discountCode_idx` on `funnel_sessions.discountCode`
+- **Migration File:** `prisma/migrations/20260131160000_phase4_lead_variant_discount_tracking/migration.sql`
+- **Risk Level:** Low (additive changes only - new nullable columns and indexes)
+- **Rollback:**
+  ```sql
+  DROP INDEX "leads_variantId_idx";
+  ALTER TABLE "leads" DROP COLUMN "variantId";
+  DROP INDEX "funnel_sessions_discountCode_idx";
+  ALTER TABLE "funnel_sessions" DROP COLUMN "discountAmount";
+  ALTER TABLE "funnel_sessions" DROP COLUMN "discountCode";
+  ```
+- **Production Notes:**
+  - All changes are additive (ALTER TABLE ADD COLUMN, CREATE INDEX)
+  - No existing data will be affected
+  - New columns are nullable, so no backfill required
+  - Index creation is non-blocking in PostgreSQL
+  - Estimated execution time: < 5 seconds
+  - 10 lines of SQL
+
+---
+
+### 20260131200000_add_affiliate_program
+- **Status:** `MIGRATED`
+- **Date Added:** January 31, 2026
+- **Date Migrated:** January 31, 2026
+- **Description:** Core Affiliate Program database models and services
+- **Changes:**
+  - New enums:
+    - `PartnershipType` (AFFILIATE, AMBASSADOR, INFLUENCER, RESELLER, REFERRAL)
+    - `AffiliateStatus` (PENDING_APPROVAL, ACTIVE, SUSPENDED, INACTIVE, REJECTED, TERMINATED)
+    - `AffiliateTier` (BRONZE, SILVER, GOLD, PLATINUM, DIAMOND)
+    - `AffiliatePayoutStatus` (PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED, ON_HOLD)
+    - `AffiliatePayoutMethod` (PAYPAL, BANK_TRANSFER, CHECK, CRYPTO, STORE_CREDIT)
+    - `ClickStatus` (VALID, DUPLICATE, SUSPICIOUS, FRAUD, BOT)
+    - `ConversionStatus` (PENDING, APPROVED, REJECTED, REVERSED, DISPUTED)
+  - New tables:
+    - `affiliate_partners` - Partner accounts with profile, commission config, metrics
+    - `affiliate_links` - Trackable referral links with SubID support
+    - `affiliate_clicks` - Click tracking with fraud detection and geo data
+    - `affiliate_conversions` - Conversion/sale events with attribution
+    - `affiliate_payouts` - Payout records with invoicing
+    - `affiliate_creatives` - Marketing materials for affiliates
+    - `affiliate_program_configs` - Company-level program configuration
+    - `affiliate_applications` - Pending partner applications
+  - New relations:
+    - Company -> AffiliatePartner, AffiliateLink, AffiliateClick, AffiliateConversion, AffiliatePayout, AffiliateCreative, AffiliateProgramConfig, AffiliateApplication
+    - Customer -> AffiliateConversion (for customer attribution)
+    - Order -> AffiliateConversion (for order tracking)
+  - 45+ indexes for query optimization
+- **Migration File:** `prisma/migrations/20260131200000_add_affiliate_program/migration.sql`
+- **Risk Level:** Low (additive changes only - new enums and tables)
+- **Rollback:**
+  ```sql
+  DROP TABLE "affiliate_applications";
+  DROP TABLE "affiliate_program_configs";
+  DROP TABLE "affiliate_creatives";
+  DROP TABLE "affiliate_payouts";
+  DROP TABLE "affiliate_conversions";
+  DROP TABLE "affiliate_clicks";
+  DROP TABLE "affiliate_links";
+  DROP TABLE "affiliate_partners";
+  DROP TYPE "ConversionStatus";
+  DROP TYPE "ClickStatus";
+  DROP TYPE "AffiliatePayoutMethod";
+  DROP TYPE "AffiliatePayoutStatus";
+  DROP TYPE "AffiliateTier";
+  DROP TYPE "AffiliateStatus";
+  DROP TYPE "PartnershipType";
+  ```
+- **Production Notes:**
+  - All changes are additive (CREATE TYPE, CREATE TABLE)
+  - No existing data will be affected
+  - Estimated execution time: < 5 seconds
+  - 380 lines of SQL
+  - Comprehensive indexes for partner, link, click, conversion queries
+
+---
+
+### 20260131135216_add_funnel_session_performance_indexes
+- **Status:** `MIGRATED`
+- **Date Added:** January 31, 2026
+- **Date Migrated:** January 31, 2026
+- **Description:** Add performance indexes to FunnelSession table for query optimization (Tasks #12-16)
+- **Changes:**
+  - New composite index on `funnel_sessions` table:
+    - `funnel_sessions_funnelId_status_lastActivityAt_idx` on `(funnelId, status, lastActivityAt)`
+    - Purpose: Optimize queries filtering by funnel + status + activity time
+  - New single-column indexes on `funnel_sessions` table:
+    - `funnel_sessions_termsAcceptedAt_idx` on `termsAcceptedAt`
+    - `funnel_sessions_privacyAcceptedAt_idx` on `privacyAcceptedAt`
+    - `funnel_sessions_lastActivityAt_idx` on `lastActivityAt`
+    - Purpose: Optimize compliance reporting and session activity queries
+- **Migration File:** `prisma/migrations/20260131135216_add_funnel_session_performance_indexes/migration.sql`
+- **Risk Level:** Low (additive indexes only, no table modifications)
+- **Rollback:**
+  ```sql
+  DROP INDEX "funnel_sessions_funnelId_status_lastActivityAt_idx";
+  DROP INDEX "funnel_sessions_termsAcceptedAt_idx";
+  DROP INDEX "funnel_sessions_privacyAcceptedAt_idx";
+  DROP INDEX "funnel_sessions_lastActivityAt_idx";
+  ```
+- **Production Notes:**
+  - All changes are additive (CREATE INDEX)
+  - Index creation is non-blocking in PostgreSQL
+  - Estimated execution time: < 5 seconds (depends on table size)
+  - Note: FunnelSession model does not have a `deletedAt` field (uses `abandonedAt` for session state tracking instead)
+
+---
+
+### 20260131134047_add_funnel_cs_session_link
+- **Status:** `MIGRATED`
+- **Date Added:** January 31, 2026
+- **Date Migrated:** January 31, 2026
+- **Description:** Add consent tracking and CS session link to FunnelSession
+- **Changes:**
+  - New columns on `funnel_sessions` table:
+    - `termsAcceptedAt` (DateTime, nullable) - Timestamp when user accepted terms
+    - `privacyAcceptedAt` (DateTime, nullable) - Timestamp when user accepted privacy policy
+    - `csSessionId` (String, nullable FK to `cs_sessions`) - Link to customer service session
+  - New index:
+    - `funnel_sessions_csSessionId_idx` on `csSessionId`
+  - New foreign key:
+    - `funnel_sessions.csSessionId` → `cs_sessions.id` ON DELETE SET NULL
+- **Migration File:** `prisma/migrations/20260131134047_add_funnel_cs_session_link/migration.sql`
+- **Risk Level:** Low (additive changes only)
+- **Rollback:**
+  ```sql
+  ALTER TABLE "funnel_sessions" DROP CONSTRAINT "funnel_sessions_csSessionId_fkey";
+  DROP INDEX "funnel_sessions_csSessionId_idx";
+  ALTER TABLE "funnel_sessions" DROP COLUMN "csSessionId";
+  ALTER TABLE "funnel_sessions" DROP COLUMN "privacyAcceptedAt";
+  ALTER TABLE "funnel_sessions" DROP COLUMN "termsAcceptedAt";
+  ```
+- **Production Notes:**
+  - All changes are additive
+  - No existing data will be affected
+  - New columns are nullable, so no backfill required
+  - Enables compliance tracking for GDPR/CNIL consent
+  - Allows linking funnel sessions to CS support interactions
+
+---
+
 ### 20260102215624_add_landing_page_cart_integration
 - **Status:** `MIGRATED`
 - **Date Added:** January 2, 2026
@@ -251,4 +459,4 @@ If local database has changes not in migrations:
 
 ---
 
-*Last Updated: December 28, 2025*
+*Last Updated: January 31, 2026*

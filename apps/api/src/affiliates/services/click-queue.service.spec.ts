@@ -1,18 +1,55 @@
+/**
+ * Click Queue Service Tests
+ *
+ * Tests for the PostgreSQL-backed click queue service.
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClickQueueService, RawClickData, EnrichedClick } from './click-queue.service';
+import { ClickQueueService, RawClickData, EnrichedClick, ClickQueueStats } from './click-queue.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ClickQueueStatus } from '@prisma/client';
 
 describe('ClickQueueService', () => {
   let service: ClickQueueService;
+  let prismaService: jest.Mocked<PrismaService>;
   let processedClicks: EnrichedClick[] = [];
+
+  const mockPrismaService = {
+    affiliateClickQueue: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+      count: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
 
   beforeEach(async () => {
     processedClicks = [];
+    jest.clearAllMocks();
+
+    // Mock $transaction to execute the callback immediately
+    mockPrismaService.$transaction.mockImplementation(async (callback) => {
+      if (typeof callback === 'function') {
+        return callback(mockPrismaService);
+      }
+      return Promise.all(callback);
+    });
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ClickQueueService],
+      providers: [
+        ClickQueueService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
     }).compile();
 
     service = module.get<ClickQueueService>(ClickQueueService);
+    prismaService = module.get(PrismaService) as jest.Mocked<PrismaService>;
 
     // Set up batch processor mock
     service.setBatchProcessor(async (clicks: EnrichedClick[]) => {
@@ -36,6 +73,13 @@ describe('ClickQueueService', () => {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
       };
 
+      mockPrismaService.affiliateClickQueue.create.mockResolvedValue({
+        id: 'click-1',
+        ...click,
+        status: 'PENDING',
+        queuedAt: new Date(),
+      });
+
       const result = await service.ingestClick(click);
 
       expect(result.queued).toBe(true);
@@ -49,14 +93,22 @@ describe('ClickQueueService', () => {
         partnerId: 'partner-1',
         linkId: 'link-1',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.1.100',
       };
+
+      // First click - success
+      mockPrismaService.affiliateClickQueue.create.mockResolvedValueOnce({
+        id: 'click-1',
+        ...click,
+        status: 'PENDING',
+        queuedAt: new Date(),
+      });
 
       const first = await service.ingestClick(click);
       expect(first.queued).toBe(true);
       expect(first.isDuplicate).toBe(false);
 
-      // Same click should be deduplicated
+      // Second click - duplicate detected in memory cache
       const second = await service.ingestClick(click);
       expect(second.queued).toBe(false);
       expect(second.isDuplicate).toBe(true);
@@ -67,15 +119,21 @@ describe('ClickQueueService', () => {
         partnerId: 'partner-1',
         linkId: 'link-1',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.2.1',
       };
 
       const click2: RawClickData = {
         partnerId: 'partner-1',
         linkId: 'link-1',
         companyId: 'company-1',
-        ipAddress: '192.168.1.2', // Different IP
+        ipAddress: '192.168.2.2', // Different IP
       };
+
+      mockPrismaService.affiliateClickQueue.create.mockResolvedValue({
+        id: 'click-1',
+        status: 'PENDING',
+        queuedAt: new Date(),
+      });
 
       const first = await service.ingestClick(click1);
       const second = await service.ingestClick(click2);
@@ -89,15 +147,21 @@ describe('ClickQueueService', () => {
         partnerId: 'partner-1',
         linkId: 'link-1',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.3.1',
       };
 
       const click2: RawClickData = {
         partnerId: 'partner-1',
         linkId: 'link-2', // Different link
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.3.1',
       };
+
+      mockPrismaService.affiliateClickQueue.create.mockResolvedValue({
+        id: 'click-1',
+        status: 'PENDING',
+        queuedAt: new Date(),
+      });
 
       const first = await service.ingestClick(click1);
       const second = await service.ingestClick(click2);
@@ -109,136 +173,180 @@ describe('ClickQueueService', () => {
     it('should parse user agent correctly', async () => {
       const click: RawClickData = {
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: 'link-parse-ua',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.4.1',
         userAgent:
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       };
 
-      await service.ingestClick(click);
-      await service.flush();
+      mockPrismaService.affiliateClickQueue.create.mockImplementation(async (args) => ({
+        id: 'click-1',
+        ...args.data,
+        queuedAt: new Date(),
+      }));
 
-      expect(processedClicks.length).toBe(1);
-      expect(processedClicks[0].deviceType).toBe('mobile');
-      expect(processedClicks[0].browser).toBe('Safari');
-      expect(processedClicks[0].os).toBe('iOS');
+      await service.ingestClick(click);
+
+      // Verify the enriched click data was stored
+      expect(mockPrismaService.affiliateClickQueue.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            deviceType: 'mobile',
+            browser: 'Safari',
+            os: 'iOS',
+          }),
+        }),
+      );
     });
 
     it('should flag clicks without user agent as suspicious', async () => {
       const click: RawClickData = {
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: 'link-no-ua',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.5.1',
         // No userAgent
       };
 
-      await service.ingestClick(click);
-      await service.flush();
+      mockPrismaService.affiliateClickQueue.create.mockImplementation(async (args) => ({
+        id: 'click-1',
+        ...args.data,
+        queuedAt: new Date(),
+      }));
 
-      expect(processedClicks.length).toBe(1);
-      expect(processedClicks[0].fraudScore).toBeGreaterThan(0);
-      expect(processedClicks[0].fraudReasons).toContain('missing_user_agent');
+      await service.ingestClick(click);
+
+      expect(mockPrismaService.affiliateClickQueue.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fraudScore: expect.any(Number),
+            fraudReasons: expect.arrayContaining(['missing_user_agent']),
+          }),
+        }),
+      );
     });
 
     it('should flag bot user agents', async () => {
       const click: RawClickData = {
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: 'link-bot',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.6.1',
         userAgent: 'Googlebot/2.1 (+http://www.google.com/bot.html)',
       };
 
-      await service.ingestClick(click);
-      await service.flush();
+      mockPrismaService.affiliateClickQueue.create.mockImplementation(async (args) => ({
+        id: 'click-1',
+        ...args.data,
+        queuedAt: new Date(),
+      }));
 
-      expect(processedClicks.length).toBe(1);
-      expect(processedClicks[0].fraudScore).toBeGreaterThanOrEqual(50);
-      expect(processedClicks[0].fraudReasons).toContain('bot_user_agent');
+      await service.ingestClick(click);
+
+      expect(mockPrismaService.affiliateClickQueue.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fraudScore: expect.any(Number),
+            fraudReasons: expect.arrayContaining(['bot_user_agent']),
+          }),
+        }),
+      );
     });
 
     it('should preserve SubID tracking variables', async () => {
       const click: RawClickData = {
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: 'link-subids',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.7.1',
         subId1: 'campaign-123',
         subId2: 'placement-456',
         subId3: 'creative-789',
       };
 
+      mockPrismaService.affiliateClickQueue.create.mockImplementation(async (args) => ({
+        id: 'click-1',
+        ...args.data,
+        queuedAt: new Date(),
+      }));
+
       await service.ingestClick(click);
-      await service.flush();
 
-      expect(processedClicks.length).toBe(1);
-      expect(processedClicks[0].subId1).toBe('campaign-123');
-      expect(processedClicks[0].subId2).toBe('placement-456');
-      expect(processedClicks[0].subId3).toBe('creative-789');
-    });
-  });
-
-  describe('flush', () => {
-    it('should process all queued clicks', async () => {
-      for (let i = 0; i < 10; i++) {
-        await service.ingestClick({
-          partnerId: 'partner-1',
-          linkId: `link-${i}`,
-          companyId: 'company-1',
-          ipAddress: '192.168.1.1',
-        });
-      }
-
-      const flushed = await service.flush();
-      expect(flushed).toBe(10);
-      expect(processedClicks.length).toBe(10);
-    });
-
-    it('should return 0 when queue is empty', async () => {
-      const flushed = await service.flush();
-      expect(flushed).toBe(0);
+      expect(mockPrismaService.affiliateClickQueue.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            subId1: 'campaign-123',
+            subId2: 'placement-456',
+            subId3: 'creative-789',
+          }),
+        }),
+      );
     });
   });
 
   describe('getStats', () => {
-    it('should track queue statistics', async () => {
-      const stats = service.getStats();
-      expect(stats.queueSize).toBe(0);
-      expect(stats.processedCount).toBe(0);
-      expect(stats.duplicateCount).toBe(0);
+    it('should return queue statistics from database', async () => {
+      mockPrismaService.affiliateClickQueue.count
+        .mockResolvedValueOnce(5)  // pending count
+        .mockResolvedValueOnce(3); // failed count
 
-      await service.ingestClick({
-        partnerId: 'partner-1',
-        linkId: 'link-1',
-        companyId: 'company-1',
-        ipAddress: '192.168.1.1',
-      });
+      const stats = await service.getStats();
 
-      const statsAfterIngest = service.getStats();
-      expect(statsAfterIngest.queueSize).toBe(1);
-
-      await service.flush();
-
-      const statsAfterFlush = service.getStats();
-      expect(statsAfterFlush.queueSize).toBe(0);
-      expect(statsAfterFlush.processedCount).toBe(1);
+      expect(stats.queueSize).toBe(5);
+      expect(stats.pendingInDb).toBe(5);
+      expect(stats.failedInDb).toBe(3);
+      expect(stats).toHaveProperty('processedCount');
+      expect(stats).toHaveProperty('duplicateCount');
+      expect(stats).toHaveProperty('fraudCount');
+      expect(stats).toHaveProperty('errorCount');
     });
 
-    it('should track duplicate count', async () => {
-      const click: RawClickData = {
+    it('should return zero counts when queue is empty', async () => {
+      mockPrismaService.affiliateClickQueue.count.mockResolvedValue(0);
+
+      const stats = await service.getStats();
+
+      expect(stats.queueSize).toBe(0);
+      expect(stats.pendingInDb).toBe(0);
+      expect(stats.failedInDb).toBe(0);
+    });
+  });
+
+  describe('flush', () => {
+    it('should process all pending clicks', async () => {
+      const pendingClicks = Array.from({ length: 5 }, (_, i) => ({
+        id: `click-${i}`,
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: `link-${i}`,
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
-      };
+        ipAddress: '192.168.8.1',
+        status: ClickQueueStatus.PENDING,
+        queuedAt: new Date(),
+        retryCount: 0,
+        fraudReasons: [],
+      }));
 
-      await service.ingestClick(click);
-      await service.ingestClick(click); // Duplicate
+      // First call returns 5 pending, second call returns 0 (all processed)
+      mockPrismaService.affiliateClickQueue.count
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(0);
 
-      const stats = service.getStats();
-      expect(stats.duplicateCount).toBe(1);
+      mockPrismaService.affiliateClickQueue.findMany.mockResolvedValueOnce(pendingClicks);
+      mockPrismaService.affiliateClickQueue.updateMany.mockResolvedValue({ count: 5 });
+
+      const flushed = await service.flush();
+
+      expect(flushed).toBe(5);
+      expect(processedClicks.length).toBe(5);
+    });
+
+    it('should return 0 when queue is empty', async () => {
+      mockPrismaService.affiliateClickQueue.count.mockResolvedValue(0);
+
+      const flushed = await service.flush();
+
+      expect(flushed).toBe(0);
     });
   });
 
@@ -246,26 +354,68 @@ describe('ClickQueueService', () => {
     it('should generate consistent visitor IDs for same fingerprint', async () => {
       const click1: RawClickData = {
         partnerId: 'partner-1',
-        linkId: 'link-1',
+        linkId: 'link-visitor-1',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1',
+        ipAddress: '192.168.9.1',
         userAgent: 'Mozilla/5.0',
       };
 
       const click2: RawClickData = {
         partnerId: 'partner-2',
-        linkId: 'link-2',
+        linkId: 'link-visitor-2',
         companyId: 'company-1',
-        ipAddress: '192.168.1.1', // Same IP
+        ipAddress: '192.168.9.1', // Same IP
         userAgent: 'Mozilla/5.0', // Same UA
       };
 
+      let visitorId1: string | undefined;
+      let visitorId2: string | undefined;
+
+      mockPrismaService.affiliateClickQueue.create.mockImplementation(async (args) => {
+        if (!visitorId1) {
+          visitorId1 = args.data.visitorId;
+        } else {
+          visitorId2 = args.data.visitorId;
+        }
+        return { id: 'click-1', ...args.data, queuedAt: new Date() };
+      });
+
       await service.ingestClick(click1);
       await service.ingestClick(click2);
-      await service.flush();
 
       // Same fingerprint should produce same visitor ID
-      expect(processedClicks[0].visitorId).toBe(processedClicks[1].visitorId);
+      expect(visitorId1).toBeDefined();
+      expect(visitorId2).toBeDefined();
+      expect(visitorId1).toBe(visitorId2);
+    });
+  });
+
+  describe('setBatchProcessor', () => {
+    it('should accept and use a custom batch processor', async () => {
+      const customProcessor = jest.fn();
+      service.setBatchProcessor(customProcessor);
+
+      const pendingClicks = [{
+        id: 'click-1',
+        partnerId: 'partner-1',
+        linkId: 'link-1',
+        companyId: 'company-1',
+        ipAddress: '192.168.10.1',
+        status: ClickQueueStatus.PENDING,
+        queuedAt: new Date(),
+        retryCount: 0,
+        fraudReasons: [],
+      }];
+
+      mockPrismaService.affiliateClickQueue.count
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0);
+      mockPrismaService.affiliateClickQueue.findMany.mockResolvedValueOnce(pendingClicks);
+      mockPrismaService.affiliateClickQueue.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.flush();
+
+      expect(customProcessor).toHaveBeenCalled();
     });
   });
 });

@@ -231,8 +231,10 @@ export class AffiliatePartnershipsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   /**
-   * Bulk approve partnerships
+   * Bulk approve partnerships (atomic transaction)
    * POST /api/affiliates/partnerships/bulk/approve
+   *
+   * All approvals succeed or all fail - no partial updates.
    */
   @Post('bulk/approve')
   @HttpCode(HttpStatus.OK)
@@ -241,35 +243,41 @@ export class AffiliatePartnershipsController {
     @Body() dto: BulkApprovePartnershipsDto,
   ): Promise<BulkActionResult> {
     const user: UserContext = req.user;
-    const results: BulkActionResult['results'] = [];
 
-    for (const id of dto.partnershipIds) {
-      try {
-        await this.partnershipsService.approve(user, id, {
-          tier: dto.tier,
-          commissionRate: dto.commissionRate,
-        });
-        results.push({ id, success: true });
-      } catch (error) {
-        results.push({
+    try {
+      const result = await this.partnershipsService.bulkApprove(
+        user,
+        dto.partnershipIds,
+        { tier: dto.tier, commissionRate: dto.commissionRate },
+      );
+
+      return {
+        total: dto.partnershipIds.length,
+        successful: result.successful,
+        failed: 0,
+        results: dto.partnershipIds.map((id) => ({ id, success: true })),
+      };
+    } catch (error) {
+      // Transaction failed - all operations rolled back
+      this.logger.error(`Bulk approve failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        total: dto.partnershipIds.length,
+        successful: 0,
+        failed: dto.partnershipIds.length,
+        results: dto.partnershipIds.map((id) => ({
           id,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
+          error: error instanceof Error ? error.message : 'Transaction failed',
+        })),
+      };
     }
-
-    return {
-      total: dto.partnershipIds.length,
-      successful: results.filter((r) => r.success).length,
-      failed: results.filter((r) => !r.success).length,
-      results,
-    };
   }
 
   /**
-   * Bulk reject partnerships
+   * Bulk reject partnerships (atomic transaction)
    * POST /api/affiliates/partnerships/bulk/reject
+   *
+   * All rejections succeed or all fail - no partial updates.
    */
   @Post('bulk/reject')
   @HttpCode(HttpStatus.OK)
@@ -278,32 +286,40 @@ export class AffiliatePartnershipsController {
     @Body() dto: BulkRejectPartnershipsDto,
   ): Promise<BulkActionResult> {
     const user: UserContext = req.user;
-    const results: BulkActionResult['results'] = [];
 
-    for (const id of dto.partnershipIds) {
-      try {
-        await this.partnershipsService.reject(user, id, { reason: dto.reason });
-        results.push({ id, success: true });
-      } catch (error) {
-        results.push({
+    try {
+      const result = await this.partnershipsService.bulkReject(
+        user,
+        dto.partnershipIds,
+        dto.reason,
+      );
+
+      return {
+        total: dto.partnershipIds.length,
+        successful: result.successful,
+        failed: 0,
+        results: dto.partnershipIds.map((id) => ({ id, success: true })),
+      };
+    } catch (error) {
+      this.logger.error(`Bulk reject failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        total: dto.partnershipIds.length,
+        successful: 0,
+        failed: dto.partnershipIds.length,
+        results: dto.partnershipIds.map((id) => ({
           id,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
+          error: error instanceof Error ? error.message : 'Transaction failed',
+        })),
+      };
     }
-
-    return {
-      total: dto.partnershipIds.length,
-      successful: results.filter((r) => r.success).length,
-      failed: results.filter((r) => !r.success).length,
-      results,
-    };
   }
 
   /**
-   * Bulk update tier
+   * Bulk update tier (atomic transaction)
    * POST /api/affiliates/partnerships/bulk/update-tier
+   *
+   * All updates succeed or all fail - no partial updates.
    */
   @Post('bulk/update-tier')
   @HttpCode(HttpStatus.OK)
@@ -312,26 +328,32 @@ export class AffiliatePartnershipsController {
     @Body() dto: BulkUpdateTierDto,
   ): Promise<BulkActionResult> {
     const user: UserContext = req.user;
-    const results: BulkActionResult['results'] = [];
 
-    for (const id of dto.partnershipIds) {
-      try {
-        await this.partnershipsService.update(user, id, { tier: dto.tier });
-        results.push({ id, success: true });
-      } catch (error) {
-        results.push({
+    try {
+      const result = await this.partnershipsService.bulkUpdateTier(
+        user,
+        dto.partnershipIds,
+        dto.tier,
+      );
+
+      return {
+        total: dto.partnershipIds.length,
+        successful: result.successful,
+        failed: 0,
+        results: dto.partnershipIds.map((id) => ({ id, success: true })),
+      };
+    } catch (error) {
+      this.logger.error(`Bulk update tier failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        total: dto.partnershipIds.length,
+        successful: 0,
+        failed: dto.partnershipIds.length,
+        results: dto.partnershipIds.map((id) => ({
           id,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
+          error: error instanceof Error ? error.message : 'Transaction failed',
+        })),
+      };
     }
-
-    return {
-      total: dto.partnershipIds.length,
-      successful: results.filter((r) => r.success).length,
-      failed: results.filter((r) => !r.success).length,
-      results,
-    };
   }
 }

@@ -456,7 +456,7 @@ export class AffiliatePostbackController {
     // Check IP whitelist if configured
     const ipCheckResult = await this.checkIpWhitelist(click.companyId, click.partnerId, realIp);
     if (!ipCheckResult.allowed) {
-      this.logger.warn(`S2S postback from non-whitelisted IP: ${realIp}`);
+      this.logger.warn(`S2S postback from non-whitelisted IP: ${this.hashIp(realIp)}`);
       await this.logPostbackAttempt(dto.clickId, realIp, 'S2S', 'IP_NOT_WHITELISTED');
       return this.sendPostbackResponse(res, PostbackResponseStatus.IP_NOT_ALLOWED, 401);
     }
@@ -890,7 +890,7 @@ export class AffiliatePostbackController {
   ) {
     const realIp = this.extractRealIp(ipAddress, forwardedFor);
 
-    this.logger.log(`Test postback: click_id=${clickId}, ip=${realIp}`);
+    this.logger.log(`Test postback: click_id=${clickId}, ip_hash=${this.hashIp(realIp)}`);
 
     const testResult: {
       clickFound: boolean;
@@ -1500,5 +1500,12 @@ export class AffiliatePostbackController {
     } catch (error) {
       this.logger.error(`Failed to log postback: ${error.message}`);
     }
+  }
+
+  /**
+   * Hash IP address for privacy-safe logging
+   */
+  private hashIp(ip: string): string {
+    return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 8);
   }
 }

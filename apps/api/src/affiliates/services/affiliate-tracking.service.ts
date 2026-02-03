@@ -455,7 +455,7 @@ export class AffiliateTrackingService {
   /**
    * Get click queue statistics
    */
-  getQueueStats() {
+  async getQueueStats() {
     return this.clickQueueService.getStats();
   }
 

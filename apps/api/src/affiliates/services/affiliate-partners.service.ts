@@ -452,6 +452,111 @@ export class AffiliatePartnersService {
   }
 
   /**
+   * Suspend an active partner
+   */
+  async suspend(user: UserContext, partnerId: string, reason?: string) {
+    const partner = await this.findById(user, partnerId);
+
+    if (partner.status !== 'ACTIVE') {
+      throw new BadRequestException('Only active partners can be suspended');
+    }
+
+    const updated = await this.prisma.affiliatePartner.update({
+      where: { id: partnerId },
+      data: {
+        status: 'SUSPENDED',
+        applicationNotes: reason
+          ? `${partner.applicationNotes || ''}\n\nSuspension reason: ${reason}`
+          : partner.applicationNotes,
+      },
+      include: {
+        company: {
+          select: { id: true, name: true, slug: true },
+        },
+        _count: {
+          select: {
+            links: true,
+            conversions: true,
+            clicks: true,
+          },
+        },
+      },
+    });
+
+    // Audit log
+    await this.auditLogsService.log(
+      AuditAction.UPDATE,
+      AuditEntity.AFFILIATE_PARTNER,
+      partnerId,
+      {
+        userId: user.sub,
+        scopeType: user.scopeType,
+        scopeId: user.scopeId,
+        dataClassification: DataClassification.PII,
+        metadata: {
+          action: 'suspended',
+          email: partner.email,
+          affiliateCode: partner.affiliateCode,
+          reason,
+        },
+      },
+    );
+
+    return updated;
+  }
+
+  /**
+   * Reactivate a suspended partner
+   */
+  async reactivate(user: UserContext, partnerId: string) {
+    const partner = await this.findById(user, partnerId);
+
+    if (partner.status !== 'SUSPENDED' && partner.status !== 'INACTIVE') {
+      throw new BadRequestException('Only suspended or inactive partners can be reactivated');
+    }
+
+    const updated = await this.prisma.affiliatePartner.update({
+      where: { id: partnerId },
+      data: {
+        status: 'ACTIVE',
+        applicationNotes: `${partner.applicationNotes || ''}\n\nReactivated on ${new Date().toISOString()}`,
+      },
+      include: {
+        company: {
+          select: { id: true, name: true, slug: true },
+        },
+        _count: {
+          select: {
+            links: true,
+            conversions: true,
+            clicks: true,
+          },
+        },
+      },
+    });
+
+    // Audit log
+    await this.auditLogsService.log(
+      AuditAction.UPDATE,
+      AuditEntity.AFFILIATE_PARTNER,
+      partnerId,
+      {
+        userId: user.sub,
+        scopeType: user.scopeType,
+        scopeId: user.scopeId,
+        dataClassification: DataClassification.PII,
+        metadata: {
+          action: 'reactivated',
+          email: partner.email,
+          affiliateCode: partner.affiliateCode,
+        },
+      },
+    );
+
+    return updated;
+  }
+
+  /**
    * Get partner statistics
    */
   async getStats(user: UserContext, filters: { companyId?: string }) {
@@ -540,5 +645,105 @@ export class AffiliatePartnersService {
     }
 
     return changes;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CONFIG MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get affiliate program config for the user's company
+   */
+  async getConfig(user: UserContext, filters: { companyId?: string }) {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    // Determine target company
+    let targetCompanyId: string;
+    if (filters.companyId && companyIds.includes(filters.companyId)) {
+      targetCompanyId = filters.companyId;
+    } else if (companyIds.length === 1) {
+      targetCompanyId = companyIds[0];
+    } else {
+      throw new BadRequestException('companyId is required when user has access to multiple companies');
+    }
+
+    // Find or create config
+    let config = await this.prisma.affiliateProgramConfig.findUnique({
+      where: { companyId: targetCompanyId },
+    });
+
+    if (!config) {
+      // Create default config
+      config = await this.prisma.affiliateProgramConfig.create({
+        data: {
+          companyId: targetCompanyId,
+          isEnabled: false,
+          programName: 'Affiliate Program',
+          defaultCommissionRate: 10,
+          defaultSecondTierRate: 5,
+          defaultCookieDurationDays: 30,
+          tierThresholds: { SILVER: 1000, GOLD: 5000, PLATINUM: 20000, DIAMOND: 100000 },
+          minimumPayoutThreshold: 50,
+          payoutFrequency: 'MONTHLY',
+          automaticPayouts: false,
+          attributionWindowDays: 30,
+          lastClickAttribution: true,
+          deduplicationWindowMins: 60,
+          fraudScoreThreshold: 0.7,
+          requireManualApproval: true,
+          holdPeriodDays: 30,
+          requireW9: false,
+          requireTaxId: false,
+        },
+      });
+    }
+
+    return config;
+  }
+
+  /**
+   * Update affiliate program config
+   */
+  async updateConfig(user: UserContext, dto: Record<string, unknown>, filters: { companyId?: string }) {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    // Determine target company
+    let targetCompanyId: string;
+    if (filters.companyId && companyIds.includes(filters.companyId)) {
+      targetCompanyId = filters.companyId;
+    } else if (companyIds.length === 1) {
+      targetCompanyId = companyIds[0];
+    } else {
+      throw new BadRequestException('companyId is required when user has access to multiple companies');
+    }
+
+    // Get current config
+    const currentConfig = await this.getConfig(user, { companyId: targetCompanyId });
+
+    // Update config
+    const updated = await this.prisma.affiliateProgramConfig.update({
+      where: { id: currentConfig.id },
+      data: dto as Prisma.AffiliateProgramConfigUpdateInput,
+    });
+
+    // Audit log
+    await this.auditLogsService.log(
+      AuditAction.UPDATE,
+      AuditEntity.AFFILIATE_PROGRAM_CONFIG,
+      updated.id,
+      {
+        userId: user.sub,
+        scopeType: user.scopeType,
+        scopeId: user.scopeId,
+        dataClassification: DataClassification.INTERNAL,
+        metadata: {
+          configType: 'affiliate_program',
+          companyId: targetCompanyId,
+          changes: Object.keys(dto),
+        },
+      },
+    );
+
+    return updated;
   }
 }

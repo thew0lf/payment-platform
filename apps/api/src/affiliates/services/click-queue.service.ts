@@ -2,13 +2,13 @@
  * Affiliate Click Queue Service
  *
  * High-performance async click ingestion for affiliate tracking.
- * Uses Redis for in-memory queuing with SQS fallback for persistence.
+ * Uses PostgreSQL for durable queuing with in-memory deduplication cache.
  *
  * Architecture:
- * 1. Incoming clicks are immediately queued (sub-millisecond response)
- * 2. Background processor batches clicks for database insertion
- * 3. Deduplication happens in-memory with Redis bloom filter
- * 4. Fraud detection runs asynchronously on batched clicks
+ * 1. Incoming clicks are immediately inserted to queue table (sub-5ms response)
+ * 2. Background processor batches clicks from queue for final processing
+ * 3. Deduplication uses in-memory cache + idempotency key in DB
+ * 4. Fraud detection runs during enrichment before queue insert
  *
  * Performance Targets:
  * - Ingestion latency: < 5ms p99
@@ -17,6 +17,8 @@
  */
 
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ClickQueueStatus, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 
 // Click data as received from the tracking endpoint
@@ -65,39 +67,45 @@ export interface ClickQueueStats {
   errorCount: number;
   avgProcessingTimeMs: number;
   lastProcessedAt?: Date;
+  // Additional PostgreSQL-specific stats
+  pendingInDb: number;
+  failedInDb: number;
 }
 
 @Injectable()
 export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ClickQueueService.name);
 
-  // In-memory queue for high-performance ingestion
-  private readonly clickQueue: EnrichedClick[] = [];
-
-  // Deduplication cache (IP + link combo -> timestamp)
+  // In-memory deduplication cache (IP + link combo -> timestamp)
+  // Used for fast dedup check before hitting DB
   private readonly deduplicationCache = new Map<string, number>();
 
   // Statistics
-  private stats: ClickQueueStats = {
-    queueSize: 0,
+  private stats = {
     processedCount: 0,
     duplicateCount: 0,
     fraudCount: 0,
     errorCount: 0,
     avgProcessingTimeMs: 0,
+    lastProcessedAt: undefined as Date | undefined,
   };
 
   // Configuration
   private readonly BATCH_SIZE = 100;
-  private readonly FLUSH_INTERVAL_MS = 1000; // Flush every second
+  private readonly FLUSH_INTERVAL_MS = 1000; // Process every second
   private readonly DEDUP_WINDOW_MS = 60 * 60 * 1000; // 60 minutes
-  private readonly MAX_QUEUE_SIZE = 100000; // Back-pressure limit
+  private readonly MAX_RETRIES = 3;
+  private readonly CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Cleanup every hour
 
-  // Processing interval handle
+  // Processing interval handles
   private flushInterval: NodeJS.Timeout | null = null;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private dedupCleanupInterval: NodeJS.Timeout | null = null;
 
   // Callback for processing batches (set by affiliate module)
   private batchProcessor: ((clicks: EnrichedClick[]) => Promise<void>) | null = null;
+
+  constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
     // Start background flush processor
@@ -108,20 +116,37 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
       });
     }, this.FLUSH_INTERVAL_MS);
 
-    // Cleanup deduplication cache periodically
-    setInterval(() => this.cleanupDeduplicationCache(), 5 * 60 * 1000);
+    // Cleanup completed/failed records older than 24 hours
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldRecords().catch((err) => {
+        this.logger.error(`Cleanup error: ${err.message}`);
+      });
+    }, this.CLEANUP_INTERVAL_MS);
 
-    this.logger.log('Click queue service initialized');
+    // Cleanup deduplication cache periodically
+    this.dedupCleanupInterval = setInterval(() => this.cleanupDeduplicationCache(), 5 * 60 * 1000);
+
+    this.logger.log('Click queue service initialized (PostgreSQL-backed)');
   }
 
   async onModuleDestroy() {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
     }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    if (this.dedupCleanupInterval) {
+      clearInterval(this.dedupCleanupInterval);
+    }
 
-    // Flush remaining clicks before shutdown
-    if (this.clickQueue.length > 0) {
-      this.logger.log(`Flushing ${this.clickQueue.length} remaining clicks before shutdown`);
+    // Process remaining clicks before shutdown
+    const pendingCount = await this.prisma.affiliateClickQueue.count({
+      where: { status: ClickQueueStatus.PENDING },
+    });
+
+    if (pendingCount > 0) {
+      this.logger.log(`Processing ${pendingCount} remaining clicks before shutdown`);
       await this.processQueue();
     }
   }
@@ -145,18 +170,10 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
     // Generate idempotency key
     const idempotencyKey = this.generateIdempotencyKey(click);
 
-    // Check for duplicate
-    const isDuplicate = this.isDuplicateClick(click);
-
-    if (isDuplicate) {
+    // Check for duplicate in memory cache first (fast path)
+    if (this.isDuplicateClick(click)) {
       this.stats.duplicateCount++;
       return { queued: false, isDuplicate: true, idempotencyKey };
-    }
-
-    // Check back-pressure
-    if (this.clickQueue.length >= this.MAX_QUEUE_SIZE) {
-      this.logger.warn('Click queue at capacity, applying back-pressure');
-      // Still process but log warning
     }
 
     // Enrich click data
@@ -172,14 +189,49 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
       // Still queue for analysis but mark as suspicious
     }
 
-    // Add to queue
-    this.clickQueue.push(enrichedClick);
-    this.stats.queueSize = this.clickQueue.length;
+    // Insert into PostgreSQL queue
+    try {
+      await this.prisma.affiliateClickQueue.create({
+        data: {
+          partnerId: enrichedClick.partnerId,
+          linkId: enrichedClick.linkId,
+          companyId: enrichedClick.companyId,
+          ipAddress: click.ipAddress,
+          userAgent: enrichedClick.userAgent,
+          referrer: enrichedClick.referrer,
+          subId1: enrichedClick.subId1,
+          subId2: enrichedClick.subId2,
+          subId3: enrichedClick.subId3,
+          subId4: enrichedClick.subId4,
+          subId5: enrichedClick.subId5,
+          customParams: enrichedClick.customParams as Prisma.JsonObject | undefined,
+          status: ClickQueueStatus.PENDING,
+          ipAddressHash: enrichedClick.ipAddressHash,
+          deviceType: enrichedClick.deviceType,
+          browser: enrichedClick.browser,
+          os: enrichedClick.os,
+          isUnique: enrichedClick.isUnique,
+          fraudScore: enrichedClick.fraudScore,
+          fraudReasons: enrichedClick.fraudReasons,
+          visitorId: enrichedClick.visitorId,
+          idempotencyKey: enrichedClick.idempotencyKey,
+        },
+      });
 
-    // Mark in dedup cache
-    this.markAsProcessed(click);
+      // Mark in dedup cache after successful insert
+      this.markAsProcessed(click);
 
-    return { queued: true, isDuplicate: false, idempotencyKey };
+      return { queued: true, isDuplicate: false, idempotencyKey };
+    } catch (error) {
+      // Check for idempotency key conflict (duplicate in DB)
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        this.stats.duplicateCount++;
+        return { queued: false, isDuplicate: true, idempotencyKey };
+      }
+      this.stats.errorCount++;
+      this.logger.error(`Failed to queue click: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
   }
 
   /**
@@ -229,7 +281,7 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
 
     // Hash IP for privacy
     const ipAddressHash = createHash('sha256')
-      .update(click.ipAddress + process.env.IP_HASH_SALT || 'default-salt')
+      .update(click.ipAddress + (process.env.IP_HASH_SALT || 'default-salt'))
       .digest('hex');
 
     // Parse user agent (simplified - use ua-parser-js in production)
@@ -334,34 +386,144 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Process queued clicks in batches
+   * Process queued clicks in batches from PostgreSQL
    */
   private async processQueue(): Promise<void> {
-    if (this.clickQueue.length === 0 || !this.batchProcessor) {
+    if (!this.batchProcessor) {
       return;
     }
 
     const startTime = Date.now();
-    const batch = this.clickQueue.splice(0, this.BATCH_SIZE);
+
+    // Claim a batch of pending clicks atomically
+    // Use SKIP LOCKED to allow concurrent processors
+    const batch = await this.prisma.$transaction(async (tx) => {
+      // Find pending clicks
+      const pending = await tx.affiliateClickQueue.findMany({
+        where: {
+          status: ClickQueueStatus.PENDING,
+          retryCount: { lt: this.MAX_RETRIES },
+        },
+        orderBy: { queuedAt: 'asc' },
+        take: this.BATCH_SIZE,
+      });
+
+      if (pending.length === 0) {
+        return [];
+      }
+
+      // Mark as processing
+      await tx.affiliateClickQueue.updateMany({
+        where: {
+          id: { in: pending.map((p) => p.id) },
+        },
+        data: {
+          status: ClickQueueStatus.PROCESSING,
+        },
+      });
+
+      return pending;
+    });
+
+    if (batch.length === 0) {
+      return;
+    }
+
+    // Convert to EnrichedClick format for processor
+    const enrichedClicks: EnrichedClick[] = batch.map((record) => ({
+      id: record.id,
+      partnerId: record.partnerId,
+      linkId: record.linkId,
+      companyId: record.companyId,
+      ipAddress: record.ipAddress,
+      ipAddressHash: record.ipAddressHash || '',
+      userAgent: record.userAgent || undefined,
+      referrer: record.referrer || undefined,
+      subId1: record.subId1 || undefined,
+      subId2: record.subId2 || undefined,
+      subId3: record.subId3 || undefined,
+      subId4: record.subId4 || undefined,
+      subId5: record.subId5 || undefined,
+      customParams: record.customParams as Record<string, string> | undefined,
+      deviceType: record.deviceType || undefined,
+      browser: record.browser || undefined,
+      os: record.os || undefined,
+      isUnique: record.isUnique ?? true,
+      fraudScore: record.fraudScore || undefined,
+      fraudReasons: record.fraudReasons || [],
+      visitorId: record.visitorId || undefined,
+      idempotencyKey: record.idempotencyKey || '',
+      timestamp: record.queuedAt,
+    }));
 
     try {
-      await this.batchProcessor(batch);
+      await this.batchProcessor(enrichedClicks);
+
+      // Mark as completed
+      await this.prisma.affiliateClickQueue.updateMany({
+        where: {
+          id: { in: batch.map((p) => p.id) },
+        },
+        data: {
+          status: ClickQueueStatus.COMPLETED,
+          processedAt: new Date(),
+        },
+      });
+
       this.stats.processedCount += batch.length;
       this.stats.lastProcessedAt = new Date();
 
       // Update average processing time
       const processingTime = Date.now() - startTime;
-      this.stats.avgProcessingTimeMs =
-        (this.stats.avgProcessingTimeMs * 0.9) + (processingTime * 0.1);
-
+      this.stats.avgProcessingTimeMs = this.stats.avgProcessingTimeMs * 0.9 + processingTime * 0.1;
     } catch (error) {
-      // Put failed clicks back at the front of the queue
-      this.clickQueue.unshift(...batch);
+      // Mark as failed with retry increment
+      await this.prisma.affiliateClickQueue.updateMany({
+        where: {
+          id: { in: batch.map((p) => p.id) },
+        },
+        data: {
+          status: ClickQueueStatus.FAILED,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          retryCount: { increment: 1 },
+        },
+      });
+
+      // Reset items with retries remaining back to pending
+      await this.prisma.affiliateClickQueue.updateMany({
+        where: {
+          id: { in: batch.map((p) => p.id) },
+          retryCount: { lt: this.MAX_RETRIES },
+        },
+        data: {
+          status: ClickQueueStatus.PENDING,
+        },
+      });
+
       this.stats.errorCount++;
       throw error;
     }
+  }
 
-    this.stats.queueSize = this.clickQueue.length;
+  /**
+   * Cleanup completed/failed records older than 24 hours
+   */
+  private async cleanupOldRecords(): Promise<void> {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const result = await this.prisma.affiliateClickQueue.deleteMany({
+      where: {
+        OR: [
+          { status: ClickQueueStatus.COMPLETED, processedAt: { lt: cutoff } },
+          { status: ClickQueueStatus.DUPLICATE },
+          { status: ClickQueueStatus.FAILED, retryCount: { gte: this.MAX_RETRIES }, queuedAt: { lt: cutoff } },
+        ],
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.debug(`Cleaned up ${result.count} old queue records`);
+    }
   }
 
   /**
@@ -386,10 +548,21 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get current queue statistics
    */
-  getStats(): ClickQueueStats {
+  async getStats(): Promise<ClickQueueStats> {
+    const [pendingCount, failedCount] = await Promise.all([
+      this.prisma.affiliateClickQueue.count({
+        where: { status: ClickQueueStatus.PENDING },
+      }),
+      this.prisma.affiliateClickQueue.count({
+        where: { status: ClickQueueStatus.FAILED, retryCount: { gte: this.MAX_RETRIES } },
+      }),
+    ]);
+
     return {
+      queueSize: pendingCount,
+      pendingInDb: pendingCount,
+      failedInDb: failedCount,
       ...this.stats,
-      queueSize: this.clickQueue.length,
     };
   }
 
@@ -397,10 +570,22 @@ export class ClickQueueService implements OnModuleInit, OnModuleDestroy {
    * Force flush the queue (for testing or graceful shutdown)
    */
   async flush(): Promise<number> {
-    const count = this.clickQueue.length;
-    while (this.clickQueue.length > 0) {
+    let totalProcessed = 0;
+
+    // Keep processing until queue is empty
+    while (true) {
+      const pendingCount = await this.prisma.affiliateClickQueue.count({
+        where: { status: ClickQueueStatus.PENDING },
+      });
+
+      if (pendingCount === 0) {
+        break;
+      }
+
       await this.processQueue();
+      totalProcessed += Math.min(pendingCount, this.BATCH_SIZE);
     }
-    return count;
+
+    return totalProcessed;
   }
 }

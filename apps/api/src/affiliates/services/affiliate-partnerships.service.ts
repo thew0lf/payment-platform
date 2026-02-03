@@ -858,6 +858,219 @@ export class AffiliatePartnershipsService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // BULK OPERATION METHODS (Transactional)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Bulk approve partnerships in a single transaction
+   * All operations succeed or all fail (atomic)
+   */
+  async bulkApprove(
+    user: UserContext,
+    partnershipIds: string[],
+    options: { tier?: AffiliateTier; commissionRate?: number } = {},
+  ): Promise<{ successful: number; partnerships: PartnershipWithRelations[] }> {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    return this.prisma.$transaction(async (tx) => {
+      const partnerships: PartnershipWithRelations[] = [];
+
+      for (const id of partnershipIds) {
+        // Find and validate partnership
+        const partnership = await tx.affiliatePartner.findFirst({
+          where: { id, deletedAt: null },
+        });
+
+        if (!partnership) {
+          throw new NotFoundException(`Partnership ${id} not found`);
+        }
+
+        if (!companyIds.includes(partnership.companyId)) {
+          throw new BadRequestException(`Access denied to partnership ${id}`);
+        }
+
+        if (partnership.status !== 'PENDING_APPROVAL') {
+          throw new BadRequestException(
+            `Partnership ${id} is not pending approval (status: ${partnership.status})`,
+          );
+        }
+
+        // Update in transaction
+        const updated = await tx.affiliatePartner.update({
+          where: { id },
+          data: {
+            status: 'ACTIVE',
+            approvedAt: new Date(),
+            approvedBy: user.sub,
+            tier: options.tier || partnership.tier,
+            commissionRate: options.commissionRate ?? partnership.commissionRate,
+          },
+          include: {
+            company: { select: { id: true, name: true, slug: true } },
+            _count: {
+              select: { links: true, conversions: true, clicks: true, payouts: true },
+            },
+          },
+        });
+
+        partnerships.push(updated as PartnershipWithRelations);
+
+        // Audit log
+        await this.auditLogsService.log(
+          AuditAction.AFFILIATE_APPROVED,
+          AuditEntity.AFFILIATE_PARTNERSHIP,
+          id,
+          {
+            userId: user.sub,
+            scopeType: user.scopeType,
+            scopeId: user.scopeId,
+            dataClassification: DataClassification.INTERNAL,
+            metadata: {
+              bulkOperation: true,
+              batchSize: partnershipIds.length,
+              tier: options.tier || partnership.tier,
+            },
+          },
+        );
+      }
+
+      return { successful: partnerships.length, partnerships };
+    });
+  }
+
+  /**
+   * Bulk reject partnerships in a single transaction
+   * All operations succeed or all fail (atomic)
+   */
+  async bulkReject(
+    user: UserContext,
+    partnershipIds: string[],
+    reason: string,
+  ): Promise<{ successful: number; partnerships: PartnershipWithRelations[] }> {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    return this.prisma.$transaction(async (tx) => {
+      const partnerships: PartnershipWithRelations[] = [];
+
+      for (const id of partnershipIds) {
+        const partnership = await tx.affiliatePartner.findFirst({
+          where: { id, deletedAt: null },
+        });
+
+        if (!partnership) {
+          throw new NotFoundException(`Partnership ${id} not found`);
+        }
+
+        if (!companyIds.includes(partnership.companyId)) {
+          throw new BadRequestException(`Access denied to partnership ${id}`);
+        }
+
+        if (partnership.status !== 'PENDING_APPROVAL') {
+          throw new BadRequestException(
+            `Partnership ${id} is not pending approval (status: ${partnership.status})`,
+          );
+        }
+
+        const updated = await tx.affiliatePartner.update({
+          where: { id },
+          data: {
+            status: 'REJECTED',
+            rejectionReason: reason,
+          },
+          include: {
+            company: { select: { id: true, name: true, slug: true } },
+            _count: {
+              select: { links: true, conversions: true, clicks: true, payouts: true },
+            },
+          },
+        });
+
+        partnerships.push(updated as PartnershipWithRelations);
+
+        await this.auditLogsService.log(
+          AuditAction.AFFILIATE_REJECTED,
+          AuditEntity.AFFILIATE_PARTNERSHIP,
+          id,
+          {
+            userId: user.sub,
+            scopeType: user.scopeType,
+            scopeId: user.scopeId,
+            dataClassification: DataClassification.INTERNAL,
+            metadata: {
+              bulkOperation: true,
+              batchSize: partnershipIds.length,
+              rejectionReason: reason,
+            },
+          },
+        );
+      }
+
+      return { successful: partnerships.length, partnerships };
+    });
+  }
+
+  /**
+   * Bulk update tier in a single transaction
+   * All operations succeed or all fail (atomic)
+   */
+  async bulkUpdateTier(
+    user: UserContext,
+    partnershipIds: string[],
+    tier: AffiliateTier,
+  ): Promise<{ successful: number; partnerships: PartnershipWithRelations[] }> {
+    const companyIds = await this.hierarchyService.getAccessibleCompanyIds(user);
+
+    return this.prisma.$transaction(async (tx) => {
+      const partnerships: PartnershipWithRelations[] = [];
+
+      for (const id of partnershipIds) {
+        const partnership = await tx.affiliatePartner.findFirst({
+          where: { id, deletedAt: null },
+        });
+
+        if (!partnership) {
+          throw new NotFoundException(`Partnership ${id} not found`);
+        }
+
+        if (!companyIds.includes(partnership.companyId)) {
+          throw new BadRequestException(`Access denied to partnership ${id}`);
+        }
+
+        const previousTier = partnership.tier;
+
+        const updated = await tx.affiliatePartner.update({
+          where: { id },
+          data: { tier },
+          include: {
+            company: { select: { id: true, name: true, slug: true } },
+            _count: {
+              select: { links: true, conversions: true, clicks: true, payouts: true },
+            },
+          },
+        });
+
+        partnerships.push(updated as PartnershipWithRelations);
+
+        await this.auditLogsService.log(
+          AuditAction.PARTNERSHIP_UPDATED,
+          AuditEntity.AFFILIATE_PARTNERSHIP,
+          id,
+          {
+            userId: user.sub,
+            scopeType: user.scopeType,
+            scopeId: user.scopeId,
+            dataClassification: DataClassification.INTERNAL,
+            changes: { tier: { before: previousTier, after: tier } },
+            metadata: { bulkOperation: true, batchSize: partnershipIds.length },
+          },
+        );
+      }
+
+      return { successful: partnerships.length, partnerships };
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // HELPER METHODS
   // ═══════════════════════════════════════════════════════════════════════════════
 

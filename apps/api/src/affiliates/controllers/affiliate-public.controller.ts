@@ -24,14 +24,13 @@ import {
   Headers,
   HttpStatus,
   Logger,
-  NotFoundException,
-  BadRequestException,
   HttpCode,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ClickQueueService, RawClickData } from '../services/click-queue.service';
 import { randomBytes, createHash } from 'crypto';
+import { LRUCache } from 'lru-cache';
 
 // 1x1 transparent GIF for tracking pixel
 const TRANSPARENT_GIF_BUFFER = Buffer.from(
@@ -72,18 +71,23 @@ interface LinkCacheEntry {
 export class AffiliatePublicController {
   private readonly logger = new Logger(AffiliatePublicController.name);
 
-  // In-memory link cache (Redis should be used in production)
-  private readonly linkCache = new Map<string, LinkCacheEntry>();
+  // LRU cache for link lookups (Redis should be used in production for distributed caching)
+  private readonly linkCache: LRUCache<string, LinkCacheEntry>;
   private readonly LINK_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly LINK_CACHE_MAX_SIZE = 5000; // Max links to cache
 
-  // Rate limiting per IP with bounded size to prevent memory DoS
-  private readonly ipClickCounts = new Map<string, { count: number; resetAt: number }>();
+  // LRU cache for company config (fallback URLs)
+  private readonly companyConfigCache: LRUCache<string, { fallbackUrl: string | null; cachedAt: number }>;
+  private readonly COMPANY_CONFIG_CACHE_MAX_SIZE = 1000;
+
+  // LRU cache for rate limiting per IP (prevents memory DoS)
+  private readonly rateLimitCache: LRUCache<string, { count: number; resetAt: number }>;
   private readonly RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
   private readonly RATE_LIMIT_MAX_CLICKS = 30; // Max 30 clicks per minute per IP
-  private readonly MAX_RATE_LIMIT_ENTRIES = 10000; // Max IPs to track (memory bound)
+  private readonly RATE_LIMIT_MAX_ENTRIES = 10000; // Max IPs to track (memory bound)
 
-  // Fallback URL when link not found
-  private readonly FALLBACK_URL = process.env.AFFILIATE_FALLBACK_URL || '/';
+  // Global fallback URL when no company-specific fallback is configured
+  private readonly GLOBAL_FALLBACK_URL = process.env.AFFILIATE_FALLBACK_URL || '/';
 
   // Cookie configuration
   private readonly COOKIE_NAME = '__aff_click';
@@ -93,8 +97,21 @@ export class AffiliatePublicController {
     private readonly prisma: PrismaService,
     private readonly clickQueueService: ClickQueueService,
   ) {
-    // Clean up caches periodically
-    setInterval(() => this.cleanupCaches(), 60 * 1000);
+    // Initialize LRU caches
+    this.linkCache = new LRUCache<string, LinkCacheEntry>({
+      max: this.LINK_CACHE_MAX_SIZE,
+      ttl: this.LINK_CACHE_TTL_MS,
+    });
+
+    this.companyConfigCache = new LRUCache<string, { fallbackUrl: string | null; cachedAt: number }>({
+      max: this.COMPANY_CONFIG_CACHE_MAX_SIZE,
+      ttl: this.LINK_CACHE_TTL_MS, // Same TTL as link cache
+    });
+
+    this.rateLimitCache = new LRUCache<string, { count: number; resetAt: number }>({
+      max: this.RATE_LIMIT_MAX_ENTRIES,
+      ttl: this.RATE_LIMIT_WINDOW_MS,
+    });
   }
 
   /**
@@ -130,7 +147,7 @@ export class AffiliatePublicController {
       // Rate limiting check
       if (this.isRateLimited(ipAddress)) {
         this.logger.warn(`Rate limited click from IP: ${this.hashIp(ipAddress)}`);
-        return res.redirect(HttpStatus.FOUND, this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, this.GLOBAL_FALLBACK_URL);
       }
 
       // Lookup link (with caching)
@@ -138,31 +155,34 @@ export class AffiliatePublicController {
 
       if (!link) {
         this.logger.warn(`Link not found: ${linkCode}`);
-        return res.redirect(HttpStatus.FOUND, this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, this.GLOBAL_FALLBACK_URL);
       }
+
+      // Get fallback URL hierarchy: link-specific -> company-configured -> global
+      const fallbackUrl = await this.getFallbackUrl(link);
 
       // Validate link is active
       if (!link.isActive) {
         this.logger.debug(`Link inactive: ${linkCode}`);
-        return res.redirect(HttpStatus.FOUND, link.fallbackUrl || this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, fallbackUrl);
       }
 
       // Check if link has expired
       if (link.expiresAt && new Date() > link.expiresAt) {
         this.logger.debug(`Link expired: ${linkCode}`);
-        return res.redirect(HttpStatus.FOUND, link.fallbackUrl || this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, fallbackUrl);
       }
 
       // Check if partner is active
       if (link.partner?.status !== 'ACTIVE') {
         this.logger.debug(`Partner inactive for link: ${linkCode}`);
-        return res.redirect(HttpStatus.FOUND, link.fallbackUrl || this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, fallbackUrl);
       }
 
       // Check max clicks limit
       if (link.maxClicks && link.totalClicks >= link.maxClicks) {
         this.logger.debug(`Max clicks reached for link: ${linkCode}`);
-        return res.redirect(HttpStatus.FOUND, link.fallbackUrl || this.FALLBACK_URL);
+        return res.redirect(HttpStatus.FOUND, fallbackUrl);
       }
 
       // Extract SubIDs from query params
@@ -221,8 +241,50 @@ export class AffiliatePublicController {
       return res.redirect(HttpStatus.FOUND, redirectUrl);
     } catch (error) {
       this.logger.error(`Click redirect error for ${linkCode}: ${error.message}`);
-      return res.redirect(HttpStatus.FOUND, this.FALLBACK_URL);
+      return res.redirect(HttpStatus.FOUND, this.GLOBAL_FALLBACK_URL);
     }
+  }
+
+  /**
+   * Get fallback URL with priority: link-specific -> company-configured -> global
+   */
+  private async getFallbackUrl(link: any): Promise<string> {
+    // Priority 1: Link-specific fallback URL
+    if (link.fallbackUrl) {
+      return link.fallbackUrl;
+    }
+
+    // Priority 2: Company-configured fallback URL
+    const companyFallback = await this.getCompanyFallbackUrl(link.companyId);
+    if (companyFallback) {
+      return companyFallback;
+    }
+
+    // Priority 3: Global fallback URL from environment
+    return this.GLOBAL_FALLBACK_URL;
+  }
+
+  /**
+   * Get company-level fallback URL with LRU caching
+   */
+  private async getCompanyFallbackUrl(companyId: string): Promise<string | null> {
+    // Check cache first
+    const cached = this.companyConfigCache.get(companyId);
+    if (cached) {
+      return cached.fallbackUrl;
+    }
+
+    // Query database for company affiliate config
+    const config = await this.prisma.affiliateProgramConfig.findUnique({
+      where: { companyId },
+      select: { defaultFallbackUrl: true },
+    });
+
+    // Cache result (even null to prevent repeated DB hits)
+    const fallbackUrl = config?.defaultFallbackUrl || null;
+    this.companyConfigCache.set(companyId, { fallbackUrl, cachedAt: Date.now() });
+
+    return fallbackUrl;
   }
 
   /**
@@ -297,7 +359,7 @@ export class AffiliatePublicController {
    */
   @Get('affiliates/public/health')
   async healthCheck() {
-    const stats = this.clickQueueService.getStats();
+    const stats = await this.clickQueueService.getStats();
     return {
       status: 'ok',
       queue: {
@@ -305,20 +367,23 @@ export class AffiliatePublicController {
         processed: stats.processedCount,
         duplicates: stats.duplicateCount,
         errors: stats.errorCount,
+        pendingInDb: stats.pendingInDb,
+        failedInDb: stats.failedInDb,
       },
       cache: {
         linksCached: this.linkCache.size,
+        rateLimitEntries: this.rateLimitCache.size,
       },
     };
   }
 
   /**
-   * Find link by short code or tracking code with caching
+   * Find link by short code or tracking code with LRU caching
    */
   private async findLinkByCode(code: string): Promise<any | null> {
-    // Check cache first
+    // Check LRU cache first (TTL handled automatically)
     const cached = this.linkCache.get(code);
-    if (cached && Date.now() - cached.cachedAt < this.LINK_CACHE_TTL_MS) {
+    if (cached) {
       return cached.link;
     }
 
@@ -344,6 +409,7 @@ export class AffiliatePublicController {
     });
 
     // Cache result (even null to prevent repeated DB hits)
+    // LRU cache handles TTL and eviction automatically
     this.linkCache.set(code, { link, cachedAt: Date.now() });
 
     return link;
@@ -421,7 +487,7 @@ export class AffiliatePublicController {
       // Only allow http and https schemes
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
         this.logger.warn(`Invalid URL scheme blocked: ${urlObj.protocol} in ${url.substring(0, 50)}`);
-        return this.FALLBACK_URL;
+        return this.GLOBAL_FALLBACK_URL;
       }
 
       urlObj.searchParams.set('aff_click', context.clickId);
@@ -432,7 +498,7 @@ export class AffiliatePublicController {
       // SECURITY: If URL parsing fails, don't allow arbitrary redirects
       // Log the issue and return fallback URL
       this.logger.warn(`Invalid URL format blocked: ${url.substring(0, 50)}`);
-      return this.FALLBACK_URL;
+      return this.GLOBAL_FALLBACK_URL;
     }
   }
 
@@ -510,58 +576,26 @@ export class AffiliatePublicController {
 
   /**
    * Check if IP is rate limited
-   * SECURITY: Bounded Map size to prevent memory DoS attacks
+   * Uses LRU cache with TTL for automatic memory management
    */
   private isRateLimited(ipAddress: string): boolean {
     const now = Date.now();
     const ipHash = this.hashIp(ipAddress);
-    const entry = this.ipClickCounts.get(ipHash);
+    const entry = this.rateLimitCache.get(ipHash);
 
     if (!entry || now > entry.resetAt) {
-      // SECURITY: Enforce max entries to prevent memory exhaustion
-      if (this.ipClickCounts.size >= this.MAX_RATE_LIMIT_ENTRIES) {
-        // Evict oldest entries (LRU-style cleanup)
-        this.evictOldestRateLimitEntries();
-      }
-
-      // New window
-      this.ipClickCounts.set(ipHash, {
+      // New window - LRU cache handles eviction automatically
+      this.rateLimitCache.set(ipHash, {
         count: 1,
         resetAt: now + this.RATE_LIMIT_WINDOW_MS,
       });
       return false;
     }
 
+    // Increment count (need to re-set to update TTL)
     entry.count++;
+    this.rateLimitCache.set(ipHash, entry);
     return entry.count > this.RATE_LIMIT_MAX_CLICKS;
-  }
-
-  /**
-   * Evict oldest rate limit entries to bound memory usage
-   */
-  private evictOldestRateLimitEntries(): void {
-    const now = Date.now();
-    let evicted = 0;
-    const targetEvictions = Math.ceil(this.MAX_RATE_LIMIT_ENTRIES * 0.1); // Evict 10%
-
-    // First pass: evict expired entries
-    for (const [key, entry] of this.ipClickCounts.entries()) {
-      if (now > entry.resetAt) {
-        this.ipClickCounts.delete(key);
-        evicted++;
-      }
-      if (evicted >= targetEvictions) return;
-    }
-
-    // Second pass: evict oldest entries if still over limit
-    if (this.ipClickCounts.size >= this.MAX_RATE_LIMIT_ENTRIES) {
-      const entries = Array.from(this.ipClickCounts.entries())
-        .sort((a, b) => a[1].resetAt - b[1].resetAt);
-
-      for (let i = 0; i < targetEvictions && i < entries.length; i++) {
-        this.ipClickCounts.delete(entries[i][0]);
-      }
-    }
   }
 
   /**
@@ -571,24 +605,4 @@ export class AffiliatePublicController {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  /**
-   * Clean up expired cache entries
-   */
-  private cleanupCaches(): void {
-    const now = Date.now();
-
-    // Clean link cache
-    for (const [key, entry] of this.linkCache.entries()) {
-      if (now - entry.cachedAt > this.LINK_CACHE_TTL_MS) {
-        this.linkCache.delete(key);
-      }
-    }
-
-    // Clean rate limit entries
-    for (const [key, entry] of this.ipClickCounts.entries()) {
-      if (now > entry.resetAt) {
-        this.ipClickCounts.delete(key);
-      }
-    }
-  }
 }

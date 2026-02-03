@@ -324,7 +324,7 @@ export class AffiliateApplicationService {
       // Get company admin emails (could be from config or users with admin role)
       // For now, we'll just log - in production this would send to configured admin emails
       this.logger.log(
-        `Admin notification: New affiliate application ${referenceNumber} for ${company.name} from ${application.email}`,
+        `Admin notification: New affiliate application ${referenceNumber} for ${company.name} (applicant ID: ${application.id})`,
       );
 
       // TODO: Implement admin notification when email recipients are configured
