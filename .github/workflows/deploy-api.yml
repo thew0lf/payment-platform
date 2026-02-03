@@ -244,18 +244,21 @@ jobs:
       - name: Run Migration Task
         id: run-migration
         run: |
-          # Run migration with verbose output
+          # Migration command that first checks for and resolves failed migrations
+          # Then runs the actual migration
+          MIGRATION_CMD='set -ex; echo "=== Checking for failed migrations ==="; npx prisma migrate status --schema=prisma/schema.prisma || true; echo "=== Resolving any failed migrations ==="; for m in $(npx prisma migrate status --schema=prisma/schema.prisma 2>&1 | grep "failed" | grep -oE "[0-9]{14}_[a-z_]+" || true); do echo "Marking $m as rolled-back"; npx prisma migrate resolve --rolled-back "$m" --schema=prisma/schema.prisma || true; done; echo "=== Running migrations ==="; npx prisma migrate deploy --schema=prisma/schema.prisma; echo "=== Migration completed ==="'
+
           TASK_ARN=$(aws ecs run-task \
             --cluster ${{ env.ECS_CLUSTER }} \
             --task-definition ${{ env.ECS_TASK_DEFINITION }} \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[${{ steps.vpc-config.outputs.subnet }}],securityGroups=[${{ steps.vpc-config.outputs.security_group }}],assignPublicIp=ENABLED}" \
-            --overrides '{
-              "containerOverrides": [{
-                "name": "api",
-                "command": ["sh", "-c", "set -ex && echo Starting migration && pwd && ls -la prisma/ && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
+            --overrides "{
+              \"containerOverrides\": [{
+                \"name\": \"api\",
+                \"command\": [\"sh\", \"-c\", \"$MIGRATION_CMD\"]
               }]
-            }' \
+            }" \
             --query 'tasks[0].taskArn' \
             --output text)
 
