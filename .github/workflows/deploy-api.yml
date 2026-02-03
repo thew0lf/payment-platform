@@ -245,12 +245,12 @@ jobs:
         id: run-migration
         run: |
           # Create overrides JSON file to avoid shell escaping issues
-          # Resolve all affiliate-related migrations that may have failed or are pending
+          # First delete broken migration records, then reapply all migrations
           cat > /tmp/migration-overrides.json <<'OVERRIDES'
           {
             "containerOverrides": [{
               "name": "api",
-              "command": ["sh", "-c", "set -ex && echo Checking migration status && npx prisma migrate status --schema=prisma/schema.prisma || true && echo Resolving affiliate migrations && for m in 20260131200000_add_affiliate_program 20260131210000_add_subid_config_and_conversion_subids 20260203000000_add_affiliate_click_queue 20260203100000_add_affiliate_fallback_url; do npx prisma migrate resolve --rolled-back $m --schema=prisma/schema.prisma 2>/dev/null || true; done && echo Running migrations && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
+              "command": ["sh", "-c", "set -ex && echo Checking migration status && npx prisma migrate status --schema=prisma/schema.prisma || true && echo Deleting broken affiliate migration records && echo \"DELETE FROM _prisma_migrations WHERE migration_name LIKE '%affiliate%' OR migration_name LIKE '%subid%';\" | npx prisma db execute --stdin --schema=prisma/schema.prisma && echo Running migrations && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
             }]
           }
           OVERRIDES
