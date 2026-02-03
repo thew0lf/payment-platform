@@ -192,6 +192,8 @@ export const AuditAction = {
   SUSPICIOUS_ACTIVITY: 'SUSPICIOUS_ACTIVITY',
   IP_BLOCKED: 'IP_BLOCKED',
   IP_WHITELISTED: 'IP_WHITELISTED',
+  FRAUD_SUSPECTED: 'FRAUD_SUSPECTED', // reCAPTCHA or fraud detection triggered
+  FRAUD_BLOCKED: 'FRAUD_BLOCKED', // Transaction blocked due to fraud
 
   // ─────────────────────────────────────────────────────────────────────────────
   // CONFIGURATION & SETTINGS (SOC2 CC8.1, PCI-DSS 10.2.2)
@@ -259,6 +261,8 @@ export const AuditAction = {
   TERMS_DECLINED: 'TERMS_DECLINED',
   TERMS_VERSION_UPDATED: 'TERMS_VERSION_UPDATED',
   PRIVACY_POLICY_UPDATED: 'PRIVACY_POLICY_UPDATED',
+  CONSENT_RECORDS_ACCESSED: 'CONSENT_RECORDS_ACCESSED', // GDPR Art. 30 - Viewing consent records
+  CONSENT_RECORDS_EXPORTED: 'CONSENT_RECORDS_EXPORTED', // GDPR Art. 30 - Exporting consent records
 
   // ─────────────────────────────────────────────────────────────────────────────
   // INVENTORY & PRODUCT
@@ -297,6 +301,12 @@ export const AuditAction = {
   MAINTENANCE_COMPLETED: 'MAINTENANCE_COMPLETED',
   AUDIT_LOG_ACCESSED: 'AUDIT_LOG_ACCESSED', // Meta-audit
   AUDIT_LOG_EXPORTED: 'AUDIT_LOG_EXPORTED',
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INPUT VALIDATION & SECURITY MONITORING (SOC2 CC6.6, PCI-DSS 10.2.2)
+  // ─────────────────────────────────────────────────────────────────────────────
+  VALIDATION_FAILED: 'VALIDATION_FAILED', // API validation failures for attack detection
+  VALIDATION_SUSPICIOUS: 'VALIDATION_SUSPICIOUS', // Suspicious patterns detected in validation failures
 
   // ─────────────────────────────────────────────────────────────────────────────
   // AI & AUTOMATION (SOC2 CC7.4, GDPR Art. 22)
@@ -339,6 +349,27 @@ export const AuditAction = {
   EMAIL_TEMPLATE_CREATED: 'EMAIL_TEMPLATE_CREATED',
   EMAIL_TEMPLATE_UPDATED: 'EMAIL_TEMPLATE_UPDATED',
   EMAIL_TEMPLATE_DELETED: 'EMAIL_TEMPLATE_DELETED',
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // AFFILIATE PROGRAM
+  // ─────────────────────────────────────────────────────────────────────────────
+  AFFILIATE_APPROVED: 'AFFILIATE_APPROVED',
+  AFFILIATE_REJECTED: 'AFFILIATE_REJECTED',
+  AFFILIATE_SUSPENDED: 'AFFILIATE_SUSPENDED',
+  AFFILIATE_REACTIVATED: 'AFFILIATE_REACTIVATED',
+  AFFILIATE_TERMINATED: 'AFFILIATE_TERMINATED',
+  AFFILIATE_TIER_CHANGED: 'AFFILIATE_TIER_CHANGED',
+  AFFILIATE_COMMISSION_CHANGED: 'AFFILIATE_COMMISSION_CHANGED',
+  AFFILIATE_PAYOUT_REQUESTED: 'AFFILIATE_PAYOUT_REQUESTED',
+  AFFILIATE_PAYOUT_APPROVED: 'AFFILIATE_PAYOUT_APPROVED',
+  AFFILIATE_PAYOUT_PROCESSED: 'AFFILIATE_PAYOUT_PROCESSED',
+  AFFILIATE_PAYOUT_FAILED: 'AFFILIATE_PAYOUT_FAILED',
+  AFFILIATE_CONVERSION: 'AFFILIATE_CONVERSION',
+  AFFILIATE_CLICK: 'AFFILIATE_CLICK',
+  PARTNERSHIP_CREATED: 'PARTNERSHIP_CREATED',
+  PARTNERSHIP_UPDATED: 'PARTNERSHIP_UPDATED',
+  PARTNERSHIP_STATUS_CHANGED: 'PARTNERSHIP_STATUS_CHANGED',
+  PARTNERSHIP_DELETED: 'PARTNERSHIP_DELETED',
 } as const;
 
 export type AuditActionType = (typeof AuditAction)[keyof typeof AuditAction];
@@ -474,6 +505,19 @@ export const AuditEntity = {
   REFUND_SETTINGS: 'RefundSettings',
   REFUND_POLICY: 'RefundPolicy',
   RMA_POLICY: 'RMAPolicy',
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // AFFILIATES
+  // ─────────────────────────────────────────────────────────────────────────────
+  AFFILIATE_PARTNER: 'AffiliatePartner',
+  AFFILIATE_PARTNERSHIP: 'AffiliatePartnership',
+  AFFILIATE_LINK: 'AffiliateLink',
+  AFFILIATE_CLICK: 'AffiliateClick',
+  AFFILIATE_CONVERSION: 'AffiliateConversion',
+  AFFILIATE_PAYOUT: 'AffiliatePayout',
+  AFFILIATE_APPLICATION: 'AffiliateApplication',
+  AFFILIATE_CREATIVE: 'AffiliateCreative',
+  AFFILIATE_PROGRAM_CONFIG: 'AffiliateProgramConfig',
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SYSTEM

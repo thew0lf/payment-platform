@@ -11,6 +11,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AffiliatePartnersService, PartnerFilters } from './services/affiliate-partners.service';
@@ -121,6 +122,20 @@ export class AffiliatesController {
     return this.partnersService.deactivate(req.user, id);
   }
 
+  @Post('partners/:id/suspend')
+  async suspendPartner(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.partnersService.suspend(req.user, id, reason);
+  }
+
+  @Post('partners/:id/reactivate')
+  async reactivatePartner(@Request() req, @Param('id') id: string) {
+    return this.partnersService.reactivate(req.user, id);
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // LINKS
   // ═══════════════════════════════════════════════════════════════
@@ -183,7 +198,11 @@ export class AffiliatesController {
   }
 
   @Get('clicks/queue-stats')
-  async getClickQueueStats() {
+  async getClickQueueStats(@Request() req) {
+    // Only ORGANIZATION admins can view queue diagnostics
+    if (req.user.scopeType !== 'ORGANIZATION') {
+      throw new ForbiddenException('Queue stats are only accessible to organization administrators');
+    }
     return this.trackingService.getQueueStats();
   }
 
@@ -345,5 +364,23 @@ export class AffiliatesController {
       limit: limit ? parseInt(limit, 10) : undefined,
     };
     return this.analyticsService.getSubIdReport(req.user, filters);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CONFIG
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('config')
+  async getConfig(@Request() req, @Query('companyId') companyId?: string) {
+    return this.partnersService.getConfig(req.user, { companyId });
+  }
+
+  @Patch('config')
+  async updateConfig(
+    @Request() req,
+    @Body() dto: Record<string, unknown>,
+    @Query('companyId') companyId?: string,
+  ) {
+    return this.partnersService.updateConfig(req.user, dto, { companyId });
   }
 }

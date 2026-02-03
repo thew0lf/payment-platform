@@ -72,6 +72,7 @@ import { PublicAffiliatesController } from './public-affiliates.controller';
     AffiliateAnalyticsService,
     AffiliateApplicationService,
     AffiliateClicksService,
+    AffiliateReportsService,
     ClickQueueService,
   ],
   exports: [
@@ -84,6 +85,7 @@ import { PublicAffiliatesController } from './public-affiliates.controller';
     AffiliateAnalyticsService,
     AffiliateApplicationService,
     AffiliateClicksService,
+    AffiliateReportsService,
     ClickQueueService,
   ],
 })

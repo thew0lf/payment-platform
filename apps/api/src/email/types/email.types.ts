@@ -28,6 +28,7 @@ export interface SendTemplatedEmailOptions {
   toName?: string;
   templateCode: string;
   variables: Record<string, unknown>;
+  fallbackSubject?: string; // Subject to use if template not found
   organizationId?: string;
   clientId?: string;
   companyId?: string;
