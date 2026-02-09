@@ -244,14 +244,11 @@ jobs:
       - name: Run Migration Task
         id: run-migration
         run: |
-          # Clean up partial migration state from previous failed runs, then deploy all migrations
-          # Root cause: migration files were not committed to git, so Docker image was missing them
-          # Now that they're committed, we just need to clean up the mess from failed attempts
           cat > /tmp/migration-overrides.json <<'OVERRIDES'
           {
             "containerOverrides": [{
               "name": "api",
-              "command": ["sh", "-c", "set -ex && echo Resolving failed fallback_url migration as applied && npx prisma migrate resolve --applied 20260203100000_add_affiliate_fallback_url --schema=prisma/schema.prisma 2>/dev/null || true && echo Deploying remaining migrations && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
+              "command": ["sh", "-c", "npx prisma migrate deploy --schema=prisma/schema.prisma"]
             }]
           }
           OVERRIDES
