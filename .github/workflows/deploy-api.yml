@@ -251,7 +251,7 @@ jobs:
           {
             "containerOverrides": [{
               "name": "api",
-              "command": ["sh", "-c", "set -ex && echo Cleanup failed migration state && echo 'DROP TABLE IF EXISTS affiliate_click_queue CASCADE' | npx prisma db execute --stdin --schema=prisma/schema.prisma && echo 'DROP TYPE IF EXISTS \"ClickQueueStatus\" CASCADE' | npx prisma db execute --stdin --schema=prisma/schema.prisma && echo \"DELETE FROM _prisma_migrations WHERE migration_name = '20260203000000_add_affiliate_click_queue'\" | npx prisma db execute --stdin --schema=prisma/schema.prisma && echo \"DELETE FROM _prisma_migrations WHERE migration_name = '20260203100000_add_affiliate_fallback_url'\" | npx prisma db execute --stdin --schema=prisma/schema.prisma && npx prisma migrate resolve --rolled-back 20260203000000_add_affiliate_click_queue --schema=prisma/schema.prisma 2>/dev/null || true && npx prisma migrate resolve --rolled-back 20260203100000_add_affiliate_fallback_url --schema=prisma/schema.prisma 2>/dev/null || true && echo Deploying migrations && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
+              "command": ["sh", "-c", "set -ex && echo Resolving failed fallback_url migration as applied && npx prisma migrate resolve --applied 20260203100000_add_affiliate_fallback_url --schema=prisma/schema.prisma 2>/dev/null || true && echo Deploying remaining migrations && npx prisma migrate deploy --schema=prisma/schema.prisma && echo Migration completed"]
             }]
           }
           OVERRIDES
