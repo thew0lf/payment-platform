@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFounderByNumber, getFounderCount } from '@/lib/db';
 import type { PositionResponse } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }

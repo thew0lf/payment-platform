@@ -103,7 +103,7 @@ resource "aws_lb_target_group" "founders" {
     unhealthy_threshold = 3
     timeout             = 10
     interval            = 30
-    path                = "/"
+    path                = "/api/health"
     protocol            = "HTTP"
     matcher             = "200"
   }
@@ -200,7 +200,7 @@ resource "aws_ecs_task_definition" "founders" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${var.founders_container_port}/ || exit 1"]
+        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${var.founders_container_port}/api/health || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3

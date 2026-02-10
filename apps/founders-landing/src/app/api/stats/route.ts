@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createPool, sql as vercelSql } from '@vercel/postgres';
 import type { StatsResponse } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 // Starting offset - count starts at 832
 const FOUNDER_OFFSET = 832;
 const MAX_FOUNDERS = 10000;

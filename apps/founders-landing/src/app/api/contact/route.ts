@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
+export const dynamic = 'force-dynamic';
+
 const ses = new SESClient({
   region: process.env.AWS_REGION || 'us-east-1',
   credentials: process.env.AWS_ACCESS_KEY_ID ? {

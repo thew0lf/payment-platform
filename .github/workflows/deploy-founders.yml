@@ -109,6 +109,24 @@ jobs:
           role-session-name: founders-deploy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Ensure desired count is at least 1
+        run: |
+          DESIRED=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].desiredCount' \
+            --output text)
+          echo "Current desiredCount: $DESIRED"
+          if [ "$DESIRED" = "0" ] || [ "$DESIRED" = "None" ]; then
+            echo "Service has desiredCount=0, setting to 1..."
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --service ${{ env.ECS_SERVICE }} \
+              --desired-count 1 \
+              --query 'service.{status:status,desiredCount:desiredCount}' \
+              --output json
+          fi
+
       - name: Update ECS Service
         run: |
           aws ecs update-service \
@@ -122,8 +140,50 @@ jobs:
           echo "Waiting for ECS service to stabilize..."
           aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE }}
-          echo "Deployment complete!"
+            --services ${{ env.ECS_SERVICE }} || true
+
+          # Check service status and recent events
+          echo "=== Service Status ==="
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].{status:status,desired:desiredCount,running:runningCount,pending:pendingCount,events:events[:5]}' \
+            --output json
+
+          # Check stopped tasks for crash reasons
+          echo "=== Recent Stopped Tasks ==="
+          STOPPED_TASKS=$(aws ecs list-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service-name ${{ env.ECS_SERVICE }} \
+            --desired-status STOPPED \
+            --query 'taskArns[:3]' \
+            --output json)
+
+          if [ "$STOPPED_TASKS" != "[]" ] && [ -n "$STOPPED_TASKS" ]; then
+            aws ecs describe-tasks \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --tasks $(echo $STOPPED_TASKS | jq -r '.[]') \
+              --query 'tasks[].{taskArn:taskArn,lastStatus:lastStatus,stoppedReason:stoppedReason,stopCode:stopCode,containers:containers[].{name:name,exitCode:exitCode,reason:reason}}' \
+              --output json
+          fi
+
+          # Check if running count matches desired
+          RUNNING=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].runningCount' \
+            --output text)
+          DESIRED=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].desiredCount' \
+            --output text)
+
+          if [ "$RUNNING" != "$DESIRED" ]; then
+            echo "::error::Service not stable. Running: $RUNNING, Desired: $DESIRED"
+            exit 1
+          fi
+          echo "Deployment complete! Running: $RUNNING, Desired: $DESIRED"
 
   # ============================================
   # Job 3: Verify Deployment
@@ -138,7 +198,7 @@ jobs:
         run: |
           echo "Checking founders landing health..."
           for i in {1..10}; do
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://founders.avnz.io" || echo "000")
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://founders.avnz.io/api/health" || echo "000")
 
             if [ "$RESPONSE" = "200" ]; then
               echo "✅ Health check passed! (attempt $i)"

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateReferralLink } from '@/lib/utils';
 import type { SignupRequest, SignupResponse } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 // Main API URL for waitlist
 const API_URL = process.env.MAIN_API_URL || 'http://localhost:3001';
 const ORGANIZATION_ID = process.env.ORGANIZATION_ID || '';

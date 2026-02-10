@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFounderByNumber, createVerificationToken } from '@/lib/db';
 import { sendVerificationSMS, generateSMSCode, isTwilioConfigured } from '@/lib/sms';
 
+export const dynamic = 'force-dynamic';
+
 // Store SMS codes in memory (in production, use Redis or DB)
 const smsCodeStore = new Map<string, { code: string; expires: number; founderId: number }>();
 

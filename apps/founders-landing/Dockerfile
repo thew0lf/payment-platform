@@ -25,6 +25,9 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine AS production
 
+# Install libc6-compat for native module compatibility
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
 # Add non-root user for security
@@ -52,7 +55,7 @@ EXPOSE 3002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget -qO- http://localhost:3002/ || exit 1
+  CMD wget -qO- http://localhost:3002/api/health || exit 1
 
 # Start the server
 CMD ["node", "server.js"]
