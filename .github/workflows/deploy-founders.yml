@@ -109,6 +109,81 @@ jobs:
           role-session-name: founders-deploy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Update ALB health check to /api/health
+        run: |
+          TG_ARN=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].loadBalancers[0].targetGroupArn' \
+            --output text)
+          echo "Target group: $TG_ARN"
+
+          CURRENT_PATH=$(aws elbv2 describe-target-groups \
+            --target-group-arns "$TG_ARN" \
+            --query 'TargetGroups[0].HealthCheckPath' \
+            --output text)
+          echo "Current health check path: $CURRENT_PATH"
+
+          if [ "$CURRENT_PATH" != "/api/health" ]; then
+            echo "Updating ALB health check path to /api/health..."
+            aws elbv2 modify-target-group \
+              --target-group-arn "$TG_ARN" \
+              --health-check-path "/api/health" \
+              --query 'TargetGroups[0].{HealthCheckPath:HealthCheckPath}' \
+              --output json
+          else
+            echo "ALB health check already set to /api/health"
+          fi
+
+      - name: Register updated task definition
+        run: |
+          # Get current task definition
+          CURRENT_TD=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "Current task definition: $CURRENT_TD"
+
+          # Get container health check command
+          HC_CMD=$(aws ecs describe-task-definition \
+            --task-definition "$CURRENT_TD" \
+            --query 'taskDefinition.containerDefinitions[0].healthCheck.command[1]' \
+            --output text)
+          echo "Current container health check: $HC_CMD"
+
+          if echo "$HC_CMD" | grep -q "/api/health"; then
+            echo "Container health check already uses /api/health, skipping"
+          else
+            echo "Registering new task definition with /api/health health check..."
+            # Extract the task definition JSON and update the health check
+            aws ecs describe-task-definition \
+              --task-definition "$CURRENT_TD" \
+              --query 'taskDefinition' \
+              --output json | \
+              jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+                .containerDefinitions[0].healthCheck.command[1] = (.containerDefinitions[0].healthCheck.command[1] | gsub("localhost:[0-9]+/"; "localhost:3002/api/health") | if test("/api/health") then . else gsub("localhost:3002/"; "localhost:3002/api/health") end)' \
+              > /tmp/task-def.json
+
+            # Verify the update
+            echo "Updated health check:"
+            jq '.containerDefinitions[0].healthCheck' /tmp/task-def.json
+
+            # Register the new task definition
+            aws ecs register-task-definition \
+              --cli-input-json file:///tmp/task-def.json \
+              --query 'taskDefinition.{family:family,revision:revision}' \
+              --output json
+
+            # Update service to use new task definition
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --service ${{ env.ECS_SERVICE }} \
+              --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+              --query 'service.{taskDefinition:taskDefinition}' \
+              --output json
+          fi
+
       - name: Ensure desired count is at least 1
         run: |
           DESIRED=$(aws ecs describe-services \
