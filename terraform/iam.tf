@@ -206,8 +206,6 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Action = [
           "ecs:DescribeServices",
           "ecs:UpdateService",
-          "ecs:DescribeTaskDefinition",
-          "ecs:RegisterTaskDefinition",
           "ecs:ListTasks",
           "ecs:DescribeTasks",
           "ecs:RunTask",
@@ -219,6 +217,15 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
             "ecs:cluster" = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/avnz-*"
           }
         }
+      },
+      {
+        Sid    = "ECSTaskDefinitions"
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition"
+        ]
+        Resource = "*"
       },
       {
         Sid    = "ECSCluster"
@@ -240,11 +247,12 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         ]
       },
       {
-        Sid    = "ELBDescribe"
+        Sid    = "ELBDescribeAndModify"
         Effect = "Allow"
         Action = [
           "elasticloadbalancing:DescribeLoadBalancers",
-          "elasticloadbalancing:DescribeTargetGroups"
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:ModifyTargetGroup"
         ]
         Resource = "*"
       },
